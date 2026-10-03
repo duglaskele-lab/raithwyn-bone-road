@@ -47,3 +47,29 @@ export function rr(x, y, w, h, r) {
   ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.closePath();
 }
+// Character portraits for the select screen and the HUD. The single-file build passes them
+// in as data URIs through window.__PORTRAITS__.
+export const portraits = {};
+export function loadPortraits(names, inlined = {}) {
+  for (const n of names) {
+    const img = new Image();
+    img.src = inlined[n] || `assets/portraits/${n}.webp`;
+    portraits[n] = img;
+  }
+}
+export const ready = (img) => img && img.complete && img.naturalWidth > 0;
+/** Draws `s` word-wrapped to `maxW`; returns the y below the last line. */
+export function wrapTxt(s, x, y, maxW, size, lineH, col, st) {
+  ctx.font = `900 ${size}px ${FONT}`;
+  let line = '';
+  for (const word of s.split(' ')) {
+    const next = line ? line + ' ' + word : word;
+    if (line && ctx.measureText(next).width > maxW) {
+      txt(line, x, y, size, col, 'left', st);
+      y += lineH;
+      line = word;
+    } else line = next;
+  }
+  if (line) txt(line, x, y, size, col, 'left', st);
+  return y + lineH;
+}

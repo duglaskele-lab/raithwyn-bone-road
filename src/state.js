@@ -4,6 +4,8 @@ import { GT } from './config.js';
 export const G = {
   state: 'title',
   menu: 0,
+  sel: 0,
+  msgT: 0,
   time: 0,
   cam: 0,
   freeze: 0,

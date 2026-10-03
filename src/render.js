@@ -1,25 +1,10 @@
 // Draws the world, the HUD and the title screen.
-import {
-  FONT,
-  H,
-  MAXR,
-  OL,
-  PURPLE,
-  RL,
-  RW,
-  SLAM_R,
-  SWIND,
-  SWIND_LOCK,
-  TAU,
-  W,
-  WAVES,
-} from './config.js';
+import { H, MAXR, OL, PURPLE, RL, RW, SLAM_R, SWIND, SWIND_LOCK, TAU, W, WAVES } from './config.js';
 import { clamp, ease } from './util.js';
 import { FR } from './atlas-frames.js';
 import { G, P } from './state.js';
-import { atlas, ctx, rr, sprite, txt } from './gfx.js';
-import { touch } from './input.js';
-import { foeName, STR, lang, t } from './i18n.js';
+import { atlas, ctx, portraits, ready, rr, sprite, txt } from './gfx.js';
+import { foeName, t } from './i18n.js';
 import { drawBG, drawFog, drawVignette } from './background.js';
 import { hadoLevel } from './combat.js';
 import { boneShape, drawBike, drawSkel } from './skeleton.js';
@@ -441,8 +426,11 @@ export function drawHUD() {
   ctx.save();
   rr(18, 14, 62, 62, 8);
   ctx.clip();
-  const f = FR.idle[0];
-  ctx.drawImage(atlas, f[0] + 14, f[1], 58, 58, 20, 18, 60, 60);
+  if (ready(portraits.raithwyn)) ctx.drawImage(portraits.raithwyn, 18, 14, 62, 62);
+  else {
+    const f = FR.idle[0];
+    ctx.drawImage(atlas, f[0] + 14, f[1], 58, 58, 20, 18, 60, 60);
+  }
   ctx.restore();
   rr(18, 14, 62, 62, 8);
   ctx.lineWidth = 3;
@@ -553,73 +541,3 @@ export function overlay(a) {
   ctx.fillStyle = `rgba(12,10,20,${a})`;
   ctx.fillRect(0, 0, W, H);
 }
-export function drawTitle() {
-  G.cam = 200 + G.time * 18;
-  drawWorld();
-  const g = ctx.createLinearGradient(0, 0, W, 0);
-  g.addColorStop(0, 'rgba(12,10,20,.2)');
-  g.addColorStop(0.45, 'rgba(12,10,20,.72)');
-  g.addColorStop(1, 'rgba(12,10,20,.86)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
-  // hero
-  const fx = 210,
-    fy = 505;
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  const gl = ctx.createRadialGradient(fx, fy - 200, 10, fx, fy - 200, 260);
-  gl.addColorStop(0, 'rgba(176,92,255,.38)');
-  gl.addColorStop(1, 'rgba(176,92,255,0)');
-  ctx.fillStyle = gl;
-  ctx.fillRect(0, 0, 480, H);
-  ctx.restore();
-  sprite(
-    'laugh',
-    [0, 0, 0, 1, 2, 1, 2, 1, 2, 3, 3, 0][Math.floor(G.time / 0.13) % 12],
-    fx,
-    fy,
-    false,
-    2.35,
-  );
-  ctx.save();
-  ctx.shadowColor = PURPLE;
-  ctx.shadowBlur = 26;
-  txt('RAITHWYN', 420, 170, 68, '#f0e9ff', 'left', 10);
-  ctx.restore();
-  txt(t('subtitle'), 424, 208, 24, '#d2a8ff', 'left', 5);
-  const rows = [
-    [t('rowAtk'), 'J'],
-    [t('rowJump'), t('keySpace')],
-    [t('rowBone'), 'K'],
-    [t('rowHado'), 'L'],
-    [t('rowSuper'), 'I'],
-  ];
-  rows.forEach(([a, k], i) => {
-    const y = 250 + i * 28;
-    ctx.font = `900 14px ${FONT}`;
-    const w = Math.max(28, ctx.measureText(k).width + 14);
-    ctx.fillStyle = '#ece5cb';
-    rr(424, y - 18, w, 23, 5);
-    ctx.fill();
-    txt(k, 424 + w / 2, y - 1, 14, OL, 'center');
-    txt(a, 424 + w + 12, y, 14, '#ece5cb', 'left', 4);
-  });
-  txt(t('titleTip'), 424, 394, 13, '#9bb0ac', 'left', 3);
-  // menu: start / language
-  const items = [t('menuStart'), t('menuLang') + ':  \u25C2 ' + STR[lang].langName + ' \u25B8'];
-  items.forEach((s, i) => {
-    const y = MENU_Y[i],
-      on = G.menu === i;
-    if (on) {
-      ctx.fillStyle = 'rgba(176,92,255,.28)';
-      rr(412, y - 25, 400, 34, 6);
-      ctx.fill();
-      if (Math.floor(G.time * 3) % 2 === 0) txt('\u25B6', 400, y, 18, '#f0cf4f', 'right', 4);
-    }
-    txt(s, 424, y, on ? 21 : 18, on ? '#f0cf4f' : '#ece5cb', 'left', 5);
-  });
-  txt(touch ? t('menuHintTouch') : t('menuHint'), 424, 518, 12, '#9bb0ac', 'left', 3);
-}
-// Title menu rows (baseline y) and the hit box of the language row for taps and clicks.
-export const MENU_Y = [440, 480];
-export const LANG_BOX = [404, MENU_Y[1] - 28, 420, 40];
