@@ -28,6 +28,7 @@ export const MAP = {
   KeyP: 'pause',
   Escape: 'pause',
   KeyM: 'mute',
+  F9: 'record',
 };
 export function setKey(a, v) {
   if (v && !keys[a]) {

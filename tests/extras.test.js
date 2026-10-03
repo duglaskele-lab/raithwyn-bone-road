@@ -71,3 +71,25 @@ test('the night theme is long, has two solos and a break, and loops without the 
   // every step of the whole form plays without errors (no audio context: tone() is a no-op)
   for (let n = 0; n < second * 2; n++) N.play(n, 0);
 });
+
+test('F9 records a video: the key, the format choice and the file name', async () => {
+  const { pickFormat, fileName } = await import('../src/recorder.js');
+  assert.equal(MAP.F9, 'record');
+  assert.deepEqual(
+    pickFormat((t) => t.startsWith('video/webm')),
+    ['video/webm;codecs=vp9,opus', 'webm'],
+  );
+  assert.deepEqual(
+    pickFormat((t) => t === 'video/mp4'),
+    ['video/mp4', 'mp4'],
+    'Safari records MP4',
+  );
+  assert.equal(
+    pickFormat(() => false),
+    null,
+  );
+  assert.equal(
+    fileName('webm', new Date(2026, 9, 3, 14, 5, 9)),
+    'raithwyn-2026-10-03-14-05-09.webm',
+  );
+});
