@@ -156,50 +156,117 @@ export const SFX = {
     noise(0.9, 0.1, 200, 700, 1);
   },
 };
+const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
+// Music themes. Each one plays a single 16th-note step `n` at `d` seconds from now; `step` is
+// the length of a 16th in seconds (the tempo).
+export const THEMES = {
+  // The first theme of the road: a brooding graveyard groove. It now plays on the main menu.
+  graveyard: {
+    step: 60 / 116 / 4,
+    bass: [38, 38, 50, 38, 41, 38, 50, 45, 36, 36, 48, 36, 43, 36, 46, 45],
+    lead: [
+      74, 0, 0, 77, 0, 74, 0, 0, 72, 0, 0, 69, 0, 70, 72, 0, 74, 0, 0, 77, 0, 81, 0, 0, 79, 0, 77,
+      0, 76, 0, 72, 0,
+    ],
+    play(n, d, soft = 1, withLead = true) {
+      const st = this.step;
+      if (n % 2 === 0) {
+        const f = hz(this.bass[(n / 2) % 16]);
+        tone('sawtooth', f, f, st * 1.7, 0.14 * soft, d, 520);
+      }
+      if (n % 8 === 0) tone('sine', 130, 42, 0.14, 0.4 * soft, d);
+      if (n % 8 === 4) noise(0.1, 0.13 * soft, 1800, 900, 0.8, d);
+      if (n % 2 === 1) noise(0.03, 0.04 * soft, 7000, 6000, 2, d, 'highpass');
+      const l = this.lead[n % 32];
+      if (l && withLead) tone('square', hz(l), hz(l), st * 1.6, 0.028, d, 1800);
+    },
+  },
+  // The level theme: a fighting spaghetti-western ride in E minor. A galloping bass, a snare
+  // on the backbeat, offbeat chord stabs, a twangy lead doubled an octave down like a
+  // trumpet, and a whip crack at the end of every four bars.
+  western: {
+    step: 60 / 140 / 4,
+    roots: [40, 40, 36, 35], // Em Em C B, one per bar
+    chords: [
+      [64, 67, 71],
+      [64, 67, 71],
+      [60, 64, 67],
+      [59, 63, 66],
+    ],
+    lead: [
+      76, 0, 0, 0, 79, 0, 81, 0, 83, 0, 0, 81, 79, 0, 76, 0, 74, 0, 0, 0, 76, 0, 79, 0, 76, 0, 0, 0,
+      0, 0, 0, 0, 72, 0, 0, 72, 74, 0, 76, 0, 79, 0, 76, 0, 74, 0, 72, 0, 71, 0, 0, 0, 74, 0, 72, 0,
+      71, 0, 0, 0, 75, 0, 78, 0,
+    ],
+    play(n, d) {
+      const st = this.step,
+        bar = Math.floor(n / 16) % 4,
+        root = this.roots[bar],
+        beat = n % 4;
+      // gallop: DUM da-da on every beat, the fifth on the off-beats
+      if (beat !== 1) {
+        const f = hz(beat === 0 ? root : root + 7);
+        tone('sawtooth', f, f, st * 0.85, beat === 0 ? 0.16 : 0.1, d, 700);
+      }
+      if (n % 8 === 0) tone('sine', 140, 40, 0.16, 0.45, d);
+      if (n % 8 === 4) {
+        noise(0.12, 0.22, 2200, 900, 0.9, d);
+        tone('triangle', 200, 140, 0.06, 0.1, d);
+      }
+      noise(0.025, beat === 2 ? 0.06 : 0.03, 8000, 6500, 2, d, 'highpass');
+      if (beat === 2)
+        for (const m of this.chords[bar]) tone('triangle', hz(m), hz(m), st * 0.7, 0.025, d, 2600);
+      const l = this.lead[n % 64];
+      if (l) {
+        tone('square', hz(l), hz(l) * 0.995, st * 1.8, 0.04, d, 2400);
+        tone('sawtooth', hz(l - 12), hz(l - 12), st * 1.8, 0.03, d, 1300);
+      }
+      if (n % 64 === 62) {
+        noise(0.09, 0.5, 6000, 900, 3, d);
+        noise(0.05, 0.3, 3000, 8000, 2, d + 0.03);
+      }
+    },
+  },
+  // Character select: tense — a pulsing low ostinato that leans on a minor second, a heartbeat
+  // kick, ticking hats and a slow dissonant swell.
+  tense: {
+    step: 60 / 116 / 4,
+    notes: [38, 38, 39, 38, 38, 38, 39, 41, 38, 38, 39, 38, 36, 37, 38, 39],
+    play(n, d) {
+      const st = this.step,
+        f = hz(this.notes[n % 16]);
+      tone('square', f, f, st * 0.9, 0.07, d, 380);
+      if (n % 8 === 0 || n % 8 === 3) tone('sine', 120, 38, 0.18, n % 8 ? 0.28 : 0.42, d);
+      noise(0.025, n % 4 === 2 ? 0.07 : 0.035, 8000, 6500, 2, d, 'highpass');
+      if (n % 32 === 0)
+        for (const m of [62, 63, 69]) tone('sawtooth', hz(m), hz(m) * 1.01, st * 30, 0.018, d, 900);
+      if (n % 64 === 48) noise(st * 14, 0.06, 300, 3200, 1.2, d);
+    },
+  },
+};
+/** Which theme plays now: the western in the fight, the old theme on the menu. */
+export function themeFor(state) {
+  if (state === 'select') return 'tense';
+  if (state === 'play') return 'western';
+  if (state === 'title') return 'graveyard';
+  return null;
+}
 export function music() {
-  const st = 60 / 116 / 4;
   let n = 0,
-    next = AC.currentTime + 0.1;
-  const bass = [38, 38, 50, 38, 41, 38, 50, 45, 36, 36, 48, 36, 43, 36, 46, 45];
-  const lead = [
-    74, 0, 0, 77, 0, 74, 0, 0, 72, 0, 0, 69, 0, 70, 72, 0, 74, 0, 0, 77, 0, 81, 0, 0, 79, 0, 77, 0,
-    76, 0, 72, 0,
-  ];
-  const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
-  const tense = [38, 38, 39, 38, 38, 38, 39, 41, 38, 38, 39, 38, 36, 37, 38, 39];
+    next = AC.currentTime + 0.1,
+    playing = null;
   setInterval(() => {
     if (!AC) return;
     if (next < AC.currentTime) next = AC.currentTime + 0.05;
     while (next < AC.currentTime + 0.25) {
-      if (!G.muted && G.state === 'select') {
-        // character select: a tense loop — a pulsing low ostinato that leans on a minor
-        // second, a heartbeat kick, ticking hats and a slow dissonant swell
-        const d = next - AC.currentTime,
-          f = hz(tense[n % 16]);
-        tone('square', f, f, st * 0.9, 0.07, d, 380);
-        if (n % 8 === 0 || n % 8 === 3) tone('sine', 120, 38, 0.18, n % 8 ? 0.28 : 0.42, d);
-        noise(0.025, n % 4 === 2 ? 0.07 : 0.035, 8000, 6500, 2, d, 'highpass');
-        if (n % 32 === 0)
-          for (const m of [62, 63, 69])
-            tone('sawtooth', hz(m), hz(m) * 1.01, st * 30, 0.018, d, 900);
-        if (n % 64 === 48) noise(st * 14, 0.06, 300, 3200, 1.2, d);
-      } else if (!G.muted && (G.state === 'play' || G.state === 'title')) {
-        const d = next - AC.currentTime,
-          soft = G.state === 'title' ? 0.5 : 1;
-        if (n % 2 === 0) {
-          const f = hz(bass[(n / 2) % 16]);
-          tone('sawtooth', f, f, st * 1.7, 0.14 * soft, d, 520);
-        }
-        if (n % 8 === 0) tone('sine', 130, 42, 0.14, 0.4 * soft, d);
-        if (n % 8 === 4) noise(0.1, 0.13 * soft, 1800, 900, 0.8, d);
-        if (n % 2 === 1) noise(0.03, 0.04 * soft, 7000, 6000, 2, d, 'highpass');
-        const l = lead[n % 32];
-        if (l && G.state === 'play') {
-          const f = hz(l);
-          tone('square', f, f, st * 1.6, 0.028, d, 1800);
-        }
+      const id = G.muted ? null : themeFor(G.state);
+      if (id !== playing) {
+        playing = id;
+        n = 0; // every theme starts from its first bar
       }
-      next += st;
+      const th = id && THEMES[id];
+      if (th) th.play(n, next - AC.currentTime, id === 'graveyard' ? 0.5 : 1, id !== 'graveyard');
+      next += th ? th.step : THEMES.graveyard.step;
       n++;
     }
   }, 50);

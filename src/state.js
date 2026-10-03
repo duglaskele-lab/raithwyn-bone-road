@@ -126,5 +126,7 @@ export function reset() {
       drop,
     });
   }
+  G.secretT = 0;
+  G.secretDone = false;
   G.banner = { a: 'stage1', b: 'subtitle', t: 0 };
 }

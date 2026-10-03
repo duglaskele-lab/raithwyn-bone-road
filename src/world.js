@@ -1,8 +1,9 @@
 // One simulation step: player, enemies, projectiles, pickups, debris, wave script.
-import { ACID, GB, GT, PURPLE, W, WAVES, ZOMBIE } from './config.js';
+import { ACID, GB, GT, PURPLE, SECRET_HOLD, W, WAVES, ZOMBIE } from './config.js';
 import { clamp, rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
+import { keys } from './input.js';
 import { floatTxt, motes } from './fx.js';
 import { t } from './i18n.js';
 import { acidBite, addRage, headBonus, hitPlayer, hurtEnemy } from './combat.js';
@@ -45,6 +46,31 @@ export function updWaves(dt) {
     }
   }
 }
+// The secret: hold X for SECRET_HOLD seconds before the first fight starts, and the road
+// folds away — the player lands at the gate of the final boss's arena.
+function secretWarp(dt) {
+  if (G.waveI !== 0 || G.wave || G.secretDone) return;
+  if (!keys.secret) {
+    G.secretT = 0;
+    return;
+  }
+  G.secretT = (G.secretT || 0) + dt;
+  if (Math.random() < G.secretT * 0.3) motes(P.x, P.y - 90, 1, 80);
+  if (G.secretT < SECRET_HOLD) return;
+  G.secretDone = true;
+  const last = WAVES.length - 1,
+    lim = WAVES[last].x;
+  G.waveI = last;
+  G.cam = lim;
+  P.x = lim + 260;
+  P.y = 450;
+  G.enemies = [];
+  G.projs = [];
+  G.pools = [];
+  G.flash = 0.6;
+  G.shake = 10;
+  SFX.nova();
+}
 export function update(dt) {
   G.time += dt;
   if (G.banner) {
@@ -63,6 +89,7 @@ export function update(dt) {
     G.slow -= dt;
     dt *= 0.3;
   }
+  secretWarp(dt);
   updPlayer(dt);
   updStyle(dt);
   const c = { n: 0 };

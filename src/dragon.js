@@ -1,11 +1,14 @@
 // The Bone Dragon, the lich that waits at the end of the road: AI, hit zones and drawing.
-// It is slow, about a quarter of the screen in size, and nothing the player does stops its
-// attacks. It picks an attack that can actually reach the player, never the same one twice
+// It is slow, about a quarter of the screen in size. It picks an attack that can actually reach the player, never the same one twice
 // in a row when it has a choice:
 //   bite   - lowers its head to bite; the lowered head takes 1.5x damage for a while
 //   claw   - a swipe of the front paw
 //   laser  - a wide white beam from its bone heart along the whole arena; step up or down
+//   pounce - a long jump towards a player who stands far away, landing close in front
 //   leap   - phase two only: jumps onto the player and hits everything where it lands
+// A heavy hit (a knockdown blow, a dark ball, the super) during the wind-up of the bite, the
+// claw or the pounce staggers it; then it shrugs off interrupts for a few seconds. The laser
+// and the leap cannot be stopped at all.
 import { GB, GT, TAU, W } from './config.js';
 import { clamp, ease, lerp, rnd } from './util.js';
 import { G, P } from './state.js';
@@ -23,6 +26,20 @@ export const DRAGON = {
   claw: { wind: 0.5, swipe: 0.2, rec: 0.55, dmg: 14, min: 20, max: 240, dy: 60 },
   laser: { wind: 1.0, fire: 1.1, rec: 0.5, dmg: 22, band: 40, dy: 110, cd: 5 },
   leap: { crouch: 0.6, air: 0.9, rec: 0.8, dmg: 20, rx: 190, ry: 70, h: 230, cd: 4 },
+  pounce: {
+    crouch: 0.35,
+    air: 0.6,
+    rec: 0.45,
+    dmg: 12,
+    rx: 90,
+    ry: 40,
+    h: 150,
+    cd: 3,
+    min: 330,
+    gap: 150,
+  },
+  stagger: 0.6, // how long an interrupt stuns it
+  armor: 4, // seconds without interrupts after one
   cd: [0.5, 1.1],
   cd2: [0.25, 0.7],
 };
@@ -63,6 +80,10 @@ export function dragonHead(e) {
     x = 150;
     y = -245;
     jaw = 0.75;
+  } else if (e.state === 'stagger') {
+    x = 130;
+    y = -250 + Math.sin(e.t * 30) * 4;
+    jaw = 0.6;
   } else if (e.state === 'laser') {
     y = -235;
     x = 150;
@@ -107,6 +128,7 @@ function choose(e) {
   if (f >= C.bite.min && f <= C.bite.max && ady < C.bite.dy) can.push('bite');
   if (f > 90 && ady < C.laser.dy && e.laserCd <= 0) can.push('laser');
   if (e.phase2 && e.leapCd <= 0 && (f > 260 || f < -40 || ady > 70)) can.push('leap');
+  if (e.pounceCd <= 0 && Math.abs(f) > C.pounce.min && ady < 120) can.push('pounce');
   const fresh = can.filter((a) => a !== e.last);
   const pick = (fresh.length ? fresh : can)[
     Math.floor(Math.random() * (fresh.length || can.length))
@@ -125,6 +147,7 @@ function start(e, a) {
     SFX.charge();
   }
   if (a === 'leap') e.leapCd = DRAGON.leap.cd;
+  if (a === 'pounce') e.pounceCd = DRAGON.pounce.cd;
   if (a === 'claw' || a === 'bite') SFX.boss();
 }
 function finish(e) {
@@ -132,6 +155,66 @@ function finish(e) {
   e.t = 0;
   const [a, b] = e.phase2 ? DRAGON.cd2 : DRAGON.cd;
   e.cd = rnd(a, b);
+}
+// A jump: crouch, fly in an arc, land with a quake that hurts whoever is under it. The leap
+// lands on the player; the pounce lands a short way in front of the player to close the gap.
+function jump(e, J) {
+  if (e.t < J.crouch) {
+    e.z = 0;
+    return;
+  }
+  if (!e.air) {
+    e.air = true;
+    e.lx0 = e.x;
+    e.ly0 = e.y;
+    const dir = P.x >= e.x ? 1 : -1,
+      tx = J === DRAGON.pounce ? P.x - dir * J.gap : P.x;
+    e.lx = clamp(tx, G.cam + 160, G.cam + W - 160);
+    e.ly = clamp(P.y, GT + 20, GB - 10);
+    e.face = dir;
+    SFX.jump();
+    SFX.boss();
+  }
+  const u = Math.min(1, (e.t - J.crouch) / J.air);
+  if (u < 1) {
+    e.x = lerp(e.lx0, e.lx, u);
+    e.y = lerp(e.ly0, e.ly, u);
+    e.z = 4 * J.h * u * (1 - u);
+    return;
+  }
+  e.z = 0;
+  if (!e.landed) {
+    e.landed = true;
+    G.shake = J === DRAGON.leap ? 18 : 11;
+    SFX.heavy();
+    SFX.thud();
+    dust(e.x, e.y, J === DRAGON.leap ? 18 : 10);
+    G.parts.push({ k: 'gring', x: e.x, y: e.y, t: 0, life: 0.5, s: J.rx * 1.2, col: '#e6dfc8' });
+    const ex = (P.x - e.x) / J.rx,
+      ey = (P.y - e.y) / J.ry;
+    if (ex * ex + ey * ey < 1 && P.z < 40) hitPlayer(J.dmg, P.x >= e.x ? 1 : -1, true);
+  }
+  if (e.t > J.crouch + J.air + J.rec) {
+    e.air = e.landed = false;
+    finish(e);
+  }
+}
+/**
+ * A hit landed on the dragon. A heavy one during the wind-up of the bite, the claw or the
+ * pounce staggers it, unless it is still shrugging off the last interrupt.
+ */
+export function dragonInterrupt(e, knock, src) {
+  const C = DRAGON,
+    heavy = knock || src === 'hado' || src === 'super',
+    winding =
+      (e.state === 'bite' && e.t < C.bite.wind) ||
+      (e.state === 'claw' && e.t < C.claw.wind) ||
+      (e.state === 'pounce' && e.t < C.pounce.crouch);
+  if (!heavy || !winding || e.armor > 0) return false;
+  Object.assign(e, { state: 'stagger', t: 0, armor: C.armor, swung: false, thud: false });
+  e.air = e.landed = false;
+  SFX.boss();
+  return true;
 }
 export function updDragon(e, dt) {
   const C = DRAGON;
@@ -141,6 +224,8 @@ export function updDragon(e, dt) {
   e.cd -= dt;
   e.laserCd -= dt;
   e.leapCd -= dt;
+  e.pounceCd = (e.pounceCd ?? 0) - dt;
+  e.armor = (e.armor ?? 0) - dt;
   e.moving = false;
   const f = (P.x - e.x) * e.face;
   // acid dripping from the jaws
@@ -258,7 +343,43 @@ export function updDragon(e, dt) {
       break;
     }
     case 'laser': {
-      const L = C.laser;
+      const L = C.laser,
+        hx = e.x + e.face * 25,
+        hy = e.laserY - e.z - 108;
+      if (e.t < L.wind && Math.random() < 0.3 + e.t) {
+        // sparks drawn into the heart as it charges
+        const a = rnd(0, TAU),
+          r = rnd(70, 130),
+          life = rnd(0.25, 0.4);
+        G.parts.push({
+          k: 'glow',
+          x: hx + Math.cos(a) * r,
+          y: hy + Math.sin(a) * r,
+          vx: (-Math.cos(a) * r) / life,
+          vy: (-Math.sin(a) * r) / life,
+          g: 0,
+          t: 0,
+          life,
+          s: rnd(2, 4),
+          col: '#f0dcff',
+        });
+      }
+      if (e.t > L.wind && e.t < L.wind + L.fire && Math.random() < 0.8) {
+        // sparks thrown off the beam
+        const x = hx + e.face * rnd(40, W);
+        G.parts.push({
+          k: 'glow',
+          x,
+          y: hy + rnd(-20, 20),
+          vx: e.face * rnd(100, 300),
+          vy: rnd(-120, 120),
+          g: 0,
+          t: 0,
+          life: rnd(0.15, 0.3),
+          s: rnd(2, 4),
+          col: '#ffffff',
+        });
+      }
       if (e.t > L.wind && e.t < L.wind + L.fire) {
         if (!e.fired) {
           e.fired = true;
@@ -274,57 +395,15 @@ export function updDragon(e, dt) {
       }
       break;
     }
-    case 'leap': {
-      const J = C.leap;
-      if (e.t < J.crouch) {
-        e.z = 0;
-        break;
-      }
-      if (!e.air) {
-        e.air = true;
-        e.lx0 = e.x;
-        e.ly0 = e.y;
-        e.lx = clamp(P.x, G.cam + 160, G.cam + W - 160);
-        e.ly = clamp(P.y, GT + 20, GB - 10);
-        e.face = e.lx >= e.x ? 1 : -1;
-        SFX.jump();
-        SFX.boss();
-      }
-      const u = Math.min(1, (e.t - J.crouch) / J.air);
-      if (u < 1) {
-        e.x = lerp(e.lx0, e.lx, u);
-        e.y = lerp(e.ly0, e.ly, u);
-        e.z = 4 * J.h * u * (1 - u);
-        break;
-      }
-      e.z = 0;
-      if (!e.landed) {
-        e.landed = true;
-        G.shake = 18;
-        SFX.heavy();
-        SFX.thud();
-        dust(e.x, e.y, 18);
-        G.parts.push({
-          k: 'gring',
-          x: e.x,
-          y: e.y,
-          t: 0,
-          life: 0.5,
-          s: J.rx * 1.2,
-          col: '#ff8a6a',
-        });
-        const ex = (P.x - e.x) / J.rx,
-          ey = (P.y - e.y) / J.ry;
-        if (ex * ex + ey * ey < 1 && P.z < 40) hitPlayer(J.dmg, P.x >= e.x ? 1 : -1, true);
-      }
-      if (e.t > J.crouch + J.air + J.rec) {
-        e.air = e.landed = false;
-        finish(e);
-      }
+    case 'leap':
+    case 'pounce':
+      jump(e, e.state === 'leap' ? C.leap : C.pounce);
       break;
-    }
+    case 'stagger':
+      if (e.t > C.stagger) finish(e);
+      break;
   }
-  if (e.state !== 'leap') {
+  if (e.state !== 'leap' && e.state !== 'pounce') {
     e.x = clamp(e.x, G.cam + 150, G.cam + W - 150);
     e.y = clamp(e.y, GT + 20, GB - 10);
   }
@@ -520,74 +599,74 @@ function skull(h, col, dk, eye, fl) {
   ctx.stroke();
   ctx.restore();
 }
-/** Ground marks: the laser lane and the leap's landing zone. */
+/** Light thrown on the ground by the firing beam. */
 export function drawDragonGround(e) {
-  const C = DRAGON;
-  if (e.state === 'laser') {
-    const on = e.t > C.laser.wind,
-      u = Math.min(1, e.t / C.laser.wind),
-      x0 = e.x - G.cam + e.face * 20,
-      x1 = e.face > 0 ? W + 40 : -40;
-    ctx.fillStyle = on ? 'rgba(255,255,255,.28)' : `rgba(255,60,60,${0.08 + 0.18 * u})`;
-    ctx.fillRect(Math.min(x0, x1), e.laserY - C.laser.band, Math.abs(x1 - x0), C.laser.band * 2);
-    ctx.strokeStyle = on ? 'rgba(255,255,255,.8)' : 'rgba(255,110,100,.9)';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(Math.min(x0, x1), e.laserY - C.laser.band, Math.abs(x1 - x0), C.laser.band * 2);
-  }
-  if (e.state === 'leap') {
-    const J = C.leap,
-      x = (e.air ? e.lx : P.x) - G.cam,
-      y = e.air ? e.ly : P.y,
-      u = clamp((e.t - J.crouch) / J.air, 0, 1);
-    if (e.t < J.crouch + J.air) {
-      ctx.fillStyle = `rgba(255,70,50,${0.1 + 0.25 * u})`;
-      ctx.beginPath();
-      ctx.ellipse(x, y, J.rx, J.ry, 0, 0, TAU);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(255,120,100,.9)';
-      ctx.lineWidth = 3;
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.ellipse(x, y, J.rx * u, J.ry * u, 0, 0, TAU);
-      ctx.stroke();
-    }
-  }
+  const L = DRAGON.laser;
+  if (e.state !== 'laser' || e.t < L.wind || e.t > L.wind + L.fire) return;
+  const x0 = e.x - G.cam + e.face * 20,
+    x1 = e.face > 0 ? W + 40 : -40,
+    g = ctx.createLinearGradient(0, e.laserY - L.band, 0, e.laserY + L.band);
+  g.addColorStop(0, 'rgba(230,210,255,0)');
+  g.addColorStop(0.5, 'rgba(240,230,255,.35)');
+  g.addColorStop(1, 'rgba(230,210,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(Math.min(x0, x1), e.laserY - L.band, Math.abs(x1 - x0), L.band * 2);
 }
-/** The beam itself, drawn over everything. */
+/** The charge and the beam, drawn over everything. */
 export function drawDragonBeam(e) {
   const L = DRAGON.laser;
   if (e.state !== 'laser') return;
-  const hx = e.x - G.cam + e.face * 34,
-    hy = e.laserY - e.z - 112,
+  const hx = e.x - G.cam + e.face * 25,
+    hy = e.laserY - e.z - 108,
     x1 = e.face > 0 ? W + 40 : -40;
   ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
   if (e.t < L.wind) {
-    // the heart charges: a thin flickering aim line
-    if (Math.floor(G.time * 20) % 2) {
-      ctx.strokeStyle = 'rgba(255,90,90,.85)';
-      ctx.lineWidth = 2;
+    // a pulse building in the heart: rings go out faster and brighter as it charges
+    const u = e.t / L.wind,
+      rate = lerp(2.5, 11, u * u),
+      phase = e.anim * rate;
+    for (let k = 0; k < 3; k++) {
+      const p = (phase + k / 3) % 1,
+        r = 10 + p * (40 + 60 * u);
+      ctx.strokeStyle = `rgba(235,215,255,${(1 - p) * (0.3 + 0.6 * u)})`;
+      ctx.lineWidth = 2 + 5 * u * (1 - p);
       ctx.beginPath();
-      ctx.moveTo(hx, hy);
-      ctx.lineTo(x1, hy);
+      ctx.arc(hx, hy, r, 0, TAU);
       ctx.stroke();
     }
+    const core = ctx.createRadialGradient(hx, hy, 1, hx, hy, 18 + 40 * u);
+    core.addColorStop(0, `rgba(255,255,255,${0.4 + 0.6 * u})`);
+    core.addColorStop(1, 'rgba(176,92,255,0)');
+    ctx.fillStyle = core;
+    ctx.fillRect(hx - 60, hy - 60, 120, 120);
   } else if (e.t < L.wind + L.fire) {
-    const k = Math.min(1, (e.t - L.wind) / 0.08) * Math.min(1, (L.wind + L.fire - e.t) / 0.15),
-      w = 38 * k + Math.sin(G.time * 60) * 3;
-    ctx.globalCompositeOperation = 'lighter';
+    // the beam shoots out from the heart, flickers, and thins out at the end
+    const s = e.t - L.wind,
+      grow = Math.min(1, s / 0.12),
+      k = Math.min(1, s / 0.06) * Math.min(1, (L.wind + L.fire - e.t) / 0.2),
+      w = 40 * k + Math.sin(G.time * 70) * 4,
+      xe = hx + (x1 - hx) * grow;
     for (const [ww, c] of [
-      [w * 2.2, 'rgba(176,92,255,.35)'],
-      [w * 1.4, 'rgba(220,200,255,.6)'],
-      [w * 0.7, 'rgba(255,255,255,.95)'],
+      [w * 2.4, 'rgba(176,92,255,.3)'],
+      [w * 1.5, 'rgba(215,190,255,.55)'],
+      [w * 0.75, 'rgba(255,255,255,.95)'],
+      [w * 0.3, 'rgba(255,255,255,1)'],
     ]) {
       ctx.strokeStyle = c;
-      ctx.lineWidth = ww;
+      ctx.lineWidth = Math.max(1, ww);
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(hx, hy);
-      ctx.lineTo(x1, hy);
+      ctx.lineTo(xe, hy);
       ctx.stroke();
     }
+    // a flare at the heart
+    const fl = ctx.createRadialGradient(hx, hy, 2, hx, hy, 70);
+    fl.addColorStop(0, 'rgba(255,255,255,.95)');
+    fl.addColorStop(1, 'rgba(176,92,255,0)');
+    ctx.fillStyle = fl;
+    ctx.fillRect(hx - 70, hy - 70, 140, 140);
   }
   ctx.restore();
 }
@@ -605,6 +684,8 @@ export function drawDragon(e) {
   let bob = Math.sin(e.anim * 2) * 3,
     rear = 0;
   if (e.state === 'leap' && e.t < C.leap.crouch) bob += 22 * ease(e.t / C.leap.crouch);
+  if (e.state === 'pounce' && e.t < C.pounce.crouch) bob += 16 * ease(e.t / C.pounce.crouch);
+  if (e.state === 'stagger') rear = -0.07 * Math.sin(Math.min(1, e.t / C.stagger) * Math.PI);
   if (e.state === 'laser') rear = -Math.min(1, e.t / 0.3) * 0.08;
   if (e.state === 'roar') rear = -0.1;
   const walk = e.moving ? e.walkT : 0,

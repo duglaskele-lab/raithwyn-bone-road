@@ -49,13 +49,44 @@ test('the dragon drops in and cannot be hurt before it lands', () => {
   assert.equal(d.z, 0);
 });
 
-test('nothing the player does interrupts its attacks', () => {
+test('heavy blows stagger some wind-ups, then it shrugs them off for a while', () => {
   const d = dragonAt(400, 450);
-  for (const st of ['bite', 'claw', 'laser', 'leap']) {
-    Object.assign(d, { state: st, t: 0.1, laserY: 450 });
+  // the laser and the leap can never be stopped
+  for (const st of ['laser', 'leap']) {
+    Object.assign(d, { state: st, t: 0.1, laserY: 450, armor: 0 });
     for (const src of ['punch', 'hado', 'super']) hurtEnemy(d, 1, 1, true, src);
     assert.equal(d.state, st);
   }
+  // a plain hit does not stop a bite
+  Object.assign(d, { state: 'bite', t: 0.1, armor: 0 });
+  hurtEnemy(d, 1, 1, false, 'punch');
+  assert.equal(d.state, 'bite');
+  // a bite already striking cannot be stopped
+  Object.assign(d, { state: 'bite', t: DRAGON.bite.wind + 0.05 });
+  hurtEnemy(d, 1, 1, true, 'hado');
+  assert.equal(d.state, 'bite');
+  // a heavy blow during the wind-up staggers it…
+  Object.assign(d, { state: 'claw', t: 0.1 });
+  hurtEnemy(d, 1, 1, true, 'punch');
+  assert.equal(d.state, 'stagger');
+  run(d, DRAGON.stagger + DT);
+  assert.equal(d.state, 'walk');
+  // …and for a few seconds after that, nothing does
+  Object.assign(d, { state: 'pounce', t: 0.1 });
+  hurtEnemy(d, 1, 1, true, 'hado');
+  assert.equal(d.state, 'pounce');
+});
+
+test('it moves half as fast again as before and pounces at a far player', () => {
+  assert.equal(TYPES.dragon.speed, 51);
+  const d = dragonAt(100, 460, { laserCd: 9 });
+  run(d, DT);
+  assert.equal(d.state, 'pounce');
+  run(d, DRAGON.pounce.crouch + DRAGON.pounce.air + 0.05);
+  assert.ok(
+    Math.abs(Math.abs(d.x - P.x) - DRAGON.pounce.gap) < 10,
+    `lands ${Math.abs(d.x - P.x)} px from the player`,
+  );
 });
 
 test('it only uses attacks that can reach the player, and varies them', () => {

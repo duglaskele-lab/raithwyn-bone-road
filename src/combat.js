@@ -6,8 +6,8 @@ import { SFX } from './audio.js';
 import { floatTxt, motes, shatter, spark } from './fx.js';
 import { t } from './i18n.js';
 import { spawn } from './enemies.js';
-import { DRAGON, dragonZone, headPoint } from './dragon.js';
-import { dmgMult, scoreMult, styleBreak, styleGain } from './style.js';
+import { DRAGON, dragonInterrupt, dragonZone, headPoint } from './dragon.js';
+import { dmgMult, scoreMult, styleBreak, styleGain, styleKeep } from './style.js';
 
 export function hadoLevel(rage) {
   return rage >= RL[2] ? 3 : rage >= RL[1] ? 2 : rage >= RL[0] ? 1 : 0;
@@ -17,6 +17,8 @@ export function addRage(n) {
 }
 export function hurtEnemy(e, dmg, dir, knock, src) {
   if (e.isProp) {
+    // smashing scenery keeps the style meter from draining between fights
+    styleKeep();
     if (e.hp > 1) {
       // sturdy scenery (a big grave) cracks first and breaks after a few hits
       e.hp--;
@@ -51,8 +53,9 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
   knock ? SFX.heavy() : SFX.punch();
   SFX.clack();
   if (e.T.dragon) {
-    // nothing the player does interrupts the dragon
+    // only a heavy blow during some wind-ups staggers the dragon (see dragonInterrupt)
     if (e.hp <= 0) killEnemy(e, dir);
+    else if (dragonInterrupt(e, knock, src)) floatTxt(e.x, e.y - 300, t('interrupted'), '#ffe9a8');
     return true;
   }
   if (e.mounted) {

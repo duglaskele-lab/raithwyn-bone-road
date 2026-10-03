@@ -57,6 +57,8 @@ export const BOSS = {
   breathDmg: 5,
   breathCd: [3.5, 5.5],
 };
+// Secret: hold X this long right at the start of the level to skip straight to the final boss.
+export const SECRET_HOLD = 3;
 // Breakable scenery along the road: hits needed, colour of the pieces, score.
 export const DECOR = {
   bench: { w: 34, hp: 1, col: '#7a5638', score: 20 },
@@ -214,7 +216,7 @@ export const TYPES = {
   dragon: {
     hp: 900,
     scale: 1.6,
-    speed: 34,
+    speed: 51,
     dmg: 18,
     reach: 240,
     wind: 0.6,
