@@ -1,0 +1,22 @@
+{
+  "name": "raithwyn-bone-road",
+  "version": "0.3.0",
+  "description": "Beat 'em up prototype: Raithwyn the dark-magic fox versus skeletons",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node tools/serve.mjs",
+    "test": "node --test",
+    "build": "node tools/build.mjs",
+    "format": "prettier --write src tests tools",
+    "atlas": "python3 tools/build_atlas.py"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "prettier": "^3.3.0"
+  },
+  "prettier": {
+    "printWidth": 100,
+    "singleQuote": true
+  }
+}

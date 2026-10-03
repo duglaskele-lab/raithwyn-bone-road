@@ -1,0 +1,49 @@
+import { FONT, OL } from './config.js';
+import { FR } from './atlas-frames.js';
+
+// Canvas handle, sprite atlas and the small drawing helpers shared by every renderer.
+export let cv = null,
+  ctx = null;
+export const atlas = typeof Image !== 'undefined' ? new Image() : {};
+export function initGfx(canvas) {
+  cv = canvas;
+  ctx = canvas.getContext('2d');
+}
+export function setCtx(c) {
+  ctx = c;
+}
+export function sprite(name, i, x, y, flip, sc = 1, a = 1) {
+  const f = FR[name][i];
+  ctx.save();
+  ctx.translate(Math.round(x), Math.round(y));
+  ctx.scale(flip ? -sc : sc, sc);
+  ctx.globalAlpha = a;
+  ctx.drawImage(atlas, f[0], f[1], f[2], f[3], -f[4], -f[5], f[2], f[3]);
+  ctx.restore();
+}
+export function txt(s, x, y, size, col, al = 'left', st) {
+  ctx.font = `900 ${size}px ${FONT}`;
+  ctx.textAlign = al;
+  ctx.textBaseline = 'alphabetic';
+  if (st) {
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = st;
+    ctx.strokeStyle = OL;
+    ctx.strokeText(s, x, y);
+  }
+  ctx.fillStyle = col;
+  ctx.fillText(s, x, y);
+}
+export function rr(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
