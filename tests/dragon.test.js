@@ -288,7 +288,8 @@ test('the dragon fight has its own music, faster in the second phase', async () 
   assert.equal(themeFor('play'), 'dragon2');
   assert.ok(THEMES.dragon2.step < THEMES.dragon.step);
   d.state = 'dying';
-  assert.equal(themeFor('play'), 'night');
+  assert.equal(themeFor('play'), 'dragonEnd', 'its death brings the outro');
+  assert.equal(themeFor('win'), 'dragonEnd', 'which plays on over the victory');
   for (let n = 0; n < 256; n++) {
     THEMES.dragon.play(n, 0);
     THEMES.dragon2.play(n, 0);

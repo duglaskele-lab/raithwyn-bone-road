@@ -33,6 +33,7 @@ jobs:
           cp -r src _site/src
           cp assets/atlas.png _site/assets/
           cp -r assets/portraits _site/assets/portraits
+          cp -r assets/music _site/assets/music
           cp dist/raithwyn.html _site/single.html
       - uses: actions/upload-pages-artifact@v3
         if: github.ref == 'refs/heads/main'
