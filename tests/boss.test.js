@@ -64,6 +64,8 @@ test('below half health the baron roars into phase two and breathes acid', () =>
   Object.assign(boss, { state: 'chase', t: 0, brCd: 0, cd: 99 });
   run(boss, DT);
   assert.equal(boss.state, 'bwind');
+  for (const src of ['punch', 'air', 'hado', 'super']) hurtEnemy(boss, 1, 1, true, src);
+  assert.equal(boss.state, 'bwind', 'the wind-up cannot be interrupted either');
   run(boss, BOSS.breathWind * 0.9);
   assert.equal(boss.state, 'bwind', '0.7 s to get away');
   run(boss, BOSS.breathWind * 0.2);

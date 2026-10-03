@@ -60,7 +60,6 @@ export const BOSS = {
 // Breakable scenery along the road: hits needed, colour of the pieces, score.
 export const DECOR = {
   bench: { w: 34, hp: 1, col: '#7a5638', score: 20 },
-  grave: { w: 20, hp: 2, col: '#7f8c8e', score: 30 },
   cross: { w: 14, hp: 1, col: '#8b8f84', score: 20 },
   // a big grave: four hits; a zombie or a skeleton may climb out of it
   tomb: { w: 40, hp: 4, col: '#6f7c80', score: 50, big: 1 },
