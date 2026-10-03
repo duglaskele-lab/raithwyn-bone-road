@@ -36,4 +36,5 @@ kbd{font:inherit;font-size:12px;padding:1px 6px;border:1px solid var(--key-line)
   #btns [data-a=jump]{right:0;bottom:28px}
   #btns [data-a=bone]{right:146px;bottom:26px}
   #btns [data-a=hado]{right:104px;bottom:84px;border-color:#b05cff}
+  #btns [data-a=super]{right:22px;bottom:100px;width:56px;height:56px;font-size:11px;border-color:#f0dcff}
 }

@@ -1,5 +1,5 @@
 // Enemy spawning and AI state machines for every skeleton type.
-import { CHAIN, GB, GT, RW, SLAM_R, TAU, TYPES, W } from './config.js';
+import { CHAIN, GB, GT, RW, SLAM_R, SWIND, TAU, TYPES, W } from './config.js';
 import { clamp, rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
@@ -69,7 +69,7 @@ export function spawn(type, side, x, y) {
     e.y = GT + 70;
     e.face = -1;
     SFX.boss();
-    G.banner = { a: 'Могильный барон', b: 'Хозяин тракта', t: 0 };
+    G.banner = { a: '@boss', b: 'bossBanner', t: 0 };
     G.shake = 8;
   }
   G.enemies.push(e);
@@ -160,6 +160,13 @@ export function updEnemy(e, dt, ctxE) {
         e.engage = false;
         break;
       }
+      if (T.robe && !pdown && e.cd <= 0 && adx < T.reach + 10 && Math.abs(dy) < 18) {
+        // Cornered necromancer: a weak swing of the staff.
+        e.state = 'staff';
+        e.t = 0;
+        e.hitDone = false;
+        break;
+      }
       if (T.keep) {
         if (
           !pdown &&
@@ -210,7 +217,18 @@ export function updEnemy(e, dt, ctxE) {
         e.t = 0;
         e.hitDone = false;
         SFX.swing();
-        if (T.style === 'throw')
+        if (T.style === 'cast') {
+          SFX.acid();
+          G.projs.push({
+            k: 'acid',
+            x: e.x + e.face * 40 * T.scale,
+            y: e.y,
+            z: 150 * T.scale,
+            vx: e.face * 300,
+            rot: 0,
+            life: 3.2,
+          });
+        } else if (T.style === 'throw')
           G.projs.push({
             k: 'ebone',
             x: e.x + e.face * 34,
@@ -223,7 +241,7 @@ export function updEnemy(e, dt, ctxE) {
       }
       break;
     case 'attack':
-      if (T.style !== 'throw' && !e.hitDone) {
+      if (!T.keep && !e.hitDone) {
         const f = (P.x - e.x) * e.face;
         if (f > -14 && f < T.reach + 20 && Math.abs(dy) < 24 && P.z < (T.knock ? 120 : 70)) {
           e.hitDone = true;
@@ -253,7 +271,7 @@ export function updEnemy(e, dt, ctxE) {
       e.face = dx >= 0 ? 1 : -1;
       const h = e.t - 0.55;
       e.z = h > 0 ? Math.sin(Math.min(1, h / 0.35) * Math.PI) * 60 : 0;
-      if (e.t >= 0.9) {
+      if (e.t >= SWIND) {
         e.z = 0;
         e.state = 'recover';
         e.t = -0.5;
@@ -273,6 +291,20 @@ export function updEnemy(e, dt, ctxE) {
       }
       break;
     }
+    case 'staff':
+      e.face = dx >= 0 ? 1 : -1;
+      if (!e.hitDone && e.t > 0.32) {
+        e.hitDone = true;
+        SFX.swing();
+        const f = (P.x - e.x) * e.face;
+        if (f > -14 && f < T.reach + 18 && Math.abs(dy) < 24 && P.z < 70)
+          hitPlayer(T.dmg, e.face, false);
+      }
+      if (e.t > 0.5) {
+        e.state = 'recover';
+        e.t = 0;
+      }
+      break;
     case 'lwind':
       e.face = dx >= 0 ? 1 : -1;
       if (e.t > 0.3) {
@@ -450,7 +482,7 @@ export function updEnemy(e, dt, ctxE) {
     case 'summon':
       if (e.t > 0.6 && !e.hitDone) {
         e.hitDone = true;
-        const a = e.next > 0.3 ? ['grunt', 'monkey'] : ['monkey', 'thrower', 'grunt'];
+        const a = e.next > 0.3 ? ['grunt', 'monkey'] : ['monkey', 'necro', 'grunt'];
         for (const t of a) spawn(t, 0);
         G.flash = 0.15;
       }

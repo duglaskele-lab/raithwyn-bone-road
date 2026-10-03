@@ -13,12 +13,20 @@ export const MAXR = 200,
   RW = 1;
 export const OL = '#17151d',
   PURPLE = '#b05cff';
-export const CRYPT_X = 7980;
+export const CRYPT_X = 6030;
+// The fatso's ground slam: total wind-up, and the moment after which hits no longer stop it
+// (the last third of the wind-up).
+export const SWIND = 0.9,
+  SWIND_LOCK = SWIND * (2 / 3);
+// A bone throw costs 5% of the rage bar.
+export const BONE_COST = MAXR * 0.05;
+// Super attack: hold I this long with a full rage bar; it hits everything on screen.
+export const SUPER_HOLD = 1.25,
+  SUPER_DMG = 100;
 
 // Enemy archetypes. Every numeric field is tuned by hand; see README for what each one means.
 export const TYPES = {
   grunt: {
-    name: 'Скелет',
     hp: 34,
     scale: 1,
     speed: 78,
@@ -35,7 +43,6 @@ export const TYPES = {
     score: 100,
   },
   thrower: {
-    name: 'Костемёт',
     hp: 24,
     scale: 0.95,
     speed: 92,
@@ -53,7 +60,6 @@ export const TYPES = {
     score: 150,
   },
   brute: {
-    name: 'Костолом',
     hp: 96,
     scale: 1.3,
     speed: 50,
@@ -73,7 +79,6 @@ export const TYPES = {
     score: 400,
   },
   fat: {
-    name: 'Пузан',
     hp: 120,
     scale: 1.16,
     speed: 46,
@@ -93,7 +98,6 @@ export const TYPES = {
     score: 500,
   },
   biker: {
-    name: 'Рокер',
     hp: 46,
     scale: 1.02,
     speed: 86,
@@ -111,7 +115,6 @@ export const TYPES = {
     score: 350,
   },
   monkey: {
-    name: 'Костяная мартышка',
     hp: 20,
     scale: 0.72,
     speed: 150,
@@ -130,8 +133,25 @@ export const TYPES = {
     eye: '#ffe04a',
     score: 200,
   },
+  necro: {
+    hp: 38,
+    scale: 1.05,
+    speed: 72,
+    dmg: 6,
+    reach: 62,
+    keep: 340,
+    style: 'cast',
+    wind: 0.6,
+    act: 0.16,
+    rec: 0.45,
+    cd: [1.9, 3],
+    robe: 1,
+    col: '#e4dfcf',
+    dk: '#aca795',
+    eye: '#ff2626',
+    score: 300,
+  },
   boss: {
-    name: 'Могильный барон',
     hp: 400,
     scale: 1.55,
     speed: 66,
@@ -151,96 +171,89 @@ export const TYPES = {
     score: 3000,
   },
 };
+// Seven fights and the baron. The road is a quarter shorter than it used to be, so the same
+// crowd arrives in fewer, denser fights.
 export const WAVES = [
   {
     x: 300,
     sp: [
       ['grunt', 1, 0],
-      ['grunt', 1, 1.4],
-      ['grunt', -1, 3.2],
+      ['grunt', 1, 0.8],
+      ['grunt', -1, 1.8],
+      ['monkey', 0, 3.2],
     ],
   },
   {
-    x: 1100,
+    x: 1050,
     sp: [
       ['thrower', 1, 0],
-      ['grunt', 1, 0.4],
-      ['monkey', -1, 2],
-      ['grunt', -1, 3.5],
-      ['monkey', 0, 5],
+      ['grunt', 1, 0.3],
+      ['monkey', -1, 1.2],
+      ['grunt', -1, 2.2],
+      ['necro', 1, 3.5],
+      ['monkey', 0, 4.5],
     ],
   },
   {
-    x: 1900,
+    x: 1800,
     sp: [
       ['biker', 1, 0],
-      ['grunt', 0, 1.5],
-      ['grunt', 0, 2],
-      ['thrower', 1, 5],
+      ['grunt', 0, 1],
+      ['grunt', 0, 1.3],
+      ['thrower', 1, 3],
+      ['fat', -1, 4.5],
     ],
   },
   {
-    x: 2700,
-    sp: [
-      ['fat', 1, 0],
-      ['monkey', -1, 1],
-      ['monkey', 1, 3],
-      ['grunt', 0, 6],
-    ],
-  },
-  {
-    x: 3500,
+    x: 2550,
     sp: [
       ['brute', 1, 0],
-      ['thrower', -1, 1],
-      ['grunt', 1, 2],
+      ['necro', -1, 0.8],
+      ['monkey', 1, 1.8],
+      ['monkey', -1, 2.4],
+      ['grunt', 0, 3.6],
       ['biker', -1, 5],
-      ['grunt', 0, 8],
     ],
   },
   {
-    x: 4300,
+    x: 3300,
     sp: [
       ['monkey', -1, 0],
-      ['monkey', 1, 0.4],
-      ['monkey', 0, 1.5],
-      ['thrower', 1, 3],
-      ['fat', -1, 5],
+      ['monkey', 1, 0.3],
+      ['monkey', 0, 1],
+      ['thrower', 1, 2],
+      ['fat', -1, 3],
+      ['necro', 1, 4.5],
+      ['grunt', 0, 5.5],
     ],
   },
   {
-    x: 5100,
+    x: 4050,
     sp: [
       ['biker', 1, 0],
-      ['biker', -1, 2.5],
-      ['grunt', 0, 4],
-      ['grunt', 0, 4.5],
-      ['thrower', 1, 8],
+      ['biker', -1, 1.8],
+      ['grunt', 0, 2.6],
+      ['grunt', 0, 3],
+      ['necro', 1, 4.2],
+      ['brute', -1, 5.5],
+      ['fat', 1, 7],
     ],
   },
   {
-    x: 5900,
-    sp: [
-      ['brute', -1, 0],
-      ['fat', 1, 1],
-      ['monkey', 0, 4],
-      ['thrower', -1, 6],
-      ['grunt', 1, 8],
-    ],
-  },
-  {
-    x: 6700,
+    x: 4800,
     sp: [
       ['biker', -1, 0],
-      ['brute', 1, 1],
-      ['monkey', -1, 3],
-      ['monkey', 1, 3.5],
-      ['fat', 0, 7],
-      ['thrower', 1, 9],
-      ['grunt', 0, 10],
+      ['brute', 1, 0.8],
+      ['necro', -1, 2],
+      ['monkey', -1, 2.6],
+      ['monkey', 1, 3],
+      ['fat', 0, 4.5],
+      ['thrower', 1, 5.5],
+      ['grunt', 0, 6.5],
+      ['necro', 1, 7.5],
     ],
   },
-  { x: 7500, boss: 1, sp: [['boss', 0, 1.2]] },
+  { x: 5550, boss: 1, sp: [['boss', 0, 1.2]] },
 ];
 
 // Player animation timelines: seconds per frame of each attack.

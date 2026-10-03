@@ -1,28 +1,20 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Raithwyn: Костяной тракт</title>
+<title>Raithwyn: Bone Road</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div id="stage"><canvas id="game" width="960" height="540" tabindex="0" aria-label="Игра: Raithwyn против скелетов"></canvas></div>
-<div id="help">
-  <span><b>Ходить</b> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> или стрелки</span>
-  <span><b>Бег</b> <kbd>Shift</kbd> или двойное нажатие</span>
-  <span><b>Удар</b> <kbd>J</kbd> на земле и в прыжке</span>
-  <span><b>Прыжок</b> <kbd>Пробел</kbd></span>
-  <span><b>Кость</b> <kbd>L</kbd></span>
-  <span><b>Хадукен</b> <kbd>I</kbd></span>
-  <span><b>Пауза</b> <kbd>P</kbd></span>
-  <span><b>Звук</b> <kbd>M</kbd></span>
-</div>
+<div id="stage"><canvas id="game" width="960" height="540" tabindex="0" aria-label="Game: Raithwyn versus the skeletons"></canvas></div>
+<!-- Filled in by src/main.js in the chosen language. -->
+<div id="help"></div>
 <div id="pad">
   <div id="stick"><i></i></div>
   <div id="btns">
-    <button data-a="hado">Хаду</button>
-    <button data-a="bone">Кость</button><button data-a="jump">Прыг</button><button data-a="atk">Удар</button>
+    <button data-a="super">Super</button><button data-a="hado">Hado</button>
+    <button data-a="bone">Bone</button><button data-a="jump">Jump</button><button data-a="atk">Hit</button>
   </div>
 </div>
 <script type="module" src="src/main.js"></script>

@@ -3,6 +3,7 @@ import { GT } from './config.js';
 // All mutable game state lives here so every module (and every test) sees the same world.
 export const G = {
   state: 'title',
+  menu: 0,
   time: 0,
   cam: 0,
   freeze: 0,
@@ -59,6 +60,7 @@ export function reset() {
     airUsed: 0,
     puller: null,
     hl: 1,
+    sup: 0,
   });
   G.cam = 0;
   G.waveI = 0;
@@ -74,16 +76,14 @@ export function reset() {
   G.endT = 0;
   G.slow = 0;
   G.props = [
-    [760, 'hp'],
-    [1620, 'rage'],
-    [2480, 'hp'],
-    [3300, 'rage'],
-    [4150, 'hp'],
-    [4950, 'rage'],
-    [5750, 'hp'],
-    [6550, 'rage'],
-    [7200, 'hp'],
-    [7380, 'hp'],
+    [700, 'hp'],
+    [1450, 'rage'],
+    [2200, 'hp'],
+    [2950, 'rage'],
+    [3700, 'hp'],
+    [4450, 'rage'],
+    [5150, 'hp'],
+    [5320, 'hp'],
   ].map(([x, d]) => ({ isProp: 1, x, y: GT + 10, z: 0, w: 16, drop: d }));
-  G.banner = { a: 'Стадия 1', b: 'Костяной тракт', t: 0 };
+  G.banner = { a: 'stage1', b: 'subtitle', t: 0 };
 }

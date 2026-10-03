@@ -27,6 +27,7 @@ const STATES = [
   'cwind',
   'charge',
   'summon',
+  'staff',
 ];
 
 test('every enemy type gets a valid pose in every state', () => {
