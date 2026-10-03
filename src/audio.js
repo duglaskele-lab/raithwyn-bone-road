@@ -500,6 +500,83 @@ export const THEMES = {
       if (kind === 'fill' && bar === 3 && b >= 8) snare(0.12 + (b - 8) * 0.015);
     },
   },
+  // The Bone Dragon's fight, phase one: slow, heavy and grotesque. A bass that grinds between E,
+  // F and the tritone B-flat, a lurching kick, a clanking iron hit instead of a snare, a groan
+  // every two bars, a dissonant choir and a detuned music box that warbles out of key.
+  dragon: {
+    step: 60 / 112 / 4,
+    bass: [40, 0, 40, 41, 0, 40, 0, 46, 40, 0, 40, 0, 41, 0, 39, 0],
+    choir: [
+      [64, 65, 70],
+      [64, 67, 70],
+      [63, 65, 70],
+      [64, 65, 69],
+    ],
+    box: [76, 0, 0, 77, 0, 0, 82, 0, 81, 0, 0, 0, 77, 0, 76, 0],
+    play(n, d) {
+      const st = this.step,
+        bar = Math.floor(n / 16) % 4,
+        b = n % 16,
+        m = this.bass[b];
+      if (m) {
+        tone('sawtooth', hz(m), hz(m) * 0.99, st * 1.8, 0.15, d, 450);
+        tone('sine', hz(m - 12), hz(m - 12), st * 1.8, 0.12, d);
+      }
+      if (b === 0 || b === 6 || b === 10) tone('sine', 120, 34, 0.26, 0.5, d);
+      if (b === 8) {
+        tone('square', 1180, 1150, 0.14, 0.05, d, 5000);
+        tone('square', 1730, 1700, 0.11, 0.04, d, 5000);
+        noise(0.16, 0.18, 3200, 1400, 3, d);
+      }
+      if (b % 4 === 2) noise(0.03, 0.025, 8000, 6500, 2, d, 'highpass');
+      if (n % 32 === 0) growl(1.4, 80, 55, 0.1, d);
+      if (b === 0)
+        for (const c of this.choir[bar])
+          tone('triangle', hz(c), hz(c) * 1.006, st * 16, 0.02, d, 1400);
+      const x = this.box[b];
+      if (x && bar % 2 === 1) {
+        tone('triangle', hz(x), hz(x) * 1.03, st * 2.5, 0.03, d);
+        tone('triangle', hz(x), hz(x) * 0.97, st * 2.5, 0.012, d + st * 3);
+      }
+      if (bar === 3 && b >= 12) tone('sine', 190 - (b - 12) * 28, 70, 0.2, 0.3, d);
+    },
+  },
+  // Phase two: the same grinding bass doubled into a gallop at 150 BPM, a pounding kick and
+  // snare, hats on every step, funeral bells on every beat and a church organ chanting the
+  // Dies irae, the hymn of the dead.
+  dragon2: {
+    step: 60 / 150 / 4,
+    dies: [67, 66, 67, 64, 66, 62, 64, 64],
+    play(n, d) {
+      const st = this.step,
+        bar = Math.floor(n / 16) % 4,
+        b = n % 16,
+        root = THEMES.dragon.bass[b - (b % 2)] || 40;
+      if (b % 2 === 0) {
+        const m = b % 4 === 2 ? root + 6 : root;
+        tone('sawtooth', hz(m), hz(m), st * 1.6, 0.14, d, 520);
+        tone('sine', hz(m - 12), hz(m - 12), st * 1.6, 0.1, d);
+      }
+      if (b % 4 === 0 || (bar === 3 && b % 2 === 0)) tone('sine', 140, 38, 0.17, 0.5, d);
+      if (b === 4 || b === 12) {
+        noise(0.13, 0.24, 2100, 900, 0.9, d);
+        tone('triangle', 220, 150, 0.07, 0.1, d);
+      }
+      noise(0.022, b % 2 ? 0.025 : 0.04, 8500, 7000, 2, d, 'highpass');
+      if (b % 4 === 0) {
+        // a funeral bell on every beat
+        tone('sine', hz(76), hz(76), 1.2, 0.05, d);
+        tone('sine', hz(76) * 2.76, hz(76) * 2.76, 0.6, 0.018, d);
+      }
+      if (n % 4 === 0) {
+        // the organ: Dies irae, the second time an octave higher
+        const note = this.dies[Math.floor((n % 32) / 4)] + (Math.floor(n / 32) % 2 ? 12 : 0);
+        for (const k of [0, 7, 12])
+          tone('sawtooth', hz(note + k), hz(note + k), st * 4, 0.022, d, 1700);
+      }
+      if (n % 64 === 0) growl(1.2, 90, 60, 0.12, d);
+    },
+  },
   // Character select: tense — a pulsing low ostinato that leans on a minor second, a heartbeat
   // kick, ticking hats and a slow dissonant swell.
   tense: {
@@ -517,11 +594,16 @@ export const THEMES = {
     },
   },
 };
-/** Which theme plays now: the night theme in the fight, the old theme on the menu. The
- * western stays in THEMES for later use. */
-export function themeFor(state) {
+/** Which theme plays now: the night theme in the fight, the dragon's own theme in its fight,
+ * the old theme on the menu. The western stays in THEMES for later use. */
+export function themeFor(state, enemies = G.enemies) {
   if (state === 'select') return 'tense';
-  if (state === 'play') return 'night';
+  if (state === 'play') {
+    // the Bone Dragon brings its own music, faster in its second phase
+    const d = enemies.find((e) => e.T?.dragon && !e.dead && e.state !== 'dying');
+    if (d) return d.phase2 ? 'dragon2' : 'dragon';
+    return 'night';
+  }
   if (state === 'title') return 'graveyard';
   return null;
 }

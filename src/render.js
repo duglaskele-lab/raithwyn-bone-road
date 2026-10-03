@@ -26,7 +26,13 @@ import { RANKS, STYLE_STEP, dmgMult, scoreMult, styleRank } from './style.js';
 import { drawBG, drawFog, drawVignette } from './background.js';
 import { hadoLevel } from './combat.js';
 import { boneShape, drawBike, drawSkel } from './skeleton.js';
-import { drawDragon, drawDragonBeam, drawDragonGround, drawShocks } from './dragon.js';
+import {
+  drawDragon,
+  drawDragonBeam,
+  drawDragonGround,
+  drawDragonPart,
+  drawShocks,
+} from './dragon.js';
 
 export function shadow(x, y, z, r) {
   const k = clamp(1 - z / 260, 0.45, 1);
@@ -264,6 +270,11 @@ export function drawDebris(d) {
   const a = Math.min(1, d.life * 1.5);
   ctx.save();
   ctx.globalAlpha = a;
+  if (d.k === 'dpart') {
+    drawDragonPart(d);
+    ctx.restore();
+    return;
+  }
   if (d.k === 'bike') {
     ctx.translate(d.x - G.cam, d.gy);
     ctx.scale(d.dir, 1 - 0.58 * ease(d.tilt));

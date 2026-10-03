@@ -5,7 +5,7 @@ import { G, P } from './state.js';
 import { SFX } from './audio.js';
 import { motes, shatter, spark } from './fx.js';
 import { spawn } from './enemies.js';
-import { DRAGON, dragonInterrupt, dragonZone, headPoint } from './dragon.js';
+import { DRAGON, dragonDie, dragonInterrupt, dragonPush, dragonZone, headPoint } from './dragon.js';
 import { dmgMult, scoreMult, styleBreak, styleGain, styleKeep } from './style.js';
 
 export function hadoLevel(rage) {
@@ -33,7 +33,7 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
     e.state === 'down' ||
     (e.state === 'getup' && e.t < 0.25) ||
     (e.state === 'rise' && e.t < 0.45) ||
-    (e.T.dragon && e.state === 'intro')
+    (e.T.dragon && (e.state === 'intro' || e.state === 'dying'))
   )
     return false;
   if (e.state === 'ride' && e.t < RW) return false;
@@ -54,7 +54,10 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
   if (e.T.dragon) {
     // only a heavy blow during some wind-ups staggers the dragon (see dragonInterrupt)
     if (e.hp <= 0) killEnemy(e, dir);
-    else dragonInterrupt(e, knock, src);
+    else {
+      dragonPush(e, dir, knock || src === 'hado' || src === 'super');
+      dragonInterrupt(e, knock, src);
+    }
     return true;
   }
   if (e.mounted) {
@@ -143,10 +146,24 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
   return true;
 }
 export function killEnemy(e, dir) {
+  if (e.T.dragon) {
+    // the dragon does not fall to bones: it roars, collapses and breaks apart (dragon.js)
+    if (e.state === 'dying') return;
+    P.score += Math.round(e.T.score * scoreMult());
+    dragonDie(e);
+    finale(e);
+    return;
+  }
   e.dead = true;
   P.score += Math.round(e.T.score * scoreMult());
   shatter(e, dir);
-  if (e.T.bigBoss) {
+  if (e.T.bigBoss) finale(e);
+  else if (Math.random() < 0.12)
+    G.items.push({ kind: 'rage', x: e.x, y: e.y, z: 60, vz: 200, t: 0 });
+}
+// A boss falls: slow motion, a flash, every other enemy crumbles, the arena is cleared.
+function finale(e) {
+  {
     G.slow = 1.4;
     G.shake = 16;
     G.flash = 0.6;
@@ -159,8 +176,7 @@ export function killEnemy(e, dir) {
     G.projs = G.projs.filter((p) => p.k !== 'ebone' && p.k !== 'acid');
     G.pools = [];
     G.shocks = [];
-  } else if (Math.random() < 0.12)
-    G.items.push({ kind: 'rage', x: e.x, y: e.y, z: 60, vz: 200, t: 0 });
+  }
 }
 // A zombie's head flies off; the body keeps fighting.
 export function popHead(e, dir) {
