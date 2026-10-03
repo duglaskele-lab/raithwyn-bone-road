@@ -1,13 +1,15 @@
 import { H, PURPLE, W } from './config.js';
 import { rnd } from './util.js';
 import { G, P, reset } from './state.js';
-import { atlas, ctx, cv, initGfx, txt } from './gfx.js';
+import { atlas, ctx, cv, initGfx, loadPortraits, txt } from './gfx.js';
 import { initInput, keys, pressed, touch } from './input.js';
 import { initBackground } from './background.js';
 import { spawn } from './enemies.js';
-import { LANG_BOX, drawHUD, drawTitle, drawWorld, overlay } from './render.js';
+import { drawHUD, drawWorld, overlay } from './render.js';
+import { MENU_STATES, drawMenu, menuStep } from './menu.js';
+import { PORTRAITS } from './characters.js';
 import { update } from './world.js';
-import { STR, lang, nextLang, onLang, setLang, t } from './i18n.js';
+import { STR, lang, onLang, setLang, t } from './i18n.js';
 
 // Entry point: wires the DOM to the game modules and runs the frame loop.
 function fit() {
@@ -42,41 +44,16 @@ function applyLang() {
   for (const btn of document.querySelectorAll('#btns button'))
     btn.textContent = S.pad[btn.dataset.a];
 }
-// Title menu: 0 = start the game, 1 = language.
-function titleMenu() {
-  const tap = pressed.tap;
-  if (tap) {
-    const [x, y, w, h] = LANG_BOX;
-    if (tap[0] >= x && tap[0] <= x + w && tap[1] >= y && tap[1] <= y + h) {
-      G.menu = 1;
-      nextLang();
-      return;
-    }
-    // A tap anywhere else starts the game.
-    reset();
-    G.state = 'play';
-    return;
-  }
-  if (pressed.u || pressed.d) G.menu = 1 - G.menu;
-  if (G.menu === 1 && (pressed.l || pressed.r || pressed.start || pressed.atk)) {
-    nextLang();
-    return;
-  }
-  if (pressed.start || pressed.atk) {
-    reset();
-    G.state = 'play';
-  }
-}
 function frame(dt) {
   ctx.setTransform(G.K, 0, 0, G.K, 0, 0);
   ctx.imageSmoothingEnabled = true;
   if (pressed.mute) {
     G.muted = !G.muted;
   }
-  if (G.state === 'title') {
-    G.time += dt;
-    drawTitle();
-    titleMenu();
+  if (MENU_STATES.includes(G.state)) {
+    menuStep(dt);
+    // the step may have started the fight; the next frame draws it
+    if (MENU_STATES.includes(G.state)) drawMenu();
   } else {
     if (pressed.pause && (G.state === 'play' || G.state === 'pause'))
       G.state = G.state === 'play' ? 'pause' : 'play';
@@ -88,6 +65,9 @@ function frame(dt) {
       if (G.endT > 1.5 && (pressed.start || pressed.atk)) {
         reset();
         G.state = 'play';
+      } else if (G.endT > 1.5 && pressed.pause) {
+        G.state = 'title';
+        G.menu = 0;
       }
     }
     ctx.fillStyle = '#0c1218';
@@ -112,6 +92,7 @@ function frame(dt) {
       txt(t('score') + P.score, W / 2, 292, 22, '#ece5cb', 'center', 4);
       if (G.endT > 1.5)
         txt(touch ? t('restartTouch') : t('restartKey'), W / 2, 340, 20, '#f0cf4f', 'center', 4);
+      if (G.endT > 1.5 && !touch) txt(t('toMenuKey'), W / 2, 372, 15, '#9bb0ac', 'center', 3);
     }
     if (G.state === 'win' && G.endT > 1.2) {
       overlay(Math.min(0.5, (G.endT - 1.2) * 0.5));
@@ -123,6 +104,7 @@ function frame(dt) {
       txt(t('score') + P.score, W / 2, 244, 24, '#f0cf4f', 'center', 5);
       if (G.endT > 2.4)
         txt(touch ? t('againTouch') : t('againKey'), W / 2, 290, 20, '#ece5cb', 'center', 4);
+      if (G.endT > 2.4 && !touch) txt(t('toMenuKey'), W / 2, 322, 15, '#9bb0ac', 'center', 3);
     }
   }
   for (const k in pressed) delete pressed[k];
@@ -142,6 +124,7 @@ function boot() {
   initGfx(document.getElementById('game'));
   initBackground();
   initInput(cv);
+  loadPortraits(PORTRAITS, window.__PORTRAITS__);
   applyLang();
   onLang(applyLang);
   addEventListener('resize', fit);

@@ -9,7 +9,8 @@
     "test": "node --test",
     "build": "node tools/build.mjs",
     "format": "prettier --write src tests tools",
-    "atlas": "python3 tools/build_atlas.py"
+    "atlas": "python3 tools/build_atlas.py",
+    "portraits": "python3 tools/build_portraits.py"
   },
   "devDependencies": {
     "esbuild": "^0.25.0",

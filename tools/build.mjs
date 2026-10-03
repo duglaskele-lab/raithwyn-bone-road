@@ -1,7 +1,8 @@
-// Builds dist/raithwyn.html: the whole game in one file (code, styles and sprite atlas inlined).
+// Builds dist/raithwyn.html: the whole game in one file (code, styles, sprite atlas and
+// portraits inlined).
 // The result opens from disk with a double click and needs no server.
 import { build } from 'esbuild';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -18,6 +19,12 @@ const bundle = await build({
 const js = bundle.outputFiles[0].text.replaceAll('</script', '<\\/script');
 const css = await read('styles.css');
 const atlas = (await readFile(root + 'assets/atlas.png')).toString('base64');
+const portraits = {};
+for (const f of await readdir(root + 'assets/portraits'))
+  if (f.endsWith('.webp'))
+    portraits[f.slice(0, -5)] =
+      'data:image/webp;base64,' +
+      (await readFile(root + 'assets/portraits/' + f)).toString('base64');
 
 let html = await read('index.html');
 const swap = (from, to) => {
@@ -27,7 +34,7 @@ const swap = (from, to) => {
 swap('<link rel="stylesheet" href="styles.css">', `<style>\n${css}</style>`);
 swap(
   '<script type="module" src="src/main.js"></script>',
-  `<script>window.__ATLAS__='data:image/png;base64,${atlas}';</script>\n<script>${js}</script>`,
+  `<script>window.__ATLAS__='data:image/png;base64,${atlas}';window.__PORTRAITS__=${JSON.stringify(portraits)};</script>\n<script>${js}</script>`,
 );
 
 await mkdir(root + 'dist', { recursive: true });
