@@ -1,7 +1,6 @@
 // Draws the world, the HUD and the title screen.
 import {
   ACID,
-  BOSS,
   DECOR,
   H,
   MAXR,
@@ -338,6 +337,34 @@ export function drawProj(q) {
     drawDebris({ k: 'skull', x: q.x, gy: q.y, z: q.z, rot: q.rot, len: 12, col: q.col, life: 1 });
     return;
   }
+  if (q.k === 'plasma') {
+    // a crackling ball of violet plasma
+    const r = 13 + Math.sin(G.time * 45 + q.x) * 2;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createRadialGradient(x, y, 2, x, y, r * 3.2);
+    g.addColorStop(0, 'rgba(255,255,255,.95)');
+    g.addColorStop(0.3, 'rgba(210,150,255,.75)');
+    g.addColorStop(1, 'rgba(140,50,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x - r * 3.2, y - r * 3.2, r * 6.4, r * 6.4);
+    ctx.strokeStyle = 'rgba(240,220,255,.9)';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    for (let i = 0; i < 3; i++) {
+      const a = G.time * 20 + i * 2.1 + q.x * 0.1;
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + Math.cos(a) * r * 1.3, y + Math.sin(a) * r * 1.3);
+      ctx.lineTo(x + Math.cos(a + 0.5) * r * 2, y + Math.sin(a + 0.5) * r * 2);
+    }
+    ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = '#f6eaff';
+    ctx.beginPath();
+    ctx.arc(x, y, r * 0.55, 0, TAU);
+    ctx.fill();
+    return;
+  }
   if (q.k === 'acid') {
     const r = 11 + Math.sin(G.time * 30) * 1.5;
     ctx.save();
@@ -421,6 +448,33 @@ export function drawPart(p) {
       ctx.fill();
       ctx.restore();
       break;
+    case 'blast': {
+      // a plasma explosion: a white-hot core that swells into a violet fireball and fades
+      const r = p.s * (0.45 + 0.75 * ease(Math.min(1, u * 1.6))),
+        a = 1 - u,
+        cy = y - r * 0.55;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const g = ctx.createRadialGradient(x, cy, 2, x, cy, r);
+      g.addColorStop(0, `rgba(255,255,255,${a})`);
+      g.addColorStop(0.35, `rgba(235,190,255,${0.9 * a})`);
+      g.addColorStop(0.7, `rgba(170,80,255,${0.55 * a})`);
+      g.addColorStop(1, 'rgba(120,40,220,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.ellipse(x, cy, r, r * 0.85, 0, 0, TAU);
+      ctx.fill();
+      // scorched light on the ground
+      const gg = ctx.createRadialGradient(x, y, 2, x, y, r * 1.2);
+      gg.addColorStop(0, `rgba(230,200,255,${0.6 * a})`);
+      gg.addColorStop(1, 'rgba(160,80,255,0)');
+      ctx.fillStyle = gg;
+      ctx.beginPath();
+      ctx.ellipse(x, y, r * 1.2, r * 0.4, 0, 0, TAU);
+      ctx.fill();
+      ctx.restore();
+      break;
+    }
     case 'fxring':
       sprite('fx', 1, x, y, false, 1 + u * 2.2, 1 - u);
       break;
@@ -536,29 +590,6 @@ export function drawWorld() {
       ctx.stroke();
     }
   for (const a of G.pools) drawPool(a);
-  // the baron's acid breath: marked on the ground while he winds up, green while it lasts
-  for (const e of G.enemies)
-    if (e.state === 'bwind' || e.state === 'breath') {
-      const x = e.x - G.cam + e.face * 20,
-        L = BOSS.breathLen,
-        w0 = BOSS.breathW0,
-        w1 = w0 + L * BOSS.breathSpread,
-        wind = e.state === 'bwind',
-        u = wind ? Math.min(1, e.t / BOSS.breathWind) : 1;
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(x, e.y - w0);
-      ctx.lineTo(x + e.face * L, e.y - w1);
-      ctx.lineTo(x + e.face * L, e.y + w1);
-      ctx.lineTo(x, e.y + w0);
-      ctx.closePath();
-      ctx.fillStyle = wind ? `rgba(255,70,60,${0.08 + 0.16 * u})` : 'rgba(110,230,60,.28)';
-      ctx.fill();
-      ctx.lineWidth = wind ? 2 + 2 * u : 3;
-      ctx.strokeStyle = wind ? 'rgba(255,120,100,.9)' : 'rgba(170,255,110,.8)';
-      ctx.stroke();
-      ctx.restore();
-    }
   for (const e of G.enemies) if (e.T.dragon) drawDragonGround(e);
   drawShocks();
   // shadows
@@ -572,7 +603,8 @@ export function drawWorld() {
         e.T.shadow || (e.mounted ? (e.bike === 'hog' ? 104 : 70) : 34) * e.T.scale,
       );
   for (const it of G.items) shadow(it.x, it.y, it.z, 12);
-  for (const q of G.projs) shadow(q.x, q.y, q.z, q.k === 'hado' ? 26 * q.lv : 10);
+  for (const q of G.projs)
+    shadow(q.x, q.y, q.z, q.k === 'hado' ? 26 * q.lv : q.k === 'plasma' ? 20 : 10);
   if (G.state !== 'title') shadow(P.x, P.y, P.z, 40);
   const list = [];
   for (const d of G.debris) list.push([d.gy - 1, drawDebris, d]);

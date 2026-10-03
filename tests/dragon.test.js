@@ -79,7 +79,7 @@ test('heavy blows stagger some wind-ups, then it shrugs them off for a while', (
 
 test('it moves half as fast again as before and pounces at a far player', () => {
   assert.equal(TYPES.dragon.speed, 51);
-  const d = dragonAt(100, 460, { laserCd: 9 });
+  const d = dragonAt(100, 460, { laserCd: 9, plasmaCd: 9 });
   run(d, DT);
   assert.equal(d.state, 'pounce');
   run(d, DRAGON.pounce.crouch + DRAGON.pounce.air + 0.05);
@@ -155,7 +155,7 @@ test('below half health: a roar, then the leap joins in and hits where it lands'
   run(d, DT);
   assert.equal(d.state, 'roar');
   run(d, DRAGON.roar + DT);
-  Object.assign(d, { state: 'walk', cd: 0, leapCd: 0, laserCd: 9 });
+  Object.assign(d, { state: 'walk', cd: 0, leapCd: 0, laserCd: 9, plasmaCd: 9 });
   P.y = 450 + 120; // out of reach of everything else
   run(d, DT);
   assert.equal(d.state, 'leap');
@@ -291,6 +291,33 @@ test('second phase: 30% faster, and a laser that widens to twice its width as it
     assert.equal(P.hp < 100, hit, `phase2 ${phase2}, ${dy} px off`);
     if (dy > L.band) assert.ok(!early, 'out of reach when the beam starts');
   }
+});
+
+test('far away, it spits three plasma balls in arcs that blow up where they land', () => {
+  const d = dragonAt(100, 450, { laserCd: 9, pounceCd: 9 });
+  P.inv = 0;
+  run(d, DT);
+  assert.equal(d.state, 'plasma', 'the only attack that reaches that far');
+  const Q = DRAGON.plasma;
+  run(d, Q.wind + Q.n * Q.gap + DT);
+  const balls = G.projs.filter((q) => q.k === 'plasma');
+  assert.equal(balls.length, 3);
+  assert.ok(
+    balls.every((q) => q.z > 100),
+    'spat from the jaws, high up',
+  );
+  const xs = balls.map((q) => q.x + q.vx * Q.flight).sort((a, b) => a - b);
+  assert.ok(xs[2] - xs[0] > Q.spread, 'spread out around the player');
+  for (let i = 0; i < 1.5 / DT; i++) {
+    update(DT);
+    if (P.state === 'ko') break;
+  }
+  assert.equal(G.projs.filter((q) => q.k === 'plasma').length, 0, 'all of them came down');
+  assert.ok(P.hp < 100, 'the one aimed at the player blows up under her');
+  assert.ok(
+    G.parts.some((p) => p.k === 'gring'),
+    'with a blast',
+  );
 });
 
 test('now and then it kicks a hind leg at a player close behind it', () => {

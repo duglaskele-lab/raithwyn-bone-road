@@ -160,6 +160,20 @@ export const SFX = {
     tone('sawtooth', 2200, 600, 0.09, 0.05);
     tone('triangle', 3300, 3100, 0.25, 0.05, 0.05);
   },
+  // the dragon's plasma: gathering in the jaws, each ball spat out, a blast on the ground
+  plasmaWind() {
+    tone('sawtooth', 80, 320, 0.7, 0.08, 0, 1400);
+    noise(0.7, 0.12, 300, 2400, 2);
+  },
+  plasma() {
+    tone('square', 520, 160, 0.18, 0.08);
+    noise(0.16, 0.22, 2400, 600, 2);
+  },
+  blast() {
+    noise(0.45, 0.6, 1600, 90, 0.8);
+    tone('sine', 120, 30, 0.4, 0.6);
+    tone('sawtooth', 300, 60, 0.25, 0.08);
+  },
   daze() {
     for (let i = 0; i < 3; i++) tone('triangle', 900 - i * 160, 700 - i * 160, 0.12, 0.08, i * 0.1);
   },

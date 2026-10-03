@@ -6,9 +6,10 @@
 //   laser  - a wide white beam from its bone heart along the whole arena; step up or down
 //   pounce - a long jump towards a player who stands far away, landing close in front
 //   leap   - phase two only: jumps onto the player and hits everything where it lands
+//   plasma - at long range: three balls of plasma spat in arcs that blow up where they land
 //   kick   - now and then, when the player stands close behind it: a kick of a hind leg
 // A heavy hit (a knockdown blow, a dark ball, the super) during the wind-up of the bite, the
-// claw, the kick or the pounce staggers it; then it shrugs off interrupts for a few seconds. The laser
+// claw, the kick, the plasma or the pounce staggers it; then it shrugs off interrupts for a few seconds. The laser
 // and the leap cannot be stopped at all.
 import { GB, GT, TAU, W } from './config.js';
 import { clamp, ease, lerp, rnd } from './util.js';
@@ -26,6 +27,22 @@ export const DRAGON = {
   bite: { wind: 0.6, strike: 0.22, down: 1.3, up: 0.5, dmg: 18, min: 110, max: 320, dy: 50 },
   claw: { wind: 0.5, swipe: 0.2, rec: 0.55, dmg: 14, min: 20, max: 240, dy: 60 },
   laser: { wind: 1.0, fire: 1.1, rec: 0.5, dmg: 22, band: 40, dy: 110, cd: 5 },
+  // three plasma balls spat one after another in arcs at a player far away; each one blows up
+  // where it lands (rx, ry: the blast)
+  plasma: {
+    wind: 0.7,
+    gap: 0.16,
+    rec: 0.6,
+    n: 3,
+    flight: 1.05,
+    g: 900,
+    dmg: 16,
+    rx: 72,
+    ry: 34,
+    min: 330,
+    cd: 6,
+    spread: 105,
+  },
   // a kick of the near hind leg at a player close behind it; rare (cd) and not every time
   kick: {
     wind: 0.45,
@@ -114,6 +131,15 @@ export function dragonHead(e) {
     y = -235;
     x = 150;
     jaw = 0.35;
+  } else if (e.state === 'plasma') {
+    // head thrown back while the plasma gathers, then a jerk forward with every ball
+    const Q = DRAGON.plasma,
+      p = ease(Math.min(1, e.t / Q.wind)),
+      s = e.t - Q.wind,
+      kick = s > 0 && s < Q.n * Q.gap ? Math.sin(((s % Q.gap) / Q.gap) * Math.PI) : 0;
+    x = lerp(HEAD_REST[0], 135, p) + 22 * kick;
+    y = lerp(HEAD_REST[1] + br, -262, p) + 14 * kick;
+    jaw = 0.15 + 0.5 * p + 0.2 * kick;
   }
   return { x, y, jaw };
 }
@@ -155,6 +181,7 @@ function choose(e) {
   if (f > 90 && ady < C.laser.dy && e.laserCd <= 0) can.push('laser');
   if (e.phase2 && e.leapCd <= 0 && (f > 260 || f < -40 || ady > 70)) can.push('leap');
   if (e.pounceCd <= 0 && Math.abs(f) > C.pounce.min && ady < 120) can.push('pounce');
+  if ((e.plasmaCd ?? 0) <= 0 && f > C.plasma.min) can.push('plasma');
   const fresh = can.filter((a) => a !== e.last);
   const pick = (fresh.length ? fresh : can)[
     Math.floor(Math.random() * (fresh.length || can.length))
@@ -174,7 +201,11 @@ function start(e, a) {
   }
   if (a === 'leap') e.leapCd = DRAGON.leap.cd;
   if (a === 'pounce') e.pounceCd = DRAGON.pounce.cd;
-  if (a !== 'laser') SFX.dragonWind();
+  if (a === 'plasma') {
+    e.plasmaCd = DRAGON.plasma.cd;
+    e.spat = 0;
+    SFX.plasmaWind();
+  } else if (a !== 'laser') SFX.dragonWind();
 }
 function finish(e) {
   e.state = 'walk';
@@ -230,6 +261,61 @@ function jump(e, J) {
     finish(e);
   }
 }
+/** World point of the mouth: x, depth y, height above the ground. */
+function mouth(e) {
+  const h = dragonHead(e);
+  return [e.x + e.face * (h.x + 38), e.y, e.z - h.y - 6];
+}
+// One plasma ball, lobbed so it comes down after `flight` seconds: the first at the player,
+// the others to either side, so standing still is not enough.
+function spitPlasma(e, i) {
+  const Q = DRAGON.plasma,
+    [x0, y0, z0] = mouth(e),
+    off = [0, -1, 1][i % 3] * Q.spread,
+    tx = clamp(P.x + off, G.cam + 30, G.cam + W - 30),
+    ty = clamp(P.y + (i ? rnd(-40, 40) : 0), GT + 6, GB - 4),
+    f = Q.flight;
+  G.projs.push({
+    k: 'plasma',
+    x: x0,
+    y: y0,
+    z: z0,
+    vx: (tx - x0) / f,
+    vy: (ty - y0) / f,
+    vz: (Q.g * f) / 2 - z0 / f,
+    rot: 0,
+    life: 4,
+  });
+  SFX.plasma();
+}
+/** A plasma ball hits the ground: a blast that hurts the player inside it. */
+export function plasmaBlast(q) {
+  const Q = DRAGON.plasma;
+  G.shake = Math.max(G.shake, 7);
+  SFX.blast();
+  G.parts.push({ k: 'blast', x: q.x, y: q.y, t: 0, life: 0.5, s: Q.rx * 1.1 });
+  G.parts.push({ k: 'gring', x: q.x, y: q.y, t: 0, life: 0.35, s: Q.rx, col: '#e7c8ff' });
+  for (let i = 0; i < 22; i++) {
+    const a = rnd(0, TAU),
+      v = rnd(100, 320);
+    G.parts.push({
+      k: 'glow',
+      x: q.x,
+      y: q.y - 10,
+      vx: Math.cos(a) * v,
+      vy: Math.sin(a) * v * 0.6 - 90,
+      g: 300,
+      t: 0,
+      life: rnd(0.3, 0.55),
+      s: rnd(3, 7),
+      col: i % 3 ? '#d7a8ff' : '#ffffff',
+    });
+  }
+  dust(q.x, q.y, 4);
+  const ex = (P.x - q.x) / Q.rx,
+    ey = (P.y - q.y) / Q.ry;
+  if (ex * ex + ey * ey < 1 && P.z < 60) hitPlayer(Q.dmg, P.x >= q.x ? 1 : -1, true);
+}
 /**
  * A hit landed on the dragon. A heavy one during the wind-up of the bite, the claw or the
  * pounce staggers it, unless it is still shrugging off the last interrupt.
@@ -241,6 +327,7 @@ export function dragonInterrupt(e, knock, src) {
       (e.state === 'bite' && e.t < C.bite.wind) ||
       (e.state === 'claw' && e.t < C.claw.wind) ||
       (e.state === 'kick' && e.t < C.kick.wind) ||
+      (e.state === 'plasma' && e.t < C.plasma.wind) ||
       (e.state === 'pounce' && e.t < C.pounce.crouch);
   if (!heavy || !winding || e.armor > 0) return false;
   Object.assign(e, { state: 'stagger', t: 0, armor: C.armor, swung: false, thud: false });
@@ -407,6 +494,7 @@ function step(e, dt) {
   e.leapCd -= dt;
   e.pounceCd = (e.pounceCd ?? 0) - dt;
   e.kickCd = (e.kickCd ?? 0) - dt;
+  e.plasmaCd = (e.plasmaCd ?? 0) - dt;
   e.armor = (e.armor ?? 0) - dt;
   e.moving = false;
   const f = (P.x - e.x) * e.face;
@@ -537,6 +625,12 @@ function step(e, dt) {
         e.swung = false;
         finish(e);
       }
+      break;
+    }
+    case 'plasma': {
+      const Q = C.plasma;
+      if (e.t > Q.wind + e.spat * Q.gap && e.spat < Q.n) spitPlasma(e, e.spat++);
+      if (e.t > Q.wind + Q.n * Q.gap + Q.rec) finish(e);
       break;
     }
     case 'kick': {
@@ -914,6 +1008,27 @@ export function drawDragonGround(e) {
 /** The charge and the beam, drawn over everything. */
 export function drawDragonBeam(e) {
   const L = DRAGON.laser;
+  if (e.state === 'plasma') {
+    // plasma gathering in the jaws
+    const Q = DRAGON.plasma,
+      [mx, , mz] = mouth(e),
+      left = Q.n - (e.spat || 0),
+      u = Math.min(1, e.t / Q.wind),
+      r = left ? (8 + 14 * u) * (0.9 + 0.1 * Math.sin(G.time * 40)) : 0;
+    if (!r) return;
+    const x = mx - G.cam,
+      y = e.y - mz;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createRadialGradient(x, y, 1, x, y, r * 2.6);
+    g.addColorStop(0, 'rgba(255,255,255,.95)');
+    g.addColorStop(0.35, 'rgba(215,160,255,.7)');
+    g.addColorStop(1, 'rgba(150,60,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x - r * 3, y - r * 3, r * 6, r * 6);
+    ctx.restore();
+    return;
+  }
   if (e.state !== 'laser') return;
   const hx = e.x - G.cam + e.face * 25,
     hy = e.laserY - e.z - 108,
