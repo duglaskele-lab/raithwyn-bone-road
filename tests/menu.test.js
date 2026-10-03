@@ -3,7 +3,16 @@ import assert from 'node:assert/strict';
 import { G } from '../src/state.js';
 import { pressed } from '../src/input.js';
 import { CHARS, LEVEL, SLOTS, STATS } from '../src/characters.js';
-import { BACK_BOX, MAIN_BOX, PLAY_BOX, SET_BOX, SLOT_BOX, menuStep } from '../src/menu.js';
+import {
+  BACK_BOX,
+  MAIN_BOX,
+  PLAY_BOX,
+  SET_BOX,
+  SLOT_BOX,
+  laughFrame,
+  laughFull,
+  menuStep,
+} from '../src/menu.js';
 import { LANGS, STR, lang, setLang } from '../src/i18n.js';
 import { freshGame } from './helpers.js';
 
@@ -101,4 +110,16 @@ test('a second tap on Raithwyn starts the fight, Back returns to the menu', () =
   G.state = 'select';
   step(BACK_BOX);
   assert.equal(G.state, 'title');
+});
+
+test('the menu laugh plays its last frame in about one loop out of ten', () => {
+  const loops = 2000,
+    full = Array.from({ length: loops }, (_, i) => laughFull(i)).filter(Boolean).length;
+  assert.ok(full / loops > 0.07 && full / loops < 0.13, `${full} of ${loops}`);
+  const loopT = 0.13 * 12;
+  for (let i = 0; i < 50; i++) {
+    const frames = new Set();
+    for (let k = 0; k < 12; k++) frames.add(laughFrame(i * loopT + k * 0.13 + 0.01));
+    assert.equal(frames.has(3), laughFull(i), `loop ${i}`);
+  }
 });
