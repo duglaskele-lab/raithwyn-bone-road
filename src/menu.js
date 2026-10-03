@@ -222,6 +222,17 @@ function item(label, b, on) {
     5,
   );
 }
+// Raithwyn laughing on the main menu. Most loops stop short of the last, widest frame (3);
+// one loop in ten plays it. Each loop decides by its own number, so the choice holds steady.
+const LAUGH = [0, 0, 0, 1, 2, 1, 2, 1, 2, 3, 3, 0],
+  LAUGH_T = 0.13,
+  LAUGH_FULL = 0.1;
+export const laughFull = (loop) => mulberry(loop * 7919 + 13)() < LAUGH_FULL;
+export function laughFrame(time) {
+  const n = Math.floor(time / LAUGH_T),
+    f = LAUGH[n % LAUGH.length];
+  return f === 3 && !laughFull(Math.floor(n / LAUGH.length)) ? 2 : f;
+}
 function drawMain() {
   backdrop(0.35);
   const g = ctx.createLinearGradient(0, 0, W, 0);
@@ -238,14 +249,7 @@ function drawMain() {
   ctx.fillStyle = gl;
   ctx.fillRect(0, 0, 420, H);
   ctx.restore();
-  sprite(
-    'laugh',
-    [0, 0, 0, 1, 2, 1, 2, 1, 2, 3, 3, 0][Math.floor(G.time / 0.13) % 12],
-    170,
-    528,
-    false,
-    2.05,
-  );
+  sprite('laugh', laughFrame(G.time), 170, 528, false, 2.05);
   brickTitle('Ai RAGE', 150, 116);
   txt(t('gameSub'), W / 2, 200, 26, '#d2a8ff', 'center', 6);
   const labels = [t('menuStart'), t('menuSettings'), t('menuExit')];
