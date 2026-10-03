@@ -194,7 +194,16 @@ test('killing the dragon wins the level', () => {
   const d = G.enemies.find((e) => e.type === 'dragon');
   assert.ok(d);
   hurtEnemy(d, 99999, 1, true, 'hado');
-  step(1);
+  assert.equal(d.state, 'dying', 'it does not crumble at once');
+  assert.ok(!d.dead);
+  assert.equal(hurtEnemy(d, 10, 1, true, 'hado'), false, 'no more hits while it falls');
+  step(4);
+  assert.ok(d.dead);
+  for (const part of ['skull', 'ribs', 'wing', 'tail', 'leg'])
+    assert.ok(
+      G.debris.some((p) => p.k === 'dpart' && p.part === part),
+      `${part} lies on the ground`,
+    );
   assert.equal(G.state, 'win');
 });
 
@@ -206,8 +215,8 @@ test('the super attack charges in one second; big graves burst into big slabs', 
   assert.ok(G.debris.filter((d) => d.k === 'shard' && d.len >= 18).length >= 9);
 });
 
-test('the dragon has 15% more health than before', () => {
-  assert.equal(TYPES.dragon.hp, Math.round(900 * 1.15));
+test('the dragon has 15% and then another 10% more health', () => {
+  assert.equal(TYPES.dragon.hp, Math.round(900 * 1.15 * 1.1));
 });
 
 test('the second-phase leap sends a shockwave across the arena; jumping clears it', () => {
@@ -234,4 +243,54 @@ test('the second-phase leap sends a shockwave across the arena; jumping clears i
   }
   for (let i = 0; i < 1 / DT; i++) updShocks(DT);
   assert.equal(G.shocks.length, 0, 'the ring fades past the arena');
+});
+
+test("the player's hits push the dragon back a little", () => {
+  // roaring: it stands still, so only the push moves it
+  const d = dragonAt(400, 450, { state: 'roar', t: -5 });
+  const x = d.x;
+  P.face = 1;
+  hurtEnemy(d, 5, 1, false, 'punch');
+  run(d, 0.5);
+  const light = d.x - x;
+  assert.ok(light > 3 && light < 40, `light hit: ${light.toFixed(1)} px`);
+  const x2 = d.x;
+  hurtEnemy(d, 5, 1, true, 'punch');
+  run(d, 0.5);
+  assert.ok(d.x - x2 > light, 'a heavy hit pushes further');
+});
+
+test('second phase: 30% faster, and a laser half as wide again', () => {
+  const a = dragonAt(400, 450, { cd: 99 }),
+    b = dragonAt(400, 450, { cd: 99, phase2: true });
+  for (const d of [a, b]) Object.assign(d, { state: 'claw', t: 0 });
+  run(a, 0.3);
+  run(b, 0.3);
+  assert.ok(Math.abs(b.t / a.t - 1.3) < 0.01);
+  for (const [phase2, dy, hit] of [
+    [false, 50, false],
+    [true, 50, true],
+  ]) {
+    freshGame();
+    const d = dragonAt(60, 450, { phase2 });
+    Object.assign(d, { state: 'laser', t: 0, laserY: 450 });
+    P.y = 450 + dy;
+    run(d, (DRAGON.laser.wind + DRAGON.laser.fire) / (phase2 ? 1.3 : 1));
+    assert.equal(P.hp < 100, hit, `phase2 ${phase2}`);
+  }
+});
+
+test('the dragon fight has its own music, faster in the second phase', async () => {
+  const { THEMES, themeFor } = await import('../src/audio.js');
+  const d = spawn('dragon', 0, 600, 450);
+  assert.equal(themeFor('play'), 'dragon');
+  d.phase2 = true;
+  assert.equal(themeFor('play'), 'dragon2');
+  assert.ok(THEMES.dragon2.step < THEMES.dragon.step);
+  d.state = 'dying';
+  assert.equal(themeFor('play'), 'night');
+  for (let n = 0; n < 256; n++) {
+    THEMES.dragon.play(n, 0);
+    THEMES.dragon2.play(n, 0);
+  }
 });

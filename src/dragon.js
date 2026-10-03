@@ -28,6 +28,10 @@ export const DRAGON = {
   leap: { crouch: 0.6, air: 0.9, rec: 0.8, dmg: 20, rx: 190, ry: 70, h: 230, cd: 4 },
   // the shockwave of the leap: a ring on the ground that runs across the arena
   shock: { speed: 460, band: 22, depth: 0.32, clear: 34, dmg: 14 },
+  rage: 1.3, // in the second phase it moves and attacks this much faster
+  laserWide: 1.5, // and its laser is this much wider
+  push: { light: 70, heavy: 170 }, // knockback speed from the player's hits
+  death: { roar: 0.9, fall: 0.7 }, // a last roar, then it collapses and breaks apart
   pounce: {
     crouch: 0.35,
     air: 0.6,
@@ -78,6 +82,13 @@ export function dragonHead(e) {
       x = lerp(reach, HEAD_REST[0], p);
       y = lerp(-28, HEAD_REST[1], p);
     }
+  } else if (e.state === 'dying') {
+    // a last roar to the sky, then the head drops to the ground
+    const D = DRAGON.death,
+      p = ease(clamp((e.t - D.roar) / D.fall, 0, 1));
+    x = lerp(150, 175, p);
+    y = lerp(-250, -109, p);
+    jaw = lerp(0.8, 0.35, p);
   } else if (e.state === 'roar' || (e.state === 'intro' && e.z <= 0)) {
     x = 150;
     y = -245;
@@ -224,8 +235,157 @@ export function dragonInterrupt(e, knock, src) {
   return true;
 }
 export function updDragon(e, dt) {
+  // the player's hits push it back a little
+  if (e.kbv && !e.air && e.state !== 'dying') {
+    e.x += e.kbv * dt;
+    e.kbv *= Math.pow(0.002, dt);
+    if (Math.abs(e.kbv) < 5) e.kbv = 0;
+  }
+  // in the second phase everything it does runs faster
+  step(e, e.phase2 && e.state !== 'dying' ? dt * DRAGON.rage : dt);
+}
+/** Its health is gone: a last roar, then it collapses (see the 'dying' state). */
+export function dragonDie(e) {
+  Object.assign(e, { state: 'dying', t: 0, hp: 0, kbv: 0, broken: false });
+  e.air = e.landed = false;
+  SFX.dragonRoar();
+}
+// It hits the ground and comes apart: skull, ribcage, wings, tail and legs, each its own piece.
+function breakApart(e) {
+  const f = e.face,
+    T = e.T,
+    piece = (part, dx, z, vx, vz, vr, extra = {}) =>
+      G.debris.push({
+        k: 'dpart',
+        part,
+        x: e.x + f * dx,
+        gy: e.y + rnd(-6, 6),
+        z,
+        vx,
+        vz,
+        rot: 0,
+        vr,
+        face: f,
+        col: T.col,
+        dk: T.dk,
+        life: 14,
+        ...extra,
+      });
+  piece('skull', 175, 16, f * rnd(70, 130), 150, f * rnd(0.2, 0.4));
+  piece('ribs', 0, 10, rnd(-20, 20), 110, rnd(-0.3, 0.3));
+  piece('wing', -10, 70, -f * rnd(60, 110), 160, -f * 0.6);
+  piece('wing', 20, 90, -f * rnd(10, 50), 210, f * 0.4, { back: 1 });
+  piece('tail', -170, 8, -f * rnd(30, 60), 90, -f * 0.25);
+  for (const dx of [-90, -60, 80, 110])
+    piece('leg', dx, 30, rnd(-110, 110), rnd(160, 260), rnd(-5, 5));
+  for (let i = 0; i < 8; i++)
+    G.debris.push({
+      k: 'bone',
+      x: e.x + rnd(-120, 120),
+      gy: e.y + rnd(-10, 10),
+      z: rnd(10, 60),
+      vx: rnd(-160, 160),
+      vz: rnd(150, 300),
+      rot: rnd(0, TAU),
+      vr: rnd(-10, 10),
+      len: rnd(16, 26),
+      col: T.col,
+      life: 12,
+    });
+  e.dead = true;
+  G.shake = 22;
+  SFX.quake();
+  SFX.heavy();
+  SFX.shatter();
+  dust(e.x, e.y, 24);
+  G.parts.push({ k: 'gring', x: e.x, y: e.y, t: 0, life: 0.6, s: 320, col: '#e6dfc8' });
+}
+/** One piece of the fallen dragon, lying where it came to rest. */
+export function drawDragonPart(d) {
+  const col = d.col,
+    dk = d.dk;
+  ctx.translate(d.x - G.cam, d.gy - d.z);
+  ctx.rotate(d.rot);
+  ctx.scale(d.face, 1);
+  switch (d.part) {
+    case 'skull':
+      skull({ x: -20, y: -16, jaw: 0.45 }, col, dk, '#30402c', false);
+      break;
+    case 'ribs':
+      for (let i = 0; i < 7; i++) {
+        const x = -56 + i * 18;
+        bone(
+          [
+            [x, -50],
+            [x + 10, -26],
+            [x + 6, -4],
+          ],
+          4.5,
+          i % 2 ? col : dk,
+        );
+      }
+      bone(
+        [
+          [-70, -48],
+          [60, -52],
+        ],
+        10,
+        col,
+      );
+      // the bone heart, cracked and gone dark
+      ctx.fillStyle = '#4a3d5c';
+      ctx.strokeStyle = OL;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(25, -14);
+      ctx.bezierCurveTo(5, -28, 11, -44, 25, -36);
+      ctx.bezierCurveTo(39, -44, 45, -28, 25, -14);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(20, -38);
+      ctx.lineTo(27, -28);
+      ctx.lineTo(22, -18);
+      ctx.stroke();
+      break;
+    case 'wing':
+      // lying on the ground: flattened
+      ctx.scale(0.9, 0.5);
+      drawWing([60, 0], -0.4, d.back ? dk : col, 'rgba(48,32,70,.55)', !!d.back);
+      break;
+    case 'tail': {
+      const pts = [];
+      for (let i = 0; i <= 9; i++) pts.push([-i * 19, -8 - Math.sin(i * 0.7) * 6]);
+      bone(pts, 9, col);
+      pts.forEach(([x, y], i) => knob(x, y, 7 - i * 0.55, col));
+      break;
+    }
+    case 'leg':
+      bone(
+        [
+          [-24, -40],
+          [4, -22],
+          [16, -4],
+        ],
+        11,
+        col,
+      );
+      knob(4, -22, 6, col);
+      claws(20, -2, col);
+      break;
+  }
+}
+/** A hit pushes the dragon back; a heavy hit further. */
+export function dragonPush(e, dir, heavy) {
+  if (e.state === 'intro' || e.state === 'dying' || e.air) return;
+  e.kbv = (e.kbv || 0) + dir * (heavy ? DRAGON.push.heavy : DRAGON.push.light);
+}
+// Wings beat slowly at rest and hard when it roars, jumps or dies.
+const wingsWide = (e) => ['roar', 'leap', 'pounce', 'intro', 'dying'].includes(e.state) || e.air;
+function step(e, dt) {
   const C = DRAGON;
   e.t += dt;
+  e.wingP = (e.wingP || 0) + dt * (wingsWide(e) ? 9 : 3.2);
   e.anim += dt;
   e.flash -= dt;
   e.cd -= dt;
@@ -393,7 +553,7 @@ export function updDragon(e, dt) {
           SFX.laser();
         }
         G.shake = Math.max(G.shake, 3);
-        if (!e.hitDone && f > 0 && Math.abs(P.y - e.laserY) < L.band && P.z < 160)
+        if (!e.hitDone && f > 0 && Math.abs(P.y - e.laserY) < laserBand(e) && P.z < 160)
           if (hitPlayer(L.dmg, e.face, true)) e.hitDone = true;
       }
       if (e.t > L.wind + L.fire + L.rec) {
@@ -409,6 +569,17 @@ export function updDragon(e, dt) {
     case 'stagger':
       if (e.t > C.stagger) finish(e);
       break;
+    case 'dying': {
+      const D = C.death;
+      e.z = Math.max(0, e.z - 700 * dt);
+      if (e.t < D.roar) G.shake = Math.max(G.shake, 5);
+      else if (e.t < D.roar + D.fall && Math.random() < 0.5) dust(e.x + rnd(-120, 120), e.y, 1);
+      if (e.t > D.roar + D.fall && !e.broken) {
+        e.broken = true;
+        breakApart(e);
+      }
+      break;
+    }
   }
   if (e.state !== 'leap' && e.state !== 'pounce') {
     e.x = clamp(e.x, G.cam + 150, G.cam + W - 150);
@@ -470,7 +641,16 @@ function leg(hip, knee, foot, w, col) {
   claws(foot[0] + 4, foot[1], col);
 }
 function wing(root, flap, col, mem, back) {
-  // a skeletal wing: an arm bone, three long fingers, a torn membrane between them
+  // a skeletal wing: an arm bone, three long fingers, a torn membrane between them; the whole
+  // wing swings around the shoulder as it beats
+  ctx.save();
+  ctx.translate(root[0], root[1]);
+  ctx.rotate(-flap * 0.32);
+  ctx.translate(-root[0], -root[1]);
+  drawWing(root, flap, col, mem, back);
+  ctx.restore();
+}
+function drawWing(root, flap, col, mem, back) {
   const a = flap,
     elbow = [root[0] - 40, root[1] - 70 - a * 14],
     hand = [root[0] - 70, root[1] - 120 - a * 22],
@@ -632,33 +812,47 @@ export function drawShocks() {
     const x = w.x - G.cam,
       a = Math.max(0, 1 - w.r / (W * 1.4));
     ctx.save();
+    // the wave runs along the ground only: keep it on the floor, not up the wall and sky
+    ctx.beginPath();
+    ctx.rect(0, GT - 8, W, GB - GT + 40);
+    ctx.clip();
+    ctx.translate(x, w.y);
+    ctx.scale(1, S.depth); // draw in ground-plane units, then flatten
     ctx.globalCompositeOperation = 'lighter';
-    for (const [lw, c] of [
-      [S.band * 1.6, `rgba(176,92,255,${0.25 * a})`],
-      [S.band * 0.7, `rgba(235,220,255,${0.55 * a})`],
-      [3, `rgba(255,255,255,${0.9 * a})`],
-    ]) {
-      ctx.strokeStyle = c;
-      ctx.lineWidth = lw;
-      ctx.beginPath();
-      ctx.ellipse(x, w.y, w.r, w.r * S.depth, 0, 0, TAU);
-      ctx.stroke();
-    }
+    // a band of churned light behind the front, then the bright crest
+    const inner = Math.max(0, w.r - S.band * 3),
+      g = ctx.createRadialGradient(0, 0, inner, 0, 0, w.r + S.band);
+    g.addColorStop(0, 'rgba(176,92,255,0)');
+    g.addColorStop(0.75, `rgba(176,92,255,${0.35 * a})`);
+    g.addColorStop(0.92, `rgba(240,225,255,${0.75 * a})`);
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(0, 0, w.r + S.band, 0, TAU);
+    ctx.arc(0, 0, inner, 0, TAU, true);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(255,255,255,${0.9 * a})`;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(0, 0, w.r, 0, TAU);
+    ctx.stroke();
     ctx.restore();
   }
 }
+const laserBand = (e) => DRAGON.laser.band * (e.phase2 ? DRAGON.laserWide : 1);
 /** Light thrown on the ground by the firing beam. */
 export function drawDragonGround(e) {
   const L = DRAGON.laser;
   if (e.state !== 'laser' || e.t < L.wind || e.t > L.wind + L.fire) return;
   const x0 = e.x - G.cam + e.face * 20,
     x1 = e.face > 0 ? W + 40 : -40,
-    g = ctx.createLinearGradient(0, e.laserY - L.band, 0, e.laserY + L.band);
+    band = laserBand(e),
+    g = ctx.createLinearGradient(0, e.laserY - band, 0, e.laserY + band);
   g.addColorStop(0, 'rgba(230,210,255,0)');
   g.addColorStop(0.5, 'rgba(240,230,255,.35)');
   g.addColorStop(1, 'rgba(230,210,255,0)');
   ctx.fillStyle = g;
-  ctx.fillRect(Math.min(x0, x1), e.laserY - L.band, Math.abs(x1 - x0), L.band * 2);
+  ctx.fillRect(Math.min(x0, x1), e.laserY - band, Math.abs(x1 - x0), band * 2);
 }
 /** The charge and the beam, drawn over everything. */
 export function drawDragonBeam(e) {
@@ -693,7 +887,7 @@ export function drawDragonBeam(e) {
     const s = e.t - L.wind,
       grow = Math.min(1, s / 0.12),
       k = Math.min(1, s / 0.06) * Math.min(1, (L.wind + L.fire - e.t) / 0.2),
-      w = 40 * k + Math.sin(G.time * 70) * 4,
+      w = 40 * k * (e.phase2 ? DRAGON.laserWide : 1) + Math.sin(G.time * 70) * 4,
       xe = hx + (x1 - hx) * grow;
     for (const [ww, c] of [
       [w * 2.4, 'rgba(176,92,255,.3)'],
@@ -736,6 +930,25 @@ export function drawDragon(e) {
   if (e.state === 'stagger') rear = -0.07 * Math.sin(Math.min(1, e.t / C.stagger) * Math.PI);
   if (e.state === 'laser') rear = -Math.min(1, e.t / 0.3) * 0.08;
   if (e.state === 'roar') rear = -0.1;
+  let sink = 0;
+  if (e.state === 'dying') {
+    const D = C.death,
+      p = ease(clamp((e.t - D.roar) / D.fall, 0, 1));
+    rear = lerp(-0.14, 0.12, p);
+    sink = 95 * p;
+    bob += sink;
+  }
+  // with the body sinking, the feet stay on the ground and the knees splay out
+  const legS = (h, k, ft, w, c) =>
+    sink
+      ? leg(
+          h,
+          [k[0] + Math.sign(k[0]) * sink * 0.6, (h[1] - sink) / 2],
+          [ft[0] + Math.sign(ft[0]) * sink * 0.5, -sink + 2],
+          w,
+          c,
+        )
+      : leg(h, k, ft, w, c);
   const walk = e.moving ? e.walkT : 0,
     st = (k) => Math.sin(walk + k) * 18,
     lift = (k) => Math.max(0, Math.sin(walk + k)) * 14;
@@ -744,11 +957,11 @@ export function drawDragon(e) {
   ctx.rotate(rear);
   const hip = [-70, -125],
     sh = [60, -138],
-    flap = Math.sin(e.anim * 1.6) * (e.state === 'roar' ? 2 : 1);
+    flap = Math.sin(e.wingP || 0) * (wingsWide(e) ? 1.3 : 0.8);
   // far side: wing, legs, darker
   wing([10, -150], flap * 0.8, dk, 'rgba(40,28,58,.55)', true);
-  leg([hip[0] + 10, hip[1] + 6], [-82, -66], [-58 + st(2), -lift(2)], 10, dk);
-  leg([sh[0] + 10, sh[1] + 6], [92, -70], [86 + st(0), -lift(0)], 9, dk);
+  legS([hip[0] + 10, hip[1] + 6], [-82, -66], [-58 + st(2), -lift(2)], 10, dk);
+  legS([sh[0] + 10, sh[1] + 6], [92, -70], [86 + st(0), -lift(0)], 9, dk);
   // tail: vertebrae from the hip to the tip, swaying, with spikes
   const sway = Math.sin(e.anim * 2.4);
   const tail = [];
@@ -868,7 +1081,7 @@ export function drawDragon(e) {
     ctx.stroke();
   }
   // near legs; the front one swipes during the claw attack
-  leg(hip, [-96, -62], [-70 + st(Math.PI), -lift(Math.PI)], 12, col);
+  legS(hip, [-96, -62], [-70 + st(Math.PI), -lift(Math.PI)], 12, col);
   let paw = [100 + st(Math.PI + 2), -lift(Math.PI + 2)],
     elbow = [86, -66];
   if (e.state === 'claw') {
@@ -887,7 +1100,7 @@ export function drawDragon(e) {
       elbow = [lerp(160, 86, p), lerp(-70, -66, p)];
     }
   }
-  leg(sh, elbow, paw, 12, col);
+  legS(sh, elbow, paw, 12, col);
   // near wing over the body
   wing([20, -152], flap, col, 'rgba(58,38,84,.62)', false);
   // neck: a chain of vertebrae from the shoulders to the head
