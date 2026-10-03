@@ -137,7 +137,7 @@ export function drawUrn(u) {
   ctx.fill();
   ctx.restore();
 }
-// Breakable scenery: a bench, a gravestone (cracked after the first hit) or a stone cross.
+// Breakable scenery: a big grave (cracks with every hit), a bench or a stone cross.
 export function drawDecor(u) {
   const fl = G.time < (u.flashT || 0),
     D = DECOR[u.decor];
@@ -216,37 +216,6 @@ export function drawDecor(u) {
       ctx.beginPath();
       ctx.rect(lx, -54, 4, 30);
       fill('#2f2b33');
-    }
-  } else if (u.decor === 'grave') {
-    ctx.beginPath();
-    ctx.moveTo(-17, 0);
-    ctx.lineTo(-17, -36);
-    ctx.quadraticCurveTo(-17, -56, 0, -57);
-    ctx.quadraticCurveTo(17, -56, 17, -36);
-    ctx.lineTo(17, 0);
-    ctx.closePath();
-    fill(D.col);
-    ctx.strokeStyle = 'rgba(23,21,29,.55)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(0, -46);
-    ctx.lineTo(0, -26);
-    ctx.moveTo(-7, -39);
-    ctx.lineTo(7, -39);
-    ctx.stroke();
-    ctx.fillStyle = 'rgba(96,140,92,.55)';
-    ctx.beginPath();
-    ctx.ellipse(-8, -2, 10, 4, 0, 0, TAU);
-    ctx.fill();
-    if (u.hp < D.hp) {
-      ctx.strokeStyle = OL;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(6, -55);
-      ctx.lineTo(1, -44);
-      ctx.lineTo(8, -36);
-      ctx.lineTo(3, -24);
-      ctx.stroke();
     }
   } else {
     ctx.beginPath();

@@ -84,7 +84,7 @@ test('getting hurt ends the streak', () => {
   assert.equal(P.sty, 0);
 });
 
-test('benches, graves and crosses line the road and can be broken', () => {
+test('big graves, benches and crosses line the road and can be broken', () => {
   const decor = G.props.filter((u) => u.decor);
   assert.ok(decor.length >= 15, `only ${decor.length} pieces`);
   for (const kind of Object.keys(DECOR))
@@ -92,11 +92,13 @@ test('benches, graves and crosses line the road and can be broken', () => {
       decor.some((u) => u.decor === kind),
       kind,
     );
-  const grave = decor.find((u) => u.decor === 'grave');
-  hurtEnemy(grave, 1, 1, false, 'punch');
-  assert.ok(!grave.dead, 'a gravestone takes two hits');
-  hurtEnemy(grave, 1, 1, false, 'punch');
-  assert.ok(grave.dead);
+  assert.ok(!decor.some((u) => u.decor === 'grave'), 'no small graves any more');
+  assert.ok(decor.filter((u) => u.decor === 'tomb').length >= 12, 'plenty of big graves');
+  const tomb = decor.find((u) => u.decor === 'tomb');
+  hurtEnemy(tomb, 1, 1, false, 'punch');
+  assert.ok(!tomb.dead, 'a big grave takes several hits');
+  for (let i = 1; i < DECOR.tomb.hp; i++) hurtEnemy(tomb, 1, 1, false, 'punch');
+  assert.ok(tomb.dead);
   assert.ok(G.debris.length > 0);
   const bench = decor.find((u) => u.decor === 'bench');
   hurtEnemy(bench, 1, 1, false, 'punch');

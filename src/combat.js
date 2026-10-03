@@ -18,7 +18,7 @@ export function addRage(n) {
 export function hurtEnemy(e, dmg, dir, knock, src) {
   if (e.isProp) {
     if (e.hp > 1) {
-      // sturdy scenery (a gravestone) cracks first and breaks on the next hit
+      // sturdy scenery (a big grave) cracks first and breaks after a few hits
       e.hp--;
       e.flashT = G.time + 0.15;
       spark(e.x - dir * 6, e.y - 30, '#dfe9e2', false);
@@ -94,9 +94,9 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
   if (e.T.zombie && !e.headless && (knock || src === 'hado' || Math.random() < ZOMBIE.headOff))
     popHead(e, dir);
   if (e.type === 'boss') {
-    // charging, summoning, roaring and breathing acid cannot be stopped
-    if (['charge', 'summon', 'rise', 'roar', 'breath'].includes(e.state)) return true;
-    const atk = ['windup', 'attack', 'cwind', 'bwind'].includes(e.state),
+    // charging, summoning, roaring and the acid breath (wind-up included) cannot be stopped
+    if (['charge', 'summon', 'rise', 'roar', 'bwind', 'breath'].includes(e.state)) return true;
+    const atk = ['windup', 'attack', 'cwind'].includes(e.state),
       combo = src === 'punch' || src === 'air';
     if (combo) {
       if (e.armor > 0) return true;
@@ -104,7 +104,6 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
         e.state = 'hurt';
         e.t = 0;
         e.vx = dir * 110;
-        e.brCd = Math.max(e.brCd || 0, 1.2);
         e.breaks++;
         if (e.breaks >= 2) {
           e.breaks = 0;
