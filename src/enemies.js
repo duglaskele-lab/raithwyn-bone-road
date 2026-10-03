@@ -155,7 +155,6 @@ export function updEnemy(e, dt, ctxE) {
           e.state = 'roar';
           e.t = 0;
           e.brCd = 1.5;
-          G.banner = { a: '@boss', b: 'phase2', t: 0 };
           G.shake = 12;
           G.flash = 0.25;
           SFX.boss();

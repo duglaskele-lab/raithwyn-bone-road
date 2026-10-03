@@ -3,8 +3,7 @@ import { DECOR, MAXR, RL, RW, SUPER_DMG, SWIND_LOCK, TAU, W, ZOMBIE } from './co
 import { rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
-import { floatTxt, motes, shatter, spark } from './fx.js';
-import { t } from './i18n.js';
+import { motes, shatter, spark } from './fx.js';
 import { spawn } from './enemies.js';
 import { DRAGON, dragonInterrupt, dragonZone, headPoint } from './dragon.js';
 import { dmgMult, scoreMult, styleBreak, styleGain, styleKeep } from './style.js';
@@ -55,7 +54,7 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
   if (e.T.dragon) {
     // only a heavy blow during some wind-ups staggers the dragon (see dragonInterrupt)
     if (e.hp <= 0) killEnemy(e, dir);
-    else if (dragonInterrupt(e, knock, src)) floatTxt(e.x, e.y - 300, t('interrupted'), '#ffe9a8');
+    else dragonInterrupt(e, knock, src);
     return true;
   }
   if (e.mounted) {
@@ -75,7 +74,6 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
       tilt: 0,
       life: 2.6,
     });
-    floatTxt(e.x, e.y - 200, t('unhorsed'), '#ffe9a8');
     G.shake = Math.max(G.shake, 8);
     if (e.hp <= 0) {
       killEnemy(e, dir);
@@ -111,9 +109,8 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
         if (e.breaks >= 2) {
           e.breaks = 0;
           e.armor = 4;
-          floatTxt(e.x, e.y - 280, t('immuneShort'), '#e3c8ff');
           SFX.boss();
-        } else floatTxt(e.x, e.y - 280, t('interrupted'), '#ffe9a8');
+        }
       } else if (knock) {
         e.state = 'hurt';
         e.t = 0;

@@ -269,7 +269,6 @@ export function updDragon(e, dt) {
         e.state = 'roar';
         e.t = 0;
         e.leapCd = 1.5;
-        G.banner = { a: '@dragon', b: 'dragonPhase2', t: 0 };
         G.flash = 0.3;
         SFX.boss();
         break;
@@ -299,7 +298,7 @@ export function updDragon(e, dt) {
         e.x += Math.sign(ax) * Math.min(Math.abs(ax), e.T.speed * dt);
         e.y += Math.sign(ay) * Math.min(Math.abs(ay), e.T.speed * 0.6 * dt);
         e.moving = true;
-        e.walkT += dt * 3.2;
+        e.walkT += dt * 7.5; // brisk steps
       }
       break;
     }
@@ -689,8 +688,9 @@ export function drawDragon(e) {
   if (e.state === 'laser') rear = -Math.min(1, e.t / 0.3) * 0.08;
   if (e.state === 'roar') rear = -0.1;
   const walk = e.moving ? e.walkT : 0,
-    st = (k) => Math.sin(walk + k) * 14,
-    lift = (k) => Math.max(0, Math.sin(walk + k)) * 10;
+    st = (k) => Math.sin(walk + k) * 18,
+    lift = (k) => Math.max(0, Math.sin(walk + k)) * 14;
+  if (e.moving) bob -= Math.abs(Math.sin(walk)) * 4; // the body rides the stride
   ctx.translate(0, bob);
   ctx.rotate(rear);
   const hip = [-70, -125],

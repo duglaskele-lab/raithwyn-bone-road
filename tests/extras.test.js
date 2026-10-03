@@ -18,8 +18,9 @@ const step = (seconds) => {
   }
 };
 
-test('the level plays the new western theme; the old one stays, on the menu', () => {
-  assert.equal(themeFor('play'), 'western');
+test('the level plays the night theme; the older themes stay in the game', () => {
+  assert.equal(themeFor('play'), 'night');
+  assert.ok(THEMES.western, 'the western is kept');
   assert.equal(themeFor('title'), 'graveyard');
   assert.equal(themeFor('select'), 'tense');
   assert.ok(THEMES.graveyard.lead.length > 0, 'the old level theme is kept');
@@ -56,4 +57,17 @@ test('the secret only works before the first fight', () => {
   keys.secret = true;
   step(SECRET_HOLD + 0.5);
   assert.equal(G.waveI, 0);
+});
+
+test('the night theme is long, has two solos and a break, and loops without the intro', () => {
+  const N = THEMES.night,
+    loopSecs = N.form.length * 64 * N.step;
+  assert.ok(loopSecs > 70, `${loopSecs.toFixed(0)} s`);
+  for (const s of ['solo1', 'solo2', 'brk']) assert.ok(N.form.includes(s), s);
+  for (const id of N.form) for (const c of N.sections[id].ch) assert.ok(N.chords[c], c);
+  const second = N.form.length * 64;
+  assert.equal(N.at(0).idx, 0, 'the first pass opens with the intro');
+  assert.equal(N.at(second).idx, 1, 'the loop starts after it');
+  // every step of the whole form plays without errors (no audio context: tone() is a no-op)
+  for (let n = 0; n < second * 2; n++) N.play(n, 0);
 });

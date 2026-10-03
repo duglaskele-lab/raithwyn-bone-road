@@ -1,23 +1,30 @@
 // Synthesised sound effects and the music loop (Web Audio, no audio files).
-import { rnd } from './util.js';
+import { mulberry, rnd } from './util.js';
 import { G } from './state.js';
 
 let AC = null,
   MG = null,
   NB = null;
+/**
+ * Points the synthesizer at an audio context. The game uses the live one; an
+ * OfflineAudioContext works too, which is how a theme can be rendered to a file.
+ */
+export function attach(ctx) {
+  AC = ctx;
+  MG = AC.createGain();
+  MG.gain.value = 0.55;
+  MG.connect(AC.destination);
+  NB = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
+  const d = NB.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+}
 export function audioInit() {
   if (AC) {
     if (AC.state === 'suspended') AC.resume();
     return;
   }
   try {
-    AC = new (window.AudioContext || window.webkitAudioContext)();
-    MG = AC.createGain();
-    MG.gain.value = 0.55;
-    MG.connect(AC.destination);
-    NB = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
-    const d = NB.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    attach(new (window.AudioContext || window.webkitAudioContext)());
     music();
   } catch (e) {
     AC = null;
@@ -181,7 +188,7 @@ export const THEMES = {
       if (l && withLead) tone('square', hz(l), hz(l), st * 1.6, 0.028, d, 1800);
     },
   },
-  // The level theme: a fighting spaghetti-western ride in E minor. A galloping bass, a snare
+  // A fighting spaghetti-western ride (the level theme before the night theme) in E minor. A galloping bass, a snare
   // on the backbeat, offbeat chord stabs, a twangy lead doubled an octave down like a
   // trumpet, and a whip crack at the end of every four bars.
   western: {
@@ -227,6 +234,185 @@ export const THEMES = {
       }
     },
   },
+  // The level theme: "Night on the Bone Road", a driving fight in D minor at 150 BPM that runs
+  // about 80 seconds before it loops. Riff and chorus sections alternate with two guitar-like
+  // solos (written out note by note from a fixed seed, so they never sound like a loop) and a
+  // half-time break where a bell tolls, wind blows and a heartbeat thumps: the unease of a
+  // graveyard at night. After the first pass the intro is skipped.
+  night: {
+    step: 60 / 150 / 4,
+    // chord: bass root, pad tones, and the scale degree the riff/solo hangs on
+    chords: {
+      Dm: { root: 38, pad: [62, 65, 69], deg: 0 },
+      Bb: { root: 34, pad: [58, 62, 65], deg: 5 },
+      A: { root: 33, pad: [57, 61, 64], deg: 4, sharp: 1 },
+      Gm: { root: 31, pad: [55, 58, 62], deg: 3 },
+      C: { root: 36, pad: [60, 64, 67], deg: 6 },
+      F: { root: 41, pad: [57, 60, 65], deg: 2 },
+    },
+    sections: {
+      intro: { ch: ['Dm', 'Dm', 'Bb', 'A'], drums: 'heart', pad: 1, bell: 1, wind: 1 },
+      drive: { ch: ['Dm', 'Dm', 'Bb', 'A'], drums: 'build', bass: 1, pad: 1 },
+      A: { ch: ['Dm', 'Dm', 'Bb', 'A'], drums: 'full', bass: 1, lead: 'riff' },
+      A2: { ch: ['Dm', 'F', 'Bb', 'A'], drums: 'full', bass: 1, lead: 'riff', up: 1 },
+      B: { ch: ['Gm', 'Bb', 'C', 'A'], drums: 'full', bass: 1, lead: 'hook', pad: 1 },
+      B2: { ch: ['Gm', 'Bb', 'C', 'A'], drums: 'full', bass: 1, lead: 'hook', up: 1, pad: 1 },
+      solo1: { ch: ['Dm', 'C', 'Bb', 'A'], drums: 'full', bass: 1, lead: 'solo', seed: 11 },
+      solo1b: { ch: ['Gm', 'Dm', 'Bb', 'A'], drums: 'full', bass: 1, lead: 'solo', seed: 23 },
+      brk: { ch: ['Dm', 'Dm', 'Bb', 'A'], drums: 'half', pad: 1, bell: 1, wind: 1, choir: 1 },
+      solo2: {
+        ch: ['Dm', 'Bb', 'Gm', 'A'],
+        drums: 'full',
+        bass: 1,
+        lead: 'solo',
+        seed: 37,
+        trem: 1,
+      },
+      solo2b: {
+        ch: ['Bb', 'C', 'A', 'A'],
+        drums: 'full',
+        bass: 1,
+        lead: 'solo',
+        seed: 41,
+        trem: 1,
+      },
+      turn: { ch: ['Dm', 'Bb', 'A', 'A'], drums: 'fill', bass: 1, lead: 'riff' },
+    },
+    form: [
+      'intro',
+      'drive',
+      'A',
+      'A2',
+      'B',
+      'solo1',
+      'solo1b',
+      'A',
+      'brk',
+      'solo2',
+      'solo2b',
+      'B2',
+      'A2',
+      'turn',
+    ],
+    // the riff and the chorus hook, as scale degrees over each chord (null = rest)
+    riff: [0, null, 0, 2, null, 0, 4, null, 3, null, 2, 1, 0, null, -1, null],
+    hook: [7, null, null, null, 6, null, 4, null, 5, null, null, null, 4, null, 2, null],
+    /** MIDI note of scale degree `d` of D minor (C sharpened over the A chord). */
+    note(d, sharp) {
+      const sc = [62, 64, 65, 67, 69, 70, sharp ? 73 : 72],
+        o = Math.floor(d / 7);
+      return sc[((d % 7) + 7) % 7] + 12 * o;
+    },
+    /** Section and position for step n: the first pass plays the intro, later ones skip it. */
+    at(n) {
+      const len = 64,
+        k = Math.floor(n / len),
+        idx = k < this.form.length ? k : 1 + ((k - this.form.length) % (this.form.length - 1));
+      return { sec: this.sections[this.form[idx]], s: n % len, idx };
+    },
+    play(n, d) {
+      const st = this.step,
+        { sec, s } = this.at(n),
+        bar = Math.floor(s / 16),
+        b = s % 16,
+        c = this.chords[sec.ch[bar]];
+      this.drums(sec.drums, s, b, bar, d);
+      // bass: galloping eighths with an octave kick on the off-beat
+      if (sec.bass && b % 2 === 0) {
+        const f = hz(c.root + ([0, 0, 12, 0, 0, 0, 12, 7][b / 2] || 0));
+        tone('sawtooth', f, f, st * 1.6, 0.13, d, 650);
+      }
+      // dark organ pad and the graveyard sounds
+      if (sec.pad && b === 0)
+        for (const m of c.pad) tone('sawtooth', hz(m - 12), hz(m - 12), st * 15, 0.016, d, 900);
+      if (sec.bell && b === 0 && bar % 2 === 0) {
+        tone('sine', hz(74), hz(74), 2.4, 0.09, d);
+        tone('sine', hz(74) * 2.76, hz(74) * 2.76, 1.4, 0.03, d);
+      }
+      if (sec.wind && s === 8) noise(st * 40, 0.05, 300, 1400, 0.6, d);
+      if (sec.choir && b === 0)
+        for (const m of [c.pad[0], c.pad[2] + 12])
+          tone('triangle', hz(m), hz(m) * 1.004, st * 15, 0.028, d, 1200);
+      // lead
+      if (sec.lead === 'riff' || sec.lead === 'hook') {
+        const v = this[sec.lead][b];
+        if (v !== null) {
+          const m = this.note(
+            c.deg + v + (sec.lead === 'hook' ? 0 : 7) + (sec.up ? 7 : 0),
+            c.sharp,
+          );
+          tone('square', hz(m), hz(m), st * (sec.lead === 'hook' ? 3.5 : 1.7), 0.034, d, 2600);
+          if (sec.lead === 'hook')
+            tone('sawtooth', hz(m - 12), hz(m - 12), st * 3.5, 0.02, d, 1500);
+        }
+      } else if (sec.lead === 'solo') this.solo(sec, c, s, bar, b, d);
+    },
+    // A solo bar, written from the section's seed: runs of sixteenths, eighth-note phrases and
+    // a long bent note to end every second bar.
+    solo(sec, c, s, bar, b, d) {
+      const st = this.step,
+        r = mulberry(sec.seed * 97 + bar * 13),
+        kind = r() < 0.55 ? 'run' : 'phrase',
+        steps = [];
+      let deg = c.deg + 7 + Math.floor(r() * 3);
+      for (let i = 0; i < 16; i++) {
+        const play = kind === 'run' ? true : i % 2 === 0 || r() < 0.2;
+        if (play) {
+          deg += [-2, -1, -1, 1, 1, 2, 3][Math.floor(r() * 7)];
+          deg = Math.max(c.deg + 5, Math.min(c.deg + 15, deg));
+        }
+        steps.push(play ? deg : null);
+      }
+      if (bar % 2 === 1) {
+        if (b >= 12) return;
+        if (b === 8) {
+          const m = this.note(c.deg + 7 + 4, c.sharp);
+          tone('sawtooth', hz(m), hz(m) * 0.94, st * 8, 0.04, d, 3200);
+          tone('square', hz(m + 0.1), hz(m) * 0.94, st * 8, 0.015, d, 2400);
+          return;
+        }
+        if (b > 8) return;
+      }
+      const v = steps[b];
+      if (v === null || v === undefined) return;
+      const m = this.note(v, c.sharp),
+        len = kind === 'run' ? 0.9 : 1.8;
+      tone('sawtooth', hz(m), hz(m) * 0.997, st * len, 0.036, d, 3200);
+      if (sec.trem) tone('sawtooth', hz(m), hz(m), st * 0.4, 0.02, d + st * 0.5, 3200);
+    },
+    drums(kind, s, b, bar, d) {
+      const hat = (v) => noise(0.025, v, 8500, 7000, 2, d, 'highpass');
+      const kick = (v = 0.45) => tone('sine', 150, 40, 0.16, v, d);
+      const snare = (v = 0.22) => {
+        noise(0.13, v, 2000, 900, 0.9, d);
+        tone('triangle', 210, 150, 0.07, 0.1, d);
+      };
+      if (kind === 'heart') {
+        // a heartbeat in the dark
+        if (b === 0) kick(0.3);
+        if (b === 3) kick(0.2);
+        return;
+      }
+      if (kind === 'half') {
+        if (b === 0) kick(0.35);
+        if (b === 8) snare(0.2);
+        if (b % 4 === 2) hat(0.03);
+        if (bar === 3 && b >= 12) tone('sine', 220 - (b - 12) * 30, 90, 0.18, 0.25, d);
+        return;
+      }
+      if (s === 0 && kind !== 'build') noise(0.7, 0.16, 6000, 2000, 0.7, d); // crash
+      if (kind === 'build') {
+        if (b % 4 === 0) kick(0.35);
+        if (bar === 3 && b >= 8) snare(0.08 + (b - 8) * 0.02);
+        hat(0.025);
+        return;
+      }
+      if (b % 4 === 0 || b === 6 || b === 14) kick();
+      if (b === 4 || b === 12) snare();
+      hat(b % 2 ? 0.025 : 0.045);
+      if (kind === 'fill' && bar === 3 && b >= 8) snare(0.12 + (b - 8) * 0.015);
+    },
+  },
   // Character select: tense — a pulsing low ostinato that leans on a minor second, a heartbeat
   // kick, ticking hats and a slow dissonant swell.
   tense: {
@@ -244,10 +430,11 @@ export const THEMES = {
     },
   },
 };
-/** Which theme plays now: the western in the fight, the old theme on the menu. */
+/** Which theme plays now: the night theme in the fight, the old theme on the menu. The
+ * western stays in THEMES for later use. */
 export function themeFor(state) {
   if (state === 'select') return 'tense';
-  if (state === 'play') return 'western';
+  if (state === 'play') return 'night';
   if (state === 'title') return 'graveyard';
   return null;
 }
