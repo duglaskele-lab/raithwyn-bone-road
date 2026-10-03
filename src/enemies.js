@@ -548,7 +548,7 @@ export function updEnemy(e, dt, ctxE) {
     case 'summon':
       if (e.t > 0.6 && !e.hitDone) {
         e.hitDone = true;
-        const a = e.next > 0.3 ? ['grunt', 'monkey'] : ['monkey', 'necro', 'grunt'];
+        const a = e.next > 0.3 ? ['zombie', 'zombie', 'monkey'] : ['zombie', 'necro', 'zombie', 'grunt'];
         for (const t of a) spawn(t, 0);
         G.flash = 0.15;
       }
