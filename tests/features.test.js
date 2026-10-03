@@ -56,8 +56,8 @@ test('controls: J punch, K bone, L hadouken, I super', () => {
   assert.equal(MAP.Space, 'jump');
 });
 
-test('the level is a quarter shorter than the original 7500 px', () => {
-  assert.ok(WAVES.at(-1).x <= 7500 * 0.75);
+test('the road to the baron is a quarter shorter than the original 7500 px', () => {
+  assert.ok(WAVES.find((w) => w.sp[0][0] === 'boss').x <= 7500 * 0.75);
 });
 
 test('a bone throw costs 5% of the rage bar and is refused without it', () => {

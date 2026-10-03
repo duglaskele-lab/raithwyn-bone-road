@@ -98,6 +98,8 @@ export const STR = {
     plusRage: '+50 rage',
     bossBanner: 'Lord of the road',
     phase2: 'Acid breath',
+    dragonBanner: 'The lich of the crypt',
+    dragonPhase2: 'Lich fury',
     help: {
       move: ['Move', 'W A S D / arrows'],
       run: ['Run', 'Shift / double tap'],
@@ -119,6 +121,7 @@ export const STR = {
       monkey: 'Bone Monkey',
       necro: 'Necromancer',
       zombie: 'Zombie',
+      dragon: 'Bone Dragon',
       boss: 'Grave Baron',
     },
   },
@@ -216,6 +219,8 @@ export const STR = {
     plusRage: '+50 ярости',
     bossBanner: 'Хозяин тракта',
     phase2: 'Кислотное дыхание',
+    dragonBanner: 'Лич из склепа',
+    dragonPhase2: 'Ярость лича',
     help: {
       move: ['Ходить', 'W A S D / стрелки'],
       run: ['Бег', 'Shift / двойное нажатие'],
@@ -237,6 +242,7 @@ export const STR = {
       monkey: 'Костяная мартышка',
       necro: 'Некромант',
       zombie: 'Зомби',
+      dragon: 'Костяной дракон',
       boss: 'Могильный барон',
     },
   },

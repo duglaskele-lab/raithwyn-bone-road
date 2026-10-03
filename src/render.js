@@ -26,6 +26,7 @@ import { RANKS, STYLE_STEP, dmgMult, scoreMult, styleRank } from './style.js';
 import { drawBG, drawFog, drawVignette } from './background.js';
 import { hadoLevel } from './combat.js';
 import { boneShape, drawBike, drawSkel } from './skeleton.js';
+import { drawDragon, drawDragonBeam, drawDragonGround } from './dragon.js';
 
 export function shadow(x, y, z, r) {
   const k = clamp(1 - z / 260, 0.45, 1);
@@ -578,22 +579,25 @@ export function drawWorld() {
       ctx.stroke();
       ctx.restore();
     }
+  for (const e of G.enemies) if (e.T.dragon) drawDragonGround(e);
   // shadows
   for (const u of G.props) shadow(u.x, u.y, 0, u.decor ? DECOR[u.decor].w * 1.2 : 22);
   for (const e of G.enemies)
-    if (e.state !== 'rise' || e.t > 0.4) shadow(e.x, e.y, e.z, (e.mounted ? 70 : 34) * e.T.scale);
+    if (e.state !== 'rise' || e.t > 0.4)
+      shadow(e.x, e.y, e.z, e.T.shadow || (e.mounted ? 70 : 34) * e.T.scale);
   for (const it of G.items) shadow(it.x, it.y, it.z, 12);
   for (const q of G.projs) shadow(q.x, q.y, q.z, q.k === 'hado' ? 26 * q.lv : 10);
   if (G.state !== 'title') shadow(P.x, P.y, P.z, 40);
   const list = [];
   for (const d of G.debris) list.push([d.gy - 1, drawDebris, d]);
   for (const u of G.props) list.push([u.y, u.decor ? drawDecor : drawUrn, u]);
-  for (const e of G.enemies) list.push([e.y, drawSkel, e]);
+  for (const e of G.enemies) list.push([e.y, e.T.dragon ? drawDragon : drawSkel, e]);
   for (const it of G.items) list.push([it.y, drawItem, it]);
   for (const q of G.projs) list.push([q.y + 1, drawProj, q]);
   if (G.state !== 'title') list.push([P.y, drawPlayer, null]);
   list.sort((a, b) => a[0] - b[0]);
   for (const l of list) l[1](l[2]);
+  for (const e of G.enemies) if (e.T.dragon) drawDragonBeam(e);
   for (const p of G.parts) drawPart(p);
   for (const f of G.floats) {
     ctx.globalAlpha = 1 - Math.max(0, f.t - 0.6) / 0.5;
@@ -688,19 +692,23 @@ export function drawHUD() {
     ctx.fillRect(bx + bw - 16, by + 9, 5, bh - 18);
   }
   // foe bar
-  if (G.lastFoe && G.lastFoeT > 0 && G.lastFoe.type !== 'boss') {
+  if (G.lastFoe && G.lastFoeT > 0 && !G.lastFoe.T.bigBoss) {
     ctx.globalAlpha = Math.min(1, G.lastFoeT * 2);
     txt(foeName(G.lastFoe.type), W - 20, 60, 14, '#ece5cb', 'right', 3);
     bar(W - 190, 66, 164, 9, Math.max(0, G.lastFoe.hp) / G.lastFoe.T.hp, 0, '#ff8a4a', 4);
     ctx.globalAlpha = 1;
   }
-  const boss = G.enemies.find((e) => e.type === 'boss');
+  const boss = G.enemies.find((e) => e.T.bigBoss);
   if (boss) {
     const bx = 440,
       bw = 360;
-    txt(foeName('boss'), bx + 8, 31, 14, '#e3c8ff', 'left', 4);
+    txt(foeName(boss.type), bx + 8, 31, 14, '#e3c8ff', 'left', 4);
     bar(bx, 37, bw, 12, Math.max(0, boss.hp) / boss.T.hp, 0, '#b05cff');
-    if (boss.armor > 0)
+    if (boss.T.dragon) {
+      // phase marker on the dragon's bar
+      ctx.fillStyle = '#ece5cb';
+      ctx.fillRect(bx + bw * 0.5 + 3, 37, 2, 12);
+    } else if (boss.armor > 0)
       txt(t('immune', boss.armor.toFixed(1)), bx + bw + 4, 31, 12, '#fff', 'right', 3);
     else
       for (let i = 0; i < 2; i++) {

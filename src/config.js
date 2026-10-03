@@ -21,7 +21,7 @@ export const SWIND = 0.9,
 // A bone throw costs 5% of the rage bar.
 export const BONE_COST = MAXR * 0.05;
 // Super attack: hold I this long with a full rage bar; it hits everything on screen.
-export const SUPER_HOLD = 1.25,
+export const SUPER_HOLD = 1.0,
   SUPER_DMG = 100;
 // The necromancer's acid ball flies in an arc and leaves a puddle where it lands.
 export const ACID = {
@@ -211,6 +211,25 @@ export const TYPES = {
     eye: '#fff36a',
     score: 60,
   },
+  // the final boss; its behaviour and drawing live in dragon.js
+  dragon: {
+    hp: 900,
+    scale: 1.6,
+    speed: 34,
+    dmg: 18,
+    reach: 240,
+    wind: 0.6,
+    act: 0.2,
+    rec: 0.6,
+    cd: [0.5, 1.1],
+    dragon: 1,
+    bigBoss: 1,
+    shadow: 150,
+    col: '#e6dfc8',
+    dk: '#a99f86',
+    eye: '#7dff5a',
+    score: 6000,
+  },
   boss: {
     hp: 520,
     scale: 1.55,
@@ -225,13 +244,14 @@ export const TYPES = {
     knock: 1,
     sword: 1,
     crown: 1,
+    bigBoss: 1,
     col: '#efe9d6',
     dk: '#b3ac99',
     eye: '#c58bff',
     score: 3000,
   },
 };
-// Seven fights and the baron. Zombies come in crowds and rise from the ground; the other
+// Seven fights, the baron, one more fight and the Bone Dragon. Zombies come in crowds and rise from the ground; the other
 // enemies are mixed in so that every fight brings something different.
 export const WAVES = [
   {
@@ -339,6 +359,22 @@ export const WAVES = [
       ['zombie', 0, 1.6],
     ],
   },
+  // past the baron's crypt: a last scuffle with skeletons and zombies
+  {
+    x: 6350,
+    sp: [
+      ['grunt', 1, 0],
+      ['zombie', 0, 0.3],
+      ['zombie', 0, 0.6],
+      ['grunt', -1, 1.2],
+      ['thrower', 1, 2],
+      ['zombie', 0, 2.5],
+      ['zombie', 0, 3],
+      ['brute', -1, 4],
+    ],
+  },
+  // the Bone Dragon
+  { x: 7150, boss: 1, sp: [['dragon', 0, 1]] },
 ];
 
 // Player animation timelines: seconds per frame of each attack.

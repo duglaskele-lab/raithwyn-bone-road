@@ -106,11 +106,12 @@ test('the baron is not staggered by plain hits while he is not attacking', () =>
 });
 
 test('breaking an urn drops its pickup', () => {
-  const urn = G.props[0];
+  const urn = G.props[0],
+    before = G.items.length;
   hurtEnemy(urn, 1, 1, false, 'punch');
   assert.ok(urn.dead);
-  assert.equal(G.items.length, 1);
-  assert.equal(G.items[0].kind, urn.drop);
+  assert.equal(G.items.length, before + 1);
+  assert.equal(G.items.at(-1).kind, urn.drop);
 });
 
 test('the player takes damage, gets knocked down, and is safe while invulnerable', () => {

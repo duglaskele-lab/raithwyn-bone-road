@@ -70,7 +70,7 @@ export function floatTxt(x, y, txt, col) {
 }
 export function shatter(e, dir) {
   const s = e.T.scale,
-    n = e.type === 'boss' ? 26 : 13;
+    n = e.T.dragon ? 48 : e.T.bigBoss ? 26 : 13;
   for (let i = 0; i < n; i++)
     G.debris.push({
       k: 'bone',

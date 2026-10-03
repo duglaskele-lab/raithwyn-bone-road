@@ -5,7 +5,8 @@ import { G, P } from './state.js';
 import { SFX } from './audio.js';
 import { floatTxt, motes } from './fx.js';
 import { t } from './i18n.js';
-import { acidBite, addRage, hitPlayer, hurtEnemy } from './combat.js';
+import { acidBite, addRage, headBonus, hitPlayer, hurtEnemy } from './combat.js';
+import { dragonZone } from './dragon.js';
 import { dmgMult, styleGain, updStyle } from './style.js';
 import { updPlayer } from './player.js';
 import { spawn, updEnemy } from './enemies.js';
@@ -93,8 +94,13 @@ export function update(dt) {
       if (q.life < 0.25) q.z -= 260 * dt;
       for (const e of G.enemies.concat(G.props)) {
         if (e.dead) continue;
-        if (Math.abs(e.x - q.x) < e.w + 16 && Math.abs(e.y - q.y) < 22 && e.z < 90) {
-          if (hurtEnemy(e, 7 * dmgMult(), Math.sign(q.vx), false, 'bone')) {
+        const zone = e.T?.dragon
+          ? dragonZone(e, q.x - 16, q.x + 16, q.y, 22)
+          : Math.abs(e.x - q.x) < e.w + 16 && Math.abs(e.y - q.y) < 22 && e.z < 90
+            ? 'body'
+            : null;
+        if (zone) {
+          if (hurtEnemy(e, 7 * dmgMult() * headBonus(e, zone), Math.sign(q.vx), false, 'bone')) {
             if (!e.isProp) {
               addRage(2);
               styleGain(8);
@@ -134,12 +140,16 @@ export function update(dt) {
         });
       for (const e of G.enemies.concat(G.props)) {
         if (e.dead || q.hit.has(e)) continue;
-        if (
-          Math.abs(e.x - q.x) < e.w + [34, 50, 74][q.lv - 1] &&
-          Math.abs(e.y - q.y) < [32, 46, 72][q.lv - 1]
-        ) {
+        const r = [34, 50, 74][q.lv - 1],
+          dy = [32, 46, 72][q.lv - 1],
+          zone = e.T?.dragon
+            ? dragonZone(e, q.x - r, q.x + r, q.y, dy)
+            : Math.abs(e.x - q.x) < e.w + r && Math.abs(e.y - q.y) < dy
+              ? 'body'
+              : null;
+        if (zone) {
           q.hit.add(e);
-          const dmg = [30, 60, 110][q.lv - 1] * dmgMult();
+          const dmg = [30, 60, 110][q.lv - 1] * dmgMult() * headBonus(e, zone);
           if (hurtEnemy(e, dmg, Math.sign(q.vx), true, 'hado')) {
             if (!e.isProp) styleGain(18);
             G.parts.push({
