@@ -237,9 +237,9 @@ export function updEnemy(e, dt, ctxE) {
         e.engage = false;
         break;
       }
-      if (T.samurai && !pdown && e.cd <= 0 && (e.stanceCd ?? 0) <= 0) {
-        // at a distance it drops into its ready stance and creeps up
-        if (adx > SAMURAI.range + 20 && adx < 420 && Math.abs(dy) < 110) {
+      if (T.samurai && !pdown && (e.stanceCd ?? 0) <= 0) {
+        // out of reach of its cut it drops into its ready stance and creeps up
+        if (adx > SAMURAI.range && adx < 460 && Math.abs(dy) < 120) {
           e.state = 'stance';
           e.t = 0;
           e.engage = false;

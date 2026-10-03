@@ -59,7 +59,7 @@ export const DRAGON = {
   // the shockwave of the leap: a ring on the ground that runs across the arena
   shock: { speed: 460, band: 22, depth: 0.32, clear: 34, dmg: 14 },
   rage: 1.3, // in the second phase it moves and attacks this much faster
-  laserGrow: 2, // and its laser starts as wide as ever but widens to this much while it fires
+  laserGrow: 3, // and its laser starts as wide as ever but widens to this much while it fires
   push: { light: 70, heavy: 170 }, // knockback speed from the player's hits
   death: { roar: 0.9, fall: 0.7 }, // a last roar, then it collapses and breaks apart
   pounce: {
@@ -983,7 +983,7 @@ export function drawShocks() {
 }
 /**
  * Half-width of the beam. In the second phase it fires as wide as in the first and widens
- * while it burns, ending twice as wide.
+ * while it burns, ending three times as wide.
  */
 export function laserBand(e) {
   const L = DRAGON.laser;
