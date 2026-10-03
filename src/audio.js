@@ -1,6 +1,8 @@
-// Synthesised sound effects and the music loop (Web Audio, no audio files).
+// Synthesised sound effects and the music loop (Web Audio). The fight and the dragon have
+// recorded songs (songs.js); the synth themes cover the menus and stand in until those load.
 import { mulberry, rnd } from './util.js';
 import { G } from './state.js';
+import { songTick, songsAttach } from './songs.js';
 
 let AC = null,
   MG = null,
@@ -17,6 +19,7 @@ export function attach(ctx) {
   NB = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
   const d = NB.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  songsAttach(AC, MG);
 }
 // A stream of everything the game plays, for the video recorder (made on first use).
 let REC = null;
@@ -604,16 +607,19 @@ export const THEMES = {
     },
   },
 };
-/** Which theme plays now: the night theme in the fight, the dragon's own theme in its fight,
- * the old theme on the menu. The western stays in THEMES for later use. */
-export function themeFor(state, enemies = G.enemies) {
+/** Which theme plays now: the night theme in the fight, the dragon's own theme in its fight
+ * (its outro once it falls apart), the old theme on the menu. The western stays in THEMES
+ * for later use. */
+export function themeFor(state, enemies = G.enemies, wave = G.wave) {
   if (state === 'select') return 'tense';
   if (state === 'play') {
     // the Bone Dragon brings its own music, faster in its second phase
-    const d = enemies.find((e) => e.T?.dragon && !e.dead && e.state !== 'dying');
-    if (d) return d.phase2 ? 'dragon2' : 'dragon';
+    const d = enemies.find((e) => e.T?.dragon);
+    if (d) return d.dead || d.state === 'dying' ? 'dragonEnd' : d.phase2 ? 'dragon2' : 'dragon';
+    if (wave?.sp.some((s) => s[0] === 'dragon' && s.done)) return 'dragonEnd'; // just fell apart
     return 'night';
   }
+  if (state === 'win') return 'dragonEnd';
   if (state === 'title') return 'graveyard';
   return null;
 }
@@ -623,9 +629,11 @@ export function music() {
     playing = null;
   setInterval(() => {
     if (!AC) return;
+    const theme = themeFor(G.state),
+      song = songTick(theme, G.state === 'pause', G.muted); // a recorded song has the floor
     if (next < AC.currentTime) next = AC.currentTime + 0.05;
     while (next < AC.currentTime + 0.25) {
-      const id = G.muted ? null : themeFor(G.state);
+      const id = G.muted || song ? null : theme;
       if (id !== playing) {
         playing = id;
         n = 0; // every theme starts from its first bar

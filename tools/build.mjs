@@ -1,5 +1,5 @@
-// Builds dist/raithwyn.html: the whole game in one file (code, styles, sprite atlas and
-// portraits inlined).
+// Builds dist/raithwyn.html: the whole game in one file (code, styles, sprite atlas,
+// portraits and songs inlined).
 // The result opens from disk with a double click and needs no server.
 import { build } from 'esbuild';
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
@@ -26,6 +26,12 @@ for (const f of await readdir(root + 'assets/portraits'))
       'data:image/webp;base64,' +
       (await readFile(root + 'assets/portraits/' + f)).toString('base64');
 
+const music = {};
+for (const f of await readdir(root + 'assets/music'))
+  if (f.endsWith('.mp3'))
+    music[f.slice(0, -4)] =
+      'data:audio/mpeg;base64,' + (await readFile(root + 'assets/music/' + f)).toString('base64');
+
 let html = await read('index.html');
 const swap = (from, to) => {
   if (!html.includes(from)) throw new Error(`index.html: marker not found: ${from}`);
@@ -34,7 +40,7 @@ const swap = (from, to) => {
 swap('<link rel="stylesheet" href="styles.css">', `<style>\n${css}</style>`);
 swap(
   '<script type="module" src="src/main.js"></script>',
-  `<script>window.__ATLAS__='data:image/png;base64,${atlas}';window.__PORTRAITS__=${JSON.stringify(portraits)};</script>\n<script>${js}</script>`,
+  `<script>window.__ATLAS__='data:image/png;base64,${atlas}';window.__PORTRAITS__=${JSON.stringify(portraits)};window.__MUSIC__=${JSON.stringify(music)};</script>\n<script>${js}</script>`,
 );
 
 await mkdir(root + 'dist', { recursive: true });
