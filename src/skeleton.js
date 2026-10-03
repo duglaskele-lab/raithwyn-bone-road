@@ -57,6 +57,13 @@ export function skelPose(e) {
     o.aF = [0.45, 1.6 + 0.04 * br];
     o.lean = 0.04;
   }
+  if (T.zombie && (st === 'chase' || st === 'recover')) {
+    // arms stretched out in front, head lolling
+    o.aF = [1.4 + 0.06 * br, 1.5];
+    o.aB = [1.3 - 0.06 * br, 1.45];
+    o.lean = 0.2;
+    o.head = 0.3 + 0.1 * br;
+  }
   o.jaw = Math.max(0, Math.sin(t * 7 + e.seed) - 0.6) * 5;
   const strikeA =
     T.style === 'punch'
@@ -66,7 +73,7 @@ export function skelPose(e) {
         : T.style === 'slash'
           ? [1.2, 1.45]
           : [1.35, 1.5];
-  const windA = T.style === 'punch' ? [-0.9, 0.9] : up;
+  const windA = T.style === 'punch' ? [-0.9, 0.9] : T.style === 'grab' ? [1.15, 1.0] : up;
   if (st === 'windup') {
     const p = ease(Math.min(1, e.t / (T.wind * 0.7)));
     o.aF = mix(pre, windA, p);
@@ -105,6 +112,18 @@ export function skelPose(e) {
       o.lB = [0.7, -0.7];
       o.hipH = 46;
     }
+  } else if (st === 'grab') {
+    o.aF = [1.55, 1.6];
+    o.aB = [1.45, 1.55];
+    o.lean = 0.35;
+    o.head = 0.35;
+    o.jaw = 6 * Math.abs(Math.sin(e.t * 9));
+  } else if (st === 'hwind') {
+    const p = ease(Math.min(1, e.t / 0.4));
+    o.aF = mix(pre, [2.9, 3.3], p);
+    o.aB = mix([0.02, 0.95], [2.7, 3.1], p);
+    o.lean = -0.1 * p;
+    o.jaw = 6;
   } else if (st === 'staff') {
     const p = ease(Math.min(1, e.t / 0.3));
     o.aF = e.t < 0.32 ? mix(pre, [2.9, 3.4], p) : [1.15, 0.95];
@@ -394,6 +413,32 @@ export function drawSkel(e) {
     ctx.stroke();
   }
   ctx.restore();
+  if (T.zombie) {
+    // torn shirt over the ribs
+    ctx.save();
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = OL;
+    ctx.lineWidth = 2.4;
+    ctx.fillStyle = fl ? '#fff' : '#56687a';
+    ctx.beginPath();
+    ctx.moveTo(sh[0] - 13, sh[1] - 1);
+    ctx.lineTo(sh[0] + 12, sh[1]);
+    ctx.lineTo(16, -4);
+    ctx.lineTo(12, 6);
+    ctx.lineTo(6, 1);
+    ctx.lineTo(0, 9);
+    ctx.lineTo(-6, 2);
+    ctx.lineTo(-12, 8);
+    ctx.lineTo(-15, -6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#2a2532';
+    ctx.beginPath();
+    ctx.ellipse(sh[0] * 0.5 + 4, sh[1] * 0.5, 4, 6, 0.3, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+  }
   leg(o.lF, col, 3);
   if (T.robe) {
     // grey cassock over the body, the hem swaying with the steps
@@ -432,171 +477,206 @@ export function drawSkel(e) {
     ctx.lineTo(8 + sw * 0.4, 22);
     ctx.stroke();
   }
-  // skull
-  ctx.save();
-  const ha = o.lean + o.head;
-  ctx.translate(neck[0] + 15 * Math.sin(ha), neck[1] - 15 * Math.cos(ha));
-  ctx.rotate(ha);
-  ctx.lineJoin = 'round';
-  ctx.strokeStyle = OL;
-  ctx.lineWidth = 2.4;
-  const j = o.jaw;
-  ctx.fillStyle = dk;
-  ctx.beginPath();
-  ctx.moveTo(-3, 7 + j * 0.4);
-  ctx.lineTo(12, 8.5 + j);
-  ctx.lineTo(12.5, 13.5 + j);
-  ctx.lineTo(2, 15 + j);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = col;
-  ctx.beginPath();
-  ctx.arc(0, -1, 13.5, 0.35, Math.PI * 1.72);
-  ctx.lineTo(13.5, -5);
-  ctx.lineTo(14.5, 8.5);
-  ctx.lineTo(1, 9.5);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-  ctx.strokeStyle = OL;
-  ctx.lineWidth = 1.3;
-  for (let i = 0; i < 4; i++) {
+  // skull (a zombie may have lost it: then a stump)
+  if (e.headless) {
+    ctx.fillStyle = OL;
     ctx.beginPath();
-    ctx.moveTo(4 + i * 3, 6.5);
-    ctx.lineTo(4 + i * 3, 9.3);
-    ctx.stroke();
-  }
-  ctx.fillStyle = OL;
-  ctx.beginPath();
-  ctx.ellipse(3.2, -1.5, 4.3, 4.9, 0, 0, TAU);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(11, -1.5, 2.7, 4.2, 0, 0, TAU);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(8, 3);
-  ctx.lineTo(9.6, 6);
-  ctx.lineTo(6.6, 6);
-  ctx.fill();
-  ctx.fillStyle = T.eye;
-  ctx.shadowColor = T.eye;
-  ctx.shadowBlur = 9;
-  ctx.beginPath();
-  ctx.arc(4, -1.2, 1.9, 0, TAU);
-  ctx.arc(11.3, -1.2, 1.4, 0, TAU);
-  ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.strokeStyle = OL;
-  ctx.lineWidth = 2.4;
-  if (T.hood) {
-    ctx.fillStyle = fl ? '#fff' : '#3f6b5c';
-    ctx.beginPath();
-    ctx.arc(0, -1, 15.5, Math.PI * 0.62, Math.PI * 1.78);
-    ctx.lineTo(4, -9);
-    ctx.quadraticCurveTo(-6, -6, -5, 10);
-    ctx.lineTo(-16, 24 + Math.sin(e.anim * 5) * 3);
-    ctx.closePath();
+    ctx.ellipse(neck[0], neck[1] - 2, 7, 4, o.lean, 0, TAU);
     ctx.fill();
-    ctx.stroke();
-  }
-  if (T.robe) {
-    // grey hood: the face is lost in shadow, only the burning red eyes show
-    ctx.fillStyle = robe;
+    ctx.fillStyle = '#5f7a3a';
     ctx.beginPath();
-    ctx.moveTo(-6, 8);
-    ctx.quadraticCurveTo(-24, -6, -12, -20);
-    ctx.quadraticCurveTo(2, -30, 16, -14);
-    ctx.quadraticCurveTo(22, 2, 16, 15);
-    ctx.lineTo(4, 18);
-    ctx.lineTo(-18, 30 + Math.sin(e.anim * 4) * 2);
-    ctx.closePath();
+    ctx.ellipse(neck[0], neck[1] - 3, 5, 2.5, o.lean, 0, TAU);
     ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = '#120e16';
+  } else {
+    ctx.save();
+    const ha = o.lean + o.head;
+    ctx.translate(neck[0] + 15 * Math.sin(ha), neck[1] - 15 * Math.cos(ha));
+    ctx.rotate(ha);
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = OL;
+    ctx.lineWidth = 2.4;
+    const j = o.jaw;
+    ctx.fillStyle = dk;
     ctx.beginPath();
-    ctx.ellipse(8, 0, 8.5, 11.5, 0.1, 0, TAU);
-    ctx.fill();
-    const glow = 0.75 + 0.25 * Math.sin(G.time * 8 + e.seed);
-    ctx.fillStyle = T.eye;
-    ctx.shadowColor = T.eye;
-    ctx.shadowBlur = 14 * glow;
-    ctx.beginPath();
-    ctx.arc(6, -1.5, 2.3, 0, TAU);
-    ctx.arc(12.2, -1.5, 1.8, 0, TAU);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-  }
-  if (T.club) {
-    ctx.fillStyle = fl ? '#fff' : '#9a6a3e';
-    ctx.beginPath();
-    ctx.arc(0, -2, 15, Math.PI * 0.95, Math.PI * 1.9);
+    ctx.moveTo(-3, 7 + j * 0.4);
+    ctx.lineTo(12, 8.5 + j);
+    ctx.lineTo(12.5, 13.5 + j);
+    ctx.lineTo(2, 15 + j);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = col;
     ctx.beginPath();
-    ctx.moveTo(-9, -13);
-    ctx.quadraticCurveTo(-22, -18, -18, -30);
-    ctx.quadraticCurveTo(-12, -20, -2, -17);
+    ctx.arc(0, -1, 13.5, 0.35, Math.PI * 1.72);
+    ctx.lineTo(13.5, -5);
+    ctx.lineTo(14.5, 8.5);
+    ctx.lineTo(1, 9.5);
     ctx.closePath();
     ctx.fill();
-    ctx.stroke();
-  }
-  if (T.rocker) {
-    ctx.fillStyle = fl ? '#fff' : '#ff3d6e';
-    ctx.beginPath();
-    ctx.moveTo(-12, -8);
-    ctx.lineTo(-18, -21);
-    ctx.lineTo(-9, -15);
-    ctx.lineTo(-8, -28);
-    ctx.lineTo(-2, -17);
-    ctx.lineTo(2, -30);
-    ctx.lineTo(6, -16);
-    ctx.lineTo(12, -24);
-    ctx.lineTo(10, -11);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = OL;
-    ctx.beginPath();
-    ctx.moveTo(-3, -6);
-    ctx.lineTo(15, -6);
-    ctx.lineTo(14, 1.5);
-    ctx.lineTo(8, 2);
-    ctx.lineTo(7, -1);
-    ctx.lineTo(6, 2.5);
-    ctx.lineTo(-2, 2);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,.7)';
-    ctx.lineWidth = 1.3;
-    ctx.beginPath();
-    ctx.moveTo(0, -3.5);
-    ctx.lineTo(3, -3.5);
     ctx.stroke();
     ctx.strokeStyle = OL;
+    ctx.lineWidth = 1.3;
+    for (let i = 0; i < 4; i++) {
+      ctx.beginPath();
+      ctx.moveTo(4 + i * 3, 6.5);
+      ctx.lineTo(4 + i * 3, 9.3);
+      ctx.stroke();
+    }
+    ctx.fillStyle = OL;
+    ctx.beginPath();
+    ctx.ellipse(3.2, -1.5, 4.3, 4.9, 0, 0, TAU);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(11, -1.5, 2.7, 4.2, 0, 0, TAU);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(8, 3);
+    ctx.lineTo(9.6, 6);
+    ctx.lineTo(6.6, 6);
+    ctx.fill();
+    ctx.fillStyle = T.eye;
+    ctx.shadowColor = T.eye;
+    ctx.shadowBlur = 9;
+    ctx.beginPath();
+    ctx.arc(4, -1.2, 1.9, 0, TAU);
+    ctx.arc(11.3, -1.2, 1.4, 0, TAU);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = OL;
     ctx.lineWidth = 2.4;
+    if (T.hood) {
+      ctx.fillStyle = fl ? '#fff' : '#3f6b5c';
+      ctx.beginPath();
+      ctx.arc(0, -1, 15.5, Math.PI * 0.62, Math.PI * 1.78);
+      ctx.lineTo(4, -9);
+      ctx.quadraticCurveTo(-6, -6, -5, 10);
+      ctx.lineTo(-16, 24 + Math.sin(e.anim * 5) * 3);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+    if (T.robe) {
+      // grey hood: the face is lost in shadow, only the burning red eyes show
+      ctx.fillStyle = robe;
+      ctx.beginPath();
+      ctx.moveTo(-6, 8);
+      ctx.quadraticCurveTo(-24, -6, -12, -20);
+      ctx.quadraticCurveTo(2, -30, 16, -14);
+      ctx.quadraticCurveTo(22, 2, 16, 15);
+      ctx.lineTo(4, 18);
+      ctx.lineTo(-18, 30 + Math.sin(e.anim * 4) * 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#120e16';
+      ctx.beginPath();
+      ctx.ellipse(8, 0, 8.5, 11.5, 0.1, 0, TAU);
+      ctx.fill();
+      const glow = 0.75 + 0.25 * Math.sin(G.time * 8 + e.seed);
+      ctx.fillStyle = T.eye;
+      ctx.shadowColor = T.eye;
+      ctx.shadowBlur = 14 * glow;
+      ctx.beginPath();
+      ctx.arc(6, -1.5, 2.3, 0, TAU);
+      ctx.arc(12.2, -1.5, 1.8, 0, TAU);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+    if (T.club) {
+      ctx.fillStyle = fl ? '#fff' : '#9a6a3e';
+      ctx.beginPath();
+      ctx.arc(0, -2, 15, Math.PI * 0.95, Math.PI * 1.9);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.moveTo(-9, -13);
+      ctx.quadraticCurveTo(-22, -18, -18, -30);
+      ctx.quadraticCurveTo(-12, -20, -2, -17);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+    if (T.rocker) {
+      ctx.fillStyle = fl ? '#fff' : '#ff3d6e';
+      ctx.beginPath();
+      ctx.moveTo(-12, -8);
+      ctx.lineTo(-18, -21);
+      ctx.lineTo(-9, -15);
+      ctx.lineTo(-8, -28);
+      ctx.lineTo(-2, -17);
+      ctx.lineTo(2, -30);
+      ctx.lineTo(6, -16);
+      ctx.lineTo(12, -24);
+      ctx.lineTo(10, -11);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = OL;
+      ctx.beginPath();
+      ctx.moveTo(-3, -6);
+      ctx.lineTo(15, -6);
+      ctx.lineTo(14, 1.5);
+      ctx.lineTo(8, 2);
+      ctx.lineTo(7, -1);
+      ctx.lineTo(6, 2.5);
+      ctx.lineTo(-2, 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,.7)';
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.moveTo(0, -3.5);
+      ctx.lineTo(3, -3.5);
+      ctx.stroke();
+      ctx.strokeStyle = OL;
+      ctx.lineWidth = 2.4;
+    }
+    if (T.crown) {
+      ctx.fillStyle = fl ? '#fff' : '#e9c046';
+      ctx.beginPath();
+      ctx.moveTo(-11, -10);
+      ctx.lineTo(-13, -25);
+      ctx.lineTo(-6, -17);
+      ctx.lineTo(-1, -28);
+      ctx.lineTo(4, -17);
+      ctx.lineTo(11, -25);
+      ctx.lineTo(10, -11);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = PURPLE;
+      ctx.beginPath();
+      ctx.arc(-1, -15, 2.3, 0, TAU);
+      ctx.fill();
+    }
+    if (T.zombie) {
+      // a few strands of hair and a stitched cheek
+      ctx.strokeStyle = '#2b2a22';
+      ctx.lineWidth = 2;
+      for (const [a, b] of [
+        [-8, -12],
+        [-3, -14],
+        [3, -13],
+      ]) {
+        ctx.beginPath();
+        ctx.moveTo(a, b);
+        ctx.quadraticCurveTo(a - 6, b - 6, a - 10, b + 2);
+        ctx.stroke();
+      }
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(0, 3);
+      ctx.lineTo(7, 5);
+      for (let i = 0; i < 3; i++) {
+        ctx.moveTo(1.5 + i * 2.5, 2);
+        ctx.lineTo(2 + i * 2.5, 6);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
   }
-  if (T.crown) {
-    ctx.fillStyle = fl ? '#fff' : '#e9c046';
-    ctx.beginPath();
-    ctx.moveTo(-11, -10);
-    ctx.lineTo(-13, -25);
-    ctx.lineTo(-6, -17);
-    ctx.lineTo(-1, -28);
-    ctx.lineTo(4, -17);
-    ctx.lineTo(11, -25);
-    ctx.lineTo(10, -11);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = PURPLE;
-    ctx.beginPath();
-    ctx.arc(-1, -15, 2.3, 0, TAU);
-    ctx.fill();
-  }
-  ctx.restore();
   // front arm + weapon
   const L = limb([sh[0] + 3, sh[1]], o.aF[0], o.aF[1], UA, FA),
     h = L[2],

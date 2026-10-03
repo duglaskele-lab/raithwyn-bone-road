@@ -85,19 +85,20 @@ export function shatter(e, dir) {
       col: e.T.col,
       life: rnd(2.6, 3.8),
     });
-  G.debris.push({
-    k: 'skull',
-    x: e.x,
-    gy: e.y + 2,
-    z: e.z + 150 * s,
-    vx: dir * rnd(160, 300),
-    vz: rnd(300, 460),
-    rot: 0,
-    vr: dir * rnd(8, 14),
-    len: 12 * s,
-    col: e.T.col,
-    eye: e.T.eye,
-    life: 4,
-  });
+  if (!e.headless)
+    G.debris.push({
+      k: 'skull',
+      x: e.x,
+      gy: e.y + 2,
+      z: e.z + 150 * s,
+      vx: dir * rnd(160, 300),
+      vz: rnd(300, 460),
+      rot: 0,
+      vr: dir * rnd(8, 14),
+      len: 12 * s,
+      col: e.T.col,
+      eye: e.T.eye,
+      life: 4,
+    });
   SFX.shatter();
 }

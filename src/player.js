@@ -1,12 +1,11 @@
 // Raithwyn: movement, combo, air punch, bone throw, hadouken, super attack, getting hit.
-import { BONE_COST, D, GB, GT, MAXR, RL, SUPER_HOLD, W, WAVES } from './config.js';
+import { BONE_COST, D, GB, GT, MAXR, RL, SUPER_HOLD, W, WAVES, ZOMBIE } from './config.js';
 import { clamp, tl } from './util.js';
 import { G, P } from './state.js';
 import { keys, pressed } from './input.js';
 import { SFX } from './audio.js';
-import { dust, floatTxt, motes } from './fx.js';
+import { dust, motes } from './fx.js';
 import { hadoLevel, strike, superNova } from './combat.js';
-import { t } from './i18n.js';
 
 export function toIdle() {
   P.state = 'idle';
@@ -85,13 +84,11 @@ export function updPlayer(dt) {
           p.boneCd = 0.5;
         } else {
           SFX.deny();
-          floatTxt(p.x, p.y - 190, t('lowRage'), '#d9b8ff');
         }
       } else if (b === 'super') {
         p.buf = null;
         if (p.rage < MAXR) {
           SFX.deny();
-          floatTxt(p.x, p.y - 190, t('needFull'), '#d9b8ff');
         } else if (keys.super) {
           // Charging: rage is only spent when the blast goes off, so a hit here costs nothing.
           p.state = 'super';
@@ -111,7 +108,6 @@ export function updPlayer(dt) {
           p.inv = Math.max(p.inv, 0.35);
         } else {
           SFX.deny();
-          floatTxt(p.x, p.y - 190, t('lowRage'), '#d9b8ff');
         }
       }
       break;
@@ -261,6 +257,25 @@ export function updPlayer(dt) {
       } else {
         p.an = ['orb', 6];
         if (p.t > 0.45) toIdle();
+      }
+      break;
+    }
+    case 'grabbed': {
+      // held by a zombie: stuck until the hold runs out; mashing buttons breaks free sooner
+      const e = p.grabber;
+      p.an = ['hurt', p.t % 0.3 < 0.15 ? 0 : 1];
+      p.buf = null;
+      for (const a of ['atk', 'jump', 'bone', 'hado', 'l', 'r'])
+        if (pressed[a]) p.hold -= ZOMBIE.mash;
+      if (!e || e.dead || e.state !== 'grab' || p.t > p.hold) {
+        p.grabber = null;
+        toIdle();
+        p.inv = Math.max(p.inv, 0.5);
+        if (e && !e.dead && e.state === 'grab') {
+          e.state = 'recover';
+          e.t = 0;
+          e.x -= e.face * 20;
+        }
       }
       break;
     }

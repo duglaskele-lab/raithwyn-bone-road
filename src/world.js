@@ -1,5 +1,5 @@
 // One simulation step: player, enemies, projectiles, pickups, debris, wave script.
-import { ACID, GB, GT, PURPLE, W, WAVES } from './config.js';
+import { ACID, GB, GT, PURPLE, W, WAVES, ZOMBIE } from './config.js';
 import { clamp, rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
@@ -10,11 +10,13 @@ import { dmgMult, styleGain, updStyle } from './style.js';
 import { updPlayer } from './player.js';
 import { spawn, updEnemy } from './enemies.js';
 
+// How full the screen is: zombies come in crowds and count as half an enemy each.
+const crowd = () => G.enemies.reduce((n, e) => n + (e.T.crowd || 1), 0);
 export function updWaves(dt) {
   if (G.wave) {
     G.wave.t += dt;
     for (const s of G.wave.sp)
-      if (!s.done && G.wave.t >= s[2] && G.enemies.length < 6) {
+      if (!s.done && G.wave.t >= s[2] && crowd() < 6) {
         s.done = true;
         spawn(s[0], s[1]);
       }
@@ -159,6 +161,30 @@ export function update(dt) {
         )
           o.life = 0;
       if (q.x < G.cam - 120 || q.x > G.cam + W + 120) q.life = 0;
+    } else if (q.k === 'zhead') {
+      // a zombie's thrown head: an arc, a bite on a hit, otherwise it rolls on the ground
+      q.rot += dt * 14 * Math.sign(q.vx);
+      q.y += q.vy * dt;
+      q.vz -= ACID.g * dt;
+      q.z += q.vz * dt;
+      if (Math.abs(P.x - q.x) < 26 && Math.abs(P.y - q.y) < 20 && q.z < 140 && P.z < 110)
+        if (hitPlayer(ZOMBIE.headDmg, Math.sign(q.vx), false)) q.life = 0;
+      if (q.life > 0 && q.z <= 0) q.life = 0;
+      if (q.life <= 0)
+        G.debris.push({
+          k: 'skull',
+          x: q.x,
+          gy: q.y,
+          z: Math.max(0, q.z) + 12,
+          vx: q.vx * 0.3,
+          vz: 160,
+          rot: q.rot,
+          vr: Math.sign(q.vx) * 8,
+          len: 12,
+          col: q.col,
+          eye: q.eye,
+          life: 2.5,
+        });
     } else if (q.k === 'acid') {
       // The necromancer's acid ball: flies in an arc and leaves a puddle where it lands.
       q.rot += dt;
