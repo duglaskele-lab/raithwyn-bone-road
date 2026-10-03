@@ -1,5 +1,6 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { ACID, BOSS, DECOR, TYPES, WAVES } from '../src/config.js';
 import { G, P } from '../src/state.js';
 import { pressed } from '../src/input.js';
@@ -77,8 +78,15 @@ test('below half health the baron roars into phase two and breathes acid', () =>
   assert.equal(boss.state, 'breath', 'the breath cannot be stopped');
   run(boss, BOSS.breathTime + DT * 2);
   assert.ok(P.hp <= hp - 3 * BOSS.breathDmg, `hp ${hp} -> ${P.hp}`);
-  assert.equal(G.pools.length, 2, 'the breath leaves acid on the ground');
+  assert.equal(G.pools.length, 4, 'the breath leaves four puddles of acid');
   assert.equal(boss.state, 'recover');
+});
+
+test('the breath reaches 40% further than it did and is not marked on the ground', () => {
+  assert.equal(BOSS.breathLen, 250 * 1.4);
+  assert.ok(
+    !/breathLen|bwind/.test(readFileSync(new URL('../src/render.js', import.meta.url), 'utf8')),
+  );
 });
 
 test('the breath cone is wide in front of the baron and nothing behind him', () => {

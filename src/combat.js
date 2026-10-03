@@ -192,7 +192,7 @@ function finale(e) {
         o.dead = true;
         shatter(o, o.x < e.x ? -1 : 1);
       }
-    G.projs = G.projs.filter((p) => p.k !== 'ebone' && p.k !== 'acid');
+    G.projs = G.projs.filter((p) => p.k !== 'ebone' && p.k !== 'acid' && p.k !== 'plasma');
     G.pools = [];
     G.shocks = [];
   }

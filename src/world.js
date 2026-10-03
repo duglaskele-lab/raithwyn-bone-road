@@ -7,7 +7,7 @@ import { keys } from './input.js';
 import { floatTxt, motes } from './fx.js';
 import { t } from './i18n.js';
 import { acidBite, addRage, headBonus, hitPlayer, hurtEnemy } from './combat.js';
-import { dragonZone, updShocks } from './dragon.js';
+import { DRAGON, dragonZone, plasmaBlast, updShocks } from './dragon.js';
 import { dmgMult, styleGain, updStyle } from './style.js';
 import { updPlayer } from './player.js';
 import { spawn, updEnemy } from './enemies.js';
@@ -228,6 +228,28 @@ export function update(dt) {
           eye: q.eye,
           life: 2.5,
         });
+    } else if (q.k === 'plasma') {
+      // the dragon's plasma ball: an arc, a blast where it lands
+      q.y += q.vy * dt;
+      q.vz -= DRAGON.plasma.g * dt;
+      q.z += q.vz * dt;
+      if (Math.random() < 0.8)
+        G.parts.push({
+          k: 'glow',
+          x: q.x - Math.sign(q.vx) * rnd(4, 14),
+          y: q.y - q.z + rnd(-6, 6),
+          vx: -q.vx * 0.1,
+          vy: rnd(-20, 20),
+          g: 0,
+          t: 0,
+          life: rnd(0.2, 0.35),
+          s: rnd(2, 5),
+          col: '#d7a8ff',
+        });
+      if (q.z <= 0) {
+        q.life = 0;
+        plasmaBlast(q);
+      }
     } else if (q.k === 'acid') {
       // The necromancer's acid ball: flies in an arc and leaves a puddle where it lands.
       q.rot += dt;

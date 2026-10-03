@@ -44,18 +44,20 @@ export const ZOMBIE = {
   headFlight: 0.8,
 };
 // The Grave Baron. Below half health he enters a second phase and gains an acid breath:
-// a 0.7 s wind-up, then a wide cone of acid in front of him for `time` seconds.
+// a 0.7 s wind-up, then he spits a spray of acid in front of him for `time` seconds; the cone
+// is where the drops come down. No marking on the ground: the wind-up is the warning.
 export const BOSS = {
   phase2: 0.5,
   roar: 1, // seconds of the phase change roar
   breathWind: 0.7,
   breathTime: 1.1,
-  breathLen: 250, // reach of the cone, about a quarter of the screen
+  breathLen: 350, // reach of the spray: 40% further than the old 250
   breathW0: 22, // half-depth of the cone at the mouth
-  breathSpread: 0.38, // how much the cone widens per pixel of reach
+  breathSpread: 0.27, // how much the cone widens per pixel of reach (as wide at the end as before)
   breathTick: 0.25,
   breathDmg: 5,
   breathCd: [3.5, 5.5],
+  breathPools: 4, // puddles left along the spray
 };
 // The rockers' second bike, a long chopper: its hit box runs this far back from the rider's
 // middle and this far forward (its ram of bone spikes).

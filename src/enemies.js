@@ -105,6 +105,8 @@ export function spawn(type, side, x, y) {
 // The bike: how far it is hidden off screen, how far its hit box reaches along the road.
 const offRoad = (e) => (e.bike === 'hog' ? 200 : 150);
 export const bikeReach = (e) => (e.bike === 'hog' ? HOG.half : 58);
+/** The baron's mouth on screen (x in world space, y on screen) for the acid spray. */
+const baronMouth = (e) => [e.x + e.face * 22 * e.T.scale, e.y - 128 * e.T.scale];
 /** Is the player inside the baron's acid breath cone? */
 export function inBreath(e) {
   const f = (P.x - e.x) * e.face - 20;
@@ -691,8 +693,23 @@ export function updEnemy(e, dt, ctxE) {
       }
       break;
     case 'bwind':
-      // 0.7 s to get out of the way: the cone is marked on the ground
+      // 0.7 s to get out of the way: head back, acid drooling from the jaws
       if (e.t < 0.2) e.face = dx >= 0 ? 1 : -1;
+      if (Math.random() < 0.5) {
+        const [mx, my] = baronMouth(e);
+        G.parts.push({
+          k: 'dot',
+          x: mx + rnd(-4, 4),
+          y: my + 4,
+          vx: rnd(-15, 15),
+          vy: rnd(20, 60),
+          g: 700,
+          t: 0,
+          life: rnd(0.3, 0.5),
+          s: rnd(2.5, 4),
+          col: Math.random() < 0.5 ? '#9dff4a' : '#4fd12a',
+        });
+      }
       if (e.t > BOSS.breathWind) {
         e.state = 'breath';
         e.t = 0;
@@ -701,24 +718,43 @@ export function updEnemy(e, dt, ctxE) {
       }
       break;
     case 'breath': {
-      const s = T.scale,
-        mx = e.x + e.face * 22 * s,
-        my = e.y - 128 * s;
-      for (let i = 0; i < 3; i++) {
-        const life = rnd(0.4, 0.6),
-          reach = BOSS.breathLen * rnd(0.5, 1),
-          side = rnd(-1, 1) * (BOSS.breathW0 + reach * BOSS.breathSpread);
+      // a spray of acid spat from the mouth: the drops fly in arcs and fall on the cone in
+      // front of him, which is where it burns
+      const [mx, my] = baronMouth(e);
+      for (let i = 0; i < 5; i++) {
+        const life = rnd(0.35, 0.6),
+          reach = BOSS.breathLen * Math.sqrt(rnd(0.04, 1)),
+          side = rnd(-1, 1) * (BOSS.breathW0 + reach * BOSS.breathSpread),
+          g = 900,
+          gy = e.y + side;
         G.parts.push({
-          k: i ? 'glow' : 'dust',
+          k: i % 2 ? 'glow' : 'dot',
           x: mx,
           y: my,
-          vx: (e.face * reach) / life,
-          vy: (e.y + side - my) / life,
-          g: 0,
+          vx: (e.face * (reach - 20)) / life,
+          vy: (gy - my - (g * life * life) / 2) / life,
+          g,
           t: 0,
           life,
-          s: rnd(5, 11),
-          col: i % 2 ? '#9dff4a' : '#4fd12a',
+          s: rnd(3, 7),
+          col: i % 3 ? '#9dff4a' : '#4fd12a',
+        });
+      }
+      // drops splashing where they land
+      for (let i = 0; i < 2; i++) {
+        const reach = BOSS.breathLen * rnd(0.15, 1),
+          side = rnd(-1, 1) * (BOSS.breathW0 + reach * BOSS.breathSpread);
+        G.parts.push({
+          k: 'dot',
+          x: e.x + e.face * (reach + 20),
+          y: e.y + side - 2,
+          vx: rnd(-50, 50),
+          vy: rnd(-140, -50),
+          g: 700,
+          t: 0,
+          life: rnd(0.2, 0.3),
+          s: rnd(2, 4),
+          col: '#b9ff7a',
         });
       }
       if ((e.tick -= dt) <= 0) {
@@ -726,10 +762,10 @@ export function updEnemy(e, dt, ctxE) {
         if (inBreath(e)) acidBite(BOSS.breathDmg);
       }
       if (e.t > BOSS.breathTime) {
-        for (const f of [0.45, 0.85])
+        for (let i = 0; i < BOSS.breathPools; i++)
           G.pools.push({
-            x: e.x + e.face * BOSS.breathLen * f,
-            y: clamp(e.y + rnd(-20, 20), GT, GB),
+            x: e.x + e.face * BOSS.breathLen * (0.3 + (0.62 * i) / (BOSS.breathPools - 1)),
+            y: clamp(e.y + rnd(-25, 25), GT, GB),
             t: 0,
             life: ACID.pool,
             seed: rnd(6),
