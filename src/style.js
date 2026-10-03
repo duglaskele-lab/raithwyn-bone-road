@@ -29,6 +29,10 @@ export function styleGain(points) {
     SFX.rank();
   }
 }
+/** Scenery was hit: no style points, but the meter does not start draining yet. */
+export function styleKeep() {
+  P.styT = 0;
+}
 /** The player got hurt: the streak is over. */
 export function styleBreak() {
   P.sty = 0;

@@ -21,6 +21,7 @@ export const MAP = {
   KeyK: 'bone',
   KeyL: 'hado',
   KeyI: 'super',
+  KeyX: 'secret',
   ShiftLeft: 'run',
   ShiftRight: 'run',
   Enter: 'start',
