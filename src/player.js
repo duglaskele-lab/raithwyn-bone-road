@@ -1,5 +1,17 @@
 // Raithwyn: movement, combo, air punch, bone throw, hadouken, super attack, getting hit.
-import { BONE_COST, D, GB, GT, MAXR, RL, SUPER_HOLD, W, WAVES, ZOMBIE } from './config.js';
+import {
+  BONE_COST,
+  D,
+  GB,
+  GT,
+  MAXR,
+  RL,
+  RUN_FRAME,
+  SUPER_HOLD,
+  W,
+  WAVES,
+  ZOMBIE,
+} from './config.js';
 import { clamp, tl } from './util.js';
 import { G, P } from './state.js';
 import { keys, pressed } from './input.js';
@@ -60,8 +72,11 @@ export function updPlayer(dt) {
           ? ['idle', 0]
           : ns === 'walk'
             ? ['walk', Math.floor(p.t / 0.085) % 8]
-            : ['run', Math.floor(p.t / 0.065) % 6];
-      if (ns === 'run' && Math.floor(p.t / 0.195) !== Math.floor((p.t - dt) / 0.195))
+            : ['run', Math.floor(p.t / RUN_FRAME) % 6];
+      if (
+        ns === 'run' &&
+        Math.floor(p.t / (RUN_FRAME * 3)) !== Math.floor((p.t - dt) / (RUN_FRAME * 3))
+      )
         dust(p.x - p.face * 14, p.y, 1);
       const b = p.bufT > 0 ? p.buf : null;
       if (b === 'jump') {

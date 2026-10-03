@@ -278,7 +278,7 @@ export function drawDebris(d) {
   if (d.k === 'bike') {
     ctx.translate(d.x - G.cam, d.gy);
     ctx.scale(d.dir, 1 - 0.58 * ease(d.tilt));
-    drawBike(d.x * 0.05);
+    drawBike(d.x * 0.05, d.hog);
     ctx.restore();
     return;
   }
@@ -565,7 +565,12 @@ export function drawWorld() {
   for (const u of G.props) shadow(u.x, u.y, 0, u.decor ? DECOR[u.decor].w * 1.2 : 22);
   for (const e of G.enemies)
     if (e.state !== 'rise' || e.t > 0.4)
-      shadow(e.x, e.y, e.z, e.T.shadow || (e.mounted ? 70 : 34) * e.T.scale);
+      shadow(
+        e.x,
+        e.y,
+        e.z,
+        e.T.shadow || (e.mounted ? (e.bike === 'hog' ? 104 : 70) : 34) * e.T.scale,
+      );
   for (const it of G.items) shadow(it.x, it.y, it.z, 12);
   for (const q of G.projs) shadow(q.x, q.y, q.z, q.k === 'hado' ? 26 * q.lv : 10);
   if (G.state !== 'title') shadow(P.x, P.y, P.z, 40);

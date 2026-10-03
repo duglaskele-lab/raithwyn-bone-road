@@ -149,6 +149,20 @@ export const SFX = {
   swing() {
     noise(0.11, 0.16, 500, 1900, 2);
   },
+  // the samurai: a ring of steel as it settles into its stance, the cut, the daze
+  stance() {
+    tone('triangle', 1760, 1700, 0.5, 0.05);
+    tone('sine', 2640, 2600, 0.35, 0.03, 0.02);
+    noise(0.18, 0.08, 3000, 6000, 3);
+  },
+  katana() {
+    noise(0.12, 0.42, 7000, 1400, 2.5);
+    tone('sawtooth', 2200, 600, 0.09, 0.05);
+    tone('triangle', 3300, 3100, 0.25, 0.05, 0.05);
+  },
+  daze() {
+    for (let i = 0; i < 3; i++) tone('triangle', 900 - i * 160, 700 - i * 160, 0.12, 0.08, i * 0.1);
+  },
   clack() {
     tone('square', 900, 380, 0.05, 0.13);
     noise(0.04, 0.22, 2600, 1500, 3);

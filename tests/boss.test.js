@@ -98,7 +98,8 @@ test('the breath cone is wide in front of the baron and nothing behind him', () 
   }
 });
 
-test('big graves take four hits; a zombie, a skeleton or nothing climbs out', () => {
+test('big graves take three hits; a zombie, a skeleton or nothing climbs out', () => {
+  assert.equal(DECOR.tomb.hp, 3, 'a quarter less than four');
   const tombs = G.props.filter((u) => u.decor === 'tomb');
   assert.ok(tombs.length >= 5);
   const random = Math.random;

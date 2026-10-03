@@ -33,6 +33,10 @@ const STATES = [
   'roar',
   'bwind',
   'breath',
+  'stance',
+  'draw',
+  'slash',
+  'daze',
 ];
 
 test('every enemy type gets a valid pose in every state', () => {

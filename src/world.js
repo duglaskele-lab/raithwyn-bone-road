@@ -1,5 +1,5 @@
 // One simulation step: player, enemies, projectiles, pickups, debris, wave script.
-import { ACID, GB, GT, PURPLE, SECRET_HOLD, W, WAVES, ZOMBIE } from './config.js';
+import { ACID, CHAIN_GAP, GB, GT, PURPLE, SECRET_HOLD, W, WAVES, ZOMBIE } from './config.js';
 import { clamp, rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
@@ -26,7 +26,11 @@ export function updWaves(dt) {
       G.wave = null;
       G.waveI++;
       G.goT = 6;
-      if (G.waveI >= WAVES.length) {
+      if (WAVES[G.waveI]?.chain) {
+        // the next wave is already on its way: no walk, a short breath and it starts here
+        G.goT = 0;
+        G.wave = { sp: WAVES[G.waveI].sp.map((s) => s.slice()), t: -CHAIN_GAP };
+      } else if (G.waveI >= WAVES.length) {
         P.state = 'win';
         P.t = 0;
         P.z = 0;

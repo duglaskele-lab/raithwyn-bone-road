@@ -13,7 +13,7 @@ export const MAXR = 200,
   RW = 1;
 export const OL = '#17151d',
   PURPLE = '#b05cff';
-export const CRYPT_X = 6030;
+export const CRYPT_X = 4520;
 // The fatso's ground slam: total wind-up, and the moment after which hits no longer stop it
 // (the last third of the wind-up).
 export const SWIND = 0.9,
@@ -57,14 +57,35 @@ export const BOSS = {
   breathDmg: 5,
   breathCd: [3.5, 5.5],
 };
+// The rockers' second bike, a long chopper: its hit box runs this far back from the rider's
+// middle and this far forward (its ram of bone spikes).
+export const HOG = { half: 96, front: 110 };
+// The skeleton samurai: an elite in white hakama with a katana. It drops into a ready stance
+// (eyes burning) and creeps up; step inside `range` and it answers with a lightning-fast wide
+// cut. A hit from afar (a bone, a dark ball, the super) breaks the stance and dazes it.
+// Without the stance it fights with a kick (its TYPES entry: dmg, reach, wind).
+export const SAMURAI = {
+  stance: 4.5, // the longest it holds the stance before it relaxes
+  walk: 30, // creeping speed in the stance
+  range: 125, // the player this close (in front) sets off the cut
+  dy: 46, // depth the cut covers
+  draw: 0.1, // the barest tell before the cut
+  slash: 0.16, // the cut itself
+  arc: 165, // its reach in front
+  back: 40, // and behind
+  dmg: 18,
+  lunge: 260, // it steps through the cut
+  daze: 2, // seconds a hit from afar leaves it dazed
+  stanceCd: [2.2, 3.6], // before it takes the stance again
+};
 // Secret: hold X this long right at the start of the level to skip straight to the final boss.
 export const SECRET_HOLD = 3;
 // Breakable scenery along the road: hits needed, colour of the pieces, score.
 export const DECOR = {
   bench: { w: 34, hp: 1, col: '#7a5638', score: 20 },
   cross: { w: 14, hp: 1, col: '#8b8f84', score: 20 },
-  // a big grave: four hits; a zombie or a skeleton may climb out of it
-  tomb: { w: 40, hp: 4, col: '#6f7c80', score: 50, big: 1 },
+  // a big grave: three hits; a zombie or a skeleton may climb out of it
+  tomb: { w: 40, hp: 3, col: '#6f7c80', score: 50, big: 1 },
 };
 
 // Enemy archetypes. Every numeric field is tuned by hand; see README for what each one means.
@@ -212,6 +233,23 @@ export const TYPES = {
     eye: '#fff36a',
     score: 60,
   },
+  samurai: {
+    hp: 80,
+    scale: 1.08,
+    speed: 74,
+    dmg: 9, // the kick; the katana cut is SAMURAI.dmg
+    reach: 66,
+    style: 'kick',
+    wind: 0.28,
+    act: 0.14,
+    rec: 0.6,
+    cd: [0.9, 1.6],
+    samurai: 1,
+    col: '#efe9d8',
+    dk: '#b6ae98',
+    eye: '#ff3b2f',
+    score: 650,
+  },
   // the final boss; its behaviour and drawing live in dragon.js
   dragon: {
     hp: 1139,
@@ -252,11 +290,15 @@ export const TYPES = {
     score: 3000,
   },
 };
-// Seven fights, the baron, one more fight and the Bone Dragon. Zombies come in crowds and rise from the ground; the other
-// enemies are mixed in so that every fight brings something different.
+// The road (a quarter shorter than it was): seven fights, the baron, one more fight and the
+// Bone Dragon. A wave marked `chain` comes on the heels of the one before, at the same spot.
+// Zombies come in crowds and rise from the ground; the other enemies are mixed in so that
+// every fight brings something different.
+// Seconds between a wave and the one chained to it.
+export const CHAIN_GAP = 0.8;
 export const WAVES = [
   {
-    x: 300,
+    x: 225,
     sp: [
       ['zombie', 0, 0],
       ['zombie', 0, 0.6],
@@ -267,7 +309,7 @@ export const WAVES = [
     ],
   },
   {
-    x: 1050,
+    x: 860,
     sp: [
       ['thrower', 1, 0],
       ['zombie', 0, 0.5],
@@ -279,7 +321,7 @@ export const WAVES = [
     ],
   },
   {
-    x: 1800,
+    x: 1500,
     sp: [
       ['biker', 1, 0],
       ['zombie', 0, 1],
@@ -291,7 +333,8 @@ export const WAVES = [
     ],
   },
   {
-    x: 2550,
+    x: 1500,
+    chain: 1,
     sp: [
       ['necro', 1, 0],
       ['brute', -1, 0.8],
@@ -303,7 +346,7 @@ export const WAVES = [
     ],
   },
   {
-    x: 3300,
+    x: 2300,
     sp: [
       ['fat', -1, 0],
       ['monkey', 1, 0.5],
@@ -316,7 +359,7 @@ export const WAVES = [
     ],
   },
   {
-    x: 4050,
+    x: 3050,
     sp: [
       ['brute', 1, 0],
       ['thrower', -1, 1],
@@ -324,13 +367,15 @@ export const WAVES = [
       ['zombie', 0, 1.9],
       ['biker', 1, 3],
       ['grunt', 0, 4],
+      ['samurai', 1, 4.5],
       ['necro', -1, 5],
       ['zombie', 0, 6],
       ['zombie', 0, 6.4],
     ],
   },
   {
-    x: 4800,
+    x: 3050,
+    chain: 1,
     sp: [
       ['biker', -1, 0],
       ['necro', 1, 0.8],
@@ -341,12 +386,13 @@ export const WAVES = [
       ['monkey', -1, 3.8],
       ['brute', 1, 5],
       ['thrower', -1, 6],
+      ['samurai', 1, 6.5],
       ['necro', 1, 7],
       ['zombie', 0, 7.5],
     ],
   },
   {
-    x: 5550,
+    x: 4160,
     boss: 1,
     // seven zombies climb out of the ground as the fight begins
     sp: [
@@ -362,7 +408,7 @@ export const WAVES = [
   },
   // past the baron's crypt: a last scuffle with skeletons and zombies
   {
-    x: 6350,
+    x: 4760,
     sp: [
       ['grunt', 1, 0],
       ['zombie', 0, 0.3],
@@ -372,12 +418,15 @@ export const WAVES = [
       ['zombie', 0, 2.5],
       ['zombie', 0, 3],
       ['brute', -1, 4],
+      ['samurai', 1, 4.5],
     ],
   },
   // the Bone Dragon
-  { x: 7150, boss: 1, sp: [['dragon', 0, 1]] },
+  { x: 5360, boss: 1, sp: [['dragon', 0, 1]] },
 ];
 
+// Seconds per frame of the sprint: 15% slower than the old 0.065 so the feet match the speed.
+export const RUN_FRAME = 0.065 / 0.85;
 // Player animation timelines: seconds per frame of each attack.
 export const D = {
   atk1: [0.03, 0.05, 0.09, 0.06, 0.05],

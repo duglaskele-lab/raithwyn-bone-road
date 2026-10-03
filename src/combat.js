@@ -74,6 +74,7 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
       rot: 0,
       vr: 0,
       dir: e.rdir,
+      hog: e.bike === 'hog',
       tilt: 0,
       life: 2.6,
     });
@@ -95,6 +96,7 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
     return true;
   }
   e.engage = false;
+  if (e.T.samurai && samuraiHit(e, knock, src)) return true;
   if (e.T.zombie && !e.headless && (knock || src === 'hado' || Math.random() < ZOMBIE.headOff))
     popHead(e, dir);
   if (e.type === 'boss') {
@@ -144,6 +146,23 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
     e.vx = dir * 95;
   }
   return true;
+}
+/**
+ * The samurai's guard. A hit from afar (a bone, a dark ball, the super) breaks its stance and
+ * dazes it; a blow up close only sets off the cut. The cut is too fast to stop, and a dazed
+ * samurai stays dazed unless it is knocked flat. Returns true when the hit is fully handled.
+ */
+function samuraiHit(e, knock, src) {
+  const far = src === 'bone' || src === 'hado' || src === 'super';
+  if (e.state === 'stance' || e.state === 'draw') {
+    if (far) {
+      Object.assign(e, { state: 'daze', t: 0, z: 0 });
+      SFX.daze();
+    } else if (e.state === 'stance') Object.assign(e, { state: 'draw', t: 0 });
+    return true;
+  }
+  if (e.state === 'slash') return true;
+  return e.state === 'daze' && !knock;
 }
 export function killEnemy(e, dir) {
   if (e.T.dragon) {

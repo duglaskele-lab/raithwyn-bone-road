@@ -1,5 +1,20 @@
 // Enemy spawning and AI state machines for every skeleton type.
-import { ACID, BOSS, CHAIN, GB, GT, RW, SLAM_R, SWIND, TAU, TYPES, W, ZOMBIE } from './config.js';
+import {
+  ACID,
+  BOSS,
+  SAMURAI,
+  CHAIN,
+  GB,
+  HOG,
+  GT,
+  RW,
+  SLAM_R,
+  SWIND,
+  TAU,
+  TYPES,
+  W,
+  ZOMBIE,
+} from './config.js';
 import { clamp, rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
@@ -54,13 +69,15 @@ export function spawn(type, side, x, y) {
     rev: 0,
   };
   if (type === 'biker') {
+    // every second rocker rides the long chopper, which hits along its whole length
     const d = side < 0 ? 1 : -1;
+    e.bike = G.bikes++ % 2 ? 'hog' : 'bike';
     e.state = 'ride';
     e.mounted = true;
     e.rdir = e.face = d;
-    e.x = d > 0 ? G.cam - 150 : G.cam + W + 150;
+    e.x = d > 0 ? G.cam - offRoad(e) : G.cam + W + offRoad(e);
     e.y = clamp(P.y, GT + 8, GB - 4);
-    e.w = 32;
+    e.w = e.bike === 'hog' ? 48 : 32;
   }
   if (e.state === 'rise') {
     SFX.rise();
@@ -85,6 +102,9 @@ export function spawn(type, side, x, y) {
   G.enemies.push(e);
   return e;
 }
+// The bike: how far it is hidden off screen, how far its hit box reaches along the road.
+const offRoad = (e) => (e.bike === 'hog' ? 200 : 150);
+export const bikeReach = (e) => (e.bike === 'hog' ? HOG.half : 58);
 /** Is the player inside the baron's acid breath cone? */
 export function inBreath(e) {
   const f = (P.x - e.x) * e.face - 20;
@@ -215,6 +235,16 @@ export function updEnemy(e, dt, ctxE) {
         e.engage = false;
         break;
       }
+      if (T.samurai && !pdown && e.cd <= 0 && (e.stanceCd ?? 0) <= 0) {
+        // at a distance it drops into its ready stance and creeps up
+        if (adx > SAMURAI.range + 20 && adx < 420 && Math.abs(dy) < 110) {
+          e.state = 'stance';
+          e.t = 0;
+          e.engage = false;
+          SFX.stance();
+          break;
+        }
+      }
       if (T.robe && !pdown && e.cd <= 0 && adx < T.reach + 10 && Math.abs(dy) < 18) {
         // Cornered necromancer: a weak swing of the staff.
         e.state = 'staff';
@@ -271,6 +301,7 @@ export function updEnemy(e, dt, ctxE) {
       break;
     }
     case 'windup':
+      e.cut = false; // the samurai's kick: its recovery is not the follow-through of a cut
       if (e.t > T.wind) {
         e.state = 'attack';
         e.t = 0;
@@ -445,7 +476,7 @@ export function updEnemy(e, dt, ctxE) {
       break;
     case 'ride':
       if (e.t < RW) {
-        e.x = e.rdir > 0 ? G.cam - 150 : G.cam + W + 150;
+        e.x = e.rdir > 0 ? G.cam - offRoad(e) : G.cam + W + offRoad(e);
         e.y += clamp(P.y - e.y, -1, 1) * 170 * dt;
         if (!e.rev && e.t > 0.12) {
           e.rev = 1;
@@ -456,7 +487,7 @@ export function updEnemy(e, dt, ctxE) {
         if (Math.random() < 0.7)
           G.parts.push({
             k: 'dust',
-            x: e.x - e.rdir * 58,
+            x: e.x - e.rdir * (e.bike === 'hog' ? 100 : 58),
             y: e.y - 26 + rnd(-4, 4),
             vx: -e.rdir * 70,
             vy: -30,
@@ -466,10 +497,21 @@ export function updEnemy(e, dt, ctxE) {
             s: rnd(4, 8),
             col: '#d5dcdc',
           });
-        if (!e.hitDone && Math.abs(P.x - e.x) < 58 && Math.abs(P.y - e.y) < 22 && P.z < 46) {
-          if (hitPlayer(14, e.rdir, true)) e.hitDone = true;
+        // the hit box runs the length of the bike, the chopper's ram included
+        const rel = (P.x - e.x) * e.rdir,
+          back = bikeReach(e);
+        if (!e.hitDone && rel > -back && rel < (e.bike === 'hog' ? HOG.front : back)) {
+          if (
+            Math.abs(P.y - e.y) < 22 &&
+            P.z < 46 &&
+            hitPlayer(e.bike === 'hog' ? 16 : 14, e.rdir, true)
+          )
+            e.hitDone = true;
         }
-        if ((e.rdir > 0 && e.x > G.cam + W + 150) || (e.rdir < 0 && e.x < G.cam - 150)) {
+        if (
+          (e.rdir > 0 && e.x > G.cam + W + offRoad(e)) ||
+          (e.rdir < 0 && e.x < G.cam - offRoad(e))
+        ) {
           e.rdir *= -1;
           e.face = e.rdir;
           e.t = 0;
@@ -522,6 +564,63 @@ export function updEnemy(e, dt, ctxE) {
       if (P.state !== 'pulled' || P.puller !== e) {
         e.state = 'recover';
         e.t = 0;
+      }
+      break;
+    case 'stance': {
+      // eyes burning, katana low: one step inside its range and it cuts
+      e.face = dx >= 0 ? 1 : -1;
+      const f = dx * e.face;
+      if (!pdown && f > 0 && f < SAMURAI.range && Math.abs(dy) < SAMURAI.dy && P.z < 120) {
+        e.state = 'draw';
+        e.t = 0;
+        break;
+      }
+      if (pdown || e.t > SAMURAI.stance) {
+        e.state = 'chase';
+        e.t = 0;
+        e.stanceCd = rnd(SAMURAI.stanceCd[0], SAMURAI.stanceCd[1]);
+        break;
+      }
+      const sp = SAMURAI.walk;
+      moveTo(P.x - e.face * SAMURAI.range * 0.7, P.y, sp);
+      break;
+    }
+    case 'draw':
+      if (e.t > SAMURAI.draw) {
+        e.state = 'slash';
+        e.t = 0;
+        e.hitDone = false;
+        e.cut = true;
+        SFX.katana();
+      }
+      break;
+    case 'slash': {
+      // a wide arc in front of it, stepping through
+      if (e.t < SAMURAI.slash * 0.7) e.x += e.face * SAMURAI.lunge * dt;
+      const f = (P.x - e.x) * e.face;
+      if (
+        !e.hitDone &&
+        f > -SAMURAI.back &&
+        f < SAMURAI.arc &&
+        Math.abs(dy) < SAMURAI.dy &&
+        P.z < 130
+      ) {
+        e.hitDone = true;
+        hitPlayer(SAMURAI.dmg, e.face, true);
+      }
+      if (e.t > SAMURAI.slash) {
+        e.state = 'recover';
+        e.t = 0;
+        e.stanceCd = rnd(SAMURAI.stanceCd[0], SAMURAI.stanceCd[1]);
+      }
+      break;
+    }
+    case 'daze':
+      if (e.t > SAMURAI.daze) {
+        e.state = 'chase';
+        e.t = 0;
+        e.cd = Math.max(e.cd, 0.4);
+        e.stanceCd = rnd(SAMURAI.stanceCd[0], SAMURAI.stanceCd[1]);
       }
       break;
     case 'hurt':
@@ -658,6 +757,12 @@ export function updEnemy(e, dt, ctxE) {
       break;
   }
   e.y = clamp(e.y, GT + 2, GB);
-  if (e.state === 'air' || e.state === 'hurt' || e.state === 'charge' || e.state === 'leap')
+  if (
+    e.state === 'air' ||
+    e.state === 'hurt' ||
+    e.state === 'charge' ||
+    e.state === 'leap' ||
+    e.state === 'slash'
+  )
     e.x = clamp(e.x, G.cam + 24, G.cam + W - 24);
 }
