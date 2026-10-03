@@ -26,7 +26,7 @@ import { RANKS, STYLE_STEP, dmgMult, scoreMult, styleRank } from './style.js';
 import { drawBG, drawFog, drawVignette } from './background.js';
 import { hadoLevel } from './combat.js';
 import { boneShape, drawBike, drawSkel } from './skeleton.js';
-import { drawDragon, drawDragonBeam, drawDragonGround } from './dragon.js';
+import { drawDragon, drawDragonBeam, drawDragonGround, drawShocks } from './dragon.js';
 
 export function shadow(x, y, z, r) {
   const k = clamp(1 - z / 260, 0.45, 1);
@@ -549,6 +549,7 @@ export function drawWorld() {
       ctx.restore();
     }
   for (const e of G.enemies) if (e.T.dragon) drawDragonGround(e);
+  drawShocks();
   // shadows
   for (const u of G.props) shadow(u.x, u.y, 0, u.decor ? DECOR[u.decor].w * 1.2 : 22);
   for (const e of G.enemies)

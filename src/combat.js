@@ -158,6 +158,7 @@ export function killEnemy(e, dir) {
       }
     G.projs = G.projs.filter((p) => p.k !== 'ebone' && p.k !== 'acid');
     G.pools = [];
+    G.shocks = [];
   } else if (Math.random() < 0.12)
     G.items.push({ kind: 'rage', x: e.x, y: e.y, z: 60, vz: 200, t: 0 });
 }

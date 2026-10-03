@@ -12,7 +12,7 @@
 import { GB, GT, TAU, W } from './config.js';
 import { clamp, ease, lerp, rnd } from './util.js';
 import { G, P } from './state.js';
-import { SFX } from './audio.js';
+import { SFX, growl } from './audio.js';
 import { dust } from './fx.js';
 import { hitPlayer } from './combat.js';
 import { ctx } from './gfx.js';
@@ -26,6 +26,8 @@ export const DRAGON = {
   claw: { wind: 0.5, swipe: 0.2, rec: 0.55, dmg: 14, min: 20, max: 240, dy: 60 },
   laser: { wind: 1.0, fire: 1.1, rec: 0.5, dmg: 22, band: 40, dy: 110, cd: 5 },
   leap: { crouch: 0.6, air: 0.9, rec: 0.8, dmg: 20, rx: 190, ry: 70, h: 230, cd: 4 },
+  // the shockwave of the leap: a ring on the ground that runs across the arena
+  shock: { speed: 460, band: 22, depth: 0.32, clear: 34, dmg: 14 },
   pounce: {
     crouch: 0.35,
     air: 0.6,
@@ -144,11 +146,11 @@ function start(e, a) {
   if (a === 'laser') {
     e.laserY = e.y;
     e.laserCd = DRAGON.laser.cd;
-    SFX.charge();
+    SFX.dragonCharge();
   }
   if (a === 'leap') e.leapCd = DRAGON.leap.cd;
   if (a === 'pounce') e.pounceCd = DRAGON.pounce.cd;
-  if (a === 'claw' || a === 'bite') SFX.boss();
+  if (a !== 'laser') SFX.dragonWind();
 }
 function finish(e) {
   e.state = 'walk';
@@ -173,7 +175,7 @@ function jump(e, J) {
     e.ly = clamp(P.y, GT + 20, GB - 10);
     e.face = dir;
     SFX.jump();
-    SFX.boss();
+    growl(0.5, 130, 80, 0.16);
   }
   const u = Math.min(1, (e.t - J.crouch) / J.air);
   if (u < 1) {
@@ -193,6 +195,11 @@ function jump(e, J) {
     const ex = (P.x - e.x) / J.rx,
       ey = (P.y - e.y) / J.ry;
     if (ex * ex + ey * ey < 1 && P.z < 40) hitPlayer(J.dmg, P.x >= e.x ? 1 : -1, true);
+    if (J === DRAGON.leap) {
+      // the second-phase leap also sends a shockwave across the whole arena: jump over it
+      G.shocks.push({ x: e.x, y: e.y, r: J.rx, hit: false });
+      SFX.quake();
+    }
   }
   if (e.t > J.crouch + J.air + J.rec) {
     e.air = e.landed = false;
@@ -213,7 +220,7 @@ export function dragonInterrupt(e, knock, src) {
   if (!heavy || !winding || e.armor > 0) return false;
   Object.assign(e, { state: 'stagger', t: 0, armor: C.armor, swung: false, thud: false });
   e.air = e.landed = false;
-  SFX.boss();
+  SFX.dragonHurt();
   return true;
 }
 export function updDragon(e, dt) {
@@ -253,6 +260,7 @@ export function updDragon(e, dt) {
         G.shake = 18;
         SFX.heavy();
         SFX.thud();
+        SFX.dragonRoar();
         dust(e.x, e.y, 16);
         G.parts.push({ k: 'gring', x: e.x, y: e.y, t: 0, life: 0.5, s: 260, col: '#e6dfc8' });
       }
@@ -270,7 +278,7 @@ export function updDragon(e, dt) {
         e.t = 0;
         e.leapCd = 1.5;
         G.flash = 0.3;
-        SFX.boss();
+        SFX.dragonRoar();
         break;
       }
       // turn around when the player stays behind
@@ -597,6 +605,47 @@ function skull(h, col, dk, eye, fl) {
   ctx.lineTo(44, -8);
   ctx.stroke();
   ctx.restore();
+}
+/**
+ * Shockwaves spread from where the leap landed. The ring is an ellipse on the ground; when its
+ * edge passes under the player, she must be in the air (a jump) or she is knocked down.
+ */
+export function updShocks(dt) {
+  const S = DRAGON.shock;
+  for (const w of G.shocks) {
+    w.r += S.speed * dt;
+    if (Math.random() < 0.9) {
+      const a = rnd(0, TAU);
+      dust(w.x + Math.cos(a) * w.r, w.y + Math.sin(a) * w.r * S.depth, 1);
+    }
+    const d = Math.hypot(P.x - w.x, (P.y - w.y) / S.depth);
+    if (!w.hit && Math.abs(d - w.r) < S.band) {
+      if (P.z > S.clear) continue;
+      if (hitPlayer(S.dmg, P.x >= w.x ? 1 : -1, true)) w.hit = true;
+    }
+  }
+  G.shocks = G.shocks.filter((w) => w.r < W * 1.4);
+}
+export function drawShocks() {
+  const S = DRAGON.shock;
+  for (const w of G.shocks) {
+    const x = w.x - G.cam,
+      a = Math.max(0, 1 - w.r / (W * 1.4));
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (const [lw, c] of [
+      [S.band * 1.6, `rgba(176,92,255,${0.25 * a})`],
+      [S.band * 0.7, `rgba(235,220,255,${0.55 * a})`],
+      [3, `rgba(255,255,255,${0.9 * a})`],
+    ]) {
+      ctx.strokeStyle = c;
+      ctx.lineWidth = lw;
+      ctx.beginPath();
+      ctx.ellipse(x, w.y, w.r, w.r * S.depth, 0, 0, TAU);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
 }
 /** Light thrown on the ground by the firing beam. */
 export function drawDragonGround(e) {

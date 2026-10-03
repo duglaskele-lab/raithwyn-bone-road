@@ -214,7 +214,7 @@ export const TYPES = {
   },
   // the final boss; its behaviour and drawing live in dragon.js
   dragon: {
-    hp: 900,
+    hp: 1035,
     scale: 1.6,
     speed: 51,
     dmg: 18,

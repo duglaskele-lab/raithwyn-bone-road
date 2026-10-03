@@ -5,7 +5,7 @@ import { G, P } from '../src/state.js';
 import { pressed } from '../src/input.js';
 import { hurtEnemy, strike } from '../src/combat.js';
 import { spawn, updEnemy } from '../src/enemies.js';
-import { DRAGON, dragonHead, dragonZone } from '../src/dragon.js';
+import { DRAGON, dragonHead, dragonZone, updShocks } from '../src/dragon.js';
 import { update } from '../src/world.js';
 import { DT, allFinite, freshGame } from './helpers.js';
 
@@ -204,4 +204,34 @@ test('the super attack charges in one second; big graves burst into big slabs', 
   for (let i = 0; i < DECOR.tomb.hp; i++) hurtEnemy(tomb, 1, 1, false, 'punch');
   assert.ok(tomb.dead);
   assert.ok(G.debris.filter((d) => d.k === 'shard' && d.len >= 18).length >= 9);
+});
+
+test('the dragon has 15% more health than before', () => {
+  assert.equal(TYPES.dragon.hp, Math.round(900 * 1.15));
+});
+
+test('the second-phase leap sends a shockwave across the arena; jumping clears it', () => {
+  for (const [jumping, hurt] of [
+    [false, true],
+    [true, false],
+  ]) {
+    freshGame();
+    const d = dragonAt(400, 450, { phase2: true });
+    Object.assign(d, { state: 'leap', t: 0 });
+    run(d, DRAGON.leap.crouch + DRAGON.leap.air + 0.05);
+    assert.equal(G.shocks.length, 1, 'a shockwave starts where it lands');
+    // move the player well away from the landing and let the ring reach her
+    P.x = d.x + 600;
+    P.y = d.y;
+    P.hp = 100;
+    P.inv = 0;
+    P.state = 'idle';
+    for (let i = 0; i < 2 / DT; i++) {
+      if (jumping) P.z = 80;
+      updShocks(DT);
+    }
+    assert.equal(P.hp < 100, hurt, jumping ? 'in the air' : 'on the ground');
+  }
+  for (let i = 0; i < 1 / DT; i++) updShocks(DT);
+  assert.equal(G.shocks.length, 0, 'the ring fades past the arena');
 });
