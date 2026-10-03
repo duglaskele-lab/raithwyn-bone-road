@@ -20,6 +20,11 @@ canvas:focus-visible{outline-color:#b05cff}
 kbd{font:inherit;font-size:12px;padding:1px 6px;border:1px solid var(--key-line);border-bottom-width:2px;border-radius:4px;background:var(--key-bg);color:var(--ink)}
 #help span{white-space:nowrap;margin:0 7px}
 #pad{display:none}
+/* F9 recording badge: a page element, so it stays out of the recorded video */
+#rec{position:fixed;top:10px;right:14px;z-index:9;display:none;padding:4px 10px;border-radius:6px;
+  font:900 13px "Arial Black","Segoe UI Black",Impact,Roboto,system-ui,sans-serif;color:#fff;pointer-events:none}
+#rec.on{display:block;background:rgba(200,20,40,.85)}
+#rec.msg{display:block;background:rgba(40,36,52,.9)}
 @media (pointer:coarse){
   #help{display:none}
   #stage{align-items:flex-start}

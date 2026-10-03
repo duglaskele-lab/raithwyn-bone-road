@@ -9,6 +9,7 @@ import { PAUSE_BTN, drawHUD, drawWorld, overlay } from './render.js';
 import { MENU_STATES, drawMenu, drawPause, menuStep, pauseStep } from './menu.js';
 import { PORTRAITS } from './characters.js';
 import { update } from './world.js';
+import { toggleRecording } from './recorder.js';
 import { STR, lang, onLang, setLang, t } from './i18n.js';
 
 // Entry point: wires the DOM to the game modules and runs the frame loop.
@@ -50,6 +51,7 @@ function frame(dt) {
   if (pressed.mute) {
     G.muted = !G.muted;
   }
+  if (pressed.record) toggleRecording(cv);
   if (MENU_STATES.includes(G.state)) {
     menuStep(dt);
     // the step may have started the fight; the next frame draws it

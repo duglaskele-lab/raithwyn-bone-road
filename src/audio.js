@@ -18,6 +18,16 @@ export function attach(ctx) {
   const d = NB.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
 }
+// A stream of everything the game plays, for the video recorder (made on first use).
+let REC = null;
+export function audioStream() {
+  if (!AC || !AC.createMediaStreamDestination) return null;
+  if (!REC) {
+    REC = AC.createMediaStreamDestination();
+    MG.connect(REC);
+  }
+  return REC.stream;
+}
 export function audioInit() {
   if (AC) {
     if (AC.state === 'suspended') AC.resume();

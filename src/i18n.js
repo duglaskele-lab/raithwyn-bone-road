@@ -105,6 +105,7 @@ export const STR = {
       super: ['Super', 'hold I'],
       pause: ['Pause menu', 'Esc / P'],
       mute: ['Sound', 'M'],
+      record: ['Record video', 'F9'],
     },
     pad: { hado: 'Hado', bone: 'Bone', jump: 'Jump', atk: 'Hit', super: 'Super' },
     foe: {
@@ -221,6 +222,7 @@ export const STR = {
       super: ['Суперудар', 'зажать I'],
       pause: ['Меню паузы', 'Esc / P'],
       mute: ['Звук', 'M'],
+      record: ['Запись видео', 'F9'],
     },
     pad: { hado: 'Хаду', bone: 'Кость', jump: 'Прыг', atk: 'Удар', super: 'Супер' },
     foe: {
