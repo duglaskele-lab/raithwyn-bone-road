@@ -34,6 +34,15 @@ export const ACID = {
   tick: 0.5, // seconds between puddle bites
   dmg: 3, // damage per bite
 };
+// Zombies grab the player for a moment, can lose their head to a hit and now and then throw it.
+export const ZOMBIE = {
+  hold: 1.1, // seconds the player is held
+  mash: 0.15, // each button press while held shortens the hold
+  headOff: 0.3, // chance that a plain hit knocks the head off (a knockdown hit always does)
+  throwRate: 0.12, // chance per second to throw the head when at range
+  headDmg: 6,
+  headFlight: 0.8,
+};
 // Breakable scenery along the road: hits needed, colour of the pieces, score.
 export const DECOR = {
   bench: { w: 34, hp: 1, col: '#7a5638', score: 20 },
@@ -168,6 +177,24 @@ export const TYPES = {
     eye: '#ff2626',
     score: 300,
   },
+  zombie: {
+    hp: 22,
+    scale: 1,
+    speed: 40,
+    dmg: 5,
+    reach: 56,
+    style: 'grab',
+    wind: 0.5,
+    act: 0.16,
+    rec: 0.6,
+    cd: [1.1, 2.2],
+    zombie: 1,
+    crowd: 0.5, // counts as half an enemy against the on-screen limit
+    col: '#a3b48b',
+    dk: '#6f7f5c',
+    eye: '#fff36a',
+    score: 60,
+  },
   boss: {
     hp: 400,
     scale: 1.55,
@@ -188,86 +215,97 @@ export const TYPES = {
     score: 3000,
   },
 };
-// Seven fights and the baron. The road is a quarter shorter than it used to be, so the same
-// crowd arrives in fewer, denser fights.
+// Seven fights and the baron. Zombies come in crowds and rise from the ground; the other
+// enemies are mixed in so that every fight brings something different.
 export const WAVES = [
   {
     x: 300,
     sp: [
-      ['grunt', 1, 0],
-      ['grunt', 1, 0.8],
-      ['grunt', -1, 1.8],
-      ['monkey', 0, 3.2],
+      ['zombie', 0, 0],
+      ['zombie', 0, 0.6],
+      ['grunt', 1, 1.2],
+      ['zombie', -1, 2],
+      ['zombie', 1, 2.8],
+      ['monkey', 0, 3.8],
     ],
   },
   {
     x: 1050,
     sp: [
       ['thrower', 1, 0],
-      ['grunt', 1, 0.3],
-      ['monkey', -1, 1.2],
-      ['grunt', -1, 2.2],
-      ['necro', 1, 3.5],
-      ['monkey', 0, 4.5],
+      ['zombie', 0, 0.5],
+      ['zombie', 0, 0.9],
+      ['necro', -1, 2],
+      ['grunt', 1, 2.8],
+      ['zombie', 0, 3.6],
+      ['zombie', -1, 4.4],
     ],
   },
   {
     x: 1800,
     sp: [
       ['biker', 1, 0],
-      ['grunt', 0, 1],
-      ['grunt', 0, 1.3],
-      ['thrower', 1, 3],
-      ['fat', -1, 4.5],
+      ['zombie', 0, 1],
+      ['zombie', 0, 1.3],
+      ['monkey', -1, 2.2],
+      ['fat', 1, 3.5],
+      ['zombie', 0, 4.5],
+      ['thrower', -1, 5.5],
     ],
   },
   {
     x: 2550,
     sp: [
-      ['brute', 1, 0],
-      ['necro', -1, 0.8],
-      ['monkey', 1, 1.8],
-      ['monkey', -1, 2.4],
-      ['grunt', 0, 3.6],
-      ['biker', -1, 5],
+      ['necro', 1, 0],
+      ['brute', -1, 0.8],
+      ['zombie', 0, 1.6],
+      ['zombie', 0, 2],
+      ['zombie', 0, 2.4],
+      ['monkey', 1, 3.4],
+      ['grunt', -1, 4.6],
     ],
   },
   {
     x: 3300,
     sp: [
-      ['monkey', -1, 0],
-      ['monkey', 1, 0.3],
-      ['monkey', 0, 1],
-      ['thrower', 1, 2],
-      ['fat', -1, 3],
-      ['necro', 1, 4.5],
-      ['grunt', 0, 5.5],
+      ['fat', -1, 0],
+      ['monkey', 1, 0.5],
+      ['monkey', -1, 1],
+      ['zombie', 0, 1.8],
+      ['zombie', 0, 2.2],
+      ['necro', 1, 3.2],
+      ['biker', -1, 4.5],
+      ['zombie', 0, 5.5],
     ],
   },
   {
     x: 4050,
     sp: [
-      ['biker', 1, 0],
-      ['biker', -1, 1.8],
-      ['grunt', 0, 2.6],
-      ['grunt', 0, 3],
-      ['necro', 1, 4.2],
-      ['brute', -1, 5.5],
-      ['fat', 1, 7],
+      ['brute', 1, 0],
+      ['thrower', -1, 1],
+      ['zombie', 0, 1.5],
+      ['zombie', 0, 1.9],
+      ['biker', 1, 3],
+      ['grunt', 0, 4],
+      ['necro', -1, 5],
+      ['zombie', 0, 6],
+      ['zombie', 0, 6.4],
     ],
   },
   {
     x: 4800,
     sp: [
       ['biker', -1, 0],
-      ['brute', 1, 0.8],
-      ['necro', -1, 2],
-      ['monkey', -1, 2.6],
-      ['monkey', 1, 3],
-      ['fat', 0, 4.5],
-      ['thrower', 1, 5.5],
-      ['grunt', 0, 6.5],
-      ['necro', 1, 7.5],
+      ['necro', 1, 0.8],
+      ['zombie', 0, 1.4],
+      ['zombie', 0, 1.8],
+      ['zombie', 0, 2.2],
+      ['fat', 1, 3],
+      ['monkey', -1, 3.8],
+      ['brute', 1, 5],
+      ['thrower', -1, 6],
+      ['necro', 1, 7],
+      ['zombie', 0, 7.5],
     ],
   },
   { x: 5550, boss: 1, sp: [['boss', 0, 1.2]] },

@@ -7,7 +7,7 @@ import { SFX } from './audio.js';
 export const RANKS = ['D', 'C', 'B', 'A', 'S'];
 export const STYLE_STEP = 100, // meter points per rank
   STYLE_MAX = 599, // S lasts from 500 up to here
-  STYLE_GRACE = 1.2, // seconds without a hit before the meter starts to drain
+  STYLE_GRACE = 3.5, // seconds without a hit before the meter starts to drain
   STYLE_DRAIN = 90; // meter points per second while draining
 
 /** 0 = no rank yet, 1 = D … 5 = S. */

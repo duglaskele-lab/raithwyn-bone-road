@@ -1,5 +1,5 @@
 // Damage rules: who can be hit, what a hit does, rage, the boss interrupt immunity.
-import { DECOR, MAXR, RL, RW, SUPER_DMG, SWIND_LOCK, TAU, W } from './config.js';
+import { DECOR, MAXR, RL, RW, SUPER_DMG, SWIND_LOCK, TAU, W, ZOMBIE } from './config.js';
 import { rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
@@ -83,6 +83,8 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
     return true;
   }
   e.engage = false;
+  if (e.T.zombie && !e.headless && (knock || src === 'hado' || Math.random() < ZOMBIE.headOff))
+    popHead(e, dir);
   if (e.type === 'boss') {
     if (e.state === 'charge' || e.state === 'summon' || e.state === 'rise') return true;
     const atk = e.state === 'windup' || e.state === 'attack' || e.state === 'cwind',
@@ -150,6 +152,58 @@ export function killEnemy(e, dir) {
   } else if (Math.random() < 0.12)
     G.items.push({ kind: 'rage', x: e.x, y: e.y, z: 60, vz: 200, t: 0 });
 }
+// A zombie's head flies off; the body keeps fighting.
+export function popHead(e, dir) {
+  e.headless = true;
+  G.debris.push({
+    k: 'skull',
+    x: e.x,
+    gy: e.y + 2,
+    z: e.z + 150 * e.T.scale,
+    vx: dir * rnd(140, 260),
+    vz: rnd(320, 460),
+    rot: 0,
+    vr: dir * rnd(8, 14),
+    len: 12 * e.T.scale,
+    col: e.T.col,
+    eye: e.T.eye,
+    life: 3,
+  });
+  for (let i = 0; i < 6; i++)
+    G.parts.push({
+      k: 'dot',
+      x: e.x,
+      y: e.y - 150 * e.T.scale,
+      vx: rnd(-120, 120),
+      vy: rnd(-220, -60),
+      g: 700,
+      t: 0,
+      life: rnd(0.3, 0.5),
+      s: rnd(3, 5),
+      col: '#5f7a3a',
+    });
+  SFX.clack();
+}
+// A zombie gets hold of the player: a little damage, then the player is stuck for a moment.
+export function grabPlayer(e) {
+  const p = P;
+  if (
+    p.inv > 0 ||
+    p.z > 6 ||
+    G.state !== 'play' ||
+    !['idle', 'walk', 'run', 'atk1', 'atk2', 'throw'].includes(p.state)
+  )
+    return false;
+  if (p.hp <= e.T.dmg) return hitPlayer(e.T.dmg, e.face, false) && false;
+  p.hp -= e.T.dmg;
+  styleBreak();
+  spark(p.x, p.y - 105, '#ff4a5e', false);
+  SFX.hurt();
+  SFX.grab();
+  Object.assign(p, { state: 'grabbed', t: 0, grabber: e, hold: ZOMBIE.hold, buf: null });
+  p.face = e.x >= p.x ? 1 : -1;
+  return true;
+}
 export function breakProp(e) {
   const D = DECOR[e.decor];
   e.dead = true;
@@ -203,6 +257,7 @@ export function hitPlayer(dmg, dir, knock) {
   SFX.hurt();
   p.buf = null;
   p.puller = null;
+  p.grabber = null;
   if (p.hp <= 0 || knock || p.z > 0 || p.state === 'jump') {
     p.state = 'ko';
     p.t = 0;

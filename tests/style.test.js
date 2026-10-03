@@ -74,7 +74,7 @@ test('the rank drains fast when the player stops hitting', () => {
   const r = styleRank();
   step(STYLE_GRACE * 0.8);
   assert.equal(styleRank(), r, 'kept for a moment');
-  step(3);
+  step(3.5);
   assert.equal(P.sty, 0);
 });
 

@@ -1,10 +1,10 @@
 // Enemy spawning and AI state machines for every skeleton type.
-import { ACID, CHAIN, GB, GT, RW, SLAM_R, SWIND, TAU, TYPES, W } from './config.js';
+import { ACID, CHAIN, GB, GT, RW, SLAM_R, SWIND, TAU, TYPES, W, ZOMBIE } from './config.js';
 import { clamp, rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
 import { dust } from './fx.js';
-import { hitPlayer } from './combat.js';
+import { grabPlayer, hitPlayer } from './combat.js';
 
 export function spawn(type, side, x, y) {
   const T = TYPES[type];
@@ -160,6 +160,22 @@ export function updEnemy(e, dt, ctxE) {
         e.engage = false;
         break;
       }
+      if (
+        T.zombie &&
+        !e.headless &&
+        !pdown &&
+        e.cd <= 0 &&
+        adx > 170 &&
+        adx < 420 &&
+        Math.abs(dy) < 60 &&
+        Math.random() < ZOMBIE.throwRate * dt
+      ) {
+        // rarely: tear off its own head and lob it
+        e.state = 'hwind';
+        e.t = 0;
+        e.engage = false;
+        break;
+      }
       if (T.robe && !pdown && e.cd <= 0 && adx < T.reach + 10 && Math.abs(dy) < 18) {
         // Cornered necromancer: a weak swing of the staff.
         e.state = 'staff';
@@ -183,7 +199,11 @@ export function updEnemy(e, dt, ctxE) {
         moveTo(P.x + side * T.keep, P.y, T.speed);
       } else {
         if (pdown) e.engage = false;
-        else if (!e.engage && e.cd <= 0 && (ctxE.n < 2 || e.type === 'boss')) {
+        else if (
+          !e.engage &&
+          e.cd <= 0 &&
+          (ctxE.n < 2 || e.type === 'boss' || (T.zombie && ctxE.n < 4))
+        ) {
           e.engage = true;
           ctxE.n++;
         }
@@ -252,7 +272,12 @@ export function updEnemy(e, dt, ctxE) {
         const f = (P.x - e.x) * e.face;
         if (f > -14 && f < T.reach + 20 && Math.abs(dy) < 24 && P.z < (T.knock ? 120 : 70)) {
           e.hitDone = true;
-          hitPlayer(T.dmg, e.face, T.knock);
+          if (T.style !== 'grab') hitPlayer(T.dmg, e.face, T.knock);
+          else if (grabPlayer(e)) {
+            e.state = 'grab';
+            e.t = 0;
+            break;
+          }
         }
         if (T.style === 'smash' && e.t > 0.06) {
           e.hitDone = true;
@@ -262,6 +287,40 @@ export function updEnemy(e, dt, ctxE) {
         }
       }
       if (e.t > T.act) {
+        e.state = 'recover';
+        e.t = 0;
+      }
+      break;
+    case 'grab':
+      // holds on while the player is stuck; lets go when the player breaks free or gets hit
+      e.face = dx >= 0 ? 1 : -1;
+      if (P.state !== 'grabbed' || P.grabber !== e) {
+        e.state = 'recover';
+        e.t = 0;
+      }
+      break;
+    case 'hwind':
+      e.face = dx >= 0 ? 1 : -1;
+      if (e.t > 0.55) {
+        const f = ZOMBIE.headFlight,
+          x0 = e.x + e.face * 20,
+          z0 = 160 * T.scale,
+          dist = clamp((P.x - x0) * e.face, 120, 420);
+        e.headless = true;
+        SFX.swing();
+        G.projs.push({
+          k: 'zhead',
+          x: x0,
+          y: e.y,
+          z: z0,
+          vx: (e.face * dist) / f,
+          vy: clamp(P.y - e.y, -100, 100) / f,
+          vz: (ACID.g * f) / 2 - z0 / f,
+          rot: 0,
+          col: T.col,
+          eye: T.eye,
+          life: 3,
+        });
         e.state = 'recover';
         e.t = 0;
       }
@@ -489,7 +548,8 @@ export function updEnemy(e, dt, ctxE) {
     case 'summon':
       if (e.t > 0.6 && !e.hitDone) {
         e.hitDone = true;
-        const a = e.next > 0.3 ? ['grunt', 'monkey'] : ['monkey', 'necro', 'grunt'];
+        const a =
+          e.next > 0.3 ? ['zombie', 'zombie', 'monkey'] : ['zombie', 'necro', 'zombie', 'grunt'];
         for (const t of a) spawn(t, 0);
         G.flash = 0.15;
       }

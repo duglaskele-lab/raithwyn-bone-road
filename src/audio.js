@@ -125,6 +125,10 @@ export const SFX = {
     tone('triangle', 520, 1040, 0.16, 0.16);
     tone('triangle', 780, 1560, 0.2, 0.12, 0.07);
   },
+  grab() {
+    tone('sawtooth', 110, 70, 0.3, 0.16, 0, 600);
+    noise(0.25, 0.18, 300, 120, 1);
+  },
   acid() {
     tone('sine', 520, 180, 0.22, 0.16);
     noise(0.3, 0.2, 1200, 300, 2);
@@ -149,11 +153,24 @@ export function music() {
     76, 0, 72, 0,
   ];
   const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  const tense = [38, 38, 39, 38, 38, 38, 39, 41, 38, 38, 39, 38, 36, 37, 38, 39];
   setInterval(() => {
     if (!AC) return;
     if (next < AC.currentTime) next = AC.currentTime + 0.05;
     while (next < AC.currentTime + 0.25) {
-      if (!G.muted && (G.state === 'play' || G.state === 'title')) {
+      if (!G.muted && G.state === 'select') {
+        // character select: a tense loop — a pulsing low ostinato that leans on a minor
+        // second, a heartbeat kick, ticking hats and a slow dissonant swell
+        const d = next - AC.currentTime,
+          f = hz(tense[n % 16]);
+        tone('square', f, f, st * 0.9, 0.07, d, 380);
+        if (n % 8 === 0 || n % 8 === 3) tone('sine', 120, 38, 0.18, n % 8 ? 0.28 : 0.42, d);
+        noise(0.025, n % 4 === 2 ? 0.07 : 0.035, 8000, 6500, 2, d, 'highpass');
+        if (n % 32 === 0)
+          for (const m of [62, 63, 69])
+            tone('sawtooth', hz(m), hz(m) * 1.01, st * 30, 0.018, d, 900);
+        if (n % 64 === 48) noise(st * 14, 0.06, 300, 3200, 1.2, d);
+      } else if (!G.muted && (G.state === 'play' || G.state === 'title')) {
         const d = next - AC.currentTime,
           soft = G.state === 'title' ? 0.5 : 1;
         if (n % 2 === 0) {

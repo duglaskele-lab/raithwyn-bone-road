@@ -305,6 +305,10 @@ export function drawProj(q) {
     sprite('fx', 0, x, y, f, sc);
     return;
   }
+  if (q.k === 'zhead') {
+    drawDebris({ k: 'skull', x: q.x, gy: q.y, z: q.z, rot: q.rot, len: 12, col: q.col, life: 1 });
+    return;
+  }
   if (q.k === 'acid') {
     const r = 11 + Math.sin(G.time * 30) * 1.5;
     ctx.save();
@@ -682,34 +686,26 @@ export function overlay(a) {
 }
 export const PAUSE_BTN = [372, 12, 36, 36];
 const RANK_COL = ['#8fa5b8', '#7dffb0', '#5cc8ff', '#ff6ad5', '#ffd23f'];
-// Style rank under the score: the letter, the meter towards the next rank and the bonus.
+// Style rank on the left under the lives: the letter, the meter to the next rank, the bonus.
 function drawStyle() {
   const r = styleRank();
-  if (r === 0 && P.sty <= 0) return;
-  const x = W - 24,
-    y = 132,
-    col = r ? RANK_COL[r - 1] : '#6d7f8c',
+  if (r === 0) return; // nothing shows until the first rank, D
+  const x = 20,
+    y = 160,
+    col = RANK_COL[r - 1],
     pop = 1 + Math.max(0, P.styPop);
-  txt(t('style'), W - 190, y - 30, 12, '#9bb0ac', 'left', 3);
+  txt(t('style'), x, y - 42, 12, '#9bb0ac', 'left', 3);
   ctx.save();
-  ctx.translate(x - 26, y);
+  ctx.translate(x + 22, y);
   ctx.scale(pop, pop);
   if (r === RANKS.length) {
     ctx.shadowColor = col;
     ctx.shadowBlur = 16 + 6 * Math.sin(G.time * 10);
   }
-  txt(r ? RANKS[r - 1] : '-', 0, 0, 46, col, 'center', 7);
+  txt(RANKS[r - 1], 0, 0, 46, col, 'center', 7);
   ctx.restore();
   const into = r === RANKS.length ? 1 : (P.sty % STYLE_STEP) / STYLE_STEP;
-  bar(W - 190, y - 22, 116, 8, into, 0, col, 3);
-  if (r)
-    txt(
-      t('styleBonus', Math.round((scoreMult() - 1) * 100), Math.round((dmgMult() - 1) * 100)),
-      W - 74,
-      y + 2,
-      11,
-      '#ece5cb',
-      'right',
-      3,
-    );
+  bar(x + 56, y - 26, 120, 8, into, 0, col, 3);
+  const bonus = [Math.round((scoreMult() - 1) * 100), Math.round((dmgMult() - 1) * 100)];
+  txt(t('styleBonus', ...bonus), x + 56, y - 2, 11, '#ece5cb', 'left', 3);
 }
