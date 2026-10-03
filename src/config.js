@@ -29,8 +29,8 @@ export const ACID = {
   g: 900, // gravity on the ball
   hit: 9, // damage of a direct hit
   pool: 4.5, // seconds the puddle lasts
-  rx: 52, // puddle half-width
-  ry: 17, // puddle half-depth
+  rx: 68, // puddle half-width
+  ry: 22, // puddle half-depth
   tick: 0.5, // seconds between puddle bites
   dmg: 3, // damage per bite
 };
@@ -43,11 +43,27 @@ export const ZOMBIE = {
   headDmg: 6,
   headFlight: 0.8,
 };
+// The Grave Baron. Below half health he enters a second phase and gains an acid breath:
+// a 0.7 s wind-up, then a wide cone of acid in front of him for `time` seconds.
+export const BOSS = {
+  phase2: 0.5,
+  roar: 1, // seconds of the phase change roar
+  breathWind: 0.7,
+  breathTime: 1.1,
+  breathLen: 250, // reach of the cone, about a quarter of the screen
+  breathW0: 22, // half-depth of the cone at the mouth
+  breathSpread: 0.38, // how much the cone widens per pixel of reach
+  breathTick: 0.25,
+  breathDmg: 5,
+  breathCd: [3.5, 5.5],
+};
 // Breakable scenery along the road: hits needed, colour of the pieces, score.
 export const DECOR = {
   bench: { w: 34, hp: 1, col: '#7a5638', score: 20 },
   grave: { w: 20, hp: 2, col: '#7f8c8e', score: 30 },
   cross: { w: 14, hp: 1, col: '#8b8f84', score: 20 },
+  // a big grave: four hits; a zombie or a skeleton may climb out of it
+  tomb: { w: 40, hp: 4, col: '#6f7c80', score: 50, big: 1 },
 };
 
 // Enemy archetypes. Every numeric field is tuned by hand; see README for what each one means.
@@ -196,16 +212,16 @@ export const TYPES = {
     score: 60,
   },
   boss: {
-    hp: 400,
+    hp: 520,
     scale: 1.55,
-    speed: 66,
-    dmg: 20,
+    speed: 74,
+    dmg: 24,
     reach: 128,
     style: 'slash',
     wind: 0.5,
     act: 0.16,
-    rec: 0.55,
-    cd: [0.7, 1.4],
+    rec: 0.5,
+    cd: [0.55, 1.1],
     knock: 1,
     sword: 1,
     crown: 1,
@@ -308,7 +324,21 @@ export const WAVES = [
       ['zombie', 0, 7.5],
     ],
   },
-  { x: 5550, boss: 1, sp: [['boss', 0, 1.2]] },
+  {
+    x: 5550,
+    boss: 1,
+    // seven zombies climb out of the ground as the fight begins
+    sp: [
+      ['boss', 0, 1.2],
+      ['zombie', 0, 0.2],
+      ['zombie', 0, 0.4],
+      ['zombie', 0, 0.6],
+      ['zombie', 0, 0.8],
+      ['zombie', 0, 1],
+      ['zombie', 0, 1.4],
+      ['zombie', 0, 1.6],
+    ],
+  },
 ];
 
 // Player animation timelines: seconds per frame of each attack.

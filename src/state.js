@@ -94,9 +94,21 @@ export function reset() {
     [5150, 'hp'],
     [5320, 'hp'],
   ].map(([x, d]) => ({ isProp: 1, x, y: GT + 10, z: 0, w: 16, drop: d }));
+  const rand = mulberry(1977);
+  // big graves, one between most fights; something may climb out when they break
+  for (const x of [880, 1640, 2420, 3140, 3900, 4620])
+    G.props.push({
+      isProp: 1,
+      decor: 'tomb',
+      x,
+      y: GT + 30 + rand() * (GB - GT - 50),
+      z: 0,
+      w: DECOR.tomb.w,
+      hp: DECOR.tomb.hp,
+      drop: null,
+    });
   // scenery: benches along the back wall, graves and crosses anywhere on the road
-  const rand = mulberry(1977),
-    kinds = ['bench', 'grave', 'grave', 'cross'];
+  const kinds = ['bench', 'grave', 'grave', 'cross'];
   for (let x = 420; x < CRYPT_X - 260; x += 170 + rand() * 170) {
     const kind = kinds[Math.floor(rand() * kinds.length)],
       y = kind === 'bench' ? GT + 6 + rand() * 18 : GT + 6 + rand() * (GB - GT - 8),

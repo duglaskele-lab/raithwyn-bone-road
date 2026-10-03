@@ -112,6 +112,23 @@ export function skelPose(e) {
       o.lB = [0.7, -0.7];
       o.hipH = 46;
     }
+  } else if (st === 'roar') {
+    o.head = -0.5;
+    o.lean = -0.25;
+    o.aF = [2.4 + 0.1 * Math.sin(e.t * 30), 2.8];
+    o.aB = [2.2, 2.6];
+    o.jaw = 8;
+  } else if (st === 'bwind') {
+    const p = ease(Math.min(1, e.t / 0.6));
+    o.head = -0.45 * p;
+    o.lean = -0.2 * p;
+    o.aB = mix([0.02, 0.95], [1.2, 2.2], p);
+    o.jaw = 3 + 5 * p;
+  } else if (st === 'breath') {
+    o.head = 0.25 + 0.05 * Math.sin(e.t * 40);
+    o.lean = 0.35;
+    o.aB = [1.2, 2.2];
+    o.jaw = 9;
   } else if (st === 'grab') {
     o.aF = [1.55, 1.6];
     o.aB = [1.45, 1.55];

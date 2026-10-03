@@ -204,9 +204,16 @@ export function update(dt) {
           s: rnd(2, 4),
           col: '#9dff4a',
         });
-      if (Math.abs(P.x - q.x) < 26 && Math.abs(P.y - q.y) < 20 && q.z < 130 && P.z < 110) {
+      // a hit splashes the player, but the ball keeps falling and still leaves its puddle
+      if (
+        !q.hitP &&
+        Math.abs(P.x - q.x) < 26 &&
+        Math.abs(P.y - q.y) < 20 &&
+        q.z < 130 &&
+        P.z < 110
+      ) {
         if (hitPlayer(ACID.hit, Math.sign(q.vx), false)) {
-          q.life = 0;
+          q.hitP = true;
           SFX.splash();
           for (let i = 0; i < 10; i++)
             G.parts.push({

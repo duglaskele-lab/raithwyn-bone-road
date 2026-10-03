@@ -1,10 +1,10 @@
 // Enemy spawning and AI state machines for every skeleton type.
-import { ACID, CHAIN, GB, GT, RW, SLAM_R, SWIND, TAU, TYPES, W, ZOMBIE } from './config.js';
+import { ACID, BOSS, CHAIN, GB, GT, RW, SLAM_R, SWIND, TAU, TYPES, W, ZOMBIE } from './config.js';
 import { clamp, rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
 import { dust } from './fx.js';
-import { grabPlayer, hitPlayer } from './combat.js';
+import { acidBite, grabPlayer, hitPlayer } from './combat.js';
 
 export function spawn(type, side, x, y) {
   const T = TYPES[type];
@@ -75,6 +75,16 @@ export function spawn(type, side, x, y) {
   G.enemies.push(e);
   return e;
 }
+/** Is the player inside the baron's acid breath cone? */
+export function inBreath(e) {
+  const f = (P.x - e.x) * e.face - 20;
+  return (
+    f > -10 &&
+    f < BOSS.breathLen &&
+    Math.abs(P.y - e.y) < BOSS.breathW0 + Math.max(0, f) * BOSS.breathSpread &&
+    P.z < 90
+  );
+}
 export function updEnemy(e, dt, ctxE) {
   const T = e.T;
   e.t += dt;
@@ -83,6 +93,7 @@ export function updEnemy(e, dt, ctxE) {
   e.cd -= dt;
   e.slamCd -= dt;
   e.chCd -= dt;
+  e.brCd = (e.brCd ?? 0) - dt;
   e.armor -= dt;
   e.moving = false;
   const dx = P.x - e.x,
@@ -127,9 +138,27 @@ export function updEnemy(e, dt, ctxE) {
       e.face = dx >= 0 ? 1 : -1;
       const side = e.x >= P.x ? 1 : -1;
       if (e.type === 'boss') {
+        if (!e.phase2 && e.hp < T.hp * BOSS.phase2) {
+          // second phase: a roar, then the acid breath joins his moves
+          e.phase2 = true;
+          e.state = 'roar';
+          e.t = 0;
+          e.brCd = 1.5;
+          G.banner = { a: '@boss', b: 'phase2', t: 0 };
+          G.shake = 12;
+          G.flash = 0.25;
+          SFX.boss();
+          break;
+        }
         if (e.hp < T.hp * e.next) {
           e.next -= 0.33;
           e.state = 'summon';
+          e.t = 0;
+          SFX.boss();
+          break;
+        }
+        if (e.phase2 && e.brCd <= 0 && adx < BOSS.breathLen + 30 && Math.abs(dy) < 90 && !pdown) {
+          e.state = 'bwind';
           e.t = 0;
           SFX.boss();
           break;
@@ -545,6 +574,63 @@ export function updEnemy(e, dt, ctxE) {
         e.cd = rnd(1.2, 2);
       }
       break;
+    case 'roar':
+      if (Math.random() < 0.4) dust(e.x + rnd(-60, 60), e.y, 1);
+      if (e.t > BOSS.roar) {
+        e.state = 'chase';
+        e.t = 0;
+      }
+      break;
+    case 'bwind':
+      // 0.7 s to get out of the way: the cone is marked on the ground
+      if (e.t < 0.2) e.face = dx >= 0 ? 1 : -1;
+      if (e.t > BOSS.breathWind) {
+        e.state = 'breath';
+        e.t = 0;
+        e.tick = 0;
+        SFX.breath();
+      }
+      break;
+    case 'breath': {
+      const s = T.scale,
+        mx = e.x + e.face * 22 * s,
+        my = e.y - 128 * s;
+      for (let i = 0; i < 3; i++) {
+        const life = rnd(0.4, 0.6),
+          reach = BOSS.breathLen * rnd(0.5, 1),
+          side = rnd(-1, 1) * (BOSS.breathW0 + reach * BOSS.breathSpread);
+        G.parts.push({
+          k: i ? 'glow' : 'dust',
+          x: mx,
+          y: my,
+          vx: (e.face * reach) / life,
+          vy: (e.y + side - my) / life,
+          g: 0,
+          t: 0,
+          life,
+          s: rnd(5, 11),
+          col: i % 2 ? '#9dff4a' : '#4fd12a',
+        });
+      }
+      if ((e.tick -= dt) <= 0) {
+        e.tick = BOSS.breathTick;
+        if (inBreath(e)) acidBite(BOSS.breathDmg);
+      }
+      if (e.t > BOSS.breathTime) {
+        for (const f of [0.45, 0.85])
+          G.pools.push({
+            x: e.x + e.face * BOSS.breathLen * f,
+            y: clamp(e.y + rnd(-20, 20), GT, GB),
+            t: 0,
+            life: ACID.pool,
+            seed: rnd(6),
+          });
+        e.state = 'recover';
+        e.t = -0.2;
+        e.brCd = rnd(BOSS.breathCd[0], BOSS.breathCd[1]);
+      }
+      break;
+    }
     case 'summon':
       if (e.t > 0.6 && !e.hitDone) {
         e.hitDone = true;

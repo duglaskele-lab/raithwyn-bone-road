@@ -1,6 +1,7 @@
 // Draws the world, the HUD and the title screen.
 import {
   ACID,
+  BOSS,
   DECOR,
   H,
   MAXR,
@@ -149,7 +150,54 @@ export function drawDecor(u) {
     ctx.fill();
     ctx.stroke();
   };
-  if (u.decor === 'bench') {
+  if (u.decor === 'tomb') {
+    // a big gravestone on a plinth, with a skull carved in; cracks grow with every hit
+    ctx.beginPath();
+    ctx.rect(-40, -16, 80, 16);
+    fill('#566266');
+    ctx.beginPath();
+    ctx.moveTo(-30, -16);
+    ctx.lineTo(-30, -78);
+    ctx.quadraticCurveTo(-30, -112, 0, -114);
+    ctx.quadraticCurveTo(30, -112, 30, -78);
+    ctx.lineTo(30, -16);
+    ctx.closePath();
+    fill(D.col);
+    ctx.strokeStyle = 'rgba(23,21,29,.6)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, -78, 11, 0, TAU);
+    ctx.moveTo(-5, -80);
+    ctx.arc(-5, -80, 3, 0, TAU);
+    ctx.moveTo(8, -80);
+    ctx.arc(5, -80, 3, 0, TAU);
+    ctx.moveTo(-6, -62);
+    ctx.lineTo(6, -62);
+    ctx.moveTo(-18, -44);
+    ctx.lineTo(18, -44);
+    ctx.moveTo(-14, -36);
+    ctx.lineTo(14, -36);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(96,140,92,.55)';
+    ctx.beginPath();
+    ctx.ellipse(-20, -14, 16, 5, 0, 0, TAU);
+    ctx.ellipse(24, -2, 12, 4, 0, 0, TAU);
+    ctx.fill();
+    const cracks = [
+      [12, -112, 4, -96, 14, -84],
+      [-24, -70, -12, -60, -20, -46],
+      [24, -60, 14, -48, 22, -30],
+    ];
+    ctx.strokeStyle = OL;
+    ctx.lineWidth = 2;
+    for (const c of cracks.slice(0, D.hp - u.hp)) {
+      ctx.beginPath();
+      ctx.moveTo(c[0], c[1]);
+      ctx.lineTo(c[2], c[3]);
+      ctx.lineTo(c[4], c[5]);
+      ctx.stroke();
+    }
+  } else if (u.decor === 'bench') {
     for (const lx of [-26, 22]) {
       ctx.beginPath();
       ctx.rect(lx, -22, 5, 22);
@@ -507,6 +555,29 @@ export function drawWorld() {
       ctx.stroke();
     }
   for (const a of G.pools) drawPool(a);
+  // the baron's acid breath: marked on the ground while he winds up, green while it lasts
+  for (const e of G.enemies)
+    if (e.state === 'bwind' || e.state === 'breath') {
+      const x = e.x - G.cam + e.face * 20,
+        L = BOSS.breathLen,
+        w0 = BOSS.breathW0,
+        w1 = w0 + L * BOSS.breathSpread,
+        wind = e.state === 'bwind',
+        u = wind ? Math.min(1, e.t / BOSS.breathWind) : 1;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(x, e.y - w0);
+      ctx.lineTo(x + e.face * L, e.y - w1);
+      ctx.lineTo(x + e.face * L, e.y + w1);
+      ctx.lineTo(x, e.y + w0);
+      ctx.closePath();
+      ctx.fillStyle = wind ? `rgba(255,70,60,${0.08 + 0.16 * u})` : 'rgba(110,230,60,.28)';
+      ctx.fill();
+      ctx.lineWidth = wind ? 2 + 2 * u : 3;
+      ctx.strokeStyle = wind ? 'rgba(255,120,100,.9)' : 'rgba(170,255,110,.8)';
+      ctx.stroke();
+      ctx.restore();
+    }
   // shadows
   for (const u of G.props) shadow(u.x, u.y, 0, u.decor ? DECOR[u.decor].w * 1.2 : 22);
   for (const e of G.enemies)
