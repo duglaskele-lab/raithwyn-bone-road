@@ -75,7 +75,8 @@ export function reset() {
   G.wave = null;
   G.goT = 0;
   G.enemies = [];
-  G.items = [];
+  // a couple of hearts lying on the road before the dragon's lair
+  G.items = [6880, 6960].map((x) => ({ kind: 'hp', x, y: GT + 90, z: 0, vz: 0, t: 1 }));
   G.projs = [];
   G.pools = [];
   G.parts = [];

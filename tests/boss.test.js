@@ -23,9 +23,10 @@ const run = (e, seconds) => {
 
 test('the boss fight opens with seven zombies climbing out of the ground', () => {
   P.inv = 99;
-  G.waveI = WAVES.length - 1;
-  G.cam = WAVES.at(-1).x;
-  G.wave = { sp: WAVES.at(-1).sp.map((s) => s.slice()), t: 0 };
+  const baron = WAVES.find((w) => w.sp[0][0] === 'boss');
+  G.waveI = WAVES.indexOf(baron);
+  G.cam = baron.x;
+  G.wave = { sp: baron.sp.map((s) => s.slice()), t: 0 };
   step(2);
   const zombies = G.enemies.filter((e) => e.type === 'zombie');
   assert.equal(zombies.length, 7);

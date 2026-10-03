@@ -6,6 +6,7 @@ import { SFX } from './audio.js';
 import { floatTxt, motes, shatter, spark } from './fx.js';
 import { t } from './i18n.js';
 import { spawn } from './enemies.js';
+import { DRAGON, dragonZone, headPoint } from './dragon.js';
 import { dmgMult, scoreMult, styleBreak, styleGain } from './style.js';
 
 export function hadoLevel(rage) {
@@ -30,7 +31,8 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
     e.dead ||
     e.state === 'down' ||
     (e.state === 'getup' && e.t < 0.25) ||
-    (e.state === 'rise' && e.t < 0.45)
+    (e.state === 'rise' && e.t < 0.45) ||
+    (e.T.dragon && e.state === 'intro')
   )
     return false;
   if (e.state === 'ride' && e.t < RW) return false;
@@ -48,6 +50,11 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
   );
   knock ? SFX.heavy() : SFX.punch();
   SFX.clack();
+  if (e.T.dragon) {
+    // nothing the player does interrupts the dragon
+    if (e.hp <= 0) killEnemy(e, dir);
+    return true;
+  }
   if (e.mounted) {
     // knocked off the bike
     e.mounted = false;
@@ -140,7 +147,7 @@ export function killEnemy(e, dir) {
   e.dead = true;
   P.score += Math.round(e.T.score * scoreMult());
   shatter(e, dir);
-  if (e.type === 'boss') {
+  if (e.T.bigBoss) {
     G.slow = 1.4;
     G.shake = 16;
     G.flash = 0.6;
@@ -231,6 +238,22 @@ export function breakProp(e) {
       life: 2.2,
     });
   if (e.drop) G.items.push({ kind: e.drop, x: e.x, y: e.y + 4, z: 30, vz: 260, t: 0 });
+  if (D && D.big)
+    // a big grave bursts into heavy slabs of stone
+    for (let i = 0; i < 9; i++)
+      G.debris.push({
+        k: 'shard',
+        x: e.x + rnd(-24, 24),
+        gy: e.y + rnd(-6, 8),
+        z: rnd(20, 90),
+        vx: rnd(-220, 220),
+        vz: rnd(220, 420),
+        rot: rnd(TAU),
+        vr: rnd(-8, 8),
+        len: rnd(18, 30),
+        col: i % 3 ? D.col : '#566266',
+        life: 3,
+      });
   if (D && D.big) {
     // a big grave: a zombie (25%) or a skeleton (25%) may climb out, or nothing (50%)
     const r = Math.random();
@@ -243,15 +266,27 @@ export function strike(o) {
     src = o.src || 'punch';
   for (const e of G.enemies.concat(G.props)) {
     if (p.hit.has(e) || e.dead) continue;
-    const dx = (e.x - p.x) * p.face;
-    if (dx > o.x0 - e.w && dx < o.x1 + e.w && Math.abs(e.y - p.y) < o.dy && e.z < 140) {
+    const dx = (e.x - p.x) * p.face,
+      zone = e.T?.dragon
+        ? dragonZone(e, p.x + p.face * o.x0, p.x + p.face * o.x1, p.y, o.dy)
+        : dx > o.x0 - e.w && dx < o.x1 + e.w && Math.abs(e.y - p.y) < o.dy && e.z < 140
+          ? 'body'
+          : null;
+    if (zone) {
       p.hit.add(e);
-      if (hurtEnemy(e, o.dmg * dmgMult(), p.face, o.knock, src) && !e.isProp) {
+      if (hurtEnemy(e, o.dmg * dmgMult() * headBonus(e, zone), p.face, o.knock, src) && !e.isProp) {
         addRage(o.rage);
         styleGain(10);
       }
     }
   }
+}
+/** A hit on the dragon's lowered head: 1.5x damage and a spark where it landed. */
+export function headBonus(e, zone) {
+  if (zone !== 'head') return 1;
+  const [x, y] = headPoint(e);
+  spark(x, y, '#c6ff7a', true);
+  return DRAGON.headMult;
 }
 export function hitPlayer(dmg, dir, knock) {
   const p = P;

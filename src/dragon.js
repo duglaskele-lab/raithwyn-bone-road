@@ -1,0 +1,786 @@
+// The Bone Dragon, the lich that waits at the end of the road: AI, hit zones and drawing.
+// It is slow, about a quarter of the screen in size, and nothing the player does stops its
+// attacks. It picks an attack that can actually reach the player, never the same one twice
+// in a row when it has a choice:
+//   bite   - lowers its head to bite; the lowered head takes 1.5x damage for a while
+//   claw   - a swipe of the front paw
+//   laser  - a wide white beam from its bone heart along the whole arena; step up or down
+//   leap   - phase two only: jumps onto the player and hits everything where it lands
+import { GB, GT, TAU, W } from './config.js';
+import { clamp, ease, lerp, rnd } from './util.js';
+import { G, P } from './state.js';
+import { SFX } from './audio.js';
+import { dust } from './fx.js';
+import { hitPlayer } from './combat.js';
+import { ctx } from './gfx.js';
+
+export const DRAGON = {
+  headMult: 1.5, // damage multiplier on the lowered head
+  phase2: 0.5,
+  roar: 1.2,
+  body: 120, // half-width of the body hit box
+  bite: { wind: 0.6, strike: 0.22, down: 1.3, up: 0.5, dmg: 18, min: 110, max: 320, dy: 50 },
+  claw: { wind: 0.5, swipe: 0.2, rec: 0.55, dmg: 14, min: 20, max: 240, dy: 60 },
+  laser: { wind: 1.0, fire: 1.1, rec: 0.5, dmg: 22, band: 40, dy: 110, cd: 5 },
+  leap: { crouch: 0.6, air: 0.9, rec: 0.8, dmg: 20, rx: 190, ry: 70, h: 230, cd: 4 },
+  cd: [0.5, 1.1],
+  cd2: [0.25, 0.7],
+};
+const OL = '#17151d';
+
+// ---- geometry shared by the AI and the drawing (local space: facing +x, ground at y = 0) ----
+const HEAD_REST = [165, -215];
+/** Where the head is (local x, local y) and how wide the jaw is open. */
+export function dragonHead(e) {
+  const C = DRAGON.bite,
+    br = Math.sin(e.anim * 2) * 4;
+  let [x, y] = HEAD_REST,
+    jaw = 0.1 + 0.05 * Math.sin(e.anim * 3);
+  y += br;
+  if (e.state === 'bite') {
+    const t = e.t,
+      reach = e.biteX || 220;
+    if (t < C.wind) {
+      const p = ease(t / C.wind);
+      x = lerp(x, 120, p);
+      y = lerp(y, -255, p);
+      jaw = 0.1 + 0.5 * p;
+    } else if (t < C.wind + C.strike) {
+      const p = ease((t - C.wind) / C.strike);
+      x = lerp(120, reach, p);
+      y = lerp(-255, -28, p);
+      jaw = 0.6 - 0.55 * p;
+    } else if (t < C.wind + C.strike + C.down) {
+      x = reach;
+      y = -28 + Math.sin(e.t * 6) * 2;
+      jaw = 0.05 + 0.08 * Math.abs(Math.sin(e.t * 5));
+    } else {
+      const p = ease(Math.min(1, (t - C.wind - C.strike - C.down) / C.up));
+      x = lerp(reach, HEAD_REST[0], p);
+      y = lerp(-28, HEAD_REST[1], p);
+    }
+  } else if (e.state === 'roar' || (e.state === 'intro' && e.z <= 0)) {
+    x = 150;
+    y = -245;
+    jaw = 0.75;
+  } else if (e.state === 'laser') {
+    y = -235;
+    x = 150;
+    jaw = 0.35;
+  }
+  return { x, y, jaw };
+}
+const isHeadDown = (e) => {
+  const C = DRAGON.bite;
+  return e.state === 'bite' && e.t > C.wind + C.strike * 0.6 && e.t < C.wind + C.strike + C.down;
+};
+/**
+ * Which part of the dragon a hit covering world x0..x1 at depth y lands on:
+ * 'head' (the lowered head, 1.5x damage), 'body' or null.
+ */
+export function dragonZone(e, x0, x1, y, dy = 30) {
+  const lo = Math.min(x0, x1),
+    hi = Math.max(x0, x1);
+  if (isHeadDown(e)) {
+    const hx = e.x + e.face * dragonHead(e).x;
+    if (hi > hx - 55 && lo < hx + 55 && Math.abs(y - e.y) < dy + 30) return 'head';
+  }
+  if (e.z > 120) return null;
+  if (hi > e.x - DRAGON.body && lo < e.x + DRAGON.body && Math.abs(y - e.y) < dy + 40)
+    return 'body';
+  return null;
+}
+/** World position (x, screen y) of the head, for sparks. */
+export function headPoint(e) {
+  const h = dragonHead(e);
+  return [e.x + e.face * h.x, e.y - e.z + h.y];
+}
+
+// ---- AI ----
+const pdown = () => ['ko', 'down', 'getup', 'dead', 'win'].includes(P.state);
+function choose(e) {
+  const f = (P.x - e.x) * e.face,
+    ady = Math.abs(P.y - e.y),
+    C = DRAGON,
+    can = [];
+  if (f >= C.claw.min && f <= C.claw.max && ady < C.claw.dy) can.push('claw');
+  if (f >= C.bite.min && f <= C.bite.max && ady < C.bite.dy) can.push('bite');
+  if (f > 90 && ady < C.laser.dy && e.laserCd <= 0) can.push('laser');
+  if (e.phase2 && e.leapCd <= 0 && (f > 260 || f < -40 || ady > 70)) can.push('leap');
+  const fresh = can.filter((a) => a !== e.last);
+  const pick = (fresh.length ? fresh : can)[
+    Math.floor(Math.random() * (fresh.length || can.length))
+  ];
+  return pick || null;
+}
+function start(e, a) {
+  e.state = a;
+  e.t = 0;
+  e.hitDone = false;
+  e.last = a;
+  if (a === 'bite') e.biteX = clamp((P.x - e.x) * e.face, 160, 290);
+  if (a === 'laser') {
+    e.laserY = e.y;
+    e.laserCd = DRAGON.laser.cd;
+    SFX.charge();
+  }
+  if (a === 'leap') e.leapCd = DRAGON.leap.cd;
+  if (a === 'claw' || a === 'bite') SFX.boss();
+}
+function finish(e) {
+  e.state = 'walk';
+  e.t = 0;
+  const [a, b] = e.phase2 ? DRAGON.cd2 : DRAGON.cd;
+  e.cd = rnd(a, b);
+}
+export function updDragon(e, dt) {
+  const C = DRAGON;
+  e.t += dt;
+  e.anim += dt;
+  e.flash -= dt;
+  e.cd -= dt;
+  e.laserCd -= dt;
+  e.leapCd -= dt;
+  e.moving = false;
+  const f = (P.x - e.x) * e.face;
+  // acid dripping from the jaws
+  if (Math.random() < dt * 9) {
+    const [hx, hy] = headPoint(e);
+    G.parts.push({
+      k: 'dot',
+      x: hx + e.face * rnd(30, 52),
+      y: hy + 14,
+      vx: rnd(-10, 10),
+      vy: rnd(10, 40),
+      g: 600,
+      t: 0,
+      life: rnd(0.35, 0.6),
+      s: rnd(2.5, 4.5),
+      col: Math.random() < 0.5 ? '#9dff4a' : '#5fd12a',
+    });
+  }
+  switch (e.state) {
+    case 'intro':
+      // drops in from above the crypt, lands with a quake, then roars
+      e.z = Math.max(0, 420 * (1 - e.t / 1.2));
+      if (e.z <= 0 && !e.hitDone) {
+        e.hitDone = true;
+        G.shake = 18;
+        SFX.heavy();
+        SFX.thud();
+        dust(e.x, e.y, 16);
+        G.parts.push({ k: 'gring', x: e.x, y: e.y, t: 0, life: 0.5, s: 260, col: '#e6dfc8' });
+      }
+      if (e.t > 2.2) finish(e);
+      break;
+    case 'roar':
+      if (Math.random() < 0.5) dust(e.x + rnd(-120, 120), e.y, 1);
+      G.shake = Math.max(G.shake, 4);
+      if (e.t > C.roar) finish(e);
+      break;
+    case 'walk': {
+      if (!e.phase2 && e.hp < e.T.hp * C.phase2) {
+        e.phase2 = true;
+        e.state = 'roar';
+        e.t = 0;
+        e.leapCd = 1.5;
+        G.banner = { a: '@dragon', b: 'dragonPhase2', t: 0 };
+        G.flash = 0.3;
+        SFX.boss();
+        break;
+      }
+      // turn around when the player stays behind
+      if (f < -40) e.behind = (e.behind || 0) + dt;
+      else e.behind = 0;
+      if (e.behind > 0.7 && !(e.phase2 && e.leapCd <= 0)) {
+        e.face = -e.face;
+        e.behind = 0;
+        e.cd = Math.max(e.cd, 0.35);
+        break;
+      }
+      if (e.cd <= 0 && !pdown() && G.state === 'play') {
+        const a = choose(e);
+        if (a) {
+          start(e, a);
+          break;
+        }
+      }
+      // close in slowly: keep the player a claw's length in front
+      const tx = P.x - e.face * 170,
+        ty = P.y,
+        ax = tx - e.x,
+        ay = ty - e.y;
+      if (Math.abs(ax) > 8 || Math.abs(ay) > 6) {
+        e.x += Math.sign(ax) * Math.min(Math.abs(ax), e.T.speed * dt);
+        e.y += Math.sign(ay) * Math.min(Math.abs(ay), e.T.speed * 0.6 * dt);
+        e.moving = true;
+        e.walkT += dt * 3.2;
+      }
+      break;
+    }
+    case 'bite': {
+      const B = C.bite;
+      if (!e.hitDone && e.t > B.wind && e.t < B.wind + B.strike + 0.05) {
+        const hx = e.x + e.face * dragonHead(e).x;
+        if (Math.abs(P.x - hx) < 60 && Math.abs(P.y - e.y) < 45 && P.z < 60) {
+          e.hitDone = true;
+          hitPlayer(B.dmg, e.face, true);
+        }
+      }
+      if (!e.thud && e.t > B.wind + B.strike) {
+        e.thud = true;
+        G.shake = Math.max(G.shake, 7);
+        SFX.thud();
+        dust(e.x + e.face * e.biteX, e.y, 6);
+      }
+      if (e.t > B.wind + B.strike + B.down + B.up) {
+        e.thud = false;
+        finish(e);
+      }
+      break;
+    }
+    case 'claw': {
+      const K = C.claw;
+      if (!e.hitDone && e.t > K.wind && e.t < K.wind + K.swipe) {
+        if (!e.swung) {
+          e.swung = true;
+          SFX.swing();
+        }
+        if (f > 20 && f < 260 && Math.abs(P.y - e.y) < K.dy && P.z < 110) {
+          e.hitDone = true;
+          hitPlayer(K.dmg, e.face, true);
+        }
+      }
+      if (e.t > K.wind + K.swipe + K.rec) {
+        e.swung = false;
+        finish(e);
+      }
+      break;
+    }
+    case 'laser': {
+      const L = C.laser;
+      if (e.t > L.wind && e.t < L.wind + L.fire) {
+        if (!e.fired) {
+          e.fired = true;
+          SFX.laser();
+        }
+        G.shake = Math.max(G.shake, 3);
+        if (!e.hitDone && f > 0 && Math.abs(P.y - e.laserY) < L.band && P.z < 160)
+          if (hitPlayer(L.dmg, e.face, true)) e.hitDone = true;
+      }
+      if (e.t > L.wind + L.fire + L.rec) {
+        e.fired = false;
+        finish(e);
+      }
+      break;
+    }
+    case 'leap': {
+      const J = C.leap;
+      if (e.t < J.crouch) {
+        e.z = 0;
+        break;
+      }
+      if (!e.air) {
+        e.air = true;
+        e.lx0 = e.x;
+        e.ly0 = e.y;
+        e.lx = clamp(P.x, G.cam + 160, G.cam + W - 160);
+        e.ly = clamp(P.y, GT + 20, GB - 10);
+        e.face = e.lx >= e.x ? 1 : -1;
+        SFX.jump();
+        SFX.boss();
+      }
+      const u = Math.min(1, (e.t - J.crouch) / J.air);
+      if (u < 1) {
+        e.x = lerp(e.lx0, e.lx, u);
+        e.y = lerp(e.ly0, e.ly, u);
+        e.z = 4 * J.h * u * (1 - u);
+        break;
+      }
+      e.z = 0;
+      if (!e.landed) {
+        e.landed = true;
+        G.shake = 18;
+        SFX.heavy();
+        SFX.thud();
+        dust(e.x, e.y, 18);
+        G.parts.push({
+          k: 'gring',
+          x: e.x,
+          y: e.y,
+          t: 0,
+          life: 0.5,
+          s: J.rx * 1.2,
+          col: '#ff8a6a',
+        });
+        const ex = (P.x - e.x) / J.rx,
+          ey = (P.y - e.y) / J.ry;
+        if (ex * ex + ey * ey < 1 && P.z < 40) hitPlayer(J.dmg, P.x >= e.x ? 1 : -1, true);
+      }
+      if (e.t > J.crouch + J.air + J.rec) {
+        e.air = e.landed = false;
+        finish(e);
+      }
+      break;
+    }
+  }
+  if (e.state !== 'leap') {
+    e.x = clamp(e.x, G.cam + 150, G.cam + W - 150);
+    e.y = clamp(e.y, GT + 20, GB - 10);
+  }
+}
+
+// ---- drawing ----
+function bone(pts, w, col) {
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  for (const [lw, c] of [
+    [w + 4, OL],
+    [w, col],
+  ]) {
+    ctx.strokeStyle = c;
+    ctx.lineWidth = lw;
+    ctx.beginPath();
+    pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])));
+    ctx.stroke();
+  }
+}
+function knob(x, y, r, col) {
+  ctx.fillStyle = OL;
+  ctx.beginPath();
+  ctx.arc(x, y, r + 2, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, TAU);
+  ctx.fill();
+}
+const qpt = (a, c, b, u) => [
+  (1 - u) * (1 - u) * a[0] + 2 * (1 - u) * u * c[0] + u * u * b[0],
+  (1 - u) * (1 - u) * a[1] + 2 * (1 - u) * u * c[1] + u * u * b[1],
+];
+function claws(x, y, col, dir = 1) {
+  for (let i = 0; i < 3; i++) {
+    const cx = x + dir * (i * 7 - 4);
+    ctx.fillStyle = OL;
+    ctx.beginPath();
+    ctx.moveTo(cx - 3, y - 6);
+    ctx.lineTo(cx + dir * 12, y + 1);
+    ctx.lineTo(cx + 3, y - 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(cx - 1.5, y - 5);
+    ctx.lineTo(cx + dir * 9, y);
+    ctx.lineTo(cx + 1.5, y - 2.5);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+function leg(hip, knee, foot, w, col) {
+  bone([hip, knee, foot], w, col);
+  knob(knee[0], knee[1], w * 0.55, col);
+  claws(foot[0] + 4, foot[1], col);
+}
+function wing(root, flap, col, mem, back) {
+  // a skeletal wing: an arm bone, three long fingers, a torn membrane between them
+  const a = flap,
+    elbow = [root[0] - 40, root[1] - 70 - a * 14],
+    hand = [root[0] - 70, root[1] - 120 - a * 22],
+    tips = [
+      [root[0] - 210, root[1] - 70 - a * 10],
+      [root[0] - 200, root[1] - 10 + a * 6],
+      [root[0] - 140, root[1] + 20 + a * 10],
+    ];
+  ctx.fillStyle = mem;
+  ctx.beginPath();
+  ctx.moveTo(root[0], root[1]);
+  ctx.lineTo(elbow[0], elbow[1]);
+  ctx.lineTo(hand[0], hand[1]);
+  tips.forEach((t, i) => {
+    ctx.lineTo(t[0], t[1]);
+    const n = tips[i + 1] || [root[0] - 30, root[1] + 10];
+    // ragged edge between fingers
+    ctx.lineTo((t[0] + n[0]) / 2 + 12, (t[1] + n[1]) / 2 - 6 + (i % 2 ? 10 : -4));
+  });
+  ctx.lineTo(root[0] - 30, root[1] + 10);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(23,21,29,.6)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  bone([root, elbow, hand], back ? 7 : 8, col);
+  for (const t of tips) bone([hand, t], back ? 4 : 5, col);
+  knob(elbow[0], elbow[1], 5, col);
+  knob(hand[0], hand[1], 5, col);
+  ctx.fillStyle = col;
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(hand[0] - 2, hand[1] - 4);
+  ctx.lineTo(hand[0] + 8, hand[1] - 22);
+  ctx.lineTo(hand[0] + 6, hand[1] - 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+}
+function skull(h, col, dk, eye, fl) {
+  const { x, y, jaw } = h;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2.6;
+  // horns sweeping back
+  ctx.fillStyle = fl ? '#fff' : '#cfc6aa';
+  for (const [ox, oy, s] of [
+    [-6, -14, 1],
+    [6, -18, 0.8],
+  ]) {
+    ctx.beginPath();
+    ctx.moveTo(ox, oy);
+    ctx.quadraticCurveTo(ox - 40 * s, oy - 30 * s, ox - 70 * s, oy - 14 * s);
+    ctx.quadraticCurveTo(ox - 38 * s, oy - 16 * s, ox + 6, oy + 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+  // lower jaw, hinged at the back of the skull
+  ctx.save();
+  ctx.translate(-8, 8);
+  ctx.rotate(jaw);
+  ctx.fillStyle = dk;
+  ctx.beginPath();
+  ctx.moveTo(0, -4);
+  ctx.lineTo(62, 2);
+  ctx.lineTo(60, 10);
+  ctx.lineTo(4, 12);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#f6f1df';
+  for (let i = 0; i < 5; i++) {
+    ctx.beginPath();
+    ctx.moveTo(14 + i * 9, -1);
+    ctx.lineTo(18 + i * 9, -9);
+    ctx.lineTo(22 + i * 9, 0);
+    ctx.fill();
+  }
+  // acid hanging from the jaw
+  ctx.fillStyle = '#7de03a';
+  ctx.beginPath();
+  ctx.ellipse(52, 13 + Math.sin(G.time * 6) * 2, 3, 5, 0, 0, TAU);
+  ctx.fill();
+  ctx.restore();
+  // cranium and long snout
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.moveTo(-22, 4);
+  ctx.quadraticCurveTo(-24, -24, 0, -26);
+  ctx.quadraticCurveTo(22, -26, 34, -14);
+  ctx.lineTo(70, -6);
+  ctx.quadraticCurveTo(78, -2, 72, 6);
+  ctx.lineTo(10, 10);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  // upper teeth
+  ctx.fillStyle = '#f6f1df';
+  for (let i = 0; i < 6; i++) {
+    ctx.beginPath();
+    ctx.moveTo(14 + i * 9.5, 8);
+    ctx.lineTo(18 + i * 9.5, 17);
+    ctx.lineTo(22 + i * 9.5, 7);
+    ctx.fill();
+    ctx.stroke();
+  }
+  // brow ridge, eye socket with a green lich-fire, nostril
+  ctx.fillStyle = OL;
+  ctx.beginPath();
+  ctx.ellipse(10, -10, 10, 7, -0.25, 0, TAU);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(62, -4, 4, 2.4, -0.2, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = eye;
+  ctx.shadowColor = eye;
+  ctx.shadowBlur = 16;
+  ctx.beginPath();
+  ctx.arc(12, -10, 4.2, 0, TAU);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(23,21,29,.55)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-4, -22);
+  ctx.quadraticCurveTo(14, -24, 26, -16);
+  ctx.moveTo(30, -10);
+  ctx.lineTo(44, -8);
+  ctx.stroke();
+  ctx.restore();
+}
+/** Ground marks: the laser lane and the leap's landing zone. */
+export function drawDragonGround(e) {
+  const C = DRAGON;
+  if (e.state === 'laser') {
+    const on = e.t > C.laser.wind,
+      u = Math.min(1, e.t / C.laser.wind),
+      x0 = e.x - G.cam + e.face * 20,
+      x1 = e.face > 0 ? W + 40 : -40;
+    ctx.fillStyle = on ? 'rgba(255,255,255,.28)' : `rgba(255,60,60,${0.08 + 0.18 * u})`;
+    ctx.fillRect(Math.min(x0, x1), e.laserY - C.laser.band, Math.abs(x1 - x0), C.laser.band * 2);
+    ctx.strokeStyle = on ? 'rgba(255,255,255,.8)' : 'rgba(255,110,100,.9)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(Math.min(x0, x1), e.laserY - C.laser.band, Math.abs(x1 - x0), C.laser.band * 2);
+  }
+  if (e.state === 'leap') {
+    const J = C.leap,
+      x = (e.air ? e.lx : P.x) - G.cam,
+      y = e.air ? e.ly : P.y,
+      u = clamp((e.t - J.crouch) / J.air, 0, 1);
+    if (e.t < J.crouch + J.air) {
+      ctx.fillStyle = `rgba(255,70,50,${0.1 + 0.25 * u})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y, J.rx, J.ry, 0, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,120,100,.9)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(x, y, J.rx * u, J.ry * u, 0, 0, TAU);
+      ctx.stroke();
+    }
+  }
+}
+/** The beam itself, drawn over everything. */
+export function drawDragonBeam(e) {
+  const L = DRAGON.laser;
+  if (e.state !== 'laser') return;
+  const hx = e.x - G.cam + e.face * 34,
+    hy = e.laserY - e.z - 112,
+    x1 = e.face > 0 ? W + 40 : -40;
+  ctx.save();
+  if (e.t < L.wind) {
+    // the heart charges: a thin flickering aim line
+    if (Math.floor(G.time * 20) % 2) {
+      ctx.strokeStyle = 'rgba(255,90,90,.85)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(hx, hy);
+      ctx.lineTo(x1, hy);
+      ctx.stroke();
+    }
+  } else if (e.t < L.wind + L.fire) {
+    const k = Math.min(1, (e.t - L.wind) / 0.08) * Math.min(1, (L.wind + L.fire - e.t) / 0.15),
+      w = 38 * k + Math.sin(G.time * 60) * 3;
+    ctx.globalCompositeOperation = 'lighter';
+    for (const [ww, c] of [
+      [w * 2.2, 'rgba(176,92,255,.35)'],
+      [w * 1.4, 'rgba(220,200,255,.6)'],
+      [w * 0.7, 'rgba(255,255,255,.95)'],
+    ]) {
+      ctx.strokeStyle = c;
+      ctx.lineWidth = ww;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(hx, hy);
+      ctx.lineTo(x1, hy);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+export function drawDragon(e) {
+  const T = e.T,
+    fl = e.flash > 0,
+    col = fl ? '#ffffff' : T.col,
+    dk = fl ? '#ffe0e0' : T.dk,
+    C = DRAGON,
+    S = 1;
+  ctx.save();
+  ctx.translate(e.x - G.cam, e.y - e.z);
+  ctx.scale(e.face * S, S);
+  // posture: breathing, crouch before a leap, rearing for the laser and the roar
+  let bob = Math.sin(e.anim * 2) * 3,
+    rear = 0;
+  if (e.state === 'leap' && e.t < C.leap.crouch) bob += 22 * ease(e.t / C.leap.crouch);
+  if (e.state === 'laser') rear = -Math.min(1, e.t / 0.3) * 0.08;
+  if (e.state === 'roar') rear = -0.1;
+  const walk = e.moving ? e.walkT : 0,
+    st = (k) => Math.sin(walk + k) * 14,
+    lift = (k) => Math.max(0, Math.sin(walk + k)) * 10;
+  ctx.translate(0, bob);
+  ctx.rotate(rear);
+  const hip = [-70, -125],
+    sh = [60, -138],
+    flap = Math.sin(e.anim * 1.6) * (e.state === 'roar' ? 2 : 1);
+  // far side: wing, legs, darker
+  wing([10, -150], flap * 0.8, dk, 'rgba(40,28,58,.55)', true);
+  leg([hip[0] + 10, hip[1] + 6], [-82, -66], [-58 + st(2), -lift(2)], 10, dk);
+  leg([sh[0] + 10, sh[1] + 6], [92, -70], [86 + st(0), -lift(0)], 9, dk);
+  // tail: vertebrae from the hip to the tip, swaying, with spikes
+  const sway = Math.sin(e.anim * 2.4);
+  const tail = [];
+  for (let i = 0; i <= 9; i++) {
+    const u = i / 9;
+    tail.push([
+      hip[0] - 20 - u * 170,
+      hip[1] + 20 + u * 90 - Math.sin(u * Math.PI) * 30 + sway * u * 14,
+    ]);
+  }
+  bone(tail, 9, col);
+  tail.forEach(([x, y], i) => {
+    const r = 7 - i * 0.55;
+    knob(x, y, r, col);
+    if (i % 2 === 0 && i < 9) {
+      ctx.fillStyle = dk;
+      ctx.strokeStyle = OL;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x - 5, y - r);
+      ctx.lineTo(x - 2, y - r - 12 + i);
+      ctx.lineTo(x + 4, y - r);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+  });
+  // pelvis
+  ctx.fillStyle = OL;
+  ctx.beginPath();
+  ctx.ellipse(hip[0], hip[1], 26, 18, -0.3, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.ellipse(hip[0], hip[1], 22, 14, -0.3, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = OL;
+  ctx.beginPath();
+  ctx.arc(hip[0] + 4, hip[1] + 2, 5, 0, TAU);
+  ctx.fill();
+  // ribcage with the bone heart inside
+  const rc = [0, -112];
+  ctx.fillStyle = 'rgba(23,21,29,.82)';
+  ctx.beginPath();
+  ctx.ellipse(rc[0], rc[1], 74, 46, 0, 0, TAU);
+  ctx.fill();
+  const charge = e.state === 'laser' ? Math.min(1, e.t / C.laser.wind) : 0,
+    beat = 0.55 + 0.45 * Math.abs(Math.sin(e.anim * 3)),
+    glow = Math.max(beat * 0.6, charge);
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const hg = ctx.createRadialGradient(25, -108, 2, 25, -108, 30 + 50 * glow);
+  hg.addColorStop(0, `rgba(240,220,255,${0.5 + 0.5 * glow})`);
+  hg.addColorStop(1, 'rgba(176,92,255,0)');
+  ctx.fillStyle = hg;
+  ctx.fillRect(-60, -190, 170, 170);
+  ctx.restore();
+  ctx.save();
+  ctx.translate(25, -108);
+  ctx.scale(1 + 0.12 * beat, 1 + 0.12 * beat);
+  ctx.fillStyle = fl ? '#fff' : charge > 0.5 ? '#ffffff' : '#e9dcff';
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  ctx.moveTo(0, 14);
+  ctx.bezierCurveTo(-20, 0, -14, -16, 0, -8);
+  ctx.bezierCurveTo(14, -16, 20, 0, 0, 14);
+  ctx.fill();
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(120,70,180,.8)';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(-6, -6);
+  ctx.lineTo(0, 4);
+  ctx.lineTo(5, -5);
+  ctx.stroke();
+  ctx.restore();
+  // ribs: arcs from the spine down to the breastbone
+  for (let i = 0; i < 7; i++) {
+    const x = -56 + i * 18,
+      top = -150 + Math.abs(i - 3) * 2;
+    bone(
+      [
+        [x, top],
+        [x + 10, top + 30],
+        [x + 6, -72 - Math.abs(i - 3) * 3],
+      ],
+      4.5,
+      i % 2 ? col : dk,
+    );
+  }
+  bone(
+    [
+      [-50, -72],
+      [-10, -66],
+      [44, -70],
+    ],
+    5,
+    col,
+  );
+  // spine with ridged vertebrae from the hip to the shoulders
+  const spine = [hip, [-30, -158], [20, -160], sh];
+  bone(spine, 10, col);
+  for (let i = 0; i <= 8; i++) {
+    const u = i / 8,
+      [x, y] = qpt(hip, [-5, -185], sh, u);
+    knob(x, y, 6, col);
+    ctx.fillStyle = dk;
+    ctx.strokeStyle = OL;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x - 6, y - 4);
+    ctx.lineTo(x - 2, y - 20);
+    ctx.lineTo(x + 5, y - 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+  // near legs; the front one swipes during the claw attack
+  leg(hip, [-96, -62], [-70 + st(Math.PI), -lift(Math.PI)], 12, col);
+  let paw = [100 + st(Math.PI + 2), -lift(Math.PI + 2)],
+    elbow = [86, -66];
+  if (e.state === 'claw') {
+    const K = C.claw;
+    if (e.t < K.wind) {
+      const p = ease(e.t / K.wind);
+      paw = [lerp(paw[0], 120, p), lerp(paw[1], -170, p)];
+      elbow = [lerp(86, 120, p), lerp(-66, -120, p)];
+    } else if (e.t < K.wind + K.swipe) {
+      const p = ease((e.t - K.wind) / K.swipe);
+      paw = [lerp(120, 230, p), lerp(-170, -12, p)];
+      elbow = [lerp(120, 160, p), lerp(-120, -70, p)];
+    } else {
+      const p = ease(Math.min(1, (e.t - K.wind - K.swipe) / K.rec));
+      paw = [lerp(230, 100, p), lerp(-12, 0, p)];
+      elbow = [lerp(160, 86, p), lerp(-70, -66, p)];
+    }
+  }
+  leg(sh, elbow, paw, 12, col);
+  // near wing over the body
+  wing([20, -152], flap, col, 'rgba(58,38,84,.62)', false);
+  // neck: a chain of vertebrae from the shoulders to the head
+  const h = dragonHead(e),
+    ctrl = [sh[0] + 70, Math.min(sh[1], h.y) - 50];
+  const neck = [];
+  for (let i = 0; i <= 7; i++) neck.push(qpt(sh, ctrl, [h.x - 14, h.y + 4], i / 7));
+  bone(neck, 11, col);
+  neck.forEach(([x, y], i) => {
+    knob(x, y, 7 - i * 0.35, col);
+    if (i > 0 && i < 7) {
+      ctx.fillStyle = dk;
+      ctx.strokeStyle = OL;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x - 5, y - 5);
+      ctx.lineTo(x - 4, y - 16);
+      ctx.lineTo(x + 4, y - 5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+  });
+  skull(h, col, dk, T.eye, fl);
+  ctx.restore();
+}

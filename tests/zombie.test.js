@@ -31,7 +31,7 @@ function grabbingZombie() {
 test('zombies are slow, weak and come in crowds', () => {
   const z = TYPES.zombie;
   for (const [id, t] of Object.entries(TYPES))
-    if (id !== 'zombie' && id !== 'fat' && id !== 'brute') assert.ok(z.speed < t.speed, id);
+    if (!['zombie', 'fat', 'brute', 'dragon'].includes(id)) assert.ok(z.speed < t.speed, id);
   assert.ok(z.hp <= 24);
   const n = WAVES.flatMap((w) => w.sp).filter((s) => s[0] === 'zombie').length;
   assert.ok(n >= 20, `${n} zombies on the level`);

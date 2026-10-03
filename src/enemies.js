@@ -5,6 +5,7 @@ import { G, P } from './state.js';
 import { SFX } from './audio.js';
 import { dust } from './fx.js';
 import { acidBite, grabPlayer, hitPlayer } from './combat.js';
+import { updDragon } from './dragon.js';
 
 export function spawn(type, side, x, y) {
   const T = TYPES[type];
@@ -64,6 +65,15 @@ export function spawn(type, side, x, y) {
   if (e.state === 'rise') {
     SFX.rise();
   }
+  if (type === 'dragon') {
+    if (x === undefined) {
+      e.x = G.cam + W - 300;
+      e.y = GT + 80;
+    }
+    Object.assign(e, { state: 'intro', face: -1, z: 420, w: 120, laserCd: 2, leapCd: 0, cd: 1 });
+    SFX.boss();
+    G.banner = { a: '@dragon', b: 'dragonBanner', t: 0 };
+  }
   if (type === 'boss') {
     e.x = G.cam + W - 230;
     e.y = GT + 70;
@@ -86,6 +96,7 @@ export function inBreath(e) {
   );
 }
 export function updEnemy(e, dt, ctxE) {
+  if (e.T.dragon) return updDragon(e, dt);
   const T = e.T;
   e.t += dt;
   e.anim += dt;
