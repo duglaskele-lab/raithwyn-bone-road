@@ -5,6 +5,7 @@ import { G, P } from './state.js';
 import { SFX } from './audio.js';
 import { floatTxt, motes, shatter, spark } from './fx.js';
 import { t } from './i18n.js';
+import { spawn } from './enemies.js';
 import { dmgMult, scoreMult, styleBreak, styleGain } from './style.js';
 
 export function hadoLevel(rage) {
@@ -86,8 +87,9 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
   if (e.T.zombie && !e.headless && (knock || src === 'hado' || Math.random() < ZOMBIE.headOff))
     popHead(e, dir);
   if (e.type === 'boss') {
-    if (e.state === 'charge' || e.state === 'summon' || e.state === 'rise') return true;
-    const atk = e.state === 'windup' || e.state === 'attack' || e.state === 'cwind',
+    // charging, summoning, roaring and breathing acid cannot be stopped
+    if (['charge', 'summon', 'rise', 'roar', 'breath'].includes(e.state)) return true;
+    const atk = ['windup', 'attack', 'cwind', 'bwind'].includes(e.state),
       combo = src === 'punch' || src === 'air';
     if (combo) {
       if (e.armor > 0) return true;
@@ -95,6 +97,7 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
         e.state = 'hurt';
         e.t = 0;
         e.vx = dir * 110;
+        e.brCd = Math.max(e.brCd || 0, 1.2);
         e.breaks++;
         if (e.breaks >= 2) {
           e.breaks = 0;
@@ -228,6 +231,12 @@ export function breakProp(e) {
       life: 2.2,
     });
   if (e.drop) G.items.push({ kind: e.drop, x: e.x, y: e.y + 4, z: 30, vz: 260, t: 0 });
+  if (D && D.big) {
+    // a big grave: a zombie (25%) or a skeleton (25%) may climb out, or nothing (50%)
+    const r = Math.random();
+    if (r < 0.5) spawn(r < 0.25 ? 'zombie' : 'grunt', 0, e.x, e.y);
+    G.shake = Math.max(G.shake, 8);
+  }
 }
 export function strike(o) {
   const p = P,

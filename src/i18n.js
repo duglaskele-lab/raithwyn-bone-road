@@ -97,6 +97,7 @@ export const STR = {
     plusHp: '+35 health',
     plusRage: '+50 rage',
     bossBanner: 'Lord of the road',
+    phase2: 'Acid breath',
     help: {
       move: ['Move', 'W A S D / arrows'],
       run: ['Run', 'Shift / double tap'],
@@ -214,6 +215,7 @@ export const STR = {
     plusHp: '+35 здоровья',
     plusRage: '+50 ярости',
     bossBanner: 'Хозяин тракта',
+    phase2: 'Кислотное дыхание',
     help: {
       move: ['Ходить', 'W A S D / стрелки'],
       run: ['Бег', 'Shift / двойное нажатие'],
