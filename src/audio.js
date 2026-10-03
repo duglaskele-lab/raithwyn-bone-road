@@ -73,6 +73,57 @@ export function noise(dur, vol, f0, f1, q = 1, delay = 0, type = 'bandpass') {
   s.start(t, Math.random() * 0.5);
   s.stop(t + dur + 0.03);
 }
+// A rough, throaty growl: detuned saws and a sub, their pitch shaken by a fast LFO (a vocal
+// fry), pushed through a band-pass that opens and closes, with a breathy rasp on top.
+export function growl(dur, f0, f1, vol, delay = 0) {
+  if (!AC || G.muted) return;
+  const t = AC.currentTime + delay,
+    bp = AC.createBiquadFilter(),
+    g = AC.createGain(),
+    lfo = AC.createOscillator(),
+    lg = AC.createGain();
+  bp.type = 'bandpass';
+  bp.Q.value = 1.6;
+  bp.frequency.setValueAtTime(260, t);
+  bp.frequency.linearRampToValueAtTime(950, t + dur * 0.35);
+  bp.frequency.exponentialRampToValueAtTime(320, t + dur);
+  g.gain.setValueAtTime(0.001, t);
+  g.gain.linearRampToValueAtTime(vol, t + Math.min(0.12, dur * 0.2));
+  g.gain.setValueAtTime(vol, t + dur * 0.6);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  lfo.frequency.setValueAtTime(26, t);
+  lfo.frequency.linearRampToValueAtTime(38, t + dur);
+  lg.gain.value = f0 * 0.12;
+  lfo.connect(lg);
+  const oscs = [
+    ['sawtooth', 1],
+    ['sawtooth', 1.012],
+    ['square', 0.5],
+  ].map(([type, k]) => {
+    const o = AC.createOscillator();
+    o.type = type;
+    o.frequency.setValueAtTime(f0 * k, t);
+    o.frequency.exponentialRampToValueAtTime(Math.max(20, f1 * k), t + dur);
+    lg.connect(o.frequency);
+    o.connect(bp);
+    return o;
+  });
+  bp.connect(g);
+  g.connect(MG);
+  for (const o of [...oscs, lfo]) {
+    o.start(t);
+    o.stop(t + dur + 0.05);
+  }
+  noise(dur * 0.9, vol * 0.5, 1400, 600, 2.5, delay);
+}
+// A clatter of loose bones: quick dry clicks at scattered pitches.
+export function rattle(dur, n, vol, delay = 0) {
+  for (let i = 0; i < n; i++) {
+    const at = delay + (i / n) * dur + rnd(0, dur / n / 2);
+    tone('square', rnd(700, 1700), rnd(300, 600), 0.035, vol, at, 3200);
+    noise(0.03, vol * 1.4, rnd(2500, 4000), 1500, 4, at);
+  }
+}
 export const SFX = {
   punch() {
     noise(0.09, 0.55, 900, 220);
@@ -139,6 +190,42 @@ export const SFX = {
   breath() {
     noise(1.1, 0.4, 500, 1600, 0.8);
     tone('sawtooth', 90, 60, 1.1, 0.14, 0, 500);
+  },
+  // The Bone Dragon's own voice.
+  dragonRoar() {
+    growl(1.3, 95, 62, 0.34);
+    growl(1.1, 142, 88, 0.16, 0.05);
+    rattle(1, 14, 0.05, 0.1);
+    tone('sine', 55, 32, 1.2, 0.35, 0);
+  },
+  dragonWind() {
+    // bones creak and clatter as it draws back, under a short snarl
+    rattle(0.4, 7, 0.07);
+    growl(0.45, 120, 150, 0.18, 0.05);
+    tone('sawtooth', 70, 95, 0.4, 0.07, 0, 300);
+  },
+  dragonCharge() {
+    // an eerie, inharmonic chime that rises and beats faster: the bone heart filling up
+    for (const [k, v] of [
+      [1, 0.07],
+      [2.41, 0.05],
+      [3.93, 0.035],
+      [5.37, 0.025],
+    ])
+      tone('sine', 180 * k, 520 * k, 1, v, 0);
+    for (let i = 0; i < 9; i++) {
+      const at = 1 - Math.pow(1 - i / 9, 0.55);
+      tone('triangle', 900 + i * 90, 600 + i * 70, 0.08, 0.05 + i * 0.006, at * 0.95);
+    }
+    growl(1, 70, 110, 0.08);
+  },
+  dragonHurt() {
+    growl(0.5, 160, 90, 0.2);
+    rattle(0.3, 6, 0.06);
+  },
+  quake() {
+    tone('sine', 70, 26, 1, 0.55);
+    noise(1, 0.3, 500, 80, 0.7);
   },
   charge() {
     tone('sawtooth', 120, 720, 1, 0.12, 0, 1400);

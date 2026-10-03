@@ -29,6 +29,7 @@ export const G = {
   endT: 0,
   muted: false,
   pools: [],
+  shocks: [],
   runLatch: false,
   K: 1,
 };
@@ -79,6 +80,7 @@ export function reset() {
   G.items = [6880, 6960].map((x) => ({ kind: 'hp', x, y: GT + 90, z: 0, vz: 0, t: 1 }));
   G.projs = [];
   G.pools = [];
+  G.shocks = [];
   G.parts = [];
   G.debris = [];
   G.floats = [];

@@ -7,7 +7,7 @@ import { keys } from './input.js';
 import { floatTxt, motes } from './fx.js';
 import { t } from './i18n.js';
 import { acidBite, addRage, headBonus, hitPlayer, hurtEnemy } from './combat.js';
-import { dragonZone } from './dragon.js';
+import { dragonZone, updShocks } from './dragon.js';
 import { dmgMult, styleGain, updStyle } from './style.js';
 import { updPlayer } from './player.js';
 import { spawn, updEnemy } from './enemies.js';
@@ -67,6 +67,7 @@ function secretWarp(dt) {
   G.enemies = [];
   G.projs = [];
   G.pools = [];
+  G.shocks = [];
   G.flash = 0.6;
   G.shake = 10;
   SFX.nova();
@@ -92,6 +93,7 @@ export function update(dt) {
   secretWarp(dt);
   updPlayer(dt);
   updStyle(dt);
+  updShocks(dt);
   const c = { n: 0 };
   for (const e of G.enemies) if (e.engage) c.n++;
   for (const e of G.enemies) updEnemy(e, dt, c);
