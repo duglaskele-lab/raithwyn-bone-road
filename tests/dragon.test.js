@@ -260,7 +260,7 @@ test("the player's hits push the dragon back a little", () => {
   assert.ok(d.x - x2 > light, 'a heavy hit pushes further');
 });
 
-test('second phase: 30% faster, and a laser that widens to twice its width as it fires', () => {
+test('second phase: 30% faster, and a laser that widens to three times its width as it fires', () => {
   const a = dragonAt(400, 450, { cd: 99 }),
     b = dragonAt(400, 450, { cd: 99, phase2: true });
   for (const d of [a, b]) Object.assign(d, { state: 'claw', t: 0 });
@@ -271,14 +271,15 @@ test('second phase: 30% faster, and a laser that widens to twice its width as it
   Object.assign(b, { state: 'laser', t: L.wind });
   assert.equal(laserBand(b), L.band, 'as wide as in the first phase when it starts');
   b.t = L.wind + L.fire;
-  assert.equal(laserBand(b), L.band * 2, 'twice as wide by the end');
+  assert.equal(laserBand(b), L.band * 3, 'three times as wide by the end');
   Object.assign(a, { state: 'laser', t: L.wind + L.fire });
   assert.equal(laserBand(a), L.band, 'the first phase beam keeps its width');
   for (const [phase2, dy, hit] of [
     [false, 50, false],
     [true, 50, true],
     [true, 75, true],
-    [true, 90, false],
+    [true, 110, true],
+    [true, 130, false],
   ]) {
     freshGame();
     const d = dragonAt(60, 450, { phase2 });

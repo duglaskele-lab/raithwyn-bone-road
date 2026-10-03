@@ -78,7 +78,7 @@ export const SAMURAI = {
   dmg: 18,
   lunge: 260, // it steps through the cut
   daze: 2, // seconds a hit from afar leaves it dazed
-  stanceCd: [2.2, 3.6], // before it takes the stance again
+  stanceCd: [0.9, 1.7], // before it takes the stance again (it is quick to return to it)
 };
 // Secret: hold X this long right at the start of the level to skip straight to the final boss.
 export const SECRET_HOLD = 3;

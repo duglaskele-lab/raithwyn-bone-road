@@ -86,6 +86,14 @@ test('a blow up close does not break the stance: it answers with the cut', () =>
   assert.equal(e.state, 'slash', 'the cut is too fast to stop');
 });
 
+test('it is quick to take the stance again', () => {
+  assert.ok(SAMURAI.stanceCd[1] < 2);
+  // just out of reach of its cut, even right after another move, it settles into the stance
+  const e = samuraiAt(800, 800 - SAMURAI.range - 10, { cd: 1 });
+  run(e, DT);
+  assert.equal(e.state, 'stance');
+});
+
 test('the stance does not last for ever', () => {
   const e = samuraiAt(800, 100, { state: 'stance' });
   run(e, SAMURAI.stance + 0.1);
