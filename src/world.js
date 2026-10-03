@@ -1,11 +1,12 @@
 // One simulation step: player, enemies, projectiles, pickups, debris, wave script.
-import { PURPLE, W, WAVES } from './config.js';
+import { ACID, GB, GT, PURPLE, W, WAVES } from './config.js';
 import { clamp, rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
 import { floatTxt, motes } from './fx.js';
 import { t } from './i18n.js';
-import { addRage, hitPlayer, hurtEnemy } from './combat.js';
+import { acidBite, addRage, hitPlayer, hurtEnemy } from './combat.js';
+import { dmgMult, styleGain, updStyle } from './style.js';
 import { updPlayer } from './player.js';
 import { spawn, updEnemy } from './enemies.js';
 
@@ -60,6 +61,7 @@ export function update(dt) {
     dt *= 0.3;
   }
   updPlayer(dt);
+  updStyle(dt);
   const c = { n: 0 };
   for (const e of G.enemies) if (e.engage) c.n++;
   for (const e of G.enemies) updEnemy(e, dt, c);
@@ -90,8 +92,11 @@ export function update(dt) {
       for (const e of G.enemies.concat(G.props)) {
         if (e.dead) continue;
         if (Math.abs(e.x - q.x) < e.w + 16 && Math.abs(e.y - q.y) < 22 && e.z < 90) {
-          if (hurtEnemy(e, 7, Math.sign(q.vx), false, 'bone')) {
-            if (!e.isProp) addRage(2);
+          if (hurtEnemy(e, 7 * dmgMult(), Math.sign(q.vx), false, 'bone')) {
+            if (!e.isProp) {
+              addRage(2);
+              styleGain(8);
+            }
             q.life = 0;
             break;
           }
@@ -132,7 +137,9 @@ export function update(dt) {
           Math.abs(e.y - q.y) < [32, 46, 72][q.lv - 1]
         ) {
           q.hit.add(e);
-          if (hurtEnemy(e, [30, 60, 110][q.lv - 1], Math.sign(q.vx), true, 'hado')) {
+          const dmg = [30, 60, 110][q.lv - 1] * dmgMult();
+          if (hurtEnemy(e, dmg, Math.sign(q.vx), true, 'hado')) {
+            if (!e.isProp) styleGain(18);
             G.parts.push({
               k: 'fxring',
               x: e.x,
@@ -153,9 +160,11 @@ export function update(dt) {
           o.life = 0;
       if (q.x < G.cam - 120 || q.x > G.cam + W + 120) q.life = 0;
     } else if (q.k === 'acid') {
-      // The necromancer's acid ball: wobbles in flight and bursts into a green splash.
+      // The necromancer's acid ball: flies in an arc and leaves a puddle where it lands.
       q.rot += dt;
-      q.z += Math.sin(q.rot * 9) * 22 * dt;
+      q.y += q.vy * dt;
+      q.vz -= ACID.g * dt;
+      q.z += q.vz * dt;
       if (Math.random() < 0.5)
         G.parts.push({
           k: 'dot',
@@ -169,8 +178,8 @@ export function update(dt) {
           s: rnd(2, 4),
           col: '#9dff4a',
         });
-      if (Math.abs(P.x - q.x) < 26 && Math.abs(P.y - q.y) < 20 && P.z < 110) {
-        if (hitPlayer(9, Math.sign(q.vx), false)) {
+      if (Math.abs(P.x - q.x) < 26 && Math.abs(P.y - q.y) < 20 && q.z < 130 && P.z < 110) {
+        if (hitPlayer(ACID.hit, Math.sign(q.vx), false)) {
           q.life = 0;
           SFX.splash();
           for (let i = 0; i < 10; i++)
@@ -188,6 +197,24 @@ export function update(dt) {
             });
         }
       }
+      if (q.life > 0 && q.z <= 0) {
+        q.life = 0;
+        SFX.splash();
+        G.pools.push({ x: q.x, y: clamp(q.y, GT, GB), t: 0, life: ACID.pool, seed: rnd(6) });
+        for (let i = 0; i < 8; i++)
+          G.parts.push({
+            k: 'dot',
+            x: q.x,
+            y: q.y - 4,
+            vx: rnd(-160, 160),
+            vy: rnd(-220, -60),
+            g: 700,
+            t: 0,
+            life: rnd(0.3, 0.5),
+            s: rnd(3, 5),
+            col: '#9dff4a',
+          });
+      }
       if (q.x < G.cam - 100 || q.x > G.cam + W + 100) q.life = 0;
     } else {
       q.rot += dt * 16 * Math.sign(q.vx);
@@ -198,6 +225,20 @@ export function update(dt) {
     }
   }
   G.projs = G.projs.filter((q) => q.life > 0);
+  // acid puddles bite the player standing in them
+  let inAcid = false;
+  for (const a of G.pools) {
+    a.t += dt;
+    const ex = (P.x - a.x) / ACID.rx,
+      ey = (P.y - a.y) / ACID.ry;
+    if (a.t < a.life - 0.3 && ex * ex + ey * ey < 1 && P.z < 8) inAcid = true;
+  }
+  G.pools = G.pools.filter((a) => a.t < a.life);
+  if (!inAcid) P.acidT = 0.15;
+  else if ((P.acidT -= dt) <= 0) {
+    P.acidT = ACID.tick;
+    acidBite(ACID.dmg);
+  }
   G.enemies = G.enemies.filter((e) => !e.dead);
   G.props = G.props.filter((e) => !e.dead);
   if (G.lastFoe && G.lastFoe.dead && G.lastFoeT > 1) G.lastFoeT = 1;

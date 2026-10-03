@@ -1,5 +1,5 @@
 // Enemy spawning and AI state machines for every skeleton type.
-import { CHAIN, GB, GT, RW, SLAM_R, SWIND, TAU, TYPES, W } from './config.js';
+import { ACID, CHAIN, GB, GT, RW, SLAM_R, SWIND, TAU, TYPES, W } from './config.js';
 import { clamp, rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
@@ -171,7 +171,7 @@ export function updEnemy(e, dt, ctxE) {
         if (
           !pdown &&
           e.cd <= 0 &&
-          Math.abs(dy) < 15 &&
+          Math.abs(dy) < (T.robe ? 90 : 15) &&
           adx > 150 &&
           e.x > G.cam + 25 &&
           e.x < G.cam + W - 25
@@ -218,13 +218,20 @@ export function updEnemy(e, dt, ctxE) {
         e.hitDone = false;
         SFX.swing();
         if (T.style === 'cast') {
+          // lobbed at where the player stands now, landing after ACID.flight seconds
           SFX.acid();
+          const x0 = e.x + e.face * 40 * T.scale,
+            z0 = 150 * T.scale,
+            f = ACID.flight,
+            dist = clamp((P.x - x0) * e.face, 120, 460);
           G.projs.push({
             k: 'acid',
-            x: e.x + e.face * 40 * T.scale,
+            x: x0,
             y: e.y,
-            z: 150 * T.scale,
-            vx: e.face * 300,
+            z: z0,
+            vx: (e.face * dist) / f,
+            vy: clamp(P.y - e.y, -120, 120) / f,
+            vz: (ACID.g * f * f) / 2 / f - z0 / f,
             rot: 0,
             life: 3.2,
           });

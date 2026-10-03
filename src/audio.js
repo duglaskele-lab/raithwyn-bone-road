@@ -121,6 +121,10 @@ export const SFX = {
   rise() {
     noise(0.5, 0.2, 200, 700, 1.2);
   },
+  rank() {
+    tone('triangle', 520, 1040, 0.16, 0.16);
+    tone('triangle', 780, 1560, 0.2, 0.12, 0.07);
+  },
   acid() {
     tone('sine', 520, 180, 0.22, 0.16);
     noise(0.3, 0.2, 1200, 300, 2);

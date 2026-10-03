@@ -5,8 +5,8 @@ import { atlas, ctx, cv, initGfx, loadPortraits, txt } from './gfx.js';
 import { initInput, keys, pressed, touch } from './input.js';
 import { initBackground } from './background.js';
 import { spawn } from './enemies.js';
-import { drawHUD, drawWorld, overlay } from './render.js';
-import { MENU_STATES, drawMenu, menuStep } from './menu.js';
+import { PAUSE_BTN, drawHUD, drawWorld, overlay } from './render.js';
+import { MENU_STATES, drawMenu, drawPause, menuStep, pauseStep } from './menu.js';
 import { PORTRAITS } from './characters.js';
 import { update } from './world.js';
 import { STR, lang, onLang, setLang, t } from './i18n.js';
@@ -55,9 +55,18 @@ function frame(dt) {
     // the step may have started the fight; the next frame draws it
     if (MENU_STATES.includes(G.state)) drawMenu();
   } else {
-    if (pressed.pause && (G.state === 'play' || G.state === 'pause'))
-      G.state = G.state === 'play' ? 'pause' : 'play';
-    if (G.state === 'pause' && pressed.start) G.state = 'play';
+    const tap = pressed.tap,
+      pauseTap =
+        touch &&
+        tap &&
+        tap[0] >= PAUSE_BTN[0] &&
+        tap[0] <= PAUSE_BTN[0] + PAUSE_BTN[2] &&
+        tap[1] >= PAUSE_BTN[1] &&
+        tap[1] <= PAUSE_BTN[1] + PAUSE_BTN[3];
+    if (G.state === 'play' && (pressed.pause || pauseTap)) {
+      G.state = 'pause';
+      G.menu = 0;
+    } else if (G.state === 'pause') pauseStep();
     if (G.state === 'play') update(dt);
     else if (G.state === 'over' || G.state === 'win') {
       G.endT += dt;
@@ -66,6 +75,7 @@ function frame(dt) {
         reset();
         G.state = 'play';
       } else if (G.endT > 1.5 && pressed.pause) {
+        reset();
         G.state = 'title';
         G.menu = 0;
       }
@@ -81,11 +91,7 @@ function frame(dt) {
       ctx.fillRect(0, 0, W, H);
     }
     drawHUD();
-    if (G.state === 'pause') {
-      overlay(0.6);
-      txt(t('pause'), W / 2, 270, 54, '#ece5cb', 'center', 8);
-      txt(touch ? t('resumeTouch') : t('resumeKey'), W / 2, 310, 18, '#d2a8ff', 'center', 4);
-    }
+    if (G.state === 'pause') drawPause();
     if (G.state === 'over') {
       overlay(Math.min(0.66, G.endT * 0.5));
       txt(t('overTitle'), W / 2, 250, 50, '#ff4a5e', 'center', 8);

@@ -1,4 +1,5 @@
-import { GT } from './config.js';
+import { CRYPT_X, DECOR, GB, GT } from './config.js';
+import { mulberry } from './util.js';
 
 // All mutable game state lives here so every module (and every test) sees the same world.
 export const G = {
@@ -27,6 +28,7 @@ export const G = {
   lastFoeT: 0,
   endT: 0,
   muted: false,
+  pools: [],
   runLatch: false,
   K: 1,
 };
@@ -63,6 +65,10 @@ export function reset() {
     puller: null,
     hl: 1,
     sup: 0,
+    sty: 0,
+    styT: 0,
+    styPop: 0,
+    acidT: 0,
   });
   G.cam = 0;
   G.waveI = 0;
@@ -71,6 +77,7 @@ export function reset() {
   G.enemies = [];
   G.items = [];
   G.projs = [];
+  G.pools = [];
   G.parts = [];
   G.debris = [];
   G.floats = [];
@@ -87,5 +94,25 @@ export function reset() {
     [5150, 'hp'],
     [5320, 'hp'],
   ].map(([x, d]) => ({ isProp: 1, x, y: GT + 10, z: 0, w: 16, drop: d }));
+  // scenery: benches and graves along the back wall, now and then a grave in front
+  const rand = mulberry(1977),
+    kinds = ['bench', 'grave', 'grave', 'cross'];
+  for (let x = 420; x < CRYPT_X - 260; x += 170 + rand() * 170) {
+    const kind = kinds[Math.floor(rand() * kinds.length)],
+      front = kind !== 'bench' && rand() < 0.25,
+      y = front ? GB - 2 : GT + 6 + rand() * 18,
+      drop = rand() < 0.12 ? 'rage' : null;
+    if (G.props.some((u) => Math.abs(u.x - x) < 70)) continue;
+    G.props.push({
+      isProp: 1,
+      decor: kind,
+      x,
+      y,
+      z: 0,
+      w: DECOR[kind].w,
+      hp: DECOR[kind].hp,
+      drop,
+    });
+  }
   G.banner = { a: 'stage1', b: 'subtitle', t: 0 };
 }
