@@ -6,8 +6,9 @@
 //   laser  - a wide white beam from its bone heart along the whole arena; step up or down
 //   pounce - a long jump towards a player who stands far away, landing close in front
 //   leap   - phase two only: jumps onto the player and hits everything where it lands
+//   kick   - now and then, when the player stands close behind it: a kick of a hind leg
 // A heavy hit (a knockdown blow, a dark ball, the super) during the wind-up of the bite, the
-// claw or the pounce staggers it; then it shrugs off interrupts for a few seconds. The laser
+// claw, the kick or the pounce staggers it; then it shrugs off interrupts for a few seconds. The laser
 // and the leap cannot be stopped at all.
 import { GB, GT, TAU, W } from './config.js';
 import { clamp, ease, lerp, rnd } from './util.js';
@@ -25,11 +26,23 @@ export const DRAGON = {
   bite: { wind: 0.6, strike: 0.22, down: 1.3, up: 0.5, dmg: 18, min: 110, max: 320, dy: 50 },
   claw: { wind: 0.5, swipe: 0.2, rec: 0.55, dmg: 14, min: 20, max: 240, dy: 60 },
   laser: { wind: 1.0, fire: 1.1, rec: 0.5, dmg: 22, band: 40, dy: 110, cd: 5 },
+  // a kick of the near hind leg at a player close behind it; rare (cd) and not every time
+  kick: {
+    wind: 0.45,
+    strike: 0.18,
+    rec: 0.5,
+    dmg: 15,
+    min: 30,
+    max: 250,
+    dy: 55,
+    cd: 7,
+    odds: 0.5,
+  },
   leap: { crouch: 0.6, air: 0.9, rec: 0.8, dmg: 20, rx: 190, ry: 70, h: 230, cd: 4 },
   // the shockwave of the leap: a ring on the ground that runs across the arena
   shock: { speed: 460, band: 22, depth: 0.32, clear: 34, dmg: 14 },
   rage: 1.3, // in the second phase it moves and attacks this much faster
-  laserWide: 1.5, // and its laser is this much wider
+  laserGrow: 2, // and its laser starts as wide as ever but widens to this much while it fires
   push: { light: 70, heavy: 170 }, // knockback speed from the player's hits
   death: { roar: 0.9, fall: 0.7 }, // a last roar, then it collapses and breaks apart
   pounce: {
@@ -227,6 +240,7 @@ export function dragonInterrupt(e, knock, src) {
     winding =
       (e.state === 'bite' && e.t < C.bite.wind) ||
       (e.state === 'claw' && e.t < C.claw.wind) ||
+      (e.state === 'kick' && e.t < C.kick.wind) ||
       (e.state === 'pounce' && e.t < C.pounce.crouch);
   if (!heavy || !winding || e.armor > 0) return false;
   Object.assign(e, { state: 'stagger', t: 0, armor: C.armor, swung: false, thud: false });
@@ -392,6 +406,7 @@ function step(e, dt) {
   e.laserCd -= dt;
   e.leapCd -= dt;
   e.pounceCd = (e.pounceCd ?? 0) - dt;
+  e.kickCd = (e.kickCd ?? 0) - dt;
   e.armor = (e.armor ?? 0) - dt;
   e.moving = false;
   const f = (P.x - e.x) * e.face;
@@ -445,6 +460,21 @@ function step(e, dt) {
       if (f < -40) e.behind = (e.behind || 0) + dt;
       else e.behind = 0;
       if (e.behind > 0.7 && !(e.phase2 && e.leapCd <= 0)) {
+        const K = C.kick;
+        e.behind = 0;
+        if (
+          (e.kickCd ?? 0) <= 0 &&
+          -f >= K.min &&
+          -f <= K.max &&
+          Math.abs(P.y - e.y) < K.dy &&
+          !pdown() &&
+          Math.random() < K.odds
+        ) {
+          // a kick back at the player instead of turning round
+          e.kickCd = K.cd;
+          start(e, 'kick');
+          break;
+        }
         e.face = -e.face;
         e.behind = 0;
         e.cd = Math.max(e.cd, 0.35);
@@ -504,6 +534,24 @@ function step(e, dt) {
         }
       }
       if (e.t > K.wind + K.swipe + K.rec) {
+        e.swung = false;
+        finish(e);
+      }
+      break;
+    }
+    case 'kick': {
+      const K = C.kick;
+      if (!e.hitDone && e.t > K.wind && e.t < K.wind + K.strike) {
+        if (!e.swung) {
+          e.swung = true;
+          SFX.swing();
+        }
+        if (-f > 0 && -f < K.max + 20 && Math.abs(P.y - e.y) < K.dy && P.z < 90) {
+          e.hitDone = true;
+          hitPlayer(K.dmg, -e.face, true);
+        }
+      }
+      if (e.t > K.wind + K.strike + K.rec) {
         e.swung = false;
         finish(e);
       }
@@ -839,7 +887,16 @@ export function drawShocks() {
     ctx.restore();
   }
 }
-const laserBand = (e) => DRAGON.laser.band * (e.phase2 ? DRAGON.laserWide : 1);
+/**
+ * Half-width of the beam. In the second phase it fires as wide as in the first and widens
+ * while it burns, ending twice as wide.
+ */
+export function laserBand(e) {
+  const L = DRAGON.laser;
+  if (!e.phase2) return L.band;
+  const u = clamp((e.t - L.wind) / L.fire, 0, 1);
+  return L.band * (1 + (DRAGON.laserGrow - 1) * u);
+}
 /** Light thrown on the ground by the firing beam. */
 export function drawDragonGround(e) {
   const L = DRAGON.laser;
@@ -887,7 +944,7 @@ export function drawDragonBeam(e) {
     const s = e.t - L.wind,
       grow = Math.min(1, s / 0.12),
       k = Math.min(1, s / 0.06) * Math.min(1, (L.wind + L.fire - e.t) / 0.2),
-      w = 40 * k * (e.phase2 ? DRAGON.laserWide : 1) + Math.sin(G.time * 70) * 4,
+      w = laserBand(e) * k + Math.sin(G.time * 70) * 4,
       xe = hx + (x1 - hx) * grow;
     for (const [ww, c] of [
       [w * 2.4, 'rgba(176,92,255,.3)'],
@@ -930,6 +987,11 @@ export function drawDragon(e) {
   if (e.state === 'stagger') rear = -0.07 * Math.sin(Math.min(1, e.t / C.stagger) * Math.PI);
   if (e.state === 'laser') rear = -Math.min(1, e.t / 0.3) * 0.08;
   if (e.state === 'roar') rear = -0.1;
+  if (e.state === 'kick') {
+    // the weight goes onto the front legs as the hind leg lashes out
+    const K = C.kick;
+    rear = 0.07 * Math.sin(clamp(e.t / (K.wind + K.strike + K.rec), 0, 1) * Math.PI);
+  }
   let sink = 0;
   if (e.state === 'dying') {
     const D = C.death,
@@ -1081,7 +1143,25 @@ export function drawDragon(e) {
     ctx.stroke();
   }
   // near legs; the front one swipes during the claw attack
-  legS(hip, [-96, -62], [-70 + st(Math.PI), -lift(Math.PI)], 12, col);
+  let foot = [-70 + st(Math.PI), -lift(Math.PI)],
+    knee = [-96, -62];
+  if (e.state === 'kick') {
+    const K = C.kick;
+    if (e.t < K.wind) {
+      const p = ease(e.t / K.wind);
+      foot = [lerp(foot[0], -40, p), lerp(foot[1], -70, p)];
+      knee = [lerp(-96, -40, p), lerp(-62, -100, p)];
+    } else if (e.t < K.wind + K.strike) {
+      const p = ease((e.t - K.wind) / K.strike);
+      foot = [lerp(-40, -245, p), lerp(-70, -60, p)];
+      knee = [lerp(-40, -150, p), lerp(-100, -95, p)];
+    } else {
+      const p = ease(Math.min(1, (e.t - K.wind - K.strike) / K.rec));
+      foot = [lerp(-245, -70, p), lerp(-60, 0, p)];
+      knee = [lerp(-150, -96, p), lerp(-95, -62, p)];
+    }
+  }
+  legS(hip, knee, foot, 12, col);
   let paw = [100 + st(Math.PI + 2), -lift(Math.PI + 2)],
     elbow = [86, -66];
   if (e.state === 'claw') {

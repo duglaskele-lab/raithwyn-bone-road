@@ -5,7 +5,7 @@ import { G, P } from '../src/state.js';
 import { pressed } from '../src/input.js';
 import { hurtEnemy, strike } from '../src/combat.js';
 import { spawn, updEnemy } from '../src/enemies.js';
-import { DRAGON, dragonHead, dragonZone, updShocks } from '../src/dragon.js';
+import { DRAGON, dragonHead, dragonZone, laserBand, updShocks } from '../src/dragon.js';
 import { update } from '../src/world.js';
 import { DT, allFinite, freshGame } from './helpers.js';
 
@@ -260,23 +260,62 @@ test("the player's hits push the dragon back a little", () => {
   assert.ok(d.x - x2 > light, 'a heavy hit pushes further');
 });
 
-test('second phase: 30% faster, and a laser half as wide again', () => {
+test('second phase: 30% faster, and a laser that widens to twice its width as it fires', () => {
   const a = dragonAt(400, 450, { cd: 99 }),
     b = dragonAt(400, 450, { cd: 99, phase2: true });
   for (const d of [a, b]) Object.assign(d, { state: 'claw', t: 0 });
   run(a, 0.3);
   run(b, 0.3);
   assert.ok(Math.abs(b.t / a.t - 1.3) < 0.01);
+  const L = DRAGON.laser;
+  Object.assign(b, { state: 'laser', t: L.wind });
+  assert.equal(laserBand(b), L.band, 'as wide as in the first phase when it starts');
+  b.t = L.wind + L.fire;
+  assert.equal(laserBand(b), L.band * 2, 'twice as wide by the end');
+  Object.assign(a, { state: 'laser', t: L.wind + L.fire });
+  assert.equal(laserBand(a), L.band, 'the first phase beam keeps its width');
   for (const [phase2, dy, hit] of [
     [false, 50, false],
     [true, 50, true],
+    [true, 75, true],
+    [true, 90, false],
   ]) {
     freshGame();
     const d = dragonAt(60, 450, { phase2 });
     Object.assign(d, { state: 'laser', t: 0, laserY: 450 });
     P.y = 450 + dy;
-    run(d, (DRAGON.laser.wind + DRAGON.laser.fire) / (phase2 ? 1.3 : 1));
-    assert.equal(P.hp < 100, hit, `phase2 ${phase2}`);
+    let early = false;
+    run(d, (L.wind + L.fire * 0.1) / (phase2 ? 1.3 : 1));
+    early = P.hp < 100;
+    run(d, (L.fire * 0.9) / (phase2 ? 1.3 : 1));
+    assert.equal(P.hp < 100, hit, `phase2 ${phase2}, ${dy} px off`);
+    if (dy > L.band) assert.ok(!early, 'out of reach when the beam starts');
+  }
+});
+
+test('now and then it kicks a hind leg at a player close behind it', () => {
+  const random = Math.random;
+  try {
+    Math.random = () => 0;
+    const d = dragonAt(750, 450, { cd: 99, kickCd: 0 }); // facing left, the player behind
+    for (let i = 0; i < 60 && d.state !== 'kick'; i++) run(d, DT);
+    assert.equal(d.state, 'kick');
+    assert.equal(d.face, -1, 'it does not turn round to do it');
+    run(d, DRAGON.kick.wind * 0.9);
+    assert.equal(P.hp, 100, 'nothing during the wind-up');
+    run(d, DRAGON.kick.wind * 0.1 + DRAGON.kick.strike);
+    assert.ok(P.hp < 100, 'the kick lands');
+    assert.ok(P.vx > 0, 'and knocks the player away behind it');
+    run(d, DRAGON.kick.rec + 0.1);
+    assert.equal(d.state, 'walk');
+    // not again for a while: this time it just turns round
+    Object.assign(P, { x: 750, y: 450, hp: 100, state: 'idle', inv: 0 });
+    Object.assign(d, { face: -1, x: 600, behind: 0 });
+    run(d, 0.8);
+    assert.notEqual(d.state, 'kick');
+    assert.equal(d.face, 1);
+  } finally {
+    Math.random = random;
   }
 });
 

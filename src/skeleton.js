@@ -1,5 +1,5 @@
 // Vector skeleton rig: poses per AI state and the drawing of bones, weapons, the bike.
-import { CHAIN, FONT, OL, PURPLE, TAU } from './config.js';
+import { CHAIN, FONT, HOG, OL, PURPLE, SAMURAI, TAU } from './config.js';
 import { clamp, ease, lerp } from './util.js';
 import { G, P } from './state.js';
 import { ctx, rr } from './gfx.js';
@@ -246,7 +246,82 @@ export function skelPose(e) {
     o.jaw = 6 * p;
     o.lean = -0.05;
   }
+  if (T.samurai) samuraiPose(e, o, mix);
   return o;
+}
+// The samurai holds its katana in both hands; `o.ka` is the blade's angle (0 = down,
+// PI/2 = forward, PI = up), like the limbs.
+function samuraiPose(e, o, mix) {
+  const st = e.state,
+    S = SAMURAI,
+    br = Math.sin(e.anim * 3 + e.seed);
+  o.ka = null;
+  if (st === 'chase' || st === 'rise') {
+    // guard in the middle: blade forward and up, held in front
+    o.aF = [0.55, 1.2 + 0.04 * br];
+    o.aB = [0.75, 1.3];
+    o.ka = 2.25 + 0.04 * br;
+  } else if (st === 'stance' || st === 'draw') {
+    // low and wide, the blade held back by the hip, ready to cut
+    const sh = e.moving ? Math.sin(e.walkT) * 0.12 : 0;
+    o.lean = 0.3;
+    o.head = -0.12;
+    o.lF = [0.62 + sh, 0.12 + sh];
+    o.lB = [-0.6 - sh, -0.8 - sh];
+    o.aF = [-0.25, 0.3];
+    o.aB = [-0.15, 0.4];
+    o.ka = -1.05;
+    o.jaw = 0;
+    if (st === 'draw') {
+      const j = Math.sin(e.t * 90) * 0.03;
+      o.lean += j;
+      o.ka -= 0.15 * (e.t / S.draw);
+    }
+  } else if (st === 'slash') {
+    // one wide sweep from behind the hip, through the front, up high
+    const p = ease(Math.min(1, e.t / (S.slash * 0.75)));
+    o.lean = lerp(0.3, 0.5, p);
+    o.lF = [lerp(0.62, 0.95, p), lerp(0.12, 0.35, p)];
+    o.lB = [lerp(-0.6, -0.85, p), lerp(-0.8, -1.1, p)];
+    o.aF = [lerp(-0.25, 2.3, p), lerp(0.3, 2.6, p)];
+    o.aB = [lerp(-0.15, 2.1, p), lerp(0.4, 2.5, p)];
+    o.ka = lerp(-1.2, 2.7, p);
+    o.jaw = 5;
+  } else if (st === 'recover' && e.cut) {
+    const p = ease(clamp(e.t / e.T.rec, 0, 1));
+    o.lean = lerp(0.5, 0.15, p);
+    o.lF = [lerp(0.95, 0.16, p), lerp(0.35, -0.02, p)];
+    o.lB = [lerp(-0.85, -0.22, p), lerp(-1.1, -0.34, p)];
+    o.aF = mix([2.3, 2.6], [0.55, 1.2], p);
+    o.aB = mix([2.1, 2.5], [0.75, 1.3], p);
+    o.ka = lerp(2.7, 2.25, p);
+  } else if (st === 'windup' || st === 'attack' || st === 'recover') {
+    // the kick: knee up, then the foot shoots out; the sword held low out of the way
+    const p =
+      st === 'windup'
+        ? ease(Math.min(1, e.t / e.T.wind))
+        : st === 'attack'
+          ? 1
+          : 1 - ease(clamp(e.t / e.T.rec, 0, 1));
+    const out = st === 'attack' ? Math.min(1, e.t / 0.05) : st === 'recover' ? p : 0;
+    o.lF = [lerp(0.16, 1.35, p), lerp(-0.02, lerp(-0.2, 1.55, out), p)];
+    o.lB = [-0.2, -0.3];
+    o.lean = lerp(0.1, -0.22, p);
+    o.aF = [0.35, 0.7];
+    o.aB = [0.45, 0.8];
+    o.ka = 0.5;
+  } else if (st === 'daze') {
+    // reeling, the sword point dragging on the ground
+    const w = Math.sin(e.t * 6);
+    o.lean = 0.42 + 0.08 * w;
+    o.head = 0.45 + 0.1 * w;
+    o.aF = [0.1 + 0.05 * w, 0.05];
+    o.aB = [0.05, 0];
+    o.lF = [0.2, 0.05];
+    o.lB = [-0.25, -0.4];
+    o.ka = 0.35;
+    o.jaw = 6;
+  }
 }
 export function boneSeg(pts, w, col, foot) {
   ctx.lineCap = 'round';
@@ -318,8 +393,8 @@ export function drawSkel(e) {
   }
   ctx.scale(e.face * s, s);
   if (e.mounted) {
-    drawBike(e.anim);
-    ctx.translate(-16, 0);
+    drawBike(e.anim, e.bike === 'hog');
+    ctx.translate(e.bike === 'hog' ? -30 : -16, 0);
   }
   const lh = (l) => TH * Math.cos(l[0]) + SH * Math.cos(l[1]);
   const hipH = o.hipH != null ? o.hipH : Math.max(lh(o.lF), lh(o.lB));
@@ -352,9 +427,52 @@ export function drawSkel(e) {
     ctx.fill();
     return h;
   };
+  // white hakama over a leg: wide trousers flaring to the ankle
+  const hakama = (l, off, cloth, line) => {
+    const [p0, m, a] = limb([off, 0], l[0], l[1], TH, SH),
+      n = (u, v) => {
+        const d = Math.hypot(v[0] - u[0], v[1] - u[1]) || 1;
+        return [-(v[1] - u[1]) / d, (v[0] - u[0]) / d];
+      },
+      n1 = n(p0, m),
+      n2 = n(m, a),
+      nk = [(n1[0] + n2[0]) / 2, (n1[1] + n2[1]) / 2],
+      hem = [lerp(m[0], a[0], 0.9), lerp(m[1], a[1], 0.9)],
+      at = (p, v, k) => [p[0] + v[0] * k, p[1] + v[1] * k],
+      pts = [
+        at(p0, n1, 13),
+        at(m, nk, 12),
+        at(hem, n2, 16),
+        at(hem, n2, -16),
+        at(m, nk, -12),
+        at(p0, n1, -13),
+      ];
+    ctx.lineJoin = 'round';
+    ctx.fillStyle = cloth;
+    ctx.strokeStyle = OL;
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    pts.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])));
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    // pleats
+    ctx.strokeStyle = line;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    for (const k of [-6, 4]) {
+      ctx.moveTo(...at(p0, n1, k * 0.6));
+      ctx.lineTo(...at(m, nk, k));
+      ctx.lineTo(...at(hem, n2, k * 1.3));
+    }
+    ctx.stroke();
+  };
+  const white = fl ? '#ffffff' : '#f2efe6',
+    whiteDk = fl ? '#ffd9d9' : '#cfc8b8';
   // back limbs
   arm(o.aB, dk, -3);
   leg(o.lB, dk, -3);
+  if (T.samurai) hakama(o.lB, -3, whiteDk, '#a39d8f');
   if (T.monkey) {
     const wv = Math.sin(e.anim * 6) * 5;
     boneSeg(
@@ -457,6 +575,37 @@ export function drawSkel(e) {
     ctx.restore();
   }
   leg(o.lF, col, 3);
+  if (T.samurai) {
+    hakama(o.lF, 3, white, '#c9c2b2');
+    // the waist of the hakama and a black obi
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = OL;
+    ctx.lineWidth = 2.4;
+    ctx.fillStyle = white;
+    ctx.beginPath();
+    ctx.moveTo(-15, -7);
+    ctx.lineTo(16, -7);
+    ctx.lineTo(18, 12);
+    ctx.lineTo(-17, 12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = fl ? '#fff' : '#1d1a24';
+    ctx.beginPath();
+    ctx.moveTo(-16, -11);
+    ctx.lineTo(17, -10);
+    ctx.lineTo(17, -2);
+    ctx.lineTo(-16, -3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = '#7a1420';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-14, -6.5);
+    ctx.lineTo(15, -5.5);
+    ctx.stroke();
+  }
   if (T.robe) {
     // grey cassock over the body, the hem swaying with the steps
     const sw = e.moving ? Math.sin(e.walkT) * 6 : Math.sin(e.anim * 2) * 2,
@@ -668,6 +817,72 @@ export function drawSkel(e) {
       ctx.arc(-1, -15, 2.3, 0, TAU);
       ctx.fill();
     }
+    if (T.samurai) {
+      // a red hachimaki round the brow, its tails flying behind
+      const wv = Math.sin(e.anim * 7) * 3 + (e.moving ? 4 : 0);
+      ctx.fillStyle = fl ? '#fff' : '#c8102e';
+      ctx.strokeStyle = OL;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-12, -6);
+      ctx.quadraticCurveTo(-26, -10 + wv, -32, -4 + wv);
+      ctx.lineTo(-28, 0 + wv);
+      ctx.quadraticCurveTo(-22, -4, -11, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-12, -10);
+      ctx.quadraticCurveTo(-24, -18 - wv * 0.5, -30, -16 - wv);
+      ctx.lineTo(-27, -12 - wv);
+      ctx.quadraticCurveTo(-20, -12, -12, -5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      // the band itself, across the brow
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(0, -1, 13.5, 0, TAU);
+      ctx.clip();
+      ctx.beginPath();
+      ctx.moveTo(-15, -10.5);
+      ctx.lineTo(16, -14);
+      ctx.lineTo(16, -8.6);
+      ctx.lineTo(-15, -5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+      ctx.restore();
+      if (e.state === 'stance' || e.state === 'draw' || e.state === 'slash') {
+        // in the stance the eyes burn and leave a trail of light
+        ctx.save();
+        const g = 0.8 + 0.2 * Math.sin(G.time * 20);
+        for (const [x, y, r] of [
+          [4, -1.2, 2.8],
+          [11.3, -1.2, 2.2],
+        ]) {
+          const gr = ctx.createLinearGradient(x, y, x - 46, y - 6);
+          gr.addColorStop(0, `rgba(255,70,40,${0.95 * g})`);
+          gr.addColorStop(1, 'rgba(255,30,10,0)');
+          ctx.strokeStyle = gr;
+          ctx.lineWidth = r * 1.7;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.quadraticCurveTo(x - 22, y - 1, x - 46, y - 6 + Math.sin(e.anim * 9 + x) * 3);
+          ctx.stroke();
+          ctx.fillStyle = '#ffe0d6';
+          ctx.shadowColor = T.eye;
+          ctx.shadowBlur = 24 * g;
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, TAU);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+        ctx.restore();
+      }
+    }
     if (T.zombie) {
       // a few strands of hair and a stitched cheek
       ctx.strokeStyle = '#2b2a22';
@@ -755,6 +970,11 @@ export function drawSkel(e) {
     }
     ctx.restore();
   }
+  if (T.samurai) {
+    katana(h, o.ka ?? wa, fl, e.state === 'draw');
+    if (e.state === 'slash') cutArc(e.t / SAMURAI.slash);
+    else if (e.state === 'recover' && e.cut && e.t < 0.12) cutArc(1, 1 - e.t / 0.12);
+  }
   if (T.rocker && !e.mounted && !['chain', 'pull', 'chwind', 'air', 'down'].includes(e.state)) {
     ctx.save();
     ctx.translate(h[0], h[1]);
@@ -833,6 +1053,26 @@ export function drawSkel(e) {
     ctx.fillText('!', sx, sy - 205 * s);
     ctx.globalAlpha = 1;
   }
+  if (e.state === 'daze') {
+    // stars circling over the dazed samurai's head
+    for (let i = 0; i < 3; i++) {
+      const a = G.time * 5 + (i * TAU) / 3,
+        x = sx + e.face * 14 * s + Math.cos(a) * 20,
+        y = sy - 196 * s + Math.sin(a) * 6;
+      ctx.fillStyle = '#ffe36a';
+      ctx.strokeStyle = OL;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (let k = 0; k < 10; k++) {
+        const r = k % 2 ? 2.6 : 6.5,
+          b = (k * Math.PI) / 5 - Math.PI / 2;
+        ctx.lineTo(x + Math.cos(b) * r, y + Math.sin(b) * r);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
   if (e.state === 'cwind') {
     ctx.fillStyle = '#ff4a5e';
     ctx.font = `900 26px ${FONT}`;
@@ -841,6 +1081,92 @@ export function drawSkel(e) {
     ctx.fillText('!', sx, sy - 185 * s);
     ctx.globalAlpha = 1;
   }
+}
+// A katana at the hand, the blade pointing along angle `a` (0 = down, PI/2 = forward).
+function katana(h, a, fl, glint) {
+  ctx.save();
+  ctx.translate(h[0], h[1]);
+  ctx.rotate(-a);
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2.2;
+  // the blade, gently curved, with a bright edge
+  ctx.fillStyle = fl ? '#fff' : '#dfe6ee';
+  ctx.beginPath();
+  ctx.moveTo(-2.6, 7);
+  ctx.quadraticCurveTo(-5, 48, -9, 86);
+  ctx.lineTo(-5.5, 92);
+  ctx.quadraticCurveTo(1, 50, 2.6, 7);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,.9)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(1.2, 10);
+  ctx.quadraticCurveTo(-0.5, 50, -5, 88);
+  ctx.stroke();
+  // round tsuba and a black wrapped hilt
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2.2;
+  ctx.fillStyle = '#3a3340';
+  ctx.beginPath();
+  ctx.ellipse(0, 5, 7.5, 2.8, 0, 0, TAU);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#1d1a24';
+  rr(-3, -20, 6, 23, 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.strokeStyle = '#d8d0bd';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  for (let y = -17; y < 1; y += 5) {
+    ctx.moveTo(-2.5, y);
+    ctx.lineTo(2.5, y + 2.5);
+    ctx.moveTo(2.5, y);
+    ctx.lineTo(-2.5, y + 2.5);
+  }
+  ctx.stroke();
+  if (glint) {
+    // a glint runs down the blade just before the cut
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = '#ffffff';
+    ctx.shadowBlur = 16;
+    ctx.translate(-6, 70);
+    ctx.beginPath();
+    for (let k = 0; k < 8; k++) {
+      const r = k % 2 ? 2 : 11,
+        b = (k * Math.PI) / 4;
+      ctx.lineTo(Math.cos(b) * r, Math.sin(b) * r);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+// The white crescent of the cut: from behind the hip, through the front, up high.
+function cutArc(p, fade = 1) {
+  const a1 = 2.5,
+    a0 = a1 - 3.7 * Math.min(1, p);
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.lineCap = 'round';
+  for (const [r, w, c] of [
+    [92, 22, `rgba(255,120,110,${0.25 * fade})`],
+    [96, 10, `rgba(255,235,230,${0.75 * fade})`],
+    [99, 3.5, `rgba(255,255,255,${fade})`],
+  ]) {
+    ctx.strokeStyle = c;
+    ctx.lineWidth = w;
+    ctx.beginPath();
+    ctx.arc(14, -36, r, a0, a1);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 export function chainLine(x0, y0, x1, y1) {
   ctx.save();
@@ -860,7 +1186,8 @@ export function chainLine(x0, y0, x1, y1) {
   ctx.stroke();
   ctx.restore();
 }
-export function drawBike(t) {
+export function drawBike(t, hog = false) {
+  if (hog) return drawHog(t);
   // local space: faces +x, ground at y=0
   const wr = 21;
   ctx.lineJoin = 'round';
@@ -968,6 +1295,321 @@ export function drawBike(t) {
   ctx.fill();
   ctx.shadowBlur = 0;
   ctx.stroke();
+}
+// The second bike: a long chopper of black iron and bone. A fat studded rear wheel, a raked
+// fork, a V-twin with fire coming out of the pipes, a horned skull for a headlight, a sissy bar
+// with a skull on top and a ram of bone spikes in front.
+function drawHog(t) {
+  const iron = '#3a3641',
+    rust = '#7c2f1a',
+    chrome = '#b9c4cc',
+    boneC = '#e6dfc8';
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  const fr = (pts, w, c) => {
+    for (const [lw, cc] of [
+      [w + 4, OL],
+      [w, c],
+    ]) {
+      ctx.strokeStyle = cc;
+      ctx.lineWidth = lw;
+      ctx.beginPath();
+      pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])));
+      ctx.stroke();
+    }
+  };
+  const poly = (pts, c, lw = 2.2) => {
+    ctx.fillStyle = c;
+    ctx.strokeStyle = OL;
+    ctx.lineWidth = lw;
+    ctx.beginPath();
+    pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])));
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  };
+  const wheel = (wx, wr) => {
+    // studs around the tyre, turning with it
+    for (let i = 0; i < 10; i++) {
+      const a = t * 16 + (i * TAU) / 10,
+        c = Math.cos(a),
+        sn = Math.sin(a);
+      poly(
+        [
+          [wx + c * (wr - 2) - sn * 3, -wr + sn * (wr - 2) + c * 3],
+          [wx + c * (wr + 6), -wr + sn * (wr + 6)],
+          [wx + c * (wr - 2) + sn * 3, -wr + sn * (wr - 2) - c * 3],
+        ],
+        '#8894a0',
+        1.6,
+      );
+    }
+    ctx.fillStyle = OL;
+    ctx.beginPath();
+    ctx.arc(wx, -wr, wr, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#2a2532';
+    ctx.beginPath();
+    ctx.arc(wx, -wr, wr - 5, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#5b5866';
+    ctx.beginPath();
+    ctx.arc(wx, -wr, wr - 10, 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = '#8894a0';
+    ctx.lineWidth = 2.4;
+    for (let i = 0; i < 3; i++) {
+      const a = t * 16 + (i * TAU) / 6,
+        c = Math.cos(a) * (wr - 10),
+        sn = Math.sin(a) * (wr - 10);
+      ctx.beginPath();
+      ctx.moveTo(wx - c, -wr - sn);
+      ctx.lineTo(wx + c, -wr + sn);
+      ctx.stroke();
+    }
+    ctx.fillStyle = chrome;
+    ctx.strokeStyle = OL;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(wx, -wr, 4, 0, TAU);
+    ctx.fill();
+    ctx.stroke();
+  };
+  // fire out of the pipes
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (const py of [-30, -40]) {
+    const len = 18 + Math.abs(Math.sin(t * 37 + py)) * 16;
+    const g = ctx.createLinearGradient(-92, 0, -92 - len, 0);
+    g.addColorStop(0, 'rgba(255,230,140,.95)');
+    g.addColorStop(0.5, 'rgba(255,120,40,.7)');
+    g.addColorStop(1, 'rgba(200,40,20,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(-92, py - 5);
+    ctx.quadraticCurveTo(-92 - len * 0.6, py - 9, -92 - len, py);
+    ctx.quadraticCurveTo(-92 - len * 0.6, py + 7, -92, py + 4);
+    ctx.fill();
+  }
+  ctx.restore();
+  wheel(-66, 27);
+  wheel(84, 22);
+  // sissy bar with a skull on top
+  fr(
+    [
+      [-46, -58],
+      [-58, -104],
+    ],
+    4,
+    chrome,
+  );
+  skullCap(-60, -112, boneC);
+  // frame
+  fr(
+    [
+      [-66, -27],
+      [-34, -54],
+      [30, -62],
+      [56, -88],
+    ],
+    7,
+    iron,
+  );
+  fr(
+    [
+      [-66, -27],
+      [-8, -22],
+      [30, -62],
+    ],
+    6,
+    iron,
+  );
+  // long raked fork
+  fr(
+    [
+      [56, -88],
+      [84, -22],
+    ],
+    5,
+    chrome,
+  );
+  fr(
+    [
+      [62, -90],
+      [90, -26],
+    ],
+    3,
+    chrome,
+  );
+  // pipes along the side to the back
+  fr(
+    [
+      [6, -30],
+      [-40, -30],
+      [-92, -30],
+    ],
+    5,
+    chrome,
+  );
+  fr(
+    [
+      [14, -40],
+      [-50, -40],
+      [-92, -40],
+    ],
+    5,
+    chrome,
+  );
+  // V-twin engine with cooling fins
+  poly(
+    [
+      [-18, -26],
+      [26, -26],
+      [28, -44],
+      [-20, -44],
+    ],
+    '#4a4652',
+  );
+  for (const [cx, a] of [
+    [-6, -0.35],
+    [16, 0.35],
+  ]) {
+    ctx.save();
+    ctx.translate(cx, -44);
+    ctx.rotate(a);
+    poly(
+      [
+        [-8, 0],
+        [8, 0],
+        [7, -22],
+        [-7, -22],
+      ],
+      '#8894a0',
+    );
+    ctx.strokeStyle = OL;
+    ctx.lineWidth = 1.4;
+    for (let y = -5; y > -21; y -= 4) {
+      ctx.beginPath();
+      ctx.moveTo(-7, y);
+      ctx.lineTo(7, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  // a coffin-shaped tank, rusted red, with a white cross of bones
+  poly(
+    [
+      [-4, -64],
+      [16, -74],
+      [48, -72],
+      [54, -64],
+      [40, -56],
+      [4, -56],
+    ],
+    rust,
+  );
+  ctx.strokeStyle = boneC;
+  ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  ctx.moveTo(18, -68);
+  ctx.lineTo(36, -61);
+  ctx.moveTo(36, -68);
+  ctx.lineTo(18, -61);
+  ctx.stroke();
+  // seat
+  ctx.fillStyle = '#231d2c';
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2.4;
+  rr(-50, -62, 48, 9, 4);
+  ctx.fill();
+  ctx.stroke();
+  // ape-hanger bars
+  fr(
+    [
+      [56, -88],
+      [50, -112],
+      [36, -116],
+    ],
+    4,
+    chrome,
+  );
+  // the ram: a row of bone spikes in front of the wheel
+  for (let i = 0; i < 4; i++) {
+    const y = -8 - i * 11;
+    poly(
+      [
+        [92, y + 4],
+        [HOG.front - (i % 2) * 8, y - 2],
+        [92, y - 5],
+      ],
+      boneC,
+      1.8,
+    );
+  }
+  fr(
+    [
+      [90, -4],
+      [96, -48],
+    ],
+    5,
+    iron,
+  );
+  // a horned skull for a headlight, with burning eyes
+  ctx.save();
+  ctx.translate(66, -84);
+  poly(
+    [
+      [-4, -10],
+      [-14, -26],
+      [2, -14],
+    ],
+    boneC,
+    1.8,
+  );
+  poly(
+    [
+      [6, -12],
+      [10, -30],
+      [14, -10],
+    ],
+    boneC,
+    1.8,
+  );
+  ctx.fillStyle = boneC;
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  ctx.ellipse(4, -2, 13, 11, 0, 0, TAU);
+  ctx.fill();
+  ctx.stroke();
+  rr(-2, 6, 14, 7, 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#ff3d2e';
+  ctx.shadowColor = '#ff3d2e';
+  ctx.shadowBlur = 14;
+  for (const ex of [1, 10]) {
+    ctx.beginPath();
+    ctx.arc(ex, -3, 3.2, 0, TAU);
+    ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+function skullCap(x, y, col) {
+  ctx.fillStyle = col;
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(x, y, 9, 8, 0, 0, TAU);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = OL;
+  for (const ex of [-3.5, 3.5]) {
+    ctx.beginPath();
+    ctx.arc(x + ex, y, 2.4, 0, TAU);
+    ctx.fill();
+  }
 }
 export function boneShape(len, w, col) {
   const h = len / 2,

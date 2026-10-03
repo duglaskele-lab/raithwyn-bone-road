@@ -14,7 +14,9 @@ test('every wave only spawns known enemy types', () => {
 });
 
 test('waves go left to right and the level ends with the boss at the crypt', () => {
-  for (let i = 1; i < WAVES.length; i++) assert.ok(WAVES[i].x > WAVES[i - 1].x);
+  for (let i = 1; i < WAVES.length; i++)
+    if (WAVES[i].chain) assert.equal(WAVES[i].x, WAVES[i - 1].x, 'a chained wave starts in place');
+    else assert.ok(WAVES[i].x > WAVES[i - 1].x);
   assert.deepEqual(
     WAVES.at(-1).sp.map((s) => s[0]),
     ['dragon'],

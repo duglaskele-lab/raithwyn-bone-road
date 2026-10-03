@@ -13,6 +13,7 @@ export const G = {
   shake: 0,
   flash: 0,
   slow: 0,
+  bikes: 0, // rockers so far: every second one rides the chopper
   enemies: [],
   props: [],
   items: [],
@@ -77,7 +78,7 @@ export function reset() {
   G.goT = 0;
   G.enemies = [];
   // a couple of hearts lying on the road before the dragon's lair
-  G.items = [6880, 6960].map((x) => ({ kind: 'hp', x, y: GT + 90, z: 0, vz: 0, t: 1 }));
+  G.items = [5160, 5220].map((x) => ({ kind: 'hp', x, y: GT + 90, z: 0, vz: 0, t: 1 }));
   G.projs = [];
   G.pools = [];
   G.shocks = [];
@@ -87,19 +88,20 @@ export function reset() {
   G.lastFoe = null;
   G.endT = 0;
   G.slow = 0;
+  G.bikes = 0;
   G.props = [
-    [700, 'hp'],
-    [1450, 'rage'],
-    [2200, 'hp'],
-    [2950, 'rage'],
-    [3700, 'hp'],
-    [4450, 'rage'],
-    [5150, 'hp'],
-    [5320, 'hp'],
+    [525, 'hp'],
+    [1090, 'rage'],
+    [1650, 'hp'],
+    [2210, 'rage'],
+    [2775, 'hp'],
+    [3340, 'rage'],
+    [3860, 'hp'],
+    [3990, 'hp'],
   ].map(([x, d]) => ({ isProp: 1, x, y: GT + 10, z: 0, w: 16, drop: d }));
   const rand = mulberry(1977);
   // big graves all along the road; something may climb out when they break
-  for (const x of [600, 1050, 1560, 1950, 2420, 2780, 3200, 3560, 4000, 4250, 4800, 6150, 6600])
+  for (const x of [450, 790, 1170, 1460, 1815, 2085, 2400, 2670, 3000, 3190, 3600, 4610, 4950])
     G.props.push({
       isProp: 1,
       decor: 'tomb',

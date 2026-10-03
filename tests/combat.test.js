@@ -1,9 +1,9 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { MAXR, RW } from '../src/config.js';
+import { HOG, MAXR, RW } from '../src/config.js';
 import { G, P } from '../src/state.js';
 import { addRage, hadoLevel, hitPlayer, hurtEnemy } from '../src/combat.js';
-import { spawn } from '../src/enemies.js';
+import { spawn, updEnemy } from '../src/enemies.js';
 import { freshGame } from './helpers.js';
 
 beforeEach(freshGame);
@@ -53,6 +53,27 @@ test('any hit knocks the rocker off his motorcycle', () => {
     G.debris.some((d) => d.k === 'bike'),
     'the bike is left behind as a wreck',
   );
+});
+
+test('every second rocker rides a long chopper that hits along its whole length', () => {
+  const a = spawn('biker', 1),
+    b = spawn('biker', 1);
+  assert.equal(a.bike, 'bike');
+  assert.equal(b.bike, 'hog');
+  assert.ok(HOG.half > 58 * 1.5, 'a much longer hit box');
+  for (const [e, behind, hit] of [
+    [a, 40, true],
+    [a, 80, false],
+    [b, 80, true],
+    [b, -100, true], // the ram in front
+    [b, 120, false],
+  ]) {
+    Object.assign(P, { x: 500, y: 450, z: 0, hp: 100, inv: 0, state: 'idle' });
+    Object.assign(e, { state: 'ride', t: RW + 0.1, y: 450, hitDone: false });
+    e.x = P.x + e.rdir * behind; // the player this far behind the rider's middle
+    updEnemy(e, 0.001, { n: 0 });
+    assert.equal(P.hp < 100, hit, `${e.bike}, ${behind} px behind`);
+  }
 });
 
 test('a leaping monkey is swatted out of the air by a plain hit', () => {

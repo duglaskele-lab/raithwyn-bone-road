@@ -1,6 +1,6 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { TYPES, WAVES } from '../src/config.js';
+import { CHAIN_GAP, TYPES, WAVES } from '../src/config.js';
 import { G, P } from '../src/state.js';
 import { keys, pressed } from '../src/input.js';
 import { spawn } from '../src/enemies.js';
@@ -66,4 +66,19 @@ test('the level can be finished: clearing all ten fights ends in victory', () =>
   });
   assert.equal(G.waveI, WAVES.length);
   assert.equal(G.state, 'win');
+});
+
+test('a chained wave starts right where the last one ended, with no walk in between', () => {
+  const i = WAVES.findIndex((w) => w.chain);
+  assert.ok(i > 0);
+  G.waveI = i - 1;
+  G.cam = WAVES[i - 1].x;
+  G.wave = { sp: [], t: 0 };
+  G.enemies = [];
+  step(DT);
+  assert.equal(G.waveI, i);
+  assert.ok(G.wave, 'the next wave is already running');
+  assert.equal(G.cam, WAVES[i].x);
+  step(CHAIN_GAP + 0.1);
+  assert.ok(G.enemies.length > 0, 'and its first enemy is out');
 });
