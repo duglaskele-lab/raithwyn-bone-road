@@ -24,6 +24,12 @@ SCALE = 0.5          # the sheet is drawn at twice the in-game size
 ATLAS_WIDTH = 1180
 HEAD_ANCHORED = {"jump", "run", "walk"}   # feet leave the ground, so anchor by the head
 CENTER_ANCHORED = {"fx"}                  # projectiles are anchored by their centre
+# Punches: the feet step around between frames, so anchoring by the feet makes the body
+# jump forward and back, and snap back again when the idle pose returns. These rows are
+# shifted so that the torso and hips line up with the idle pose; the forward step comes
+# from the game moving the player instead.
+BODY_ALIGNED = {"punch1", "punch2"}
+BODY_BAND = (45, 130)   # rows of the body used for the match, in game px above the ground
 
 
 def runs(mask):
@@ -38,6 +44,29 @@ def runs(mask):
     if start is not None:
         out.append([start, len(mask)])
     return out
+
+
+def placed(opaque, item, width=1200, height=520):
+    """The frame's mask on a canvas with its anchor at the bottom centre."""
+    _, x0, y0, x1, y1, ax, ay = item
+    canvas = np.zeros((height, width), bool)
+    left, top = width // 2 - int(round(ax)), height - int(round(ay))
+    canvas[top:top + y1 - y0, left:left + x1 - x0] = opaque[y0:y1, x0:x1]
+    return canvas
+
+
+def body_shift(opaque, idle, item):
+    """Horizontal shift (sheet px) that best overlaps the frame's body with the idle pose."""
+    lo, hi = (int(v / SCALE) for v in BODY_BAND)
+    ref, frame = placed(opaque, idle), placed(opaque, item)
+    band = slice(ref.shape[0] - hi, ref.shape[0] - lo)
+    ref, frame = ref[band], frame[band]
+
+    def overlap(dx):
+        moved = np.roll(frame, dx, axis=1)
+        return (moved & ref).sum() / max(1, (moved | ref).sum())
+
+    return max(range(-120, 121), key=overlap)
 
 
 def main():
@@ -68,7 +97,13 @@ def main():
             else:
                 xs = np.where(sub[int((y1 - y0) * 0.9):])[1]   # feet
                 ax, ay = (xs.min() + xs.max()) / 2, y1 - y0
-            items.append((name, x0, y0, x1, y1, ax, ay))
+            items.append([name, x0, y0, x1, y1, ax, ay])
+
+    idle = next(it for it in items if it[0] == "idle")
+    for it in items:
+        if it[0] in BODY_ALIGNED:
+            it[5] -= body_shift(opaque, idle, it)
+    items = [tuple(it) for it in items]
 
     x = y = row_h = 0
     places = []
