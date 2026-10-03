@@ -1,9 +1,10 @@
 // Damage rules: who can be hit, what a hit does, rage, the boss interrupt immunity.
-import { MAXR, RL, RW, TAU } from './config.js';
+import { MAXR, RL, RW, SUPER_DMG, SWIND_LOCK, TAU, W } from './config.js';
 import { rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
-import { floatTxt, shatter, spark } from './fx.js';
+import { floatTxt, motes, shatter, spark } from './fx.js';
+import { t } from './i18n.js';
 
 export function hadoLevel(rage) {
   return rage >= RL[2] ? 3 : rage >= RL[1] ? 2 : rage >= RL[0] ? 1 : 0;
@@ -55,7 +56,7 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
       tilt: 0,
       life: 2.6,
     });
-    floatTxt(e.x, e.y - 200, 'Сбит с мотоцикла', '#ffe9a8');
+    floatTxt(e.x, e.y - 200, t('unhorsed'), '#ffe9a8');
     G.shake = Math.max(G.shake, 8);
     if (e.hp <= 0) {
       killEnemy(e, dir);
@@ -88,21 +89,23 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
         if (e.breaks >= 2) {
           e.breaks = 0;
           e.armor = 4;
-          floatTxt(e.x, e.y - 280, 'Иммунитет к комбо', '#e3c8ff');
+          floatTxt(e.x, e.y - 280, t('immuneShort'), '#e3c8ff');
           SFX.boss();
-        } else floatTxt(e.x, e.y - 280, 'Атака прервана', '#ffe9a8');
+        } else floatTxt(e.x, e.y - 280, t('interrupted'), '#ffe9a8');
       } else if (knock) {
         e.state = 'hurt';
         e.t = 0;
         e.vx = dir * 110;
       }
-    } else if (src === 'hado') {
+    } else if (src === 'hado' || src === 'super') {
       e.state = 'hurt';
       e.t = 0;
       e.vx = dir * 110;
     }
     return true;
   }
+  // Past the last third of the wind-up the fatso's ground slam can no longer be stopped.
+  if (e.state === 'swind' && e.t >= SWIND_LOCK) return true;
   const busy = e.state === 'windup' || e.state === 'attack' || e.state === 'swind';
   if (knock || e.state === 'leap') {
     e.state = 'air';
@@ -134,7 +137,7 @@ export function killEnemy(e, dir) {
         o.dead = true;
         shatter(o, o.x < e.x ? -1 : 1);
       }
-    G.projs = G.projs.filter((p) => p.k !== 'ebone');
+    G.projs = G.projs.filter((p) => p.k !== 'ebone' && p.k !== 'acid');
   } else if (Math.random() < 0.12)
     G.items.push({ kind: 'rage', x: e.x, y: e.y, z: 60, vz: 200, t: 0 });
 }
@@ -195,4 +198,24 @@ export function hitPlayer(dmg, dir, knock) {
     p.vx = dir * 150;
   }
   return true;
+}
+// The super attack goes off: every enemy and urn on screen takes a heavy knockdown hit and
+// every enemy projectile on screen is wiped out.
+export function superNova() {
+  const p = P,
+    onScreen = (o) => !o.dead && o.x > G.cam - 30 && o.x < G.cam + W + 30;
+  G.flash = 0.7;
+  G.shake = 18;
+  G.freeze = 0.12;
+  SFX.nova();
+  SFX.hado();
+  G.parts.push({ k: 'ring', x: p.x + p.face * 50, y: p.y - 112, t: 0, life: 0.6, s: W * 0.9 });
+  G.parts.push({ k: 'gring', x: p.x, y: p.y, t: 0, life: 0.7, s: W * 0.8 });
+  for (const e of G.enemies.concat(G.props).filter(onScreen)) {
+    if (hurtEnemy(e, SUPER_DMG, e.x >= p.x ? 1 : -1, true, 'super') && !e.isProp) {
+      G.parts.push({ k: 'fxring', x: e.x, y: e.y - e.z - 95 * e.T.scale, t: 0, life: 0.35 });
+      motes(e.x, e.y - 95, 12, 280);
+    }
+  }
+  for (const q of G.projs) if ((q.k === 'ebone' || q.k === 'acid') && onScreen(q)) q.life = 0;
 }

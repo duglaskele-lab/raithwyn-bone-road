@@ -1,4 +1,5 @@
 // Keyboard and touch input. `keys` holds what is held down, `pressed` what went down this frame.
+import { H, W } from './config.js';
 import { G } from './state.js';
 import { audioInit } from './audio.js';
 
@@ -16,13 +17,10 @@ export const MAP = {
   ArrowDown: 'd',
   KeyS: 'd',
   KeyJ: 'atk',
-  KeyZ: 'atk',
   Space: 'jump',
-  KeyX: 'jump',
-  KeyL: 'bone',
-  KeyC: 'bone',
-  KeyI: 'hado',
-  KeyV: 'hado',
+  KeyK: 'bone',
+  KeyL: 'hado',
+  KeyI: 'super',
   ShiftLeft: 'run',
   ShiftRight: 'run',
   Enter: 'start',
@@ -61,9 +59,11 @@ export function initInput(canvas) {
   addEventListener('blur', () => {
     for (const k in keys) keys[k] = false;
   });
-  canvas.addEventListener('pointerdown', () => {
+  canvas.addEventListener('pointerdown', (e) => {
     canvas.focus();
     audioInit();
+    const r = canvas.getBoundingClientRect();
+    pressed.tap = [((e.clientX - r.left) / r.width) * W, ((e.clientY - r.top) / r.height) * H];
     pressed.start = true;
   });
   document.addEventListener('visibilitychange', () => {

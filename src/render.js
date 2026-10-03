@@ -1,10 +1,25 @@
 // Draws the world, the HUD and the title screen.
-import { FONT, H, MAXR, OL, PURPLE, RL, RW, SLAM_R, TAU, W, WAVES } from './config.js';
+import {
+  FONT,
+  H,
+  MAXR,
+  OL,
+  PURPLE,
+  RL,
+  RW,
+  SLAM_R,
+  SWIND,
+  SWIND_LOCK,
+  TAU,
+  W,
+  WAVES,
+} from './config.js';
 import { clamp, ease } from './util.js';
 import { FR } from './atlas-frames.js';
 import { G, P } from './state.js';
 import { atlas, ctx, rr, sprite, txt } from './gfx.js';
 import { touch } from './input.js';
+import { foeName, STR, lang, t } from './i18n.js';
 import { drawBG, drawFog, drawVignette } from './background.js';
 import { hadoLevel } from './combat.js';
 import { boneShape, drawBike, drawSkel } from './skeleton.js';
@@ -181,6 +196,29 @@ export function drawProj(q) {
     sprite('fx', 0, x, y, f, sc);
     return;
   }
+  if (q.k === 'acid') {
+    const r = 11 + Math.sin(G.time * 30) * 1.5;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createRadialGradient(x, y, 2, x, y, 34);
+    g.addColorStop(0, 'rgba(157,255,74,.55)');
+    g.addColorStop(1, 'rgba(157,255,74,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x - 34, y - 34, 68, 68);
+    ctx.restore();
+    ctx.fillStyle = '#5fd12a';
+    ctx.strokeStyle = OL;
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, TAU);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#d9ffb0';
+    ctx.beginPath();
+    ctx.arc(x - 3.5, y - 4, 3.5, 0, TAU);
+    ctx.fill();
+    return;
+  }
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(q.rot);
@@ -291,6 +329,36 @@ export function drawPlayer() {
   const p = P;
   let a = 1;
   if (p.inv > 0 && p.state !== 'hado' && Math.floor(G.time * 18) % 2) a = 0.4;
+  if (p.state === 'super') {
+    // Gathering the super attack: a growing glow at her feet and a charge ring overhead.
+    const u = p.sw ? 1 : p.sup,
+      R = 90 + 120 * u,
+      x = p.x - G.cam;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createRadialGradient(x, p.y, 4, x, p.y, R);
+    g.addColorStop(0, `rgba(176,92,255,${0.35 + 0.35 * u})`);
+    g.addColorStop(1, 'rgba(176,92,255,0)');
+    ctx.fillStyle = g;
+    ctx.scale(1, 0.3);
+    ctx.fillRect(x - R, p.y / 0.3 - R, R * 2, R * 2);
+    ctx.restore();
+    if (!p.sw) {
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.lineWidth = 7;
+      ctx.strokeStyle = 'rgba(16,14,24,.8)';
+      ctx.beginPath();
+      ctx.arc(x, p.y - 205, 13, 0, TAU);
+      ctx.stroke();
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = u >= 1 ? '#fff' : '#d9b8ff';
+      ctx.beginPath();
+      ctx.arc(x, p.y - 205, 13, -Math.PI / 2, -Math.PI / 2 + TAU * u);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
   if (p.state === 'hado') {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
@@ -311,14 +379,15 @@ export function drawWorld() {
   // slam warning
   for (const e of G.enemies)
     if (e.state === 'swind') {
-      const u = e.t / 0.9,
-        x = e.x - G.cam;
-      ctx.fillStyle = `rgba(255,90,70,${0.08 + 0.14 * u})`;
+      const u = e.t / SWIND,
+        x = e.x - G.cam,
+        locked = e.t >= SWIND_LOCK;
+      ctx.fillStyle = `rgba(255,${locked ? 40 : 90},${locked ? 40 : 70},${0.08 + 0.14 * u + (locked ? 0.08 : 0)})`;
       ctx.beginPath();
       ctx.ellipse(x, e.y, SLAM_R, SLAM_R * 0.36, 0, 0, TAU);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(255,140,110,.9)';
-      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = locked ? '#ff3a3a' : 'rgba(255,140,110,.9)';
+      ctx.lineWidth = locked ? 4 : 2.5;
       ctx.stroke();
       ctx.beginPath();
       ctx.ellipse(x, e.y, SLAM_R * u, SLAM_R * 0.36 * u, 0, 0, TAU);
@@ -394,7 +463,7 @@ export function drawHUD() {
   ctx.fillStyle = '#ece5cb';
   for (const r of [RL[0], RL[1]]) ctx.fillRect(88 + (210 * r) / MAXR + 2, 61, 2, 10);
   txt(
-    ['Ярость', 'Хадукен I', 'Хадукен II', 'Хадукен III'][lv],
+    t(['rage', 'hado1', 'hado2', 'hado3'][lv]),
     308,
     71,
     12,
@@ -419,7 +488,7 @@ export function drawHUD() {
   // foe bar
   if (G.lastFoe && G.lastFoeT > 0 && G.lastFoe.type !== 'boss') {
     ctx.globalAlpha = Math.min(1, G.lastFoeT * 2);
-    txt(G.lastFoe.T.name, W - 20, 60, 14, '#ece5cb', 'right', 3);
+    txt(foeName(G.lastFoe.type), W - 20, 60, 14, '#ece5cb', 'right', 3);
     bar(W - 190, 66, 164, 9, Math.max(0, G.lastFoe.hp) / G.lastFoe.T.hp, 0, '#ff8a4a', 4);
     ctx.globalAlpha = 1;
   }
@@ -427,18 +496,10 @@ export function drawHUD() {
   if (boss) {
     const bx = 440,
       bw = 360;
-    txt(boss.T.name, bx + 8, 31, 14, '#e3c8ff', 'left', 4);
+    txt(foeName('boss'), bx + 8, 31, 14, '#e3c8ff', 'left', 4);
     bar(bx, 37, bw, 12, Math.max(0, boss.hp) / boss.T.hp, 0, '#b05cff');
     if (boss.armor > 0)
-      txt(
-        'Иммунитет к комбо ' + boss.armor.toFixed(1) + ' с',
-        bx + bw + 4,
-        31,
-        12,
-        '#fff',
-        'right',
-        3,
-      );
+      txt(t('immune', boss.armor.toFixed(1)), bx + bw + 4, 31, 12, '#fff', 'right', 3);
     else
       for (let i = 0; i < 2; i++) {
         const x = bx + bw - 8 - i * 18,
@@ -463,7 +524,7 @@ export function drawHUD() {
     G.goT > 0 &&
     Math.floor(G.time * 3) % 2 === 0
   ) {
-    txt('Вперёд', W - 74, 250, 26, '#ece5cb', 'right', 5);
+    txt(t('go'), W - 74, 250, 26, '#ece5cb', 'right', 5);
     ctx.fillStyle = '#ece5cb';
     ctx.strokeStyle = OL;
     ctx.lineWidth = 4;
@@ -481,11 +542,12 @@ export function drawHUD() {
       a = u < 0.3 ? u / 0.3 : u > 2.5 ? (3 - u) / 0.5 : 1,
       off = (1 - ease(Math.min(1, u / 0.4))) * -60;
     ctx.globalAlpha = clamp(a, 0, 1);
-    txt(G.banner.a, W / 2 + off, 138, 38, '#ece5cb', 'center', 7);
-    txt(G.banner.b, W / 2 - off, 166, 17, '#d2a8ff', 'center', 4);
+    const s = (k) => (k[0] === '@' ? foeName(k.slice(1)) : t(k));
+    txt(s(G.banner.a), W / 2 + off, 138, 38, '#ece5cb', 'center', 7);
+    txt(s(G.banner.b), W / 2 - off, 166, 17, '#d2a8ff', 'center', 4);
     ctx.globalAlpha = 1;
   }
-  if (G.muted) txt('Звук выключен', W - 20, H - 14, 12, '#9bb0ac', 'right', 3);
+  if (G.muted) txt(t('muted'), W - 20, H - 14, 12, '#9bb0ac', 'right', 3);
 }
 export function overlay(a) {
   ctx.fillStyle = `rgba(12,10,20,${a})`;
@@ -524,32 +586,40 @@ export function drawTitle() {
   ctx.shadowBlur = 26;
   txt('RAITHWYN', 420, 170, 68, '#f0e9ff', 'left', 10);
   ctx.restore();
-  txt('Костяной тракт', 424, 208, 24, '#d2a8ff', 'left', 5);
+  txt(t('subtitle'), 424, 208, 24, '#d2a8ff', 'left', 5);
   const rows = [
-    ['Удар, серия из трёх', 'J'],
-    ['Прыжок, в полёте можно бить', 'Пробел'],
-    ['Бросок кости', 'L'],
-    ['Хадукен, три уровня силы', 'I'],
+    [t('rowAtk'), 'J'],
+    [t('rowJump'), t('keySpace')],
+    [t('rowBone'), 'K'],
+    [t('rowHado'), 'L'],
+    [t('rowSuper'), 'I'],
   ];
   rows.forEach(([a, k], i) => {
-    const y = 268 + i * 32;
-    ctx.font = `900 15px ${FONT}`;
-    const w = Math.max(30, ctx.measureText(k).width + 16);
+    const y = 250 + i * 28;
+    ctx.font = `900 14px ${FONT}`;
+    const w = Math.max(28, ctx.measureText(k).width + 14);
     ctx.fillStyle = '#ece5cb';
-    rr(424, y - 19, w, 25, 5);
+    rr(424, y - 18, w, 23, 5);
     ctx.fill();
-    txt(k, 424 + w / 2, y - 1, 15, OL, 'center');
-    txt(a, 424 + w + 12, y, 15, '#ece5cb', 'left', 4);
+    txt(k, 424 + w / 2, y - 1, 14, OL, 'center');
+    txt(a, 424 + w + 12, y, 14, '#ece5cb', 'left', 4);
   });
-  txt('Чем больше ярости, тем сильнее хадукен', 424, 416, 13, '#9bb0ac', 'left', 3);
-  if (Math.floor(G.time * 2) % 2 === 0)
-    txt(
-      touch ? 'Коснись экрана, чтобы начать' : 'Enter — начать бой',
-      424,
-      474,
-      21,
-      '#f0cf4f',
-      'left',
-      5,
-    );
+  txt(t('titleTip'), 424, 394, 13, '#9bb0ac', 'left', 3);
+  // menu: start / language
+  const items = [t('menuStart'), t('menuLang') + ':  \u25C2 ' + STR[lang].langName + ' \u25B8'];
+  items.forEach((s, i) => {
+    const y = MENU_Y[i],
+      on = G.menu === i;
+    if (on) {
+      ctx.fillStyle = 'rgba(176,92,255,.28)';
+      rr(412, y - 25, 400, 34, 6);
+      ctx.fill();
+      if (Math.floor(G.time * 3) % 2 === 0) txt('\u25B6', 400, y, 18, '#f0cf4f', 'right', 4);
+    }
+    txt(s, 424, y, on ? 21 : 18, on ? '#f0cf4f' : '#ece5cb', 'left', 5);
+  });
+  txt(touch ? t('menuHintTouch') : t('menuHint'), 424, 518, 12, '#9bb0ac', 'left', 3);
 }
+// Title menu rows (baseline y) and the hit box of the language row for taps and clicks.
+export const MENU_Y = [440, 480];
+export const LANG_BOX = [404, MENU_Y[1] - 28, 420, 40];

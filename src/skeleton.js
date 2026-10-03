@@ -53,6 +53,10 @@ export function skelPose(e) {
   if (T.club && st === 'chase') {
     o.aF = [0.4, 2.1 + 0.05 * br];
   }
+  if (T.robe && (st === 'chase' || st === 'rise')) {
+    o.aF = [0.45, 1.6 + 0.04 * br];
+    o.lean = 0.04;
+  }
   o.jaw = Math.max(0, Math.sin(t * 7 + e.seed) - 0.6) * 5;
   const strikeA =
     T.style === 'punch'
@@ -101,6 +105,13 @@ export function skelPose(e) {
       o.lB = [0.7, -0.7];
       o.hipH = 46;
     }
+  } else if (st === 'staff') {
+    const p = ease(Math.min(1, e.t / 0.3));
+    o.aF = e.t < 0.32 ? mix(pre, [2.9, 3.4], p) : [1.15, 0.95];
+    o.lean = e.t < 0.32 ? -0.12 * p : 0.3;
+    o.lF = [0.4, 0.1];
+    o.lB = [-0.4, -0.6];
+    o.jaw = 4;
   } else if (st === 'lwind') {
     o.lF = [1.2, -0.8];
     o.lB = [1, -1];
@@ -247,7 +258,9 @@ export function drawSkel(e) {
     FA = 26 * ak;
   const fl = e.flash > 0,
     col = fl ? '#ffffff' : T.col,
-    dk = fl ? '#ffd9d9' : T.dk;
+    dk = fl ? '#ffd9d9' : T.dk,
+    robe = fl ? '#ffffff' : '#77727c',
+    robeDk = fl ? '#ffd9d9' : '#57525d';
   if (e.armor > 0) {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
@@ -290,7 +303,8 @@ export function drawSkel(e) {
   };
   const arm = (a, c, off) => {
     const L = limb([sh[0] + off, sh[1]], a[0], a[1], UA, FA);
-    boneSeg(L, 5 + tk, c);
+    if (T.robe) boneSeg(L.slice(0, 2), 10, robeDk);
+    boneSeg(T.robe ? L.slice(1) : L, 5 + tk, T.robe ? robeDk : c);
     const h = L[2];
     ctx.fillStyle = OL;
     ctx.beginPath();
@@ -381,6 +395,43 @@ export function drawSkel(e) {
   }
   ctx.restore();
   leg(o.lF, col, 3);
+  if (T.robe) {
+    // grey cassock over the body, the hem swaying with the steps
+    const sw = e.moving ? Math.sin(e.walkT) * 6 : Math.sin(e.anim * 2) * 2,
+      hem = hipH - 14;
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = OL;
+    ctx.lineWidth = 2.4;
+    ctx.fillStyle = robe;
+    ctx.beginPath();
+    ctx.moveTo(sh[0] - 13, sh[1] - 2);
+    ctx.lineTo(sh[0] + 11, sh[1] - 1);
+    ctx.quadraticCurveTo(16, 0, 24 + sw, hem);
+    ctx.lineTo(10 + sw * 0.6, hem + 4);
+    ctx.lineTo(-6 + sw * 0.3, hem);
+    ctx.lineTo(-24 + sw * 0.2, hem + 3);
+    ctx.quadraticCurveTo(-18, 0, sh[0] - 13, sh[1] - 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = robeDk;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(2, 4);
+    ctx.lineTo(4 + sw * 0.5, hem - 2);
+    ctx.moveTo(-10, 6);
+    ctx.lineTo(-14 + sw * 0.3, hem - 1);
+    ctx.stroke();
+    // rope belt
+    ctx.strokeStyle = '#3b3640';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-15, -2);
+    ctx.lineTo(15, -1);
+    ctx.moveTo(6, -1);
+    ctx.lineTo(8 + sw * 0.4, 22);
+    ctx.stroke();
+  }
   // skull
   ctx.save();
   const ha = o.lean + o.head;
@@ -448,6 +499,33 @@ export function drawSkel(e) {
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
+  }
+  if (T.robe) {
+    // grey hood: the face is lost in shadow, only the burning red eyes show
+    ctx.fillStyle = robe;
+    ctx.beginPath();
+    ctx.moveTo(-6, 8);
+    ctx.quadraticCurveTo(-24, -6, -12, -20);
+    ctx.quadraticCurveTo(2, -30, 16, -14);
+    ctx.quadraticCurveTo(22, 2, 16, 15);
+    ctx.lineTo(4, 18);
+    ctx.lineTo(-18, 30 + Math.sin(e.anim * 4) * 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#120e16';
+    ctx.beginPath();
+    ctx.ellipse(8, 0, 8.5, 11.5, 0.1, 0, TAU);
+    ctx.fill();
+    const glow = 0.75 + 0.25 * Math.sin(G.time * 8 + e.seed);
+    ctx.fillStyle = T.eye;
+    ctx.shadowColor = T.eye;
+    ctx.shadowBlur = 14 * glow;
+    ctx.beginPath();
+    ctx.arc(6, -1.5, 2.3, 0, TAU);
+    ctx.arc(12.2, -1.5, 1.8, 0, TAU);
+    ctx.fill();
+    ctx.shadowBlur = 0;
   }
   if (T.club) {
     ctx.fillStyle = fl ? '#fff' : '#9a6a3e';
@@ -586,6 +664,34 @@ export function drawSkel(e) {
     chainLine(0, 0, Math.sin(e.anim * 4) * 5, 26);
     ctx.restore();
   }
+  if (T.robe) {
+    // the staff, topped with a bubble of acid that swells while a spell is cast
+    const casting = e.state === 'windup' && T.style === 'cast';
+    ctx.save();
+    ctx.translate(h[0], h[1]);
+    ctx.rotate(-(wa - 1.6) * 0.9);
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = OL;
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.moveTo(-2, 52);
+    ctx.lineTo(2, -78);
+    ctx.stroke();
+    ctx.strokeStyle = fl ? '#fff' : '#6b4a32';
+    ctx.lineWidth = 3.5;
+    ctx.stroke();
+    const r = casting ? 6 + 6 * Math.min(1, e.t / T.wind) : 5.5;
+    ctx.fillStyle = '#9dff4a';
+    ctx.shadowColor = '#9dff4a';
+    ctx.shadowBlur = casting ? 22 : 10;
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.arc(2, -84, r, 0, TAU);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.stroke();
+    ctx.restore();
+  }
   if (T.style === 'throw' && e.state === 'windup') {
     ctx.save();
     ctx.translate(h[0], h[1]);
@@ -593,7 +699,8 @@ export function drawSkel(e) {
     boneShape(20, 4.5, '#f3eeda');
     ctx.restore();
   }
-  boneSeg(L, 5 + tk, col);
+  if (T.robe) boneSeg(L.slice(0, 2), 10, robe);
+  boneSeg(T.robe ? L.slice(1) : L, 5 + tk, T.robe ? robe : col);
   ctx.fillStyle = OL;
   ctx.beginPath();
   ctx.arc(h[0], h[1], 6.5, 0, TAU);

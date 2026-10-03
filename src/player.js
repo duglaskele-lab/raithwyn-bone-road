@@ -1,11 +1,12 @@
-// Raithwyn: movement, combo, air punch, bone throw, hadouken, getting hit.
-import { D, GB, GT, RL, W, WAVES } from './config.js';
+// Raithwyn: movement, combo, air punch, bone throw, hadouken, super attack, getting hit.
+import { BONE_COST, D, GB, GT, MAXR, RL, SUPER_HOLD, W, WAVES } from './config.js';
 import { clamp, tl } from './util.js';
 import { G, P } from './state.js';
 import { keys, pressed } from './input.js';
 import { SFX } from './audio.js';
 import { dust, floatTxt, motes } from './fx.js';
-import { hadoLevel, strike } from './combat.js';
+import { hadoLevel, strike, superNova } from './combat.js';
+import { t } from './i18n.js';
 
 export function toIdle() {
   P.state = 'idle';
@@ -35,7 +36,7 @@ export function updPlayer(dt) {
   p.hpLag += (p.hp - p.hpLag) * Math.min(1, dt * 3);
   const mx = (keys.r ? 1 : 0) - (keys.l ? 1 : 0),
     my = (keys.d ? 1 : 0) - (keys.u ? 1 : 0);
-  for (const a of ['atk', 'jump', 'bone', 'hado'])
+  for (const a of ['atk', 'jump', 'bone', 'hado', 'super'])
     if (pressed[a]) {
       p.buf = a;
       p.bufT = 0.2;
@@ -76,10 +77,28 @@ export function updPlayer(dt) {
       } else if (b === 'atk') startAtk(mx);
       else if (b === 'bone' && p.boneCd <= 0) {
         p.buf = null;
-        p.state = 'throw';
-        p.t = 0;
-        p.sw = 0;
-        p.boneCd = 0.5;
+        if (p.rage >= BONE_COST) {
+          p.rage -= BONE_COST;
+          p.state = 'throw';
+          p.t = 0;
+          p.sw = 0;
+          p.boneCd = 0.5;
+        } else {
+          SFX.deny();
+          floatTxt(p.x, p.y - 190, t('lowRage'), '#d9b8ff');
+        }
+      } else if (b === 'super') {
+        p.buf = null;
+        if (p.rage < MAXR) {
+          SFX.deny();
+          floatTxt(p.x, p.y - 190, t('needFull'), '#d9b8ff');
+        } else if (keys.super) {
+          // Charging: rage is only spent when the blast goes off, so a hit here costs nothing.
+          p.state = 'super';
+          p.t = 0;
+          p.sup = 0;
+          p.sw = 0;
+        }
       } else if (b === 'hado') {
         p.buf = null;
         const lv = hadoLevel(p.rage);
@@ -92,7 +111,7 @@ export function updPlayer(dt) {
           p.inv = Math.max(p.inv, 0.35);
         } else {
           SFX.deny();
-          floatTxt(p.x, p.y - 190, 'Мало ярости', '#d9b8ff');
+          floatTxt(p.x, p.y - 190, t('lowRage'), '#d9b8ff');
         }
       }
       break;
@@ -218,6 +237,30 @@ export function updPlayer(dt) {
           life: 2.4,
           hit: new Set(),
         });
+      }
+      break;
+    }
+    case 'super': {
+      if (!p.sw) {
+        // Letting go of I early calls the charge off.
+        if (!keys.super) {
+          toIdle();
+          break;
+        }
+        p.sup = Math.min(1, p.t / SUPER_HOLD);
+        p.an = ['orb', Math.min(5, Math.floor(p.sup * 6))];
+        if (Math.random() < 0.3 + 0.6 * p.sup)
+          motes(p.x + p.face * 52, p.y - 112, 1, 60 + 140 * p.sup);
+        if (p.t >= SUPER_HOLD) {
+          p.sw = 1;
+          p.t = 0;
+          p.rage = 0;
+          p.inv = Math.max(p.inv, 0.7);
+          superNova();
+        }
+      } else {
+        p.an = ['orb', 6];
+        if (p.t > 0.45) toIdle();
       }
       break;
     }

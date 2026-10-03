@@ -4,6 +4,7 @@ import { clamp, rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
 import { floatTxt, motes } from './fx.js';
+import { t } from './i18n.js';
 import { addRage, hitPlayer, hurtEnemy } from './combat.js';
 import { updPlayer } from './player.js';
 import { spawn, updEnemy } from './enemies.js';
@@ -144,8 +145,50 @@ export function update(dt) {
         }
       }
       for (const o of G.projs)
-        if (o.k === 'ebone' && Math.abs(o.x - q.x) < 40 && Math.abs(o.y - q.y) < 40) o.life = 0;
+        if (
+          (o.k === 'ebone' || o.k === 'acid') &&
+          Math.abs(o.x - q.x) < 40 &&
+          Math.abs(o.y - q.y) < 40
+        )
+          o.life = 0;
       if (q.x < G.cam - 120 || q.x > G.cam + W + 120) q.life = 0;
+    } else if (q.k === 'acid') {
+      // The necromancer's acid ball: wobbles in flight and bursts into a green splash.
+      q.rot += dt;
+      q.z += Math.sin(q.rot * 9) * 22 * dt;
+      if (Math.random() < 0.5)
+        G.parts.push({
+          k: 'dot',
+          x: q.x - Math.sign(q.vx) * rnd(6, 16),
+          y: q.y - q.z + rnd(-6, 6),
+          vx: -q.vx * 0.1,
+          vy: rnd(10, 60),
+          g: 300,
+          t: 0,
+          life: rnd(0.2, 0.4),
+          s: rnd(2, 4),
+          col: '#9dff4a',
+        });
+      if (Math.abs(P.x - q.x) < 26 && Math.abs(P.y - q.y) < 20 && P.z < 110) {
+        if (hitPlayer(9, Math.sign(q.vx), false)) {
+          q.life = 0;
+          SFX.splash();
+          for (let i = 0; i < 10; i++)
+            G.parts.push({
+              k: 'dot',
+              x: P.x,
+              y: P.y - 100,
+              vx: rnd(-200, 200),
+              vy: rnd(-260, -40),
+              g: 700,
+              t: 0,
+              life: rnd(0.3, 0.55),
+              s: rnd(3, 6),
+              col: i % 2 ? '#9dff4a' : '#4fd12a',
+            });
+        }
+      }
+      if (q.x < G.cam - 100 || q.x > G.cam + W + 100) q.life = 0;
     } else {
       q.rot += dt * 16 * Math.sign(q.vx);
       if (Math.abs(P.x - q.x) < 24 && Math.abs(P.y - q.y) < 19 && P.z < 95) {
@@ -178,10 +221,10 @@ export function update(dt) {
       SFX.pick();
       if (it.kind === 'hp') {
         P.hp = Math.min(100, P.hp + 35);
-        floatTxt(it.x, it.y - 120, '+35 здоровья', '#ff8f9d');
+        floatTxt(it.x, it.y - 120, t('plusHp'), '#ff8f9d');
       } else {
         addRage(50);
-        floatTxt(it.x, it.y - 120, '+50 ярости', '#d9b8ff');
+        floatTxt(it.x, it.y - 120, t('plusRage'), '#d9b8ff');
         motes(it.x, it.y - 40, 10);
       }
     }
