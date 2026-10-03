@@ -8,12 +8,14 @@ import { SFX } from './audio.js';
 import { CHARS, LEVEL, LOCKED, SLOTS, STATS } from './characters.js';
 import { STR, lang, nextLang, t } from './i18n.js';
 import { ctx, portraits, ready, rr, sprite, txt, wrapTxt } from './gfx.js';
-import { drawWorld, overlay } from './render.js';
+import { drawHUD, drawWorld, overlay } from './render.js';
 
 // ---- layout (game pixels); the hit boxes double as touch and mouse targets ----
 const box = (cx, y, w, h = 44) => [cx - w / 2, y - h / 2 - 8, w, h];
 export const MAIN_ITEMS = ['start', 'settings', 'exit'];
 export const MAIN_BOX = MAIN_ITEMS.map((_, i) => box(600, 296 + i * 56, 300));
+export const PAUSE_ITEMS = ['resume', 'settings', 'menu'];
+export const PAUSE_BOX = PAUSE_ITEMS.map((_, i) => box(W / 2, 262 + i * 54, 340));
 export const SET_ITEMS = ['lang', 'sound', 'back'];
 export const SET_BOX = SET_ITEMS.map((_, i) => box(W / 2, 162 + i * 52, 420));
 const SLOT = 118,
@@ -60,8 +62,10 @@ function mainStep() {
   if (item === 'start') {
     go('select');
     G.sel = 0;
-  } else if (item === 'settings') go('settings');
-  else {
+  } else if (item === 'settings') {
+    G.from = 'title';
+    go('settings');
+  } else {
     go('bye');
     try {
       window.close(); // only works when the game was opened by a script; otherwise say goodbye
@@ -70,8 +74,10 @@ function mainStep() {
     }
   }
 }
+// Settings are reached from the main menu or from the pause menu and return there.
+const leaveSettings = () => go(G.from === 'pause' ? 'pause' : 'title', 1);
 function settingsStep() {
-  if (pressed.pause) return go('title', 1);
+  if (pressed.pause) return leaveSettings();
   const i = hit(SET_BOX);
   if (i >= 0) G.menu = i;
   else if (pressed.tap) return;
@@ -82,7 +88,7 @@ function settingsStep() {
   const item = SET_ITEMS[G.menu];
   if (item === 'lang') nextLang();
   else if (item === 'sound') G.muted = !G.muted;
-  else if (i >= 0 || pressed.start || pressed.atk) go('title', 1);
+  else if (i >= 0 || pressed.start || pressed.atk) leaveSettings();
 }
 function selectStep() {
   if (pressed.pause || inBox(pressed.tap, BACK_BOX)) return go('title');
@@ -101,6 +107,32 @@ function selectStep() {
   if (pressed.r) G.sel = row * 4 + ((col + 1) % 4);
   if (pressed.u || pressed.d) G.sel = (G.sel + 4) % SLOTS;
   if (pressed.start || pressed.atk) startFight();
+}
+/** The pause menu (Esc during the fight): resume, settings, back to the main menu. */
+export function pauseStep() {
+  if (pressed.pause) return go('play');
+  const i = hit(PAUSE_BOX);
+  if (i >= 0) G.menu = i;
+  else if (pressed.tap) return;
+  if (pressed.u) G.menu = (G.menu + 2) % 3;
+  if (pressed.d) G.menu = (G.menu + 1) % 3;
+  if (i < 0 && !pressed.start && !pressed.atk) return;
+  const item = PAUSE_ITEMS[G.menu];
+  if (item === 'resume') go('play');
+  else if (item === 'settings') {
+    G.from = 'pause';
+    go('settings');
+  } else {
+    reset();
+    go('title');
+  }
+}
+export function drawPause() {
+  overlay(0.62);
+  txt(t('pause'), W / 2, 190, 54, '#ece5cb', 'center', 8);
+  const labels = [t('resume'), t('menuSettings'), t('toMainMenu')];
+  labels.forEach((s, i) => item(s, PAUSE_BOX[i], G.menu === i));
+  if (!touch) txt(t('pauseHint'), W / 2, 470, 13, '#9bb0ac', 'center', 3);
 }
 /** Handles one frame of input on the menu screens. */
 export function menuStep(dt) {
@@ -221,7 +253,12 @@ function drawMain() {
   txt(touch ? t('mainHintTouch') : t('mainHint'), 600, 520, 13, '#9bb0ac', 'center', 3);
 }
 function drawSettings() {
-  backdrop(0.72);
+  if (G.from === 'pause') {
+    // over the paused fight: the world stays where it is
+    drawWorld();
+    drawHUD();
+    overlay(0.8);
+  } else backdrop(0.72);
   txt(t('settings'), W / 2, 96, 40, '#ece5cb', 'center', 7);
   const labels = [
     `${t('menuLang')}:  ◂ ${STR[lang].langName} ▸`,

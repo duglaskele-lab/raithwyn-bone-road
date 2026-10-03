@@ -1,10 +1,11 @@
 // Damage rules: who can be hit, what a hit does, rage, the boss interrupt immunity.
-import { MAXR, RL, RW, SUPER_DMG, SWIND_LOCK, TAU, W } from './config.js';
+import { DECOR, MAXR, RL, RW, SUPER_DMG, SWIND_LOCK, TAU, W } from './config.js';
 import { rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
 import { floatTxt, motes, shatter, spark } from './fx.js';
 import { t } from './i18n.js';
+import { dmgMult, scoreMult, styleBreak, styleGain } from './style.js';
 
 export function hadoLevel(rage) {
   return rage >= RL[2] ? 3 : rage >= RL[1] ? 2 : rage >= RL[0] ? 1 : 0;
@@ -14,7 +15,14 @@ export function addRage(n) {
 }
 export function hurtEnemy(e, dmg, dir, knock, src) {
   if (e.isProp) {
-    breakProp(e);
+    if (e.hp > 1) {
+      // sturdy scenery (a gravestone) cracks first and breaks on the next hit
+      e.hp--;
+      e.flashT = G.time + 0.15;
+      spark(e.x - dir * 6, e.y - 30, '#dfe9e2', false);
+      SFX.clack();
+      G.shake = Math.max(G.shake, 3);
+    } else breakProp(e);
     return true;
   }
   if (
@@ -125,7 +133,7 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
 }
 export function killEnemy(e, dir) {
   e.dead = true;
-  P.score += e.T.score;
+  P.score += Math.round(e.T.score * scoreMult());
   shatter(e, dir);
   if (e.type === 'boss') {
     G.slow = 1.4;
@@ -138,14 +146,20 @@ export function killEnemy(e, dir) {
         shatter(o, o.x < e.x ? -1 : 1);
       }
     G.projs = G.projs.filter((p) => p.k !== 'ebone' && p.k !== 'acid');
+    G.pools = [];
   } else if (Math.random() < 0.12)
     G.items.push({ kind: 'rage', x: e.x, y: e.y, z: 60, vz: 200, t: 0 });
 }
 export function breakProp(e) {
+  const D = DECOR[e.decor];
   e.dead = true;
   SFX.shatter();
+  if (D) {
+    SFX.thud();
+    P.score += D.score;
+  }
   spark(e.x, e.y - 26, '#dfe9e2', false);
-  for (let i = 0; i < 7; i++)
+  for (let i = 0; i < (D ? 11 : 7); i++)
     G.debris.push({
       k: 'shard',
       x: e.x + rnd(-8, 8),
@@ -155,11 +169,11 @@ export function breakProp(e) {
       vz: rnd(150, 340),
       rot: rnd(TAU),
       vr: rnd(-12, 12),
-      len: rnd(6, 11),
-      col: '#6f8b8f',
+      len: rnd(6, 11) * (D ? 1.3 : 1),
+      col: D ? D.col : '#6f8b8f',
       life: 2.2,
     });
-  G.items.push({ kind: e.drop, x: e.x, y: e.y + 4, z: 30, vz: 260, t: 0 });
+  if (e.drop) G.items.push({ kind: e.drop, x: e.x, y: e.y + 4, z: 30, vz: 260, t: 0 });
 }
 export function strike(o) {
   const p = P,
@@ -169,7 +183,10 @@ export function strike(o) {
     const dx = (e.x - p.x) * p.face;
     if (dx > o.x0 - e.w && dx < o.x1 + e.w && Math.abs(e.y - p.y) < o.dy && e.z < 140) {
       p.hit.add(e);
-      if (hurtEnemy(e, o.dmg, p.face, o.knock, src) && !e.isProp) addRage(o.rage);
+      if (hurtEnemy(e, o.dmg * dmgMult(), p.face, o.knock, src) && !e.isProp) {
+        addRage(o.rage);
+        styleGain(10);
+      }
     }
   }
 }
@@ -178,6 +195,7 @@ export function hitPlayer(dmg, dir, knock) {
   if (p.inv > 0 || G.state !== 'play' || ['ko', 'down', 'getup', 'dead', 'win'].includes(p.state))
     return false;
   p.hp = Math.max(0, p.hp - dmg);
+  styleBreak();
   addRage(4);
   G.freeze = Math.max(G.freeze, 0.07);
   G.shake = Math.max(G.shake, knock ? 10 : 5);
@@ -211,11 +229,39 @@ export function superNova() {
   SFX.hado();
   G.parts.push({ k: 'ring', x: p.x + p.face * 50, y: p.y - 112, t: 0, life: 0.6, s: W * 0.9 });
   G.parts.push({ k: 'gring', x: p.x, y: p.y, t: 0, life: 0.7, s: W * 0.8 });
+  const dmg = SUPER_DMG * dmgMult();
   for (const e of G.enemies.concat(G.props).filter(onScreen)) {
-    if (hurtEnemy(e, SUPER_DMG, e.x >= p.x ? 1 : -1, true, 'super') && !e.isProp) {
+    if (hurtEnemy(e, dmg, e.x >= p.x ? 1 : -1, true, 'super') && !e.isProp) {
+      styleGain(25);
       G.parts.push({ k: 'fxring', x: e.x, y: e.y - e.z - 95 * e.T.scale, t: 0, life: 0.35 });
       motes(e.x, e.y - 95, 12, 280);
     }
   }
   for (const q of G.projs) if ((q.k === 'ebone' || q.k === 'acid') && onScreen(q)) q.life = 0;
+  G.pools = G.pools.filter((a) => !onScreen(a));
+}
+// One bite of an acid puddle: drains health without staggering. A bite that would kill goes
+// through hitPlayer so that the usual knockdown and death follow.
+export function acidBite(dmg) {
+  const p = P;
+  if (p.inv > 0 || G.state !== 'play' || ['ko', 'down', 'getup', 'dead', 'win'].includes(p.state))
+    return false;
+  if (p.hp <= dmg) return hitPlayer(dmg, p.face, false);
+  p.hp -= dmg;
+  styleBreak();
+  SFX.splash();
+  for (let i = 0; i < 4; i++)
+    G.parts.push({
+      k: 'dot',
+      x: p.x + rnd(-18, 18),
+      y: p.y - rnd(4, 30),
+      vx: rnd(-40, 40),
+      vy: rnd(-120, -60),
+      g: 300,
+      t: 0,
+      life: rnd(0.3, 0.5),
+      s: rnd(3, 5),
+      col: '#9dff4a',
+    });
+  return true;
 }

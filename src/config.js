@@ -23,6 +23,23 @@ export const BONE_COST = MAXR * 0.05;
 // Super attack: hold I this long with a full rage bar; it hits everything on screen.
 export const SUPER_HOLD = 1.25,
   SUPER_DMG = 100;
+// The necromancer's acid ball flies in an arc and leaves a puddle where it lands.
+export const ACID = {
+  flight: 0.95, // seconds from the staff to the ground
+  g: 900, // gravity on the ball
+  hit: 9, // damage of a direct hit
+  pool: 4.5, // seconds the puddle lasts
+  rx: 52, // puddle half-width
+  ry: 17, // puddle half-depth
+  tick: 0.5, // seconds between puddle bites
+  dmg: 3, // damage per bite
+};
+// Breakable scenery along the road: hits needed, colour of the pieces, score.
+export const DECOR = {
+  bench: { w: 34, hp: 1, col: '#7a5638', score: 20 },
+  grave: { w: 20, hp: 2, col: '#7f8c8e', score: 30 },
+  cross: { w: 14, hp: 1, col: '#8b8f84', score: 20 },
+};
 
 // Enemy archetypes. Every numeric field is tuned by hand; see README for what each one means.
 export const TYPES = {

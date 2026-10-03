@@ -1,10 +1,27 @@
 // Draws the world, the HUD and the title screen.
-import { H, MAXR, OL, PURPLE, RL, RW, SLAM_R, SWIND, SWIND_LOCK, TAU, W, WAVES } from './config.js';
+import {
+  ACID,
+  DECOR,
+  H,
+  MAXR,
+  OL,
+  PURPLE,
+  RL,
+  RW,
+  SLAM_R,
+  SWIND,
+  SWIND_LOCK,
+  TAU,
+  W,
+  WAVES,
+} from './config.js';
 import { clamp, ease } from './util.js';
 import { FR } from './atlas-frames.js';
 import { G, P } from './state.js';
 import { atlas, ctx, portraits, ready, rr, sprite, txt } from './gfx.js';
 import { foeName, t } from './i18n.js';
+import { touch } from './input.js';
+import { RANKS, STYLE_STEP, dmgMult, scoreMult, styleRank } from './style.js';
 import { drawBG, drawFog, drawVignette } from './background.js';
 import { hadoLevel } from './combat.js';
 import { boneShape, drawBike, drawSkel } from './skeleton.js';
@@ -116,6 +133,113 @@ export function drawUrn(u) {
   ctx.beginPath();
   ctx.arc(2, -25, 3, 0, TAU);
   ctx.fill();
+  ctx.restore();
+}
+// Breakable scenery: a bench, a gravestone (cracked after the first hit) or a stone cross.
+export function drawDecor(u) {
+  const fl = G.time < (u.flashT || 0),
+    D = DECOR[u.decor];
+  ctx.save();
+  ctx.translate(u.x - G.cam, u.y);
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = 2.4;
+  ctx.strokeStyle = OL;
+  const fill = (c) => {
+    ctx.fillStyle = fl ? '#fff' : c;
+    ctx.fill();
+    ctx.stroke();
+  };
+  if (u.decor === 'bench') {
+    for (const lx of [-26, 22]) {
+      ctx.beginPath();
+      ctx.rect(lx, -22, 5, 22);
+      fill('#2f2b33');
+    }
+    ctx.beginPath();
+    ctx.rect(-34, -26, 68, 7);
+    fill(D.col);
+    for (const sy of [-52, -42]) {
+      ctx.beginPath();
+      ctx.rect(-32, sy, 64, 6);
+      fill('#8a6544');
+    }
+    for (const lx of [-28, 24]) {
+      ctx.beginPath();
+      ctx.rect(lx, -54, 4, 30);
+      fill('#2f2b33');
+    }
+  } else if (u.decor === 'grave') {
+    ctx.beginPath();
+    ctx.moveTo(-17, 0);
+    ctx.lineTo(-17, -36);
+    ctx.quadraticCurveTo(-17, -56, 0, -57);
+    ctx.quadraticCurveTo(17, -56, 17, -36);
+    ctx.lineTo(17, 0);
+    ctx.closePath();
+    fill(D.col);
+    ctx.strokeStyle = 'rgba(23,21,29,.55)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, -46);
+    ctx.lineTo(0, -26);
+    ctx.moveTo(-7, -39);
+    ctx.lineTo(7, -39);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(96,140,92,.55)';
+    ctx.beginPath();
+    ctx.ellipse(-8, -2, 10, 4, 0, 0, TAU);
+    ctx.fill();
+    if (u.hp < D.hp) {
+      ctx.strokeStyle = OL;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(6, -55);
+      ctx.lineTo(1, -44);
+      ctx.lineTo(8, -36);
+      ctx.lineTo(3, -24);
+      ctx.stroke();
+    }
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(-5, 0);
+    ctx.lineTo(-5, -38);
+    ctx.lineTo(-17, -38);
+    ctx.lineTo(-17, -48);
+    ctx.lineTo(-5, -48);
+    ctx.lineTo(-5, -62);
+    ctx.lineTo(5, -62);
+    ctx.lineTo(5, -48);
+    ctx.lineTo(17, -48);
+    ctx.lineTo(17, -38);
+    ctx.lineTo(5, -38);
+    ctx.lineTo(5, 0);
+    ctx.closePath();
+    fill(D.col);
+  }
+  ctx.restore();
+}
+// A puddle of the necromancer's acid, bubbling until it dries up.
+export function drawPool(a) {
+  const k = Math.min(1, a.t / 0.2) * Math.min(1, (a.life - a.t) / 0.6),
+    x = a.x - G.cam;
+  ctx.save();
+  ctx.globalAlpha = 0.85 * k;
+  ctx.fillStyle = '#3f9f1e';
+  ctx.beginPath();
+  ctx.ellipse(x, a.y, ACID.rx * (0.6 + 0.4 * k), ACID.ry * (0.6 + 0.4 * k), 0, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = '#86e83c';
+  ctx.beginPath();
+  ctx.ellipse(x - 6, a.y - 2, ACID.rx * 0.62 * k, ACID.ry * 0.5 * k, 0, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = '#d9ffb0';
+  for (let i = 0; i < 4; i++) {
+    const u = (G.time * 1.6 + i * 0.25 + a.seed) % 1;
+    ctx.globalAlpha = k * (1 - u);
+    ctx.beginPath();
+    ctx.arc(x + Math.sin(i * 2.3 + a.seed) * ACID.rx * 0.6, a.y - u * 10, 2 + 2 * u, 0, TAU);
+    ctx.fill();
+  }
   ctx.restore();
 }
 export function drawDebris(d) {
@@ -378,8 +502,9 @@ export function drawWorld() {
       ctx.ellipse(x, e.y, SLAM_R * u, SLAM_R * 0.36 * u, 0, 0, TAU);
       ctx.stroke();
     }
+  for (const a of G.pools) drawPool(a);
   // shadows
-  for (const u of G.props) shadow(u.x, u.y, 0, 22);
+  for (const u of G.props) shadow(u.x, u.y, 0, u.decor ? DECOR[u.decor].w * 1.2 : 22);
   for (const e of G.enemies)
     if (e.state !== 'rise' || e.t > 0.4) shadow(e.x, e.y, e.z, (e.mounted ? 70 : 34) * e.T.scale);
   for (const it of G.items) shadow(it.x, it.y, it.z, 12);
@@ -387,7 +512,7 @@ export function drawWorld() {
   if (G.state !== 'title') shadow(P.x, P.y, P.z, 40);
   const list = [];
   for (const d of G.debris) list.push([d.gy - 1, drawDebris, d]);
-  for (const u of G.props) list.push([u.y, drawUrn, u]);
+  for (const u of G.props) list.push([u.y, u.decor ? drawDecor : drawUrn, u]);
   for (const e of G.enemies) list.push([e.y, drawSkel, e]);
   for (const it of G.items) list.push([it.y, drawItem, it]);
   for (const q of G.projs) list.push([q.y + 1, drawProj, q]);
@@ -473,6 +598,20 @@ export function drawHUD() {
     ctx.stroke();
   }
   txt(String(p.score).padStart(6, '0'), W - 20, 34, 20, '#ece5cb', 'right', 4);
+  drawStyle();
+  if (touch) {
+    // pause button for touch screens
+    const [bx, by, bw, bh] = PAUSE_BTN;
+    ctx.fillStyle = 'rgba(16,14,24,.7)';
+    rr(bx, by, bw, bh, 8);
+    ctx.fill();
+    ctx.strokeStyle = '#ece5cb';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = '#ece5cb';
+    ctx.fillRect(bx + 11, by + 9, 5, bh - 18);
+    ctx.fillRect(bx + bw - 16, by + 9, 5, bh - 18);
+  }
   // foe bar
   if (G.lastFoe && G.lastFoeT > 0 && G.lastFoe.type !== 'boss') {
     ctx.globalAlpha = Math.min(1, G.lastFoeT * 2);
@@ -540,4 +679,37 @@ export function drawHUD() {
 export function overlay(a) {
   ctx.fillStyle = `rgba(12,10,20,${a})`;
   ctx.fillRect(0, 0, W, H);
+}
+export const PAUSE_BTN = [372, 12, 36, 36];
+const RANK_COL = ['#8fa5b8', '#7dffb0', '#5cc8ff', '#ff6ad5', '#ffd23f'];
+// Style rank under the score: the letter, the meter towards the next rank and the bonus.
+function drawStyle() {
+  const r = styleRank();
+  if (r === 0 && P.sty <= 0) return;
+  const x = W - 24,
+    y = 132,
+    col = r ? RANK_COL[r - 1] : '#6d7f8c',
+    pop = 1 + Math.max(0, P.styPop);
+  txt(t('style'), W - 190, y - 30, 12, '#9bb0ac', 'left', 3);
+  ctx.save();
+  ctx.translate(x - 26, y);
+  ctx.scale(pop, pop);
+  if (r === RANKS.length) {
+    ctx.shadowColor = col;
+    ctx.shadowBlur = 16 + 6 * Math.sin(G.time * 10);
+  }
+  txt(r ? RANKS[r - 1] : '-', 0, 0, 46, col, 'center', 7);
+  ctx.restore();
+  const into = r === RANKS.length ? 1 : (P.sty % STYLE_STEP) / STYLE_STEP;
+  bar(W - 190, y - 22, 116, 8, into, 0, col, 3);
+  if (r)
+    txt(
+      t('styleBonus', Math.round((scoreMult() - 1) * 100), Math.round((dmgMult() - 1) * 100)),
+      W - 74,
+      y + 2,
+      11,
+      '#ece5cb',
+      'right',
+      3,
+    );
 }
