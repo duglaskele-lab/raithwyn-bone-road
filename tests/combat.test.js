@@ -1,6 +1,17 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { HOG, JUGGLE, MAXR, RW, TYPES, WEIGHT } from '../src/config.js';
+import {
+  BONE_COST,
+  HADO,
+  HOG,
+  JUGGLE,
+  MAXR,
+  RL,
+  RW,
+  SUPER_DMG,
+  TYPES,
+  WEIGHT,
+} from '../src/config.js';
 import { G, P } from '../src/state.js';
 import { addRage, canJuggle, hadoLevel, hitPlayer, hurtEnemy, weightOf } from '../src/combat.js';
 import { spawn, updEnemy } from '../src/enemies.js';
@@ -10,14 +21,23 @@ import { freshGame } from './helpers.js';
 
 beforeEach(freshGame);
 
-test('hadouken level follows the three rage thresholds', () => {
+test('the rage bar is 300 in three equal steps of 100', () => {
+  assert.equal(MAXR, 300);
+  assert.deepEqual(RL, [100, 200, 300]);
   assert.equal(hadoLevel(0), 0);
-  assert.equal(hadoLevel(39), 0);
-  assert.equal(hadoLevel(40), 1);
-  assert.equal(hadoLevel(119), 1);
-  assert.equal(hadoLevel(120), 2);
-  assert.equal(hadoLevel(199), 2);
-  assert.equal(hadoLevel(200), 3);
+  assert.equal(hadoLevel(99), 0);
+  assert.equal(hadoLevel(100), 1);
+  assert.equal(hadoLevel(199), 1);
+  assert.equal(hadoLevel(200), 2);
+  assert.equal(hadoLevel(299), 2);
+  assert.equal(hadoLevel(300), 3);
+});
+
+test('the higher dark balls and the super are worth saving rage for', () => {
+  const perRage = HADO.dmg.map((d, i) => d / RL[i]);
+  for (let i = 1; i < 3; i++) assert.ok(perRage[i] > perRage[i - 1], `level ${i + 1}`);
+  assert.equal(SUPER_DMG, 150, 'to every enemy on screen, for the full 300');
+  assert.equal(BONE_COST, 15, '5% of the bar');
 });
 
 test('rage never exceeds its maximum', () => {

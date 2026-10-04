@@ -1,9 +1,10 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { CHAIN_GAP, TYPES, WAVES } from '../src/config.js';
+import { CHAIN_GAP, HADO, RAGE, RL, TYPES, WAVES } from '../src/config.js';
 import { G, P } from '../src/state.js';
 import { keys, pressed } from '../src/input.js';
 import { spawn } from '../src/enemies.js';
+import { hitPlayer } from '../src/combat.js';
 import { update } from '../src/world.js';
 import { DT, allFinite, freshGame } from './helpers.js';
 
@@ -50,12 +51,43 @@ test('jumping and punching in the air is allowed once per jump', () => {
   assert.equal(P.z, 0);
 });
 
-test('a hadouken spends exactly the rage of the level it fires', () => {
-  P.rage = 150;
+test('a tap of L throws a level I dark ball; holding it charges it up', () => {
+  // a tap: level I, 100 rage, whatever the bar holds
+  P.rage = 300;
   pressed.hado = true;
   step(1);
-  assert.equal(P.rage, 30);
-  assert.equal(P.hl, 2);
+  assert.equal(P.hl, 1);
+  assert.equal(P.rage, 200);
+  // held: level II after one step, level III after two, as far as the rage reaches
+  for (const [rage, hold, lv] of [
+    [300, HADO.step * 2 + 0.1, 3],
+    [300, HADO.step + 0.1, 2],
+    [250, HADO.step * 2 + 0.3, 2],
+  ]) {
+    freshGame();
+    P.rage = rage;
+    pressed.hado = true;
+    keys.hado = true;
+    step(hold);
+    assert.equal(P.state, 'hcharge');
+    assert.equal(P.rage, rage, 'nothing spent while charging');
+    delete keys.hado;
+    step(1);
+    assert.equal(P.hl, lv, `${rage} rage held ${hold} s`);
+    assert.equal(P.rage, rage - RL[lv - 1]);
+    assert.ok(G.projs.some((q) => q.k === 'hado' && q.lv === lv) || P.state !== 'hado');
+  }
+});
+
+test('a hit while charging costs no rage', () => {
+  P.rage = 300;
+  pressed.hado = true;
+  keys.hado = true;
+  step(0.3);
+  hitPlayer(5, 1, false);
+  delete keys.hado;
+  step(0.5);
+  assert.equal(P.rage, 300, 'nothing spent (the bar was already full)');
 });
 
 test('the level can be finished: clearing all ten fights ends in victory', () => {

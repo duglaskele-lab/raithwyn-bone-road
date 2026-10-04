@@ -1,5 +1,17 @@
 // One simulation step: player, enemies, projectiles, pickups, debris, wave script.
-import { ACID, CHAIN_GAP, GB, GT, PURPLE, SECRET_HOLD, W, WAVES, ZOMBIE } from './config.js';
+import {
+  ACID,
+  CHAIN_GAP,
+  GB,
+  GT,
+  HADO,
+  PURPLE,
+  RAGE,
+  SECRET_HOLD,
+  W,
+  WAVES,
+  ZOMBIE,
+} from './config.js';
 import { clamp, random, rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
@@ -136,7 +148,7 @@ export function update(dt) {
         if (zone) {
           if (hurtEnemy(e, 7 * dmgMult() * headBonus(e, zone), Math.sign(q.vx), false, 'bone')) {
             if (!e.isProp) {
-              addRage(2);
+              addRage(RAGE.bone);
               styleGain(8);
             }
             q.life = 0;
@@ -183,7 +195,7 @@ export function update(dt) {
               : null;
         if (zone) {
           q.hit.add(e);
-          const dmg = [30, 60, 110][q.lv - 1] * dmgMult() * headBonus(e, zone);
+          const dmg = HADO.dmg[q.lv - 1] * dmgMult() * headBonus(e, zone);
           if (hurtEnemy(e, dmg, Math.sign(q.vx), true, 'hado')) {
             if (!e.isProp) styleGain(18);
             G.parts.push({
@@ -363,7 +375,7 @@ export function update(dt) {
         P.hp = Math.min(100, P.hp + 35);
         floatTxt(it.x, it.y - 120, t('plusHp'), '#ff8f9d');
       } else {
-        addRage(50);
+        addRage(RAGE.pickup);
         floatTxt(it.x, it.y - 120, t('plusRage'), '#d9b8ff');
         motes(it.x, it.y - 40, 10);
       }

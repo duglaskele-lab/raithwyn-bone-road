@@ -78,10 +78,15 @@ test('the rank drains fast when the player stops hitting', () => {
   assert.equal(P.sty, 0);
 });
 
-test('getting hurt ends the streak', () => {
-  P.sty = 450;
+test('getting hurt costs two ranks of style, not all of it', () => {
+  P.sty = 450; // rank A, halfway to S
   hitPlayer(5, 1, false);
-  assert.equal(P.sty, 0);
+  assert.equal(P.sty, 250, 'down to B, halfway');
+  P.sty = 150;
+  P.inv = 0;
+  P.state = 'idle';
+  hitPlayer(5, 1, false);
+  assert.equal(P.sty, 0, 'never below nothing');
 });
 
 test('big graves, benches and crosses line the road and can be broken', () => {
