@@ -99,7 +99,8 @@ test('light enemies can be juggled: every hit in the air pops them up again', ()
 });
 
 test('heavy enemies and bosses fall through a juggle unless their type allows it', () => {
-  const e = spawn('brute', 1, 500, 450);
+  const e = spawn('fat', 1, 500, 450);
+  e.heavyT = 1; // a second heavy blow: he goes up
   hurtEnemy(e, 1, 1, true, 'punch');
   for (let i = 0; i < 10; i++) updEnemy(e, 1 / 60, { n: 0 });
   const vz = e.vz;
@@ -107,7 +108,8 @@ test('heavy enemies and bosses fall through a juggle unless their type allows it
   assert.equal(e.state, 'air');
   assert.equal(e.vz, vz, 'no pop: it keeps falling');
   assert.ok(!canJuggle(spawn('boss', 0)));
-  assert.ok(canJuggle({ T: { ...TYPES.brute, juggle: 1 } }), 'an exception can be made');
+  assert.ok(canJuggle({ T: { ...TYPES.fat, juggle: 1 } }), 'an exception can be made');
+  assert.ok(canJuggle(spawn('brute', 1, 500, 450)), 'the bonebreaker can be juggled');
 });
 
 test('the fatso goes down only to two heavy blows within 3 seconds', () => {
@@ -143,7 +145,8 @@ test('the third punch with up held launches a light enemy straight up', () => {
   hurtEnemy(g, 1, 1, true, 'punch');
   assert.equal(g.vx, 270);
   // heavy enemies are knocked back as usual
-  const b = spawn('brute', 1, 500, 450);
+  const b = spawn('fat', 1, 500, 450);
+  b.heavyT = 1;
   hurtEnemy(b, 1, 1, true, 'punch', true);
   assert.equal(b.vx, 170);
 });
@@ -173,8 +176,12 @@ test('a leaping monkey is swatted out of the air by a plain hit', () => {
   assert.equal(e.state, 'air');
 });
 
-test('heavy enemies are not interrupted by plain hits mid-attack', () => {
-  for (const type of ['brute', 'fat']) {
+test('the heavy fatso is not interrupted by plain hits mid-attack; the bonebreaker is', () => {
+  const b = spawn('brute', 1, 500, 450);
+  b.state = 'windup';
+  hurtEnemy(b, 8, 1, false, 'punch');
+  assert.equal(b.state, 'hurt', 'the bonebreaker is no longer heavy');
+  for (const type of ['fat']) {
     const e = spawn(type, 1, 500, 450);
     e.state = 'windup';
     hurtEnemy(e, 8, 1, false, 'punch');

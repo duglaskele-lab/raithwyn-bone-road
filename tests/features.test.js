@@ -57,7 +57,7 @@ test('controls: J punch, K bone, L hadouken, I super', () => {
 });
 
 test('the road to the baron is a quarter shorter than the original 7500 px', () => {
-  assert.ok(WAVES.find((w) => w.sp[0][0] === 'boss').x <= 7500 * 0.75);
+  assert.ok(WAVES.find((w) => w.sp?.[0][0] === 'boss').x <= 7500 * 0.75);
 });
 
 test('a bone throw costs 5% of the rage bar and is refused without it', () => {

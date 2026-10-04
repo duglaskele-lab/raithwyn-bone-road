@@ -1,6 +1,6 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { SAMURAI, TYPES, WAVES } from '../src/config.js';
+import { SAMURAI, TYPES, WAVEGEN } from '../src/config.js';
 import { G, P } from '../src/state.js';
 import { hurtEnemy } from '../src/combat.js';
 import { spawn, updEnemy } from '../src/enemies.js';
@@ -24,7 +24,7 @@ test('the samurai is a mid-strength elite that turns up on the road', () => {
   const T = TYPES.samurai;
   assert.ok(T.hp > TYPES.grunt.hp && T.hp < TYPES.brute.hp);
   assert.ok(T.score > TYPES.biker.score);
-  assert.ok(WAVES.filter((w) => w.sp.some((s) => s[0] === 'samurai')).length >= 2);
+  assert.ok(WAVEGEN.pools.hard.samurai > 0, 'one of the strong enemies the fights are rolled from');
 });
 
 test('from a distance it takes its stance and creeps up; close enough, it cuts', () => {

@@ -2,15 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CRYPT_X, D, MAXR, RL, TYPES, W, WAVES } from '../src/config.js';
 import { FR } from '../src/atlas-frames.js';
+import { waveSpawns } from '../src/waves.js';
+import { seedRandom } from '../src/util.js';
 
 test('every wave only spawns known enemy types', () => {
-  for (const wave of WAVES) {
-    for (const [type, side, delay] of wave.sp) {
-      assert.ok(TYPES[type], `unknown enemy type "${type}" in wave at x=${wave.x}`);
-      assert.ok([-1, 0, 1].includes(side));
-      assert.ok(delay >= 0);
-    }
-  }
+  seedRandom(5);
+  for (let r = 0; r < 30; r++)
+    for (let i = 0; i < WAVES.length; i++)
+      for (const [type, side, delay] of waveSpawns(i)) {
+        assert.ok(TYPES[type], `unknown enemy type "${type}" in wave ${i}`);
+        assert.ok([-1, 0, 1].includes(side));
+        assert.ok(delay >= 0);
+      }
 });
 
 test('waves go left to right and the level ends with the boss at the crypt', () => {
@@ -22,7 +25,7 @@ test('waves go left to right and the level ends with the boss at the crypt', () 
     ['dragon'],
     'the Bone Dragon is the final boss',
   );
-  const baron = WAVES.find((w) => w.sp[0][0] === 'boss');
+  const baron = WAVES.find((w) => w.sp?.[0][0] === 'boss');
   assert.ok(
     WAVES.indexOf(baron) < WAVES.length - 2,
     'a fight lies between the baron and the dragon',
