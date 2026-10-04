@@ -59,4 +59,5 @@ export default defineFoe('fat', {
     },
   },
   guard: (e) => e.state === 'swind' && e.t >= SWIND_LOCK,
+  unstoppable: (e) => e.state === 'swind' && e.t >= SWIND_LOCK,
 });

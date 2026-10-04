@@ -16,7 +16,7 @@ function samuraiAt(x, px, extra = {}) {
   G.cam = 0;
   Object.assign(P, { x: px, y: 450, z: 0, hp: 100, inv: 0, state: 'idle' });
   const e = spawn('samurai', 1, x, 450);
-  Object.assign(e, { state: 'chase', t: 0, cd: 0, stanceCd: 0 }, extra);
+  Object.assign(e, { state: 'chase', t: 0, cd: 0, stanceCd: 0, shown: SAMURAI.seen }, extra);
   return e;
 }
 
@@ -92,6 +92,31 @@ test('it is quick to take the stance again', () => {
   const e = samuraiAt(800, 800 - SAMURAI.range - 10, { cd: 1 });
   run(e, DT);
   assert.equal(e.state, 'stance');
+});
+
+test('it only takes the stance once it has been on screen for 3 seconds', () => {
+  assert.equal(SAMURAI.seen, 3);
+  // just walked in: no stance yet, it walks up like anyone else
+  const e = samuraiAt(800, 450, { shown: 0 });
+  run(e, 2.5);
+  assert.notEqual(e.state, 'stance');
+  run(e, 0.6);
+  assert.equal(e.state, 'stance', 'after three seconds in view');
+  // out of sight the clock does not run
+  const off = samuraiAt(G.cam + 1040, 450, { shown: 0 });
+  run(off, DT);
+  assert.equal(off.shown, 0);
+});
+
+test('after a stance it rests a moment, then takes it again', () => {
+  const e = samuraiAt(800, 450);
+  run(e, DT);
+  assert.equal(e.state, 'stance');
+  run(e, SAMURAI.stance + 0.1);
+  assert.equal(e.state, 'chase');
+  P.x = e.x - 400; // well out of reach of the cut
+  run(e, SAMURAI.stanceCd[1] + 0.2);
+  assert.equal(e.state, 'stance', 'the rest is over (it used to never end)');
 });
 
 test('the stance does not last for ever', () => {

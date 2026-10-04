@@ -20,6 +20,7 @@
 //   onHit(e, dmg, dir, knock, src)  first say on a hit; true = fully handled
 //   guard(e, knock, src, dir)       after the damage, before the usual flinch; true = handled
 //   die(e, dir)              replaces the usual shatter into bones
+//   unstoppable(e)           true while it is in an attack no hit can stop (red outline)
 //   update(e, dt)            replaces the whole AI (the Bone Dragon)
 //   pose / look              skeletal animation and costume (see anim.js and skeleton.js)
 export const FOES = {},

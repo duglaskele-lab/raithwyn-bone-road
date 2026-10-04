@@ -1,5 +1,5 @@
 // Damage rules: who can be hit, what a hit does, rage, the boss interrupt immunity.
-import { DECOR, MAXR, RL, SUPER_DMG, TAU, W, ZOMBIE } from './config.js';
+import { DECOR, JUGGLE, MAXR, RL, SUPER_DMG, TAU, W, ZOMBIE } from './config.js';
 import { rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
@@ -60,6 +60,11 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
   }
   e.engage = false;
   if (F.guard?.(e, knock, src, dir)) return true;
+  if (e.state === 'air') {
+    // up in the air: a light enemy is juggled, a heavy one just keeps falling
+    if (canJuggle(e)) juggle(e, dir, knock);
+    return true;
+  }
   const busy = e.state === 'windup' || e.state === 'attack' || e.state === 'swind';
   if (knock || e.state === 'leap') {
     e.state = 'air';
@@ -76,6 +81,19 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
     e.vx = dir * 95;
   }
   return true;
+}
+/** Can this enemy be juggled? Light ones can; heavy ones and bosses only if TYPES says so. */
+export const canJuggle = (e) => e.T.juggle ?? !(e.T.heavy || e.T.bigBoss);
+/** A hit in the air pops the enemy up again, a little less with every hit. */
+function juggle(e, dir, knock) {
+  e.juggle = (e.juggle || 0) + 1;
+  e.t = 0;
+  e.vz = Math.max(
+    JUGGLE.min,
+    (knock ? JUGGLE.popKnock : JUGGLE.pop) - JUGGLE.decay * (e.juggle - 1),
+  );
+  e.vx = dir * (knock ? JUGGLE.carryKnock : JUGGLE.carry);
+  styleGain(JUGGLE.style);
 }
 export function killEnemy(e, dir) {
   const F = FOES[e.type];

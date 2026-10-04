@@ -132,6 +132,7 @@ defineState('air', {
     e.z += e.vz * dt;
     if (e.z <= 0) {
       e.z = 0;
+      e.juggle = 0;
       go(e, 'down');
       dust(e.x, e.y, 6);
       SFX.thud();

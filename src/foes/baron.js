@@ -171,6 +171,7 @@ export default defineFoe('boss', {
       go: (e) => go(e, 'cwind'),
     },
   ],
+  unstoppable: (e) => ['charge', 'bwind', 'breath'].includes(e.state),
   guard(e, knock, src, dir) {
     if (['charge', 'summon', 'rise', 'roar', 'bwind', 'breath'].includes(e.state)) return true;
     const atk = ['windup', 'attack', 'cwind'].includes(e.state),

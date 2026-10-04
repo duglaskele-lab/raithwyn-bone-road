@@ -53,6 +53,8 @@ function kickBack(o, e) {
 }
 
 export default defineFoe('samurai', {
+  timers: ['stanceCd'],
+  unstoppable: (e) => e.state === 'slash',
   look: {
     back(c) {
       const { o, fl } = c;
@@ -191,7 +193,13 @@ export default defineFoe('samurai', {
     {
       // out of reach of its cut it drops into its ready stance and creeps up
       when: (e, s) =>
-        !s.pdown && (e.stanceCd ?? 0) <= 0 && s.adx > SAMURAI.range && s.adx < 460 && s.ady < 120,
+        // ...and only once it has been on screen a while, never from out of sight
+        !s.pdown &&
+        e.shown >= SAMURAI.seen &&
+        e.stanceCd <= 0 &&
+        s.adx > SAMURAI.range &&
+        s.adx < 460 &&
+        s.ady < 120,
       go(e) {
         go(e, 'stance', 0, { engage: false });
         SFX.stance();

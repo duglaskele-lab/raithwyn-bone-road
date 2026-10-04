@@ -76,6 +76,8 @@ export function updEnemy(e, dt, ctxE) {
   e.cd -= dt;
   e.armor -= dt;
   for (const k of F.timers ?? []) e[k] = (e[k] ?? 0) - dt;
+  // how long it has been on screen without a break
+  e.shown = e.x > G.cam && e.x < G.cam + W ? (e.shown ?? 0) + dt : 0;
   e.moving = false;
   STATES[e.state]?.tick(e, dt, sense(e), ctxE);
   e.y = clamp(e.y, GT + 2, GB);
