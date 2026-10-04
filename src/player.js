@@ -399,7 +399,7 @@ export function updPlayer(dt) {
       p.an = ['ko', 5];
       break;
     case 'win':
-      p.an = ['laugh', [0, 1, 2, 1, 2, 1, 2, 3][Math.floor(p.t / 0.13) % 8]];
+      p.an = ['laugh', [0, 1, 2, 1, 2, 1, 2, 1][Math.floor(p.t / 0.13) % 8]]; // never frame 3
       break;
   }
   const maxX = G.wave || G.waveI >= WAVES.length ? G.cam + W - 30 : G.cam + W + 200;
