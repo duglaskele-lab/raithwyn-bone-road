@@ -66,6 +66,8 @@ export function reset() {
     airUsed: 0,
     puller: null,
     hl: 1,
+    seq: [],
+    bufDir: 0,
     sup: 0,
     sty: 0,
     styT: 0,

@@ -39,6 +39,13 @@ export function startAtk(mx) {
   p.combo = fin ? 0 : p.combo + 1;
   p.comboT = 0.7;
 }
+/** The hidden motion before L: down, down, then toward the throw (S S D or S S A). 1/-1 or 0. */
+function hadoMotion(seq) {
+  if (seq.length < 3 || G.time - seq[0].t > HADO.motion) return 0;
+  const [a, b, c] = seq.map((s) => s.a);
+  return a === 'd' && b === 'd' ? (c === 'r' ? 1 : c === 'l' ? -1 : 0) : 0;
+}
+
 // The dark ball of level p.hl leaves her hands: its rage is spent now.
 function throwHado(p) {
   p.rage -= RL[p.hl - 1];
@@ -57,10 +64,17 @@ export function updPlayer(dt) {
   p.hpLag += (p.hp - p.hpLag) * Math.min(1, dt * 3);
   const mx = (keys.r ? 1 : 0) - (keys.l ? 1 : 0),
     my = (keys.d ? 1 : 0) - (keys.u ? 1 : 0);
+  // the last direction presses, for the hidden dark ball motion (see HADO)
+  for (const a of ['u', 'd', 'l', 'r'])
+    if (pressed[a]) p.seq = [...p.seq, { a, t: G.time }].slice(-3);
   for (const a of ['atk', 'jump', 'bone', 'hado', 'super'])
     if (pressed[a]) {
       p.buf = a;
       p.bufT = 0.2;
+      if (a === 'hado') {
+        p.bufDir = hadoMotion(p.seq);
+        p.seq = [];
+      }
     }
   if (!mx) G.runLatch = false;
   switch (p.state) {
@@ -124,14 +138,12 @@ export function updPlayer(dt) {
       } else if (b === 'hado') {
         p.buf = null;
         const most = hadoLevel(p.rage);
-        p.hl = 1;
         if (!most) SFX.deny();
-        else if (most === 1)
-          throwHado(p); // rage for level I only: thrown at once
         else {
-          // rage for more: holding L charges it higher (see HADO), a tap still throws level I
-          p.state = 'hcharge';
-          p.t = 0;
+          // a plain L throws level I; the hidden motion throws the strongest the rage pays for
+          p.hl = p.bufDir ? most : 1;
+          if (p.bufDir) p.face = p.bufDir;
+          throwHado(p);
         }
       }
       break;
@@ -237,15 +249,6 @@ export function updPlayer(dt) {
           life: 1.05,
         });
       }
-      break;
-    }
-    case 'hcharge': {
-      // holding L: one level more every HADO.step seconds, as far as the rage reaches. No
-      // glow and no gauge: a trick for those who know it. The rage is only spent when the
-      // ball is thrown, so a hit here costs nothing.
-      p.an = ['hado', 1];
-      p.hl = Math.max(p.hl, Math.min(hadoLevel(p.rage), 1 + Math.floor(p.t / HADO.step)));
-      if (!keys.hado) throwHado(p);
       break;
     }
     case 'hado': {

@@ -4,7 +4,6 @@ import { CHAIN_GAP, HADO, RAGE, RL, TYPES, WAVES } from '../src/config.js';
 import { G, P } from '../src/state.js';
 import { keys, pressed } from '../src/input.js';
 import { spawn } from '../src/enemies.js';
-import { hitPlayer } from '../src/combat.js';
 import { update } from '../src/world.js';
 import { DT, allFinite, freshGame } from './helpers.js';
 
@@ -51,52 +50,61 @@ test('jumping and punching in the air is allowed once per jump', () => {
   assert.equal(P.z, 0);
 });
 
-test('a tap of L throws a level I dark ball; holding it charges it up', () => {
-  // a tap: level I, 100 rage, whatever the bar holds
-  P.rage = 300;
-  pressed.hado = true;
-  step(1);
-  assert.equal(P.hl, 1);
-  assert.equal(P.rage, 200);
-  // rage for level I only: no charging at all, it goes at once
-  freshGame();
-  P.rage = 150;
-  pressed.hado = true;
-  keys.hado = true;
-  step(1 / 30);
-  assert.equal(P.state, 'hado', 'straight into the throw');
-  delete keys.hado;
-  assert.equal(HADO.step, 0.3);
-  // held: level II after one step, level III after two, as far as the rage reaches
-  for (const [rage, hold, lv] of [
-    [300, HADO.step * 2 + 0.1, 3],
-    [300, HADO.step + 0.1, 2],
-    [250, HADO.step * 2 + 0.3, 2],
-  ]) {
+// One key pressed and let go: held for a frame, as fast as a quick hand.
+const tapKey = (k) => {
+  keys[k] = pressed[k] = true;
+  step(DT);
+  delete keys[k];
+  step(0.05);
+};
+
+test('a tap of L always throws a level I dark ball', () => {
+  for (const rage of [300, 150]) {
     freshGame();
     P.rage = rage;
     pressed.hado = true;
     keys.hado = true;
-    step(hold);
-    assert.equal(P.state, 'hcharge');
-    assert.equal(P.rage, rage, 'nothing spent while charging');
+    step(DT);
+    assert.equal(P.state, 'hado', 'straight into the throw, no charging');
+    step(1); // held on: nothing more
     delete keys.hado;
-    step(1);
-    assert.equal(P.hl, lv, `${rage} rage held ${hold} s`);
-    assert.equal(P.rage, rage - RL[lv - 1]);
-    assert.ok(G.projs.some((q) => q.k === 'hado' && q.lv === lv) || P.state !== 'hado');
+    assert.equal(P.hl, 1);
+    assert.equal(P.rage, rage - 100);
   }
 });
 
-test('a hit while charging costs no rage', () => {
-  P.rage = 300;
-  pressed.hado = true;
-  keys.hado = true;
-  step(0.3);
-  hitPlayer(5, 1, false);
-  delete keys.hado;
-  step(0.5);
-  assert.equal(P.rage, 300, 'nothing spent (the bar was already full)');
+test('S S D L / S S A L throws the strongest dark ball the rage pays for', () => {
+  assert.equal(HADO.motion, 0.8);
+  for (const [rage, dir, lv] of [
+    [300, 'r', 3],
+    [300, 'l', 3],
+    [250, 'r', 2],
+    [150, 'l', 1],
+  ]) {
+    freshGame();
+    P.rage = rage;
+    P.face = dir === 'r' ? -1 : 1; // facing away: the motion turns her
+    for (const k of ['d', 'd', dir, 'hado']) tapKey(k);
+    step(1);
+    assert.equal(P.hl, lv, `${rage} rage, ${dir}`);
+    assert.equal(P.rage, rage - RL[lv - 1]);
+    assert.equal(P.face, dir === 'r' ? 1 : -1);
+  }
+  // a broken or a slow motion is a plain L
+  for (const [ks, wait] of [
+    [['d', 'r', 'd'], 0],
+    [['d', 'd', 'u'], 0],
+    [['d', 'd', 'r'], 1],
+  ]) {
+    freshGame();
+    P.rage = 300;
+    for (const k of ks) tapKey(k);
+    step(wait);
+    tapKey('hado');
+    step(1);
+    assert.equal(P.hl, 1, ks.join(' ') + (wait ? ' slowly' : ''));
+    assert.equal(P.rage, 200);
+  }
 });
 
 test('the level can be finished: clearing all ten fights ends in victory', () => {
