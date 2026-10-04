@@ -51,10 +51,34 @@ let AC = null,
 const buffers = {},
   files = {};
 
+// The songs are kept in the browser's cache storage after the first visit, so they are not
+// downloaded again. Bump the version when a song file changes: the old copies are dropped.
+export const MUSIC_CACHE = 'raithwyn-music-v1';
+let pruned = false;
+/** The song file: from the cache storage if it is there, else from the network (then kept). */
+export async function cachedFetch(url, store = globalThis.caches) {
+  // no cache storage (a page opened from disk) or a song inlined in the page: plain fetch
+  if (!store || url.startsWith('data:')) return fetch(url);
+  try {
+    if (!pruned) {
+      pruned = true;
+      for (const k of await store.keys())
+        if (k.startsWith('raithwyn-music-') && k !== MUSIC_CACHE) await store.delete(k);
+    }
+    const c = await store.open(MUSIC_CACHE),
+      hit = await c.match(url);
+    if (hit) return hit;
+    const r = await fetch(url);
+    if (r.ok) await c.put(url, r.clone());
+    return r;
+  } catch {
+    return fetch(url); // the storage refused (private mode, quota): just download
+  }
+}
 // Start downloading as soon as the page opens; decoding waits for the audio context.
 function fetchSong(id) {
   const url = globalThis.window?.__MUSIC__?.[id] ?? `assets/music/${SONGS[id].file}`;
-  return (files[id] ??= fetch(url).then((r) => {
+  return (files[id] ??= cachedFetch(url).then((r) => {
     if (!r.ok) throw new Error(`${url}: ${r.status}`);
     return r.arrayBuffer();
   }));

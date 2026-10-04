@@ -2,6 +2,8 @@ import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   DUCK,
+  MUSIC_CACHE,
+  cachedFetch,
   SONGS,
   SONG_VOL,
   XFADE,
@@ -144,4 +146,38 @@ test('without the recording the synth keeps playing', () => {
   songsAttach(fakeContext(), { connect() {} }, false);
   for (const id in SONGS) songBuffer(id, undefined);
   assert.equal(tick('night'), false);
+});
+
+test('a song is downloaded once and then comes from the cache storage', async () => {
+  // a stand-in for the browser's cache storage and the network
+  const stores = { 'raithwyn-music-v0': new Map() },
+    store = {
+      keys: async () => Object.keys(stores),
+      delete: async (k) => delete stores[k],
+      open: async (k) => {
+        const m = (stores[k] ??= new Map());
+        return { match: async (u) => m.get(u), put: async (u, r) => void m.set(u, r) };
+      },
+    };
+  let downloads = 0;
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    downloads++;
+    return new Response('mp3 bytes');
+  };
+  try {
+    const a = await cachedFetch('assets/music/main.mp3', store);
+    assert.equal(await a.text(), 'mp3 bytes');
+    const b = await cachedFetch('assets/music/main.mp3', store);
+    assert.equal(await b.text(), 'mp3 bytes');
+    assert.equal(downloads, 1, 'the second time it comes from the cache');
+    assert.ok(!stores['raithwyn-music-v0'], 'an old version of the cache is dropped');
+    assert.ok(stores[MUSIC_CACHE].has('assets/music/main.mp3'));
+    // no cache storage (a page opened from disk) or a song inlined in the page: just download
+    await cachedFetch('assets/music/boss.mp3', undefined);
+    await cachedFetch('data:audio/mpeg;base64,AAAA', store);
+    assert.equal(downloads, 3);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
 });
