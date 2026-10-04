@@ -17,6 +17,26 @@ export default defineFoe('fat', {
       go: (e) => go(e, 'swind', 0, { engage: false }),
     },
   ],
+  pose: {
+    states: {
+      // both arms up, then the jump
+      swind: {
+        set: { jaw: 5 },
+        tween: {
+          dur: 0.5,
+          from: { aF: 'pre', aB: [0.02, 0.95], lean: 0 },
+          to: { aF: [2.9, 3.2], aB: [2.7, 3.0], lean: -0.15 },
+        },
+        fn(o, e) {
+          if (e.z > 0) {
+            o.lF = [0.9, -0.5];
+            o.lB = [0.7, -0.7];
+            o.hipH = 46;
+          }
+        },
+      },
+    },
+  },
   states: {
     swind(e) {
       faceP(e);

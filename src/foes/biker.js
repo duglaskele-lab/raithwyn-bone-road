@@ -1,18 +1,102 @@
 // The rocker rides across the screen on a motorcycle (every second one on the long chopper)
 // until a hit knocks him off; on foot he throws a chain that pulls the player in.
-import { CHAIN, GB, GT, HOG, RW, W } from '../config.js';
+import { CHAIN, FONT, GB, GT, HOG, OL, RW, TAU, W } from '../config.js';
 import { clamp, rnd } from '../util.js';
 import { G, P } from '../state.js';
 import { SFX } from '../audio.js';
 import { hitPlayer, killEnemy } from '../combat.js';
 import { defineFoe } from './registry.js';
 import { faceP, go } from './kit.js';
+import { ctx } from '../gfx.js';
+import { chainLine, drawBike } from './bikes.js';
 
 // The bike: how far it is hidden off screen, how far its hit box reaches along the road.
 const offRoad = (e) => (e.bike === 'hog' ? 200 : 150);
 export const bikeReach = (e) => (e.bike === 'hog' ? HOG.half : 58);
 
 export default defineFoe('biker', {
+  look: {
+    mount(e) {
+      if (!e.mounted) return;
+      drawBike(e.anim, e.bike === 'hog');
+      ctx.translate(e.bike === 'hog' ? -30 : -16, 0);
+    },
+    head(c) {
+      const { fl } = c;
+      ctx.fillStyle = fl ? '#fff' : '#ff3d6e';
+      ctx.beginPath();
+      ctx.moveTo(-12, -8);
+      ctx.lineTo(-18, -21);
+      ctx.lineTo(-9, -15);
+      ctx.lineTo(-8, -28);
+      ctx.lineTo(-2, -17);
+      ctx.lineTo(2, -30);
+      ctx.lineTo(6, -16);
+      ctx.lineTo(12, -24);
+      ctx.lineTo(10, -11);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = OL;
+      ctx.beginPath();
+      ctx.moveTo(-3, -6);
+      ctx.lineTo(15, -6);
+      ctx.lineTo(14, 1.5);
+      ctx.lineTo(8, 2);
+      ctx.lineTo(7, -1);
+      ctx.lineTo(6, 2.5);
+      ctx.lineTo(-2, 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,.7)';
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.moveTo(0, -3.5);
+      ctx.lineTo(3, -3.5);
+      ctx.stroke();
+      ctx.strokeStyle = OL;
+      ctx.lineWidth = 2.4;
+    },
+    weapon(c) {
+      const { e, h } = c;
+      // the chain hanging from his hand while he walks
+      if (e.mounted || ['chain', 'pull', 'chwind', 'air', 'down'].includes(e.state)) return;
+      ctx.save();
+      ctx.translate(h[0], h[1]);
+      chainLine(0, 0, Math.sin(e.anim * 4) * 5, 26);
+      ctx.restore();
+    },
+    world(c) {
+      const { e, s, sx, sy } = c;
+      if (e.state === 'chain' || e.state === 'pull') {
+        // the chain flying out, or hooked on the player
+        const hx = sx + e.face * 46 * s,
+          hy = sy - 98 * s;
+        if (e.state === 'pull') chainLine(hx, hy, P.x - G.cam, P.y - P.z - 96);
+        else chainLine(hx, hy, sx + e.face * Math.max(46, Math.min(CHAIN, e.t * 1150)), sy - 96);
+      }
+      if (e.state !== 'chwind') return;
+      // the chain whirling overhead before the throw
+      ctx.save();
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = OL;
+      ctx.beginPath();
+      ctx.ellipse(sx, sy - 188 * s, 40, 10, 0, 0, TAU);
+      ctx.stroke();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#b9c4cc';
+      ctx.setLineDash([5, 5]);
+      ctx.lineDashOffset = -e.t * 260;
+      ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = '#ff4a5e';
+      ctx.font = `900 24px ${FONT}`;
+      ctx.textAlign = 'center';
+      ctx.globalAlpha = 0.6 + 0.4 * Math.sin(e.t * 30);
+      ctx.fillText('!', sx, sy - 205 * s);
+      ctx.globalAlpha = 1;
+    },
+  },
   timers: ['chCd'],
   spawn(e, side) {
     // every second rocker rides the long chopper, which hits along its whole length
@@ -60,6 +144,32 @@ export default defineFoe('biker', {
     }
     go(e, 'air', 0, { z: 56, vx: e.rdir * 150, vz: 430, chCd: rnd(2, 3.5) });
     return true;
+  },
+  pose: {
+    states: {
+      ride: {
+        set: {
+          hipH: 58,
+          lean: 0.42,
+          aF: [0.3, 1.9],
+          aB: [0.2, 1.85],
+          lF: [1.2, -0.2],
+          lB: [1.1, -0.25],
+          head: -0.3,
+          jaw: 3,
+        },
+      },
+      // swinging the chain overhead
+      chwind: {
+        set: { jaw: 3, lean: 0 },
+        fn: (o, e) => {
+          const j = Math.sin(e.t * 30) * 0.15;
+          o.aF = [2.9 + j, 3.3 + j];
+        },
+      },
+      chain: { set: { aF: [1.5, 1.57], lean: 0.25, lF: [0.5, 0.1], lB: [-0.5, -0.7], jaw: 4 } },
+      pull: { set: { aF: [1.5, 1.57], lean: 0.25, lF: [0.5, 0.1], lB: [-0.5, -0.7], jaw: 4 } },
+    },
   },
   states: {
     ride(e, dt) {

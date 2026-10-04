@@ -24,7 +24,8 @@ import { touch } from './input.js';
 import { RANKS, STYLE_STEP, dmgMult, scoreMult, styleRank } from './style.js';
 import { drawBG, drawFog, drawVignette } from './background.js';
 import { hadoLevel } from './combat.js';
-import { boneShape, drawBike, drawSkel } from './skeleton.js';
+import { boneShape, drawSkel } from './skeleton.js';
+import { drawBike } from './foes/bikes.js';
 import {
   drawDragon,
   drawDragonBeam,

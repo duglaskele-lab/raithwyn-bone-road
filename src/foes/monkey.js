@@ -6,8 +6,26 @@ import { dust } from '../fx.js';
 import { hitPlayer } from '../combat.js';
 import { defineFoe } from './registry.js';
 import { faceP, go } from './kit.js';
+import { boneSeg } from '../skeleton.js';
 
 export default defineFoe('monkey', {
+  look: {
+    back(c) {
+      const { e, dk } = c;
+      const wv = Math.sin(e.anim * 6) * 5;
+      boneSeg(
+        [
+          [-4, 0],
+          [-18, 5],
+          [-30, -3 + wv],
+          [-37, -17 + wv],
+          [-31, -28 + wv],
+        ],
+        3,
+        dk,
+      );
+    },
+  },
   stand: 215,
   engaged: [
     {
@@ -15,6 +33,48 @@ export default defineFoe('monkey', {
       go: (e) => go(e, 'lwind'),
     },
   ],
+  pose: {
+    // hunched, long arms hanging forward
+    base: {
+      set: {
+        lean: 0.5,
+        head: -0.35,
+        aF: (e, k) => [0.55 + 0.05 * k.br, 0.25],
+        aB: [0.4, 0.15],
+        lF: [0.5, -0.5],
+        lB: [0.2, -0.8],
+      },
+    },
+    walk(o, e) {
+      const s = Math.sin(e.walkT);
+      o.lean = 0.55;
+      o.aF = [0.5 + 0.5 * s, 0.2 + 0.5 * s];
+      o.aB = [0.5 - 0.5 * s, 0.2 - 0.5 * s];
+    },
+    states: {
+      lwind: {
+        set: {
+          lF: [1.2, -0.8],
+          lB: [1, -1],
+          aF: [-0.7, -0.3],
+          aB: [-0.9, -0.5],
+          lean: 0.7,
+          jaw: 4,
+        },
+      },
+      leap: {
+        set: {
+          aF: [2.5, 2.1],
+          aB: [2.2, 1.8],
+          lF: [1.3, -0.3],
+          lB: [1, -0.7],
+          lean: 0.75,
+          hipH: 30,
+          jaw: 6,
+        },
+      },
+    },
+  },
   states: {
     lwind(e, dt, s) {
       faceP(e);

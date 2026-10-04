@@ -2,7 +2,7 @@
 // charges across the arena and summons the dead; below half health he roars into a second
 // phase and spits acid. His charge, summon, roar and breath cannot be interrupted, and two
 // interrupted combos in a row make him shrug off combos for a while.
-import { ACID, BOSS, GB, GT, W } from '../config.js';
+import { ACID, BOSS, FONT, GB, GT, OL, PURPLE, TAU, W } from '../config.js';
 import { clamp, rnd } from '../util.js';
 import { G, P } from '../state.js';
 import { SFX } from '../audio.js';
@@ -11,6 +11,7 @@ import { acidBite, hitPlayer } from '../combat.js';
 import { spawn } from '../enemies.js';
 import { defineFoe } from './registry.js';
 import { faceP, go } from './kit.js';
+import { ctx } from '../gfx.js';
 
 /** The baron's mouth on screen (x in world space, y on screen) for the acid spray. */
 const mouth = (e) => [e.x + e.face * 22 * e.T.scale, e.y - 128 * e.T.scale];
@@ -38,6 +39,93 @@ const drip = (x, y) => ({
 });
 
 export default defineFoe('boss', {
+  look: {
+    rise: 1.5,
+    back(c) {
+      const { e, fl, sh } = c;
+      const wv = Math.sin(e.anim * 4) * 6,
+        mv = e.moving ? 14 : 0;
+      ctx.beginPath();
+      ctx.moveTo(sh[0] + 4, sh[1] - 4);
+      ctx.lineTo(sh[0] - 12, sh[1] - 2);
+      ctx.quadraticCurveTo(-34 - mv, -20, -38 - mv - wv, 34);
+      ctx.lineTo(-24 - mv * 0.6, 30 + wv * 0.4);
+      ctx.lineTo(-14 - mv * 0.4, 38);
+      ctx.lineTo(-2, 6);
+      ctx.closePath();
+      ctx.fillStyle = fl ? '#fff' : '#43215f';
+      ctx.fill();
+      ctx.strokeStyle = OL;
+      ctx.lineWidth = 2.4;
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+    },
+    head(c) {
+      const { fl } = c;
+      ctx.fillStyle = fl ? '#fff' : '#e9c046';
+      ctx.beginPath();
+      ctx.moveTo(-11, -10);
+      ctx.lineTo(-13, -25);
+      ctx.lineTo(-6, -17);
+      ctx.lineTo(-1, -28);
+      ctx.lineTo(4, -17);
+      ctx.lineTo(11, -25);
+      ctx.lineTo(10, -11);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = PURPLE;
+      ctx.beginPath();
+      ctx.arc(-1, -15, 2.3, 0, TAU);
+      ctx.fill();
+    },
+    weapon(c) {
+      const { e, h, wa } = c;
+      ctx.save();
+      ctx.translate(h[0], h[1]);
+      ctx.rotate(-wa);
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = OL;
+      ctx.lineWidth = 2.4;
+      const gl = e.state === 'cwind' || e.state === 'charge' || e.state === 'summon';
+      if (gl) {
+        ctx.shadowColor = PURPLE;
+        ctx.shadowBlur = 18;
+      }
+      ctx.fillStyle = gl ? '#e9d4ff' : '#cdd8e4';
+      ctx.beginPath();
+      ctx.moveTo(-4.5, 8);
+      ctx.lineTo(4.5, 8);
+      ctx.lineTo(3.5, 72);
+      ctx.lineTo(0, 84);
+      ctx.lineTo(-3.5, 72);
+      ctx.closePath();
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.stroke();
+      ctx.fillStyle = '#e9c046';
+      ctx.beginPath();
+      ctx.rect(-11, 4, 22, 5);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.rect(-2.5, -10, 5, 14);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    },
+    world(c) {
+      const { e, s, sx, sy } = c;
+      if (e.state !== 'cwind') return;
+      // a warning before the charge
+      ctx.fillStyle = '#ff4a5e';
+      ctx.font = `900 26px ${FONT}`;
+      ctx.textAlign = 'center';
+      ctx.globalAlpha = 0.6 + 0.4 * Math.sin(e.t * 30);
+      ctx.fillText('!', sx, sy - 185 * s);
+      ctx.globalAlpha = 1;
+    },
+  },
   riseTime: 1.6,
   engageCap: Infinity,
   timers: ['brCd'],
@@ -101,6 +189,42 @@ export default defineFoe('boss', {
       } else if (knock) flinch();
     } else if (src === 'hado' || src === 'super') flinch();
     return true;
+  },
+  pose: {
+    // the sword held up and ready
+    guard: { chase: { set: { aF: (e, k) => [0.5, 1.9 + 0.05 * k.br] } } },
+    states: {
+      roar: {
+        set: { head: -0.5, lean: -0.25, aB: [2.2, 2.6], jaw: 8 },
+        fn: (o, e) => (o.aF = [2.4 + 0.1 * Math.sin(e.t * 30), 2.8]),
+      },
+      // head back, mouth opening for the acid
+      bwind: {
+        tween: {
+          dur: 0.6,
+          from: { head: 0, lean: 0, aB: [0.02, 0.95], jaw: 3 },
+          to: { head: -0.45, lean: -0.2, aB: [1.2, 2.2], jaw: 8 },
+        },
+      },
+      breath: {
+        set: { lean: 0.35, aB: [1.2, 2.2], jaw: 9 },
+        fn: (o, e) => (o.head = 0.25 + 0.05 * Math.sin(e.t * 40)),
+      },
+      summon: {
+        set: { lean: -0.05 },
+        tween: {
+          dur: 0.4,
+          from: { aF: 'pre', aB: [0.02, 0.95], head: 0, jaw: 0 },
+          to: { aF: [3.0, 3.14], aB: [2.7, 3.0], head: -0.25, jaw: 6 },
+        },
+      },
+      cwind: {
+        set: { lF: [0.5, 0.1], lB: [-0.6, -0.9], jaw: 5 },
+        tween: { dur: 0.5, from: { lean: 0.1, aF: 'pre' }, to: { lean: 0.5, aF: [1.25, 1.55] } },
+        shake: { amp: 0.03, rate: 60, fields: ['lean'] },
+      },
+      charge: { set: { aF: [1.3, 1.57], jaw: 5 } },
+    },
   },
   states: {
     roar(e) {
