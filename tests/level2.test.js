@@ -447,3 +447,17 @@ test('the power armour never climbs out of the ground, and telegraphs its kick',
   step(0.2);
   assert.ok(P.hp < 100 && ['ko', 'down', 'getup'].includes(P.state), 'the kick knocks her down');
 });
+
+test('the bodies of the dead do not hold up the walk on: only live enemies count', () => {
+  quarry();
+  G.waveI = 0;
+  G.wave = { sp: [], t: 5 };
+  const e = spawn('lizard', 1, 600, 450);
+  e.state = 'chase';
+  hurtEnemy(e, 9999, 1, false, 'punch');
+  step(0.6);
+  assert.ok(G.enemies.includes(e), 'the body still lies there');
+  assert.equal(G.wave, null, 'but the fight is over');
+  assert.equal(G.waveI, 1);
+  assert.ok(G.goT > 0, 'GO');
+});

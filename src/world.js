@@ -28,8 +28,11 @@ import { waveSpawns } from './waves.js';
 import { explode, updFuses } from './blast.js';
 import { floorClamp, followPath, levelWaves, startLevel } from './level.js';
 
-// How full the screen is: zombies come in crowds and count as half an enemy each.
-const crowd = () => G.enemies.reduce((n, e) => n + (e.T.crowd || 1), 0);
+// How full the screen is: zombies come in crowds and count as half an enemy each. The bodies
+// of the dead (a lizard or a power armour lying where it fell) do not count.
+const crowd = () => G.enemies.reduce((n, e) => n + (e.dying ? 0 : e.T.crowd || 1), 0);
+/** Enemies still fighting: the fight is over when there are none, bodies or not. */
+export const alive = () => G.enemies.filter((e) => !e.dying);
 export function updWaves(dt) {
   const WAVES = levelWaves();
   if (G.wave) {
@@ -53,7 +56,7 @@ export function updWaves(dt) {
         G.wave.sp.push(...W0.mid.map((s) => [s[0], s[1], G.wave.t + s[2]]));
       }
     }
-    if (G.wave.sp.every((s) => s.done) && G.enemies.length === 0 && (!W0?.mid || G.wave.midT)) {
+    if (G.wave.sp.every((s) => s.done) && alive().length === 0 && (!W0?.mid || G.wave.midT)) {
       G.wave = null;
       G.waveI++;
       G.goT = 6;
