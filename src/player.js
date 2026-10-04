@@ -2,6 +2,8 @@
 import {
   BONE_COST,
   D,
+  HADO,
+  RAGE,
   GB,
   GT,
   MAXR,
@@ -113,14 +115,11 @@ export function updPlayer(dt) {
         }
       } else if (b === 'hado') {
         p.buf = null;
-        const lv = hadoLevel(p.rage);
-        if (lv) {
-          p.rage -= RL[lv - 1];
-          p.hl = lv;
-          p.state = 'hado';
+        if (hadoLevel(p.rage)) {
+          // gather it: a tap throws level I, holding L charges it higher (see HADO)
+          p.state = 'hcharge';
           p.t = 0;
-          p.sw = 0;
-          p.inv = Math.max(p.inv, 0.35);
+          p.hl = 1;
         } else {
           SFX.deny();
         }
@@ -151,7 +150,7 @@ export function updPlayer(dt) {
         if (p.airT !== null && p.airT < 0.3) {
           p.an = ['punch2', p.airT < 0.07 ? 1 : 2];
           p.airT += dt;
-          strike({ x0: 0, x1: 122, dy: 28, dmg: 12, knock: true, rage: 4, src: 'air' });
+          strike({ x0: 0, x1: 122, dy: 28, dmg: 12, knock: true, rage: RAGE.air, src: 'air' });
         }
         if (p.z <= 0) {
           p.z = 0;
@@ -177,7 +176,7 @@ export function updPlayer(dt) {
           p.sw = 1;
           SFX.swing();
         }
-        strike({ x0: 0, x1: 100, dy: 27, dmg: 8, knock: false, rage: 3.5 });
+        strike({ x0: 0, x1: 100, dy: 27, dmg: 8, knock: false, rage: RAGE.punch });
       }
       if (i >= 3 && p.buf === 'atk' && p.bufT > 0) startAtk(mx);
       break;
@@ -196,7 +195,15 @@ export function updPlayer(dt) {
           SFX.swing();
         }
         // with up held the finisher is a launcher: it throws the enemy up, not away
-        strike({ x0: 0, x1: 124, dy: 28, dmg: 16, knock: true, rage: 5.5, launch: !!keys.u });
+        strike({
+          x0: 0,
+          x1: 124,
+          dy: 28,
+          dmg: 16,
+          knock: true,
+          rage: RAGE.finisher,
+          launch: !!keys.u,
+        });
       }
       break;
     }
@@ -219,6 +226,26 @@ export function updPlayer(dt) {
           rot: 0,
           life: 1.05,
         });
+      }
+      break;
+    }
+    case 'hcharge': {
+      // holding L: one level more every HADO.step seconds, as far as the rage reaches; the
+      // rage is only spent when the ball is thrown, so a hit here costs nothing
+      p.an = ['hado', 1];
+      const lv = Math.min(hadoLevel(p.rage), 1 + Math.floor(p.t / HADO.step));
+      if (lv > p.hl) {
+        p.hl = lv;
+        SFX.rank();
+        motes(p.x + p.face * 40, p.y - 102, 6 * lv, 160);
+      }
+      if (random() < 0.25 + 0.2 * p.hl) motes(p.x + p.face * 40, p.y - 102, 1, 60 + 40 * p.hl);
+      if (!keys.hado) {
+        p.rage -= RL[p.hl - 1];
+        p.state = 'hado';
+        p.t = 0;
+        p.sw = 0;
+        p.inv = Math.max(p.inv, 0.35);
       }
       break;
     }
@@ -343,7 +370,7 @@ export function updPlayer(dt) {
           if (p.lives > 0) {
             p.lives--;
             p.hp = 100;
-            p.rage = Math.max(p.rage, 40);
+            p.rage = Math.max(p.rage, RAGE.revive);
             p.rev = 1;
             p.state = 'getup';
             p.t = 0;

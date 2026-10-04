@@ -6,8 +6,10 @@ export const W = 960,
   TAU = Math.PI * 2;
 export const FONT =
   '"Arial Black","Segoe UI Black",Impact,Roboto,"Helvetica Neue",system-ui,sans-serif';
-export const MAXR = 200,
-  RL = [40, 120, 200],
+// The rage bar: 300, in three equal steps of 100 — the dark ball's levels I, II and III;
+// the full bar is also the super attack.
+export const MAXR = 300,
+  RL = [100, 200, 300],
   SLAM_R = 235,
   CHAIN = 430,
   RW = 1;
@@ -26,11 +28,25 @@ export const SWIND = 0.9,
 //   heavy  - never knocked back, their attacks never broken by the player
 //   boss   - their own rules (see their files in src/foes)
 export const WEIGHT = { window: 3, knockMedium: [170, 320] };
+// Rage gained (scaled to the 300 bar: 1.5 times the old amounts on the old 200 bar).
+export const RAGE = {
+  punch: 5.25, // each of the first two punches of a combo, per enemy hit
+  finisher: 8.25, // the third punch
+  air: 6, // the punch in a jump
+  bone: 3, // a bone that hits
+  hurt: 6, // taking a hit
+  pickup: 75, // a rage pickup
+  revive: 60, // at least this much after losing a life
+};
 // A bone throw costs 5% of the rage bar.
 export const BONE_COST = MAXR * 0.05;
+// The dark ball: a tap of L throws level I; holding L charges it, one level every `step`
+// seconds, as far as the rage allows (I costs 100, II 200, III 300); letting go throws it.
+// The higher levels are worth saving for: more damage per point of rage, and wider.
+export const HADO = { step: 0.45, dmg: [50, 110, 180] };
 // Super attack: hold I this long with a full rage bar; it hits everything on screen.
 export const SUPER_HOLD = 1.0,
-  SUPER_DMG = 100;
+  SUPER_DMG = 150;
 // The necromancer's acid ball flies in an arc and leaves a puddle where it lands.
 export const ACID = {
   flight: 0.95, // seconds from the staff to the ground

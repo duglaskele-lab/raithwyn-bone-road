@@ -8,7 +8,8 @@ export const RANKS = ['D', 'C', 'B', 'A', 'S'];
 export const STYLE_STEP = 100, // meter points per rank
   STYLE_MAX = 599, // S lasts from 500 up to here
   STYLE_GRACE = 3.5, // seconds without a hit before the meter starts to drain
-  STYLE_DRAIN = 90; // meter points per second while draining
+  STYLE_DRAIN = 90, // meter points per second while draining
+  STYLE_BREAK = 2; // ranks lost to a hit taken
 
 /** 0 = no rank yet, 1 = D … 5 = S. */
 export const rankOf = (v) => Math.min(RANKS.length, Math.floor(v / STYLE_STEP));
@@ -33,9 +34,9 @@ export function styleGain(points) {
 export function styleKeep() {
   P.styT = 0;
 }
-/** The player got hurt: the streak is over. */
+/** The player got hurt: the meter drops two ranks (keeping the progress within the rank). */
 export function styleBreak() {
-  P.sty = 0;
+  P.sty = Math.max(0, P.sty - STYLE_BREAK * STYLE_STEP);
   P.styT = 0;
 }
 export function updStyle(dt) {

@@ -1,5 +1,5 @@
 // Damage rules: who can be hit, what a hit does, rage, the boss interrupt immunity.
-import { DECOR, JUGGLE, MAXR, RL, SUPER_DMG, TAU, W, WEIGHT, ZOMBIE } from './config.js';
+import { DECOR, JUGGLE, MAXR, RAGE, RL, SUPER_DMG, TAU, W, WEIGHT, ZOMBIE } from './config.js';
 import { random, rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
@@ -182,7 +182,7 @@ export function grabPlayer(e) {
     p.inv > 0 ||
     p.z > 6 ||
     G.state !== 'play' ||
-    !['idle', 'walk', 'run', 'atk1', 'atk2', 'throw'].includes(p.state)
+    !['idle', 'walk', 'run', 'atk1', 'atk2', 'throw', 'hcharge'].includes(p.state)
   )
     return false;
   if (p.hp <= e.T.dmg) return hitPlayer(e.T.dmg, e.face, false) && false;
@@ -276,7 +276,7 @@ export function hitPlayer(dmg, dir, knock) {
     return false;
   p.hp = Math.max(0, p.hp - dmg);
   styleBreak();
-  addRage(4);
+  addRage(RAGE.hurt);
   G.freeze = Math.max(G.freeze, 0.07);
   G.shake = Math.max(G.shake, knock ? 10 : 5);
   spark(p.x, p.y - p.z - 105, '#ff4a5e', knock);
