@@ -22,6 +22,7 @@
 //   guard(e, knock, src, dir)       after the damage, before the usual flinch; true = handled
 //   die(e, dir)              replaces the usual shatter into bones
 //   unstoppable(e)           true while it is in an attack no hit can stop (red outline)
+//   attacks                  its own attack states (a medium enemy's attacks go on through hits)
 //   update(e, dt)            replaces the whole AI (the Bone Dragon)
 //   pose / look              skeletal animation and costume (see anim.js and skeleton.js)
 export const FOES = {},

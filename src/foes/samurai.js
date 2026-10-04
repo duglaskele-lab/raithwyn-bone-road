@@ -60,6 +60,37 @@ const GUARD0 = { aF: [0.55, 1.2], aB: [0.75, 1.3], ka: 2.25 },
     },
   },
   KICK_ARMS = { lB: [-0.2, -0.3], aF: [0.35, 0.7], aB: [0.45, 0.8], ka: 0.5 };
+// the plain cut out of the stance, phase by phase
+const RAISED = {
+    lean: -0.1,
+    aF: [2.6, 3.1],
+    aB: [2.4, 2.9],
+    ka: 3.4,
+    lF: [0.3, 0.1],
+    lB: [-0.35, -0.5],
+  },
+  DOWN = {
+    lean: 0.35,
+    aF: [1.3, 1.45],
+    aB: [1.2, 1.4],
+    ka: 1.1,
+    lF: [0.55, 0.15],
+    lB: [-0.5, -0.75],
+  },
+  READY = { lean: 0.1, ...GUARD0, lF: [0.16, -0.02], lB: [-0.22, -0.34] };
+function swingPose(o, e) {
+  const S = SAMURAI.swing,
+    [a, b, u] =
+      e.t < S.wind
+        ? [READY, RAISED, ease(e.t / S.wind)]
+        : e.t < S.wind + S.strike
+          ? [RAISED, DOWN, Math.min(1, (e.t - S.wind) / (S.strike * 0.6))]
+          : [DOWN, READY, ease(clamp((e.t - S.wind - S.strike) / S.rec, 0, 1))];
+  for (const k in a)
+    o[k] = Array.isArray(a[k])
+      ? [lerp(a[k][0], b[k][0], u), lerp(a[k][1], b[k][1], u)]
+      : lerp(a[k], b[k], u);
+}
 // the kicking leg coming back down
 function kickBack(o, e) {
   const p = 1 - ease(clamp(e.t / e.T.rec, 0, 1));
@@ -179,7 +210,11 @@ export default defineFoe('samurai', {
       const { e, o, fl, h, wa } = c;
       katana(h, o.ka ?? wa, fl, e.state === 'draw');
       if (e.state === 'slash') cutArc(e.t / SAMURAI.slash);
-      else if (e.state === 'recover' && e.cut && e.t < 0.12) cutArc(1, 1 - e.t / 0.12);
+      else if (e.state === 'swing') {
+        const S = SAMURAI.swing,
+          u = (e.t - S.wind) / S.strike;
+        if (u > 0 && u < 1.6) cutArc(u * 1.4, Math.min(1, 1.6 - u), 0.72, true);
+      } else if (e.state === 'recover' && e.cut && e.t < 0.12) cutArc(1, 1 - e.t / 0.12);
     },
     world(c) {
       const { e, s, sx, sy } = c;
@@ -219,6 +254,16 @@ export default defineFoe('samurai', {
         go(e, 'stance', 0, { engage: false });
         SFX.stance();
       },
+    },
+    {
+      // close, but not close enough for the kick: a plain cut of the sword, no stance needed
+      when: (e, s) =>
+        !s.pdown &&
+        e.cd <= 0 &&
+        s.adx > SAMURAI.swing.min &&
+        s.adx < SAMURAI.swing.reach &&
+        s.ady < 22,
+      go: (e) => go(e, 'swing', 0, { hitDone: false, swung: false, engage: false }),
     },
   ],
   // the kick's recovery is not the follow-through of a cut
@@ -286,6 +331,8 @@ export default defineFoe('samurai', {
         set: { ...KICK_ARMS, lean: -0.22 },
         tween: { dur: 0.05, ease: false, from: { lF: [1.35, -0.2] }, to: { lF: [1.35, 1.55] } },
       },
+      // the plain cut: the sword raised over the head, brought down in front, back to guard
+      swing: { set: { jaw: 4 }, fn: swingPose },
       // reeling, the sword point dragging on the ground
       daze: {
         set: { aB: [0.05, 0], lF: [0.2, 0.05], lB: [-0.25, -0.4], ka: 0.35, jaw: 6 },
@@ -331,6 +378,27 @@ export default defineFoe('samurai', {
         }
         if (e.t > SAMURAI.slash) go(e, 'recover', 0, { stanceCd: restCd() });
       },
+    },
+    swing(e) {
+      const S = SAMURAI.swing;
+      if (e.t < S.wind * 0.5) faceP(e);
+      if (e.t > S.wind && !e.swung) {
+        e.swung = true;
+        SFX.swing();
+      }
+      if (
+        !e.hitDone &&
+        e.t > S.wind &&
+        e.t < S.wind + S.strike &&
+        inFront(e, 10, S.reach + 10, S.dy, 110)
+      ) {
+        e.hitDone = true;
+        hitPlayer(S.dmg, e.face, false);
+      }
+      if (e.t > S.wind + S.strike + S.rec) {
+        go(e, 'chase');
+        e.cd = rnd(e.T.cd[0], e.T.cd[1]);
+      }
     },
     daze(e) {
       if (e.t > SAMURAI.daze) {
@@ -409,9 +477,11 @@ function katana(h, a, fl, glint) {
   ctx.restore();
 }
 // The white crescent of the cut: from behind the hip, through the front, up high.
-function cutArc(p, fade = 1) {
-  const a1 = 2.5,
-    a0 = a1 - 3.7 * Math.min(1, p);
+// `size` scales the crescent; `down` makes it the plain cut, from overhead down in front.
+function cutArc(p, fade = 1, size = 1, down = false) {
+  const q = Math.min(1, p),
+    a0 = down ? -1.4 : 2.5 - 3.7 * q,
+    a1 = down ? -1.4 + 2.7 * q : 2.5;
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   ctx.lineCap = 'round';
@@ -423,7 +493,7 @@ function cutArc(p, fade = 1) {
     ctx.strokeStyle = c;
     ctx.lineWidth = w;
     ctx.beginPath();
-    ctx.arc(14, -36, r, a0, a1);
+    ctx.arc(14, -36, r * size, a0, a1);
     ctx.stroke();
   }
   ctx.restore();

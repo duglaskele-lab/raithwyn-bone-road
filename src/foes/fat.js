@@ -1,6 +1,6 @@
 // The fatso: punches, and now and then jumps and slams the ground around it. Past the last
 // third of the slam's wind-up nothing stops it.
-import { FAT, SLAM_R, SWIND, SWIND_LOCK, TAU } from '../config.js';
+import { SLAM_R, SWIND, SWIND_LOCK, TAU } from '../config.js';
 import { rnd } from '../util.js';
 import { G, P } from '../state.js';
 import { SFX } from '../audio.js';
@@ -11,7 +11,7 @@ import { faceP, go } from './kit.js';
 
 export default defineFoe('fat', {
   init: { slamCd: [1.5, 3] },
-  timers: ['slamCd', 'heavyT'],
+  timers: ['slamCd'],
   moves: [
     {
       when: (e, s) => e.slamCd <= 0 && s.adx < 200 && s.ady < 80 && !s.pdown,
@@ -59,21 +59,9 @@ export default defineFoe('fat', {
       if (ex * ex + ey * ey < 1 && P.z < 24) hitPlayer(16, P.x >= e.x ? 1 : -1, true);
     },
   },
-  /**
-   * Past the last third of the slam's wind-up nothing stops him. Otherwise it takes two heavy
-   * blows within FAT.window seconds to knock him down: the first only makes him flinch.
-   */
-  guard(e, knock, src, dir) {
-    if (e.state === 'swind' && e.t >= SWIND_LOCK) return true;
-    if (!knock || e.state === 'air') return false;
-    if (e.heavyT > 0) {
-      e.heavyT = 0; // the second blow in time: down he goes
-      return false;
-    }
-    e.heavyT = FAT.window;
-    if (['windup', 'attack', 'swind'].includes(e.state)) e.x += dir * 4;
-    else go(e, 'hurt', 0, { z: 0, vx: dir * 95 });
-    return true;
-  },
+  // its slam is one of its attacks (a medium enemy's attacks go on through plain hits), and
+  // past the last third of the slam's wind-up nothing stops it at all
+  attacks: ['swind'],
+  guard: (e) => e.state === 'swind' && e.t >= SWIND_LOCK,
   unstoppable: (e) => e.state === 'swind' && e.t >= SWIND_LOCK,
 });
