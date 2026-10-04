@@ -25,7 +25,7 @@ export const L2 = {
   PORTAL_X: 6050, // the mine's timber portal in the cliff
   HALL_X: 6780, // the slime's flooded hall
   END_X: 7900,
-  GATE_X: 640, // the welcome arch
+  GATE_X: 260, // the welcome sign, at the roadside
 };
 const { Y_A, SLANT1, Y_B, SLANT2, Y_C, DROP, END_X } = L2;
 /** The back edge of the floor under x (the street, a slant, the camp, the tunnel). */

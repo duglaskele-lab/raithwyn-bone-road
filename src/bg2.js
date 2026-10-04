@@ -855,7 +855,7 @@ function drawTown() {
   if (view(-200, GATE_X)) {
     ctx.strokeStyle = '#5a3a22';
     ctx.lineWidth = 6;
-    for (let x = -200; x < GATE_X - 290; x += 70) {
+    for (let x = -200; x < GATE_X - 150; x += 70) {
       ctx.beginPath();
       ctx.moveTo(x, Y_A);
       ctx.lineTo(x, Y_A - 58);
@@ -865,11 +865,11 @@ function drawTown() {
     for (const y of [Y_A - 40, Y_A - 20]) {
       ctx.beginPath();
       ctx.moveTo(-200, y);
-      ctx.lineTo(GATE_X - 290, y + 2);
+      ctx.lineTo(GATE_X - 150, y + 2);
       ctx.stroke();
     }
     ctx.fillStyle = '#3e5a2c';
-    cactus(ctx, 120, Y_A - 6, 1.4);
+    cactus(ctx, 20, Y_A - 6, 1.4);
   }
   for (const [x, k] of STREET) {
     const img = T.houses[k],
@@ -976,13 +976,9 @@ function lumber(x, y) {
       ctx.stroke();
     }
 }
-// --- the welcome arch -------------------------------------------------------------------------
-// Two log posts, one each side of the road (the back one on the boardwalk side, the front one
-// at the near edge, drawn over everything by drawFront2), a cross-beam on top and between the
-// posts a big carved board with the town's name, high over the road.
-const ARCH_L = GATE_X - 262,
-  ARCH_R = GATE_X + 262,
-  BEAM_Y = 34;
+// --- the welcome sign -------------------------------------------------------------------------
+// A plain wooden sign at the roadside, left of town on the boardwalk side: two log posts and a
+// plank board with the town's name. It stands off the road.
 function log(x, y0, y1, w = 30) {
   const gr = ctx.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
   gr.addColorStop(0, '#3e2614');
@@ -1038,77 +1034,45 @@ function hangingLantern(x, y) {
   ctx.restore();
 }
 function drawArch() {
-  if (!view(ARCH_L - 80, ARCH_R + 80)) return;
-  // stones piled round the foot of the back post
+  const cx = GATE_X,
+    pl = cx - 128,
+    pr = cx + 128,
+    y0 = Y_A - 196,
+    y1 = Y_A - 84;
+  if (!view(pl - 60, pr + 60)) return;
+  // stones round the feet of the posts
   ctx.strokeStyle = OL;
   ctx.lineWidth = 2;
-  for (const [dx, dy, r] of [
-    [-22, -6, 12],
-    [20, -5, 11],
-    [-4, -4, 13],
-    [-14, -18, 9],
-    [10, -18, 9],
-  ]) {
-    ctx.fillStyle = '#8a7a6a';
-    ctx.beginPath();
-    ctx.ellipse(ARCH_L + dx, Y_A + dy, r, r * 0.7, 0, 0, TAU);
-    ctx.fill();
-    ctx.stroke();
-  }
-  log(ARCH_L, BEAM_Y - 10, Y_A - 8, 32);
-  // the cross-beam, resting on both posts, its ends sticking out
-  const bx0 = ARCH_L - 46,
-    bx1 = ARCH_R + 46;
-  ctx.fillStyle = '#6a4428';
-  ctx.fillRect(bx0, BEAM_Y, bx1 - bx0, 22);
-  ctx.strokeStyle = OL;
-  ctx.lineWidth = 3;
-  ctx.strokeRect(bx0, BEAM_Y, bx1 - bx0, 22);
-  ctx.fillStyle = '#c8a070';
-  for (const x of [bx0, bx1]) {
-    ctx.beginPath();
-    ctx.ellipse(x, BEAM_Y + 11, 5, 11, 0, 0, TAU);
-    ctx.fill();
-    ctx.stroke();
-  }
-  // knee braces from the posts up to the beam
-  ctx.strokeStyle = '#5a3a22';
-  ctx.lineWidth = 9;
-  ctx.beginPath();
-  ctx.moveTo(ARCH_L + 10, BEAM_Y + 110);
-  ctx.lineTo(ARCH_L + 70, BEAM_Y + 22);
-  ctx.moveTo(ARCH_R - 10, BEAM_Y + 110);
-  ctx.lineTo(ARCH_R - 70, BEAM_Y + 22);
-  ctx.stroke();
-  // rope lashed round the joints
-  ctx.strokeStyle = '#c8b07a';
-  ctx.lineWidth = 2;
-  for (const x of [ARCH_L, ARCH_R])
-    for (let i = 0; i < 4; i++) {
+  for (const x of [pl, pr])
+    for (const [dx, dy, r] of [
+      [-14, -4, 9],
+      [12, -3, 8],
+      [0, -10, 7],
+    ]) {
+      ctx.fillStyle = '#8a7a6a';
       ctx.beginPath();
-      ctx.moveTo(x - 16, BEAM_Y + 4 + i * 5);
-      ctx.lineTo(x + 16, BEAM_Y + 8 + i * 5);
+      ctx.ellipse(x + dx, Y_A + dy, r, r * 0.7, 0, 0, TAU);
+      ctx.fill();
       ctx.stroke();
     }
-  // the board: thick planks with notched corners, held by iron straps to both posts
-  const x0 = ARCH_L + 18,
-    x1 = ARCH_R - 18,
-    y0 = BEAM_Y + 34,
-    y1 = BEAM_Y + 150,
-    n = 12;
+  log(pl, y0 - 26, Y_A - 6, 20);
+  log(pr, y0 - 26, Y_A - 6, 20);
+  // the board: planks with notched corners, nailed to both posts
+  const x0 = pl - 20,
+    x1 = pr + 20,
+    n = 10;
   ctx.save();
-  poly([
-    [x0 + n, y0],
-    [x1 - n, y0],
-    [x1, y0 + n],
-    [x1, y1 - n],
-    [x1 - n, y1],
-    [x0 + n, y1],
-    [x0, y1 - n],
-    [x0, y0 + n],
-  ]);
-  ctx.fillStyle = '#2a1a10';
-  ctx.lineWidth = 10;
+  ctx.beginPath();
+  ctx.moveTo(x0 + n, y0);
+  ctx.lineTo(x1 - n, y0);
+  ctx.lineTo(x1, y0 + n);
+  ctx.lineTo(x1, y1 - n);
+  ctx.lineTo(x1 - n, y1);
+  ctx.lineTo(x0 + n, y1);
+  ctx.lineTo(x0, y1 - n);
+  ctx.lineTo(x0, y0 + n);
+  ctx.closePath();
+  ctx.lineWidth = 8;
   ctx.strokeStyle = '#2a1a10';
   ctx.stroke();
   const wg = ctx.createLinearGradient(0, y0, 0, y1);
@@ -1117,98 +1081,63 @@ function drawArch() {
   ctx.fillStyle = wg;
   ctx.fill();
   ctx.clip();
-  // planks and grain
   ctx.strokeStyle = 'rgba(40,20,10,.45)';
   ctx.lineWidth = 2;
-  for (let y = y0 + 29; y < y1; y += 29) {
+  for (let y = y0 + 28; y < y1; y += 28) {
     ctx.beginPath();
     ctx.moveTo(x0, y);
     ctx.lineTo(x1, y);
     ctx.stroke();
   }
-  ctx.strokeStyle = 'rgba(40,20,10,.15)';
-  ctx.lineWidth = 1;
-  for (let y = y0 + 6; y < y1; y += 7) {
-    ctx.beginPath();
-    ctx.moveTo(x0, y);
-    ctx.bezierCurveTo(x0 + 150, y + 3, x1 - 150, y - 3, x1, y + 1);
-    ctx.stroke();
-  }
   ctx.restore();
-  // a carved border
-  ctx.strokeStyle = 'rgba(40,20,10,.6)';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(x0 + 10, y0 + 10, x1 - x0 - 20, y1 - y0 - 20);
-  // iron straps and bolts at both ends
-  for (const x of [x0 - 14, x1 - 22])
-    for (const y of [y0 + 14, y1 - 30]) {
-      ctx.fillStyle = '#3a3a40';
-      ctx.fillRect(x, y, 36, 14);
-      ctx.strokeStyle = OL;
-      ctx.lineWidth = 2;
-      ctx.strokeRect(x, y, 36, 14);
-      ctx.fillStyle = '#9a98a0';
-      for (const bx of [x + 7, x + 29]) {
-        ctx.beginPath();
-        ctx.arc(bx, y + 7, 2.5, 0, TAU);
-        ctx.fill();
-      }
+  // nails
+  ctx.fillStyle = '#3a3a40';
+  for (const x of [pl, pr])
+    for (const y of [y0 + 14, y1 - 14]) {
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, TAU);
+      ctx.fill();
     }
-  // the lettering, burnt in and painted
-  const cx = GATE_X;
+  // the lettering
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `900 19px ${FONT}`;
+  ctx.font = `900 15px ${FONT}`;
   ctx.fillStyle = '#2a160c';
-  ctx.fillText(t('welcome'), cx, y0 + 30);
-  ctx.font = `900 46px ${FONT}`;
-  ctx.lineWidth = 7;
+  ctx.fillText(t('welcome'), cx, y0 + 24);
+  ctx.font = `900 34px ${FONT}`;
+  ctx.lineWidth = 6;
   ctx.strokeStyle = '#2a160c';
-  ctx.strokeText('OLD QUARRY', cx, y0 + 78);
+  ctx.strokeText('OLD QUARRY', cx, y0 + 66);
   ctx.fillStyle = '#f2d27a';
-  ctx.fillText('OLD QUARRY', cx, y0 + 78);
-  ctx.fillStyle = 'rgba(255,255,255,.25)';
-  ctx.fillText('OLD QUARRY', cx - 1, y0 + 76);
-  ctx.fillStyle = '#f2d27a';
-  ctx.fillText('OLD QUARRY', cx, y0 + 78);
-  // stars either side of the name
-  star(ctx, cx - 186, y0 + 78, 9, '#f2d27a');
-  star(ctx, cx + 186, y0 + 78, 9, '#f2d27a');
-  // a horseshoe nailed on for luck
-  ctx.strokeStyle = '#4a4a52';
-  ctx.lineWidth = 5;
-  ctx.beginPath();
-  ctx.arc(x1 - 44, y1 - 46, 10, Math.PI * 0.85, Math.PI * 2.15);
-  ctx.stroke();
-  // a cow skull on the middle of the beam
+  ctx.fillText('OLD QUARRY', cx, y0 + 66);
+  ctx.font = `900 11px ${FONT}`;
+  ctx.fillStyle = '#3a2416';
+  ctx.fillText('★  POP. 312  ★', cx, y0 + 96);
+  // a cow skull on top, a lantern on a post
   ctx.save();
-  ctx.translate(cx, BEAM_Y + 6);
+  ctx.translate(cx, y0 - 6);
   ctx.fillStyle = '#ece5cb';
   ctx.strokeStyle = OL;
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.ellipse(0, 0, 15, 11, 0, 0, TAU);
+  ctx.ellipse(0, 0, 13, 9, 0, 0, TAU);
   ctx.fill();
   ctx.stroke();
-  ctx.fillRect(-7, 6, 14, 16);
-  ctx.strokeRect(-7, 6, 14, 16);
   ctx.strokeStyle = '#ece5cb';
-  ctx.lineWidth = 5;
+  ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.moveTo(-12, -4);
-  ctx.quadraticCurveTo(-32, -8, -38, -24);
-  ctx.moveTo(12, -4);
-  ctx.quadraticCurveTo(32, -8, 38, -24);
+  ctx.moveTo(-10, -3);
+  ctx.quadraticCurveTo(-26, -6, -30, -18);
+  ctx.moveTo(10, -3);
+  ctx.quadraticCurveTo(26, -6, 30, -18);
   ctx.stroke();
   ctx.fillStyle = OL;
   ctx.beginPath();
-  ctx.arc(-5, 0, 3, 0, TAU);
-  ctx.arc(5, 0, 3, 0, TAU);
+  ctx.arc(-4, 0, 2.5, 0, TAU);
+  ctx.arc(4, 0, 2.5, 0, TAU);
   ctx.fill();
   ctx.restore();
-  // lanterns hanging from the ends of the beam
-  hangingLantern(bx0 + 18, BEAM_Y + 22);
-  hangingLantern(bx1 - 18, BEAM_Y + 22);
+  hangingLantern(pr + 12, y1 + 6);
 }
 function rails(xa, ya, xb, yb, vertical) {
   if (vertical) {
@@ -1652,19 +1581,9 @@ export function drawBG2() {
 }
 /** How far into the mine the camera is: 0 outside, 1 well inside. */
 const inside = () => clamp((G.cam + W / 2 - PORTAL_X - 150) / 500, 0, 1);
-/** Things in front of the fighters, and the light: the arch's front post, the mine's gloom. */
+/** The light over the fighters: the mine's gloom, the evening haze. */
 export function drawFront2() {
   if (!T) init();
-  ctx.save();
-  ctx.translate(-G.cam, -G.camY);
-  if (view(ARCH_R - 60, ARCH_R + 60)) {
-    // see-through while someone stands behind it
-    const hid = [P, ...G.enemies].some((o) => Math.abs(o.x - ARCH_R) < 70);
-    ctx.globalAlpha = hid ? 0.45 : 1;
-    log(ARCH_R, BEAM_Y - 10, 560, 32);
-    ctx.globalAlpha = 1;
-  }
-  ctx.restore();
   const k = inside();
   if (k > 0) {
     // the mine is dark: light round the heroine and from the lamps, gloom at the edges
