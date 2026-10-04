@@ -3,7 +3,7 @@
 // phase and spits acid. His charge, summon, roar and breath cannot be interrupted, and two
 // interrupted combos in a row make him shrug off combos for a while.
 import { ACID, BOSS, FONT, GB, GT, OL, PURPLE, TAU, W } from '../config.js';
-import { clamp, rnd } from '../util.js';
+import { clamp, random, rnd } from '../util.js';
 import { G, P } from '../state.js';
 import { SFX } from '../audio.js';
 import { dust } from '../fx.js';
@@ -35,7 +35,7 @@ const drip = (x, y) => ({
   t: 0,
   life: rnd(0.3, 0.5),
   s: rnd(2.5, 4),
-  col: Math.random() < 0.5 ? '#9dff4a' : '#4fd12a',
+  col: random() < 0.5 ? '#9dff4a' : '#4fd12a',
 });
 
 export default defineFoe('boss', {
@@ -166,8 +166,7 @@ export default defineFoe('boss', {
       },
     },
     {
-      when: (e, s, dt) =>
-        e.cd <= 0 && s.adx > 270 && s.ady < 60 && !s.pdown && Math.random() < dt * 1.6,
+      when: (e, s, dt) => e.cd <= 0 && s.adx > 270 && s.ady < 60 && !s.pdown && random() < dt * 1.6,
       go: (e) => go(e, 'cwind'),
     },
   ],
@@ -229,7 +228,7 @@ export default defineFoe('boss', {
   },
   states: {
     roar(e) {
-      if (Math.random() < 0.4) dust(e.x + rnd(-60, 60), e.y, 1);
+      if (random() < 0.4) dust(e.x + rnd(-60, 60), e.y, 1);
       if (e.t > BOSS.roar) go(e, 'chase');
     },
     summon(e) {
@@ -256,7 +255,7 @@ export default defineFoe('boss', {
         e.y += clamp(s.dy, -1, 1) * 40 * dt;
         e.moving = true;
         e.walkT += dt * 17;
-        if (Math.random() < 0.5) dust(e.x - e.face * 20, e.y, 1);
+        if (random() < 0.5) dust(e.x - e.face * 20, e.y, 1);
         if (!e.hitDone && s.adx < 64 && s.ady < 26) {
           e.hitDone = true;
           hitPlayer(e.T.dmg, e.face, true);
@@ -268,7 +267,7 @@ export default defineFoe('boss', {
     bwind(e, dt, s) {
       // 0.7 s to get out of the way: head back, acid drooling from the jaws
       if (e.t < 0.2) e.face = s.dx >= 0 ? 1 : -1;
-      if (Math.random() < 0.5) {
+      if (random() < 0.5) {
         const [mx, my] = mouth(e);
         G.parts.push(drip(mx + rnd(-4, 4), my + 4));
       }

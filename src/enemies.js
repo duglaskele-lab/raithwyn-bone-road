@@ -53,15 +53,16 @@ export function spawn(type, side, x, y) {
     hitDone: false,
     breaks: 0,
     armor: 0,
-    slamCd: rnd(1.5, 3),
-    chCd: rnd(2, 4),
     mounted: false,
     rdir: 1,
     slammed: false,
     vyd: 0,
     rev: 0,
   };
-  FOES[type].spawn?.(e, side, placed);
+  const F = FOES[type];
+  // its own countdowns start somewhere in a range
+  for (const [k, [a, b]] of Object.entries(F.init ?? {})) e[k] = rnd(a, b);
+  F.spawn?.(e, side, placed);
   if (e.state === 'rise') SFX.rise();
   G.enemies.push(e);
   return e;

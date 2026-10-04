@@ -12,7 +12,7 @@
 // claw, the kick, the plasma or the pounce staggers it; then it shrugs off interrupts for a few seconds. The laser
 // and the leap cannot be stopped at all.
 import { GB, GT, TAU, W } from './config.js';
-import { clamp, ease, lerp, rnd } from './util.js';
+import { clamp, ease, lerp, random, rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX, growl } from './audio.js';
 import { dust } from './fx.js';
@@ -183,9 +183,7 @@ function choose(e) {
   if (e.pounceCd <= 0 && Math.abs(f) > C.pounce.min && ady < 120) can.push('pounce');
   if ((e.plasmaCd ?? 0) <= 0 && f > C.plasma.min) can.push('plasma');
   const fresh = can.filter((a) => a !== e.last);
-  const pick = (fresh.length ? fresh : can)[
-    Math.floor(Math.random() * (fresh.length || can.length))
-  ];
+  const pick = (fresh.length ? fresh : can)[Math.floor(random() * (fresh.length || can.length))];
   return pick || null;
 }
 function start(e, a) {
@@ -499,7 +497,7 @@ function step(e, dt) {
   e.moving = false;
   const f = (P.x - e.x) * e.face;
   // acid dripping from the jaws
-  if (Math.random() < dt * 9) {
+  if (random() < dt * 9) {
     const [hx, hy] = headPoint(e);
     G.parts.push({
       k: 'dot',
@@ -511,7 +509,7 @@ function step(e, dt) {
       t: 0,
       life: rnd(0.35, 0.6),
       s: rnd(2.5, 4.5),
-      col: Math.random() < 0.5 ? '#9dff4a' : '#5fd12a',
+      col: random() < 0.5 ? '#9dff4a' : '#5fd12a',
     });
   }
   switch (e.state) {
@@ -530,7 +528,7 @@ function step(e, dt) {
       if (e.t > 2.2) finish(e);
       break;
     case 'roar':
-      if (Math.random() < 0.5) dust(e.x + rnd(-120, 120), e.y, 1);
+      if (random() < 0.5) dust(e.x + rnd(-120, 120), e.y, 1);
       G.shake = Math.max(G.shake, 4);
       if (e.t > C.roar) finish(e);
       break;
@@ -556,7 +554,7 @@ function step(e, dt) {
           -f <= K.max &&
           Math.abs(P.y - e.y) < K.dy &&
           !pdown() &&
-          Math.random() < K.odds
+          random() < K.odds
         ) {
           // a kick back at the player instead of turning round
           e.kickCd = K.cd;
@@ -655,7 +653,7 @@ function step(e, dt) {
       const L = C.laser,
         hx = e.x + e.face * 25,
         hy = e.laserY - e.z - 108;
-      if (e.t < L.wind && Math.random() < 0.3 + e.t) {
+      if (e.t < L.wind && random() < 0.3 + e.t) {
         // sparks drawn into the heart as it charges
         const a = rnd(0, TAU),
           r = rnd(70, 130),
@@ -673,7 +671,7 @@ function step(e, dt) {
           col: '#f0dcff',
         });
       }
-      if (e.t > L.wind && e.t < L.wind + L.fire && Math.random() < 0.8) {
+      if (e.t > L.wind && e.t < L.wind + L.fire && random() < 0.8) {
         // sparks thrown off the beam
         const x = hx + e.face * rnd(40, W);
         G.parts.push({
@@ -715,7 +713,7 @@ function step(e, dt) {
       const D = C.death;
       e.z = Math.max(0, e.z - 700 * dt);
       if (e.t < D.roar) G.shake = Math.max(G.shake, 5);
-      else if (e.t < D.roar + D.fall && Math.random() < 0.5) dust(e.x + rnd(-120, 120), e.y, 1);
+      else if (e.t < D.roar + D.fall && random() < 0.5) dust(e.x + rnd(-120, 120), e.y, 1);
       if (e.t > D.roar + D.fall && !e.broken) {
         e.broken = true;
         breakApart(e);
@@ -936,7 +934,7 @@ export function updShocks(dt) {
   const S = DRAGON.shock;
   for (const w of G.shocks) {
     w.r += S.speed * dt;
-    if (Math.random() < 0.9) {
+    if (random() < 0.9) {
       const a = rnd(0, TAU);
       dust(w.x + Math.cos(a) * w.r, w.y + Math.sin(a) * w.r * S.depth, 1);
     }

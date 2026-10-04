@@ -1,7 +1,7 @@
 // Zombies come in crowds: they grab the player, lose their heads to hits and now and then
 // tear the head off themselves and throw it.
 import { ACID, OL, TAU, ZOMBIE } from '../config.js';
-import { clamp } from '../util.js';
+import { clamp, random } from '../util.js';
 import { P } from '../state.js';
 import { SFX } from '../audio.js';
 import { grabPlayer, popHead } from '../combat.js';
@@ -81,7 +81,7 @@ export default defineFoe('zombie', {
         s.adx > 170 &&
         s.adx < 420 &&
         s.ady < 60 &&
-        Math.random() < ZOMBIE.throwRate * dt,
+        random() < ZOMBIE.throwRate * dt,
       go: (e) => go(e, 'hwind', 0, { engage: false }),
     },
   ],
@@ -91,7 +91,7 @@ export default defineFoe('zombie', {
     return true;
   },
   guard(e, knock, src, dir) {
-    if (!e.headless && (knock || src === 'hado' || Math.random() < ZOMBIE.headOff)) popHead(e, dir);
+    if (!e.headless && (knock || src === 'hado' || random() < ZOMBIE.headOff)) popHead(e, dir);
     return false;
   },
   pose: {

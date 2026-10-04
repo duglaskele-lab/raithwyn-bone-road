@@ -4,6 +4,7 @@
 //
 // A foe definition may hold:
 //   spawn(e, side, placed)   adjust a fresh enemy (where it appears, its first state)
+//   init                     { field: [min, max] } countdowns it starts with, picked at random
 //   timers                   extra countdown fields to tick down every frame
 //   moves                    [{ when(e, s, dt), go(e, s) }] tried in order while it chases
 //   riseTime                 seconds to climb out of the ground (0.9)

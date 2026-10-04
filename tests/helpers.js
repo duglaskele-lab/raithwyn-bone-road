@@ -1,10 +1,12 @@
 import { G, reset } from '../src/state.js';
 import { keys, pressed } from '../src/input.js';
+import { seedRandom } from '../src/util.js';
 
 export const DT = 1 / 60;
 
 /** Puts the world into a clean "level just started" state. */
 export function freshGame() {
+  seedRandom(1);
   for (const k in keys) delete keys[k];
   for (const k in pressed) delete pressed[k];
   reset();

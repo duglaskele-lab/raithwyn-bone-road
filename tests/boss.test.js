@@ -8,6 +8,7 @@ import { hurtEnemy } from '../src/combat.js';
 import { inBreath, spawn, updEnemy } from '../src/enemies.js';
 import { update } from '../src/world.js';
 import { DT, freshGame } from './helpers.js';
+import { setRandom } from '../src/util.js';
 
 beforeEach(freshGame);
 
@@ -110,7 +111,7 @@ test('big graves take three hits; a zombie, a skeleton or nothing climbs out', (
   assert.equal(DECOR.tomb.hp, 3, 'a quarter less than four');
   const tombs = G.props.filter((u) => u.decor === 'tomb');
   assert.ok(tombs.length >= 5);
-  const random = Math.random;
+  const random = setRandom(Math.random);
   try {
     for (const [r, type] of [
       [0.1, 'zombie'],
@@ -123,9 +124,9 @@ test('big graves take three hits; a zombie, a skeleton or nothing climbs out', (
         hurtEnemy(tomb, 1, 1, false, 'punch');
         assert.ok(!tomb.dead);
       }
-      Math.random = () => r;
+      setRandom(() => r);
       hurtEnemy(tomb, 1, 1, false, 'punch');
-      Math.random = random;
+      setRandom(Math.random);
       assert.ok(tomb.dead);
       assert.deepEqual(
         G.enemies.map((e) => e.type),
@@ -134,7 +135,7 @@ test('big graves take three hits; a zombie, a skeleton or nothing climbs out', (
       if (type) assert.equal(G.enemies[0].state, 'rise');
     }
   } finally {
-    Math.random = random;
+    setRandom(random);
   }
 });
 

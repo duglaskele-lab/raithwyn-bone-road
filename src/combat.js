@@ -1,6 +1,6 @@
 // Damage rules: who can be hit, what a hit does, rage, the boss interrupt immunity.
 import { DECOR, JUGGLE, MAXR, RL, SUPER_DMG, TAU, W, ZOMBIE } from './config.js';
-import { rnd } from './util.js';
+import { random, rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
 import { motes, shatter, spark } from './fx.js';
@@ -102,8 +102,7 @@ export function killEnemy(e, dir) {
   P.score += Math.round(e.T.score * scoreMult());
   shatter(e, dir);
   if (e.T.bigBoss) finale(e);
-  else if (Math.random() < 0.12)
-    G.items.push({ kind: 'rage', x: e.x, y: e.y, z: 60, vz: 200, t: 0 });
+  else if (random() < 0.12) G.items.push({ kind: 'rage', x: e.x, y: e.y, z: 60, vz: 200, t: 0 });
 }
 // A boss falls: slow motion, a flash, every other enemy crumbles, the arena is cleared.
 export function finale(e) {
@@ -216,7 +215,7 @@ export function breakProp(e) {
       });
   if (D && D.big) {
     // a big grave: a zombie (25%) or a skeleton (25%) may climb out, or nothing (50%)
-    const r = Math.random();
+    const r = random();
     if (r < 0.5) spawn(r < 0.25 ? 'zombie' : 'grunt', 0, e.x, e.y);
     G.shake = Math.max(G.shake, 8);
   }

@@ -10,6 +10,7 @@ import { defineFoe } from './registry.js';
 import { faceP, go } from './kit.js';
 
 export default defineFoe('fat', {
+  init: { slamCd: [1.5, 3] },
   timers: ['slamCd'],
   moves: [
     {

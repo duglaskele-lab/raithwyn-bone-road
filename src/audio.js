@@ -1,6 +1,9 @@
 // Synthesised sound effects and the music loop (Web Audio). The fight and the dragon have
 // recorded songs (songs.js); the synth themes cover the menus and stand in until those load.
-import { mulberry, rnd } from './util.js';
+import { mulberry } from './util.js';
+
+// Synth wobble is not part of the game: it has its own chance, apart from the seeded one.
+const rnd = (a = 1, b) => (b === undefined ? Math.random() * a : a + Math.random() * (b - a));
 import { G } from './state.js';
 import { songTick, songsAttach } from './songs.js';
 

@@ -1,6 +1,6 @@
 // One simulation step: player, enemies, projectiles, pickups, debris, wave script.
 import { ACID, CHAIN_GAP, GB, GT, PURPLE, SECRET_HOLD, W, WAVES, ZOMBIE } from './config.js';
-import { clamp, rnd } from './util.js';
+import { clamp, random, rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
 import { keys } from './input.js';
@@ -59,7 +59,7 @@ function secretWarp(dt) {
     return;
   }
   G.secretT = (G.secretT || 0) + dt;
-  if (Math.random() < G.secretT * 0.3) motes(P.x, P.y - 90, 1, 80);
+  if (random() < G.secretT * 0.3) motes(P.x, P.y - 90, 1, 80);
   if (G.secretT < SECRET_HOLD) return;
   G.secretDone = true;
   const last = WAVES.length - 1,
@@ -158,7 +158,7 @@ export function update(dt) {
           life: 1.2,
         });
     } else if (q.k === 'hado') {
-      if (Math.random() < 0.9)
+      if (random() < 0.9)
         G.parts.push({
           k: 'glow',
           x: q.x - Math.sign(q.vx) * rnd(10, 40),
@@ -233,7 +233,7 @@ export function update(dt) {
       q.y += q.vy * dt;
       q.vz -= DRAGON.plasma.g * dt;
       q.z += q.vz * dt;
-      if (Math.random() < 0.8)
+      if (random() < 0.8)
         G.parts.push({
           k: 'glow',
           x: q.x - Math.sign(q.vx) * rnd(4, 14),
@@ -256,7 +256,7 @@ export function update(dt) {
       q.y += q.vy * dt;
       q.vz -= ACID.g * dt;
       q.z += q.vz * dt;
-      if (Math.random() < 0.5)
+      if (random() < 0.5)
         G.parts.push({
           k: 'dot',
           x: q.x - Math.sign(q.vx) * rnd(6, 16),
@@ -375,7 +375,7 @@ export function update(dt) {
       d.x += d.vx * dt;
       d.vx *= Math.pow(0.07, dt);
       d.tilt = Math.min(1, d.tilt + dt * 2.4);
-      if (Math.abs(d.vx) > 90 && Math.random() < 0.5)
+      if (Math.abs(d.vx) > 90 && random() < 0.5)
         G.parts.push({
           k: 'dot',
           x: d.x,
