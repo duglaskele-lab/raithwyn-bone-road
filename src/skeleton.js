@@ -61,6 +61,20 @@ export function boneSeg(pts, w, col, foot) {
     ctx.fill();
   }
 }
+/** The purple glow round an enemy that shrugs off combos for a while (the baron's armor). */
+export function drawAura(e) {
+  if (!(e.armor > 0)) return;
+  const sx = e.x - G.cam,
+    sy = e.y - e.z;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const ag = ctx.createRadialGradient(sx, sy - 120, 10, sx, sy - 120, 190);
+  ag.addColorStop(0, `rgba(176,92,255,${0.35 + 0.15 * Math.sin(G.time * 12)})`);
+  ag.addColorStop(1, 'rgba(176,92,255,0)');
+  ctx.fillStyle = ag;
+  ctx.fillRect(sx - 190, sy - 310, 380, 380);
+  ctx.restore();
+}
 /**
  * Draws a skeleton enemy: the shared rig (bones, pelvis, ribcage, skull) and, at fixed
  * layers, the foe's own look from its definition (see foes/registry.js):
@@ -71,8 +85,9 @@ export function boneSeg(pts, w, col, foot) {
  *   look.rise    seconds it takes to climb out of the ground
  * Every hook gets one object with what it may need: e, T, o (the pose), fl (hit flash),
  * col, dk, s, sx, sy, hipH, neck, sh, limb, TH, SH and, for the weapon, L, h (hand), wa.
+ * With `aura` false the purple armor glow is left out (it is then drawn apart).
  */
-export function drawSkel(e) {
+export function drawSkel(e, aura = true) {
   const F = FOES[e.type] ?? {},
     T = e.T,
     s = T.scale,
@@ -91,16 +106,7 @@ export function drawSkel(e) {
     col = fl ? '#ffffff' : T.col,
     dk = fl ? '#ffd9d9' : T.dk,
     sleeves = F.look?.sleeves?.(fl);
-  if (e.armor > 0) {
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    const ag = ctx.createRadialGradient(sx, sy - 120, 10, sx, sy - 120, 190);
-    ag.addColorStop(0, `rgba(176,92,255,${0.35 + 0.15 * Math.sin(G.time * 12)})`);
-    ag.addColorStop(1, 'rgba(176,92,255,0)');
-    ctx.fillStyle = ag;
-    ctx.fillRect(sx - 190, sy - 310, 380, 380);
-    ctx.restore();
-  }
+  if (aura) drawAura(e);
   ctx.save();
   ctx.translate(sx, sy);
   if (e.state === 'rise') {

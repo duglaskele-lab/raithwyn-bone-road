@@ -35,7 +35,7 @@ test('from a distance it takes its stance and creeps up; close enough, it cuts',
   run(e, 1);
   assert.ok(e.x < x0, 'creeping towards the player');
   assert.ok(x0 - e.x < SAMURAI.walk * 1.2, 'slowly');
-  // the player steps inside its range
+  // the player steps inside its range (once it has settled into the stance)
   P.x = e.x - SAMURAI.range + 10;
   run(e, DT);
   assert.equal(e.state, 'draw');
@@ -86,8 +86,20 @@ test('a blow up close does not break the stance: it answers with the cut', () =>
   assert.equal(e.state, 'slash', 'the cut is too fast to stop');
 });
 
-test('it is quick to take the stance again', () => {
-  assert.ok(SAMURAI.stanceCd[1] < 2);
+test('it settles into the stance before it can cut', () => {
+  assert.equal(SAMURAI.settle, 0.5);
+  const e = samuraiAt(800, 800 - SAMURAI.range - 10);
+  run(e, DT);
+  assert.equal(e.state, 'stance');
+  P.x = e.x - 60; // the player rushes in at once
+  run(e, SAMURAI.settle - 0.1);
+  assert.equal(e.state, 'stance', 'no cut while it settles');
+  run(e, 0.15);
+  assert.equal(e.state, 'draw', 'then the cut');
+});
+
+test('it takes the stance again after a rest', () => {
+  assert.deepEqual(SAMURAI.stanceCd, [1.8, 3.4], 'half as often as with the old 0.9-1.7 s');
   // just out of reach of its cut, even right after another move, it settles into the stance
   const e = samuraiAt(800, 800 - SAMURAI.range - 10, { cd: 1 });
   run(e, DT);
@@ -114,7 +126,7 @@ test('after a stance it rests a moment, then takes it again', () => {
   assert.equal(e.state, 'stance');
   run(e, SAMURAI.stance + 0.1);
   assert.equal(e.state, 'chase');
-  P.x = e.x - 400; // well out of reach of the cut
+  P.x = e.x - 450; // well out of reach of the cut
   run(e, SAMURAI.stanceCd[1] + 0.2);
   assert.equal(e.state, 'stance', 'the rest is over (it used to never end)');
 });

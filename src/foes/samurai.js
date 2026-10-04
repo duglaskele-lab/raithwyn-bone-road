@@ -44,6 +44,21 @@ const GUARD0 = { aF: [0.55, 1.2], aB: [0.75, 1.3], ka: 2.25 },
       o.lB = [-0.6 - sh, -0.8 - sh];
     },
   },
+  // settling into the stance: from its guard down into the low stance
+  SETTLE = {
+    tween: {
+      dur: SAMURAI.settle,
+      from: { lean: 0.1, head: 0, ...GUARD0 },
+      to: { lean: 0.3, head: -0.12, aF: [-0.25, 0.3], aB: [-0.15, 0.4], ka: -1.05 },
+    },
+    set: { jaw: 0 },
+    fn(o, e) {
+      const p = ease(clamp(e.t / SAMURAI.settle, 0, 1));
+      STANCE.fn(o, e);
+      o.lF = [lerp(0.16, o.lF[0], p), lerp(-0.02, o.lF[1], p)];
+      o.lB = [lerp(-0.22, o.lB[0], p), lerp(-0.34, o.lB[1], p)];
+    },
+  },
   KICK_ARMS = { lB: [-0.2, -0.3], aF: [0.35, 0.7], aB: [0.45, 0.8], ka: 0.5 };
 // the kicking leg coming back down
 function kickBack(o, e) {
@@ -232,7 +247,7 @@ export default defineFoe('samurai', {
       chase: { set: GUARD },
       rise: { set: GUARD },
       // low and wide, the blade held back by the hip, ready to cut
-      stance: STANCE,
+      stance: SETTLE,
       // a tremble and the blade drawn back a little more, the instant before the cut
       draw: {
         ...STANCE,
@@ -287,6 +302,7 @@ export default defineFoe('samurai', {
     stance(e, dt, s) {
       // eyes burning, katana low: one step inside its range and it cuts
       faceP(e);
+      if (e.t < SAMURAI.settle) return; // still settling into it: no cut yet
       const f = s.dx * e.face;
       if (!s.pdown && f > 0 && f < SAMURAI.range && s.ady < SAMURAI.dy && P.z < 120) {
         go(e, 'draw');

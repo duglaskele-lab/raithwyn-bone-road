@@ -123,7 +123,9 @@ test("the fatso's ground slam cannot be interrupted in the last third of its win
   e.state = 'swind';
   e.t = SWIND_LOCK - 0.05;
   hurtEnemy(e, 16, 1, true, 'punch');
-  assert.equal(e.state, 'air', 'early on a knockdown still stops it');
+  assert.equal(e.state, 'swind', 'one heavy blow is not enough for the fatso');
+  hurtEnemy(e, 16, 1, true, 'punch');
+  assert.equal(e.state, 'air', 'early on, two heavy blows still stop it');
 
   e.state = 'swind';
   e.t = SWIND_LOCK + 0.01;
