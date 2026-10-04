@@ -139,15 +139,16 @@ function lizPose(e) {
     case 'air':
       // thrown off its feet: it pitches forward, legs flung back
       o.rot = Math.min(0.6, t * 4);
-      o.aF = [1.6, 2.2];
-      o.aB = [1.4, 2.0];
+      // arms pulled in to the chest
+      o.aF = [-0.2, 1.3];
+      o.aB = [-0.3, 1.2];
       o.lF = [-0.7, -0.9, -0.8];
       o.lB = [-0.9, -1.1, -1.0];
       o.jaw = 0.8;
       break;
     case 'corpse':
     case 'down':
-      // flat on its belly, legs stretched out behind, claws forward
+      // flat on its belly, legs stretched out behind, arms tucked in under the chest
       o.rot = 0.6;
       o.hipH = 26;
       o.lean = 1.0;
@@ -155,8 +156,8 @@ function lizPose(e) {
       o.jaw = 0.5;
       o.lF = [-0.95, -1.0, -0.9];
       o.lB = [-1.05, -1.1, -1.0];
-      o.aF = [0.75, 0.95];
-      o.aB = [0.65, 0.85];
+      o.aF = [-0.35, 0.9];
+      o.aB = [-0.45, 0.8];
       o.tail = 0;
       break;
     case 'getup': {

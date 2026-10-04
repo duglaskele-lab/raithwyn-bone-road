@@ -101,7 +101,9 @@ function armorPose(e) {
       o.hipH = 50;
       o.lF = [0.9, 0.3];
       o.lB = [0.5, -0.1];
-      o.aF = [1.6, 2.0];
+      // the gun pulled in to the chest as it goes over
+      o.aF = [0.3, 2.9];
+      o.aB = [0.4, 1.9];
       break;
     case 'corpse':
     case 'down':
@@ -109,7 +111,9 @@ function armorPose(e) {
       o.hipH = 18;
       o.lF = [0.2, 0.1];
       o.lB = [0.1, 0.05];
-      o.aF = [2.4, 2.6];
+      // lying on its back, the gun hugged along the body
+      o.aF = [0.2, 3.0];
+      o.aB = [0.3, 1.8];
       break;
     case 'getup': {
       const u = ease(clamp(t / 0.6, 0, 1));
@@ -597,9 +601,7 @@ export function drawArmor(e, aura = true) {
     ctx.fill();
   }
   ctx.restore();
-  ctx.fillStyle = 'rgba(16,14,24,.55)';
-  ctx.font = '900 9px sans-serif';
-  ctx.fillText('07', -24, -14);
+
   // a chest light
   ctx.fillStyle = fl ? '#fff' : PAL.gl;
   ctx.shadowColor = PAL.gl;
