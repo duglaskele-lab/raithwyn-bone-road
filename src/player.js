@@ -39,6 +39,14 @@ export function startAtk(mx) {
   p.combo = fin ? 0 : p.combo + 1;
   p.comboT = 0.7;
 }
+// The dark ball of level p.hl leaves her hands: its rage is spent now.
+function throwHado(p) {
+  p.rage -= RL[p.hl - 1];
+  p.state = 'hado';
+  p.t = 0;
+  p.sw = 0;
+  p.inv = Math.max(p.inv, 0.35);
+}
 export function updPlayer(dt) {
   const p = P;
   p.t += dt;
@@ -115,13 +123,15 @@ export function updPlayer(dt) {
         }
       } else if (b === 'hado') {
         p.buf = null;
-        if (hadoLevel(p.rage)) {
-          // gather it: a tap throws level I, holding L charges it higher (see HADO)
+        const most = hadoLevel(p.rage);
+        p.hl = 1;
+        if (!most) SFX.deny();
+        else if (most === 1)
+          throwHado(p); // rage for level I only: thrown at once
+        else {
+          // rage for more: holding L charges it higher (see HADO), a tap still throws level I
           p.state = 'hcharge';
           p.t = 0;
-          p.hl = 1;
-        } else {
-          SFX.deny();
         }
       }
       break;
@@ -230,23 +240,12 @@ export function updPlayer(dt) {
       break;
     }
     case 'hcharge': {
-      // holding L: one level more every HADO.step seconds, as far as the rage reaches; the
-      // rage is only spent when the ball is thrown, so a hit here costs nothing
+      // holding L: one level more every HADO.step seconds, as far as the rage reaches. No
+      // glow and no gauge: a trick for those who know it. The rage is only spent when the
+      // ball is thrown, so a hit here costs nothing.
       p.an = ['hado', 1];
-      const lv = Math.min(hadoLevel(p.rage), 1 + Math.floor(p.t / HADO.step));
-      if (lv > p.hl) {
-        p.hl = lv;
-        SFX.rank();
-        motes(p.x + p.face * 40, p.y - 102, 6 * lv, 160);
-      }
-      if (random() < 0.25 + 0.2 * p.hl) motes(p.x + p.face * 40, p.y - 102, 1, 60 + 40 * p.hl);
-      if (!keys.hado) {
-        p.rage -= RL[p.hl - 1];
-        p.state = 'hado';
-        p.t = 0;
-        p.sw = 0;
-        p.inv = Math.max(p.inv, 0.35);
-      }
+      p.hl = Math.max(p.hl, Math.min(hadoLevel(p.rage), 1 + Math.floor(p.t / HADO.step)));
+      if (!keys.hado) throwHado(p);
       break;
     }
     case 'hado': {
