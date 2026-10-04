@@ -60,22 +60,23 @@ const GUARD0 = { aF: [0.55, 1.2], aB: [0.75, 1.3], ka: 2.25 },
     },
   },
   KICK_ARMS = { lB: [-0.2, -0.3], aF: [0.35, 0.7], aB: [0.45, 0.8], ka: 0.5 };
-// the plain cut out of the stance, phase by phase
+// the plain cut out of the stance, phase by phase: the blade drawn back level at the
+// shoulder, then swept flat out in front at full stretch
 const RAISED = {
-    lean: -0.1,
-    aF: [2.6, 3.1],
-    aB: [2.4, 2.9],
-    ka: 3.4,
+    lean: -0.12,
+    aF: [-0.5, -1.3],
+    aB: [-0.3, -1.1],
+    ka: 1.5 * Math.PI, // pointing straight back, reached over the top
     lF: [0.3, 0.1],
     lB: [-0.35, -0.5],
   },
   DOWN = {
-    lean: 0.35,
-    aF: [1.3, 1.45],
-    aB: [1.2, 1.4],
-    ka: 1.1,
-    lF: [0.55, 0.15],
-    lB: [-0.5, -0.75],
+    lean: 0.38,
+    aF: [1.5, 1.57],
+    aB: [1.35, 1.5],
+    ka: 1.57,
+    lF: [0.6, 0.15],
+    lB: [-0.55, -0.8],
   },
   READY = { lean: 0.1, ...GUARD0, lF: [0.16, -0.02], lB: [-0.22, -0.34] };
 function swingPose(o, e) {
@@ -90,6 +91,12 @@ function swingPose(o, e) {
     o[k] = Array.isArray(a[k])
       ? [lerp(a[k][0], b[k][0], u), lerp(a[k][1], b[k][1], u)]
       : lerp(a[k], b[k], u);
+  if (e.t >= S.wind && e.t < S.wind + S.strike) {
+    // a flat cut seen from the side: the blade swings round in front of the body, so it
+    // shortens as it points at us, then reaches out forward again
+    o.ka = u < 0.5 ? -Math.PI / 2 : Math.PI / 2;
+    o.kl = Math.max(0.12, Math.abs(1 - 2 * u));
+  }
 }
 // the kicking leg coming back down
 function kickBack(o, e) {
@@ -208,13 +215,9 @@ export default defineFoe('samurai', {
     },
     weapon(c) {
       const { e, o, fl, h, wa } = c;
-      katana(h, o.ka ?? wa, fl, e.state === 'draw');
+      katana(h, o.ka ?? wa, fl, e.state === 'draw', o.kl ?? 1);
       if (e.state === 'slash') cutArc(e.t / SAMURAI.slash);
-      else if (e.state === 'swing') {
-        const S = SAMURAI.swing,
-          u = (e.t - S.wind) / S.strike;
-        if (u > 0 && u < 1.6) cutArc(u * 1.4, Math.min(1, 1.6 - u), 0.72, true);
-      } else if (e.state === 'recover' && e.cut && e.t < 0.12) cutArc(1, 1 - e.t / 0.12);
+      else if (e.state === 'recover' && e.cut && e.t < 0.12) cutArc(1, 1 - e.t / 0.12);
     },
     world(c) {
       const { e, s, sx, sy } = c;
@@ -331,7 +334,7 @@ export default defineFoe('samurai', {
         set: { ...KICK_ARMS, lean: -0.22 },
         tween: { dur: 0.05, ease: false, from: { lF: [1.35, -0.2] }, to: { lF: [1.35, 1.55] } },
       },
-      // the plain cut: the sword raised over the head, brought down in front, back to guard
+      // the plain cut: the blade drawn back level, swept flat out in front, back to guard
       swing: { set: { jaw: 4 }, fn: swingPose },
       // reeling, the sword point dragging on the ground
       daze: {
@@ -411,10 +414,11 @@ export default defineFoe('samurai', {
 });
 
 // A katana at the hand, the blade pointing along angle `a` (0 = down, PI/2 = forward).
-function katana(h, a, fl, glint) {
+function katana(h, a, fl, glint, len = 1) {
   ctx.save();
   ctx.translate(h[0], h[1]);
   ctx.rotate(-a);
+  ctx.scale(1, len); // shorter when it points towards us
   ctx.lineJoin = 'round';
   ctx.strokeStyle = OL;
   ctx.lineWidth = 2.2;
@@ -477,11 +481,9 @@ function katana(h, a, fl, glint) {
   ctx.restore();
 }
 // The white crescent of the cut: from behind the hip, through the front, up high.
-// `size` scales the crescent; `down` makes it the plain cut, from overhead down in front.
-function cutArc(p, fade = 1, size = 1, down = false) {
-  const q = Math.min(1, p),
-    a0 = down ? -1.4 : 2.5 - 3.7 * q,
-    a1 = down ? -1.4 + 2.7 * q : 2.5;
+function cutArc(p, fade = 1) {
+  const a1 = 2.5,
+    a0 = a1 - 3.7 * Math.min(1, p);
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   ctx.lineCap = 'round';
@@ -493,7 +495,7 @@ function cutArc(p, fade = 1, size = 1, down = false) {
     ctx.strokeStyle = c;
     ctx.lineWidth = w;
     ctx.beginPath();
-    ctx.arc(14, -36, r * size, a0, a1);
+    ctx.arc(14, -36, r, a0, a1);
     ctx.stroke();
   }
   ctx.restore();

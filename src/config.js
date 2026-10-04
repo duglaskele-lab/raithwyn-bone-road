@@ -88,8 +88,9 @@ export const SAMURAI = {
   daze: 2, // seconds a hit from afar leaves it dazed
   seen: 3, // it only takes the stance after this long on screen
   settle: 0.65, // seconds to settle into the stance (it cannot cut until it has)
-  // a plain sword cut out of the stance: raised, brought down in front, a short recovery
-  swing: { wind: 0.38, strike: 0.12, rec: 0.45, min: 55, reach: 120, dy: 26, dmg: 12 },
+  // a plain sword cut out of the stance: the blade drawn back for half a second, then a
+  // flat sweep in front with a long reach; a short recovery
+  swing: { wind: 0.5, strike: 0.12, rec: 0.45, min: 55, reach: 175, dy: 26, dmg: 12 },
   stanceCd: [1.8, 3.4], // before it takes the stance again
 };
 // Juggling: an enemy knocked into the air is popped up again by every hit until it lands.

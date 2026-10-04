@@ -109,7 +109,7 @@ test('it takes the stance again after a rest', () => {
 test('it only takes the stance once it has been on screen for 3 seconds', () => {
   assert.equal(SAMURAI.seen, 3);
   // just walked in: no stance yet, it walks up like anyone else
-  const e = samuraiAt(800, 450, { shown: 0 });
+  const e = samuraiAt(800, 380, { shown: 0 });
   run(e, 2.5);
   assert.notEqual(e.state, 'stance');
   run(e, 0.6);
@@ -131,9 +131,11 @@ test('after a stance it rests a moment, then takes it again', () => {
   assert.equal(e.state, 'stance', 'the rest is over (it used to never end)');
 });
 
-test('out of its stance, a little further off, it cuts with the sword', () => {
+test('out of its stance, further off, it cuts flat with the sword', () => {
   const S = SAMURAI.swing;
-  const e = samuraiAt(600, 500, { stanceCd: 9 }); // 100 px: past the kick, within the sword
+  assert.equal(S.wind, 0.5, 'half a second to get ready');
+  assert.ok(S.reach > 120, 'a long reach');
+  const e = samuraiAt(650, 500, { stanceCd: 9 }); // 150 px: past the kick, within the sword
   run(e, DT);
   assert.equal(e.state, 'swing');
   run(e, S.wind * 0.9);
