@@ -195,7 +195,8 @@ export function updPlayer(dt) {
           p.sw = 1;
           SFX.swing();
         }
-        strike({ x0: 0, x1: 124, dy: 28, dmg: 16, knock: true, rage: 5.5 });
+        // with up held the finisher is a launcher: it throws the enemy up, not away
+        strike({ x0: 0, x1: 124, dy: 28, dmg: 16, knock: true, rage: 5.5, launch: !!keys.u });
       }
       break;
     }

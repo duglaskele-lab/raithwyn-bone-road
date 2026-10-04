@@ -95,6 +95,10 @@ export const JUGGLE = {
   carry: 55, // a plain hit nudges it along so it stays in reach
   carryKnock: 190,
   style: 6, // extra style points for a hit in the air
+  // the launcher: the third punch of a combo with up (W) held throws a light enemy straight
+  // up instead of away, to start a juggle
+  launch: 560,
+  launchCarry: 25,
 };
 // Secret: hold X this long right at the start of the level to skip straight to the final boss.
 export const SECRET_HOLD = 3;
