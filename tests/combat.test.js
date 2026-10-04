@@ -1,8 +1,8 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { FAT, HOG, JUGGLE, MAXR, RW, TYPES } from '../src/config.js';
+import { HOG, JUGGLE, MAXR, RW, TYPES, WEIGHT } from '../src/config.js';
 import { G, P } from '../src/state.js';
-import { addRage, canJuggle, hadoLevel, hitPlayer, hurtEnemy } from '../src/combat.js';
+import { addRage, canJuggle, hadoLevel, hitPlayer, hurtEnemy, weightOf } from '../src/combat.js';
 import { spawn, updEnemy } from '../src/enemies.js';
 import { keys, pressed } from '../src/input.js';
 import { update } from '../src/world.js';
@@ -98,18 +98,35 @@ test('light enemies can be juggled: every hit in the air pops them up again', ()
   assert.equal(e.juggle, 0, 'a new juggle starts from scratch');
 });
 
-test('heavy enemies and bosses fall through a juggle unless their type allows it', () => {
+test('weight classes: light, medium (the fatso), heavy, boss', () => {
+  assert.equal(weightOf(spawn('grunt', 1, 500, 450)), 'light');
+  assert.equal(weightOf(spawn('brute', 1, 500, 450)), 'light');
+  assert.equal(weightOf(spawn('fat', 1, 500, 450)), 'medium');
+  assert.equal(weightOf(spawn('boss', 0)), 'boss');
+  assert.equal(TYPES.dragon.weight, 'boss');
+  // once up in the air, a medium enemy is juggled like a light one
   const e = spawn('fat', 1, 500, 450);
   e.heavyT = 1; // a second heavy blow: he goes up
   hurtEnemy(e, 1, 1, true, 'punch');
   for (let i = 0; i < 10; i++) updEnemy(e, 1 / 60, { n: 0 });
-  const vz = e.vz;
   hurtEnemy(e, 1, 1, false, 'punch');
-  assert.equal(e.state, 'air');
-  assert.equal(e.vz, vz, 'no pop: it keeps falling');
+  assert.equal(e.vz, JUGGLE.pop, 'popped up again');
   assert.ok(!canJuggle(spawn('boss', 0)));
-  assert.ok(canJuggle({ T: { ...TYPES.fat, juggle: 1 } }), 'an exception can be made');
-  assert.ok(canJuggle(spawn('brute', 1, 500, 450)), 'the bonebreaker can be juggled');
+  // a heavy enemy is never knocked back and its attacks never broken
+  const h = spawn('grunt', 1, 500, 450);
+  h.T = { ...TYPES.grunt, weight: 'heavy' }; // (no heavy enemy on the road yet)
+  h.hp = 99;
+  for (const [state, knock] of [
+    ['windup', true],
+    ['attack', false],
+    ['chase', true],
+  ]) {
+    Object.assign(h, { state, x: 500 });
+    hurtEnemy(h, 1, 1, knock, 'punch');
+    assert.equal(h.state, state, `${state}, ${knock ? 'heavy' : 'plain'} blow`);
+    assert.equal(h.x, 500, 'not pushed');
+  }
+  assert.equal(h.hp, 96, 'but it takes the damage');
 });
 
 test('the fatso goes down only to two heavy blows within 3 seconds', () => {
@@ -126,7 +143,7 @@ test('the fatso goes down only to two heavy blows within 3 seconds', () => {
   Object.assign(f, { state: 'chase', z: 0 });
   hurtEnemy(f, 1, 1, true, 'punch');
   assert.notEqual(f.state, 'air', '3 s later it counts as a first blow again');
-  assert.equal(FAT.window, 3);
+  assert.equal(WEIGHT.window, 3);
 });
 
 test('the third punch with up held launches a light enemy straight up', () => {
@@ -144,11 +161,13 @@ test('the third punch with up held launches a light enemy straight up', () => {
   const g = spawn('grunt', 1, 500, 450);
   hurtEnemy(g, 1, 1, true, 'punch');
   assert.equal(g.vx, 270);
-  // heavy enemies are knocked back as usual
+  // a medium enemy needs two heavy blows for the launcher too
   const b = spawn('fat', 1, 500, 450);
-  b.heavyT = 1;
   hurtEnemy(b, 1, 1, true, 'punch', true);
-  assert.equal(b.vx, 170);
+  assert.notEqual(b.state, 'air', 'the first only makes him flinch');
+  hurtEnemy(b, 1, 1, true, 'punch', true);
+  assert.equal(b.state, 'air');
+  assert.equal(b.vz, JUGGLE.launch, 'the second throws him up');
 });
 
 test('the combo finisher launches when up is held, in a real fight', () => {

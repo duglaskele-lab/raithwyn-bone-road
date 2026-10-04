@@ -1,5 +1,5 @@
 // Damage rules: who can be hit, what a hit does, rage, the boss interrupt immunity.
-import { DECOR, JUGGLE, MAXR, RL, SUPER_DMG, TAU, W, ZOMBIE } from './config.js';
+import { DECOR, JUGGLE, MAXR, RL, SUPER_DMG, TAU, W, WEIGHT, ZOMBIE } from './config.js';
 import { random, rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
@@ -64,26 +64,38 @@ export function hurtEnemy(e, dmg, dir, knock, src, launch = false) {
   }
   e.engage = false;
   if (F.guard?.(e, knock, src, dir)) return true;
+  // the rest depends on its weight class (WEIGHT in config.js)
+  const w = weightOf(e);
+  if (w === 'boss' || w === 'heavy') return true;
   if (e.state === 'air') {
-    // up in the air: a light enemy is juggled, a heavy one just keeps falling
-    if (canJuggle(e)) juggle(e, dir, knock, launch);
+    // up in the air: juggled
+    juggle(e, dir, knock, launch);
     return true;
   }
-  const busy = e.state === 'windup' || e.state === 'attack' || e.state === 'swind';
+  const busy = ['windup', 'attack', ...(F.attacks ?? [])].includes(e.state);
+  if (w === 'medium' && knock) {
+    // a medium enemy needs a second heavy blow in time; the first counts as a plain hit
+    if (e.heavyT > 0) e.heavyT = 0;
+    else {
+      e.heavyT = WEIGHT.window;
+      knock = false;
+    }
+  }
   if (knock || e.state === 'leap') {
     e.state = 'air';
     e.t = 0;
     e.slammed = false;
-    if (launch && knock && canJuggle(e)) {
+    if (launch && knock) {
       // the launcher: straight up, ready to be juggled
       e.vx = dir * JUGGLE.launchCarry;
       e.vz = JUGGLE.launch;
     } else {
-      e.vx = dir * (e.T.heavy ? 170 : 270);
-      e.vz = e.T.heavy ? 320 : 430;
+      const [vx, vz] = w === 'medium' ? WEIGHT.knockMedium : [270, 430];
+      e.vx = dir * vx;
+      e.vz = vz;
     }
-  } else if (e.T.heavy && busy) {
-    e.x += dir * 4;
+  } else if (w === 'medium' && busy) {
+    e.x += dir * 4; // its attack goes on
   } else {
     e.state = 'hurt';
     e.t = 0;
@@ -92,8 +104,10 @@ export function hurtEnemy(e, dmg, dir, knock, src, launch = false) {
   }
   return true;
 }
-/** Can this enemy be juggled? Light ones can; heavy ones and bosses only if TYPES says so. */
-export const canJuggle = (e) => e.T.juggle ?? !(e.T.heavy || e.T.bigBoss);
+/** Its weight class: 'light' (the default), 'medium', 'heavy' or 'boss'. */
+export const weightOf = (e) => e.T.weight ?? 'light';
+/** Can this enemy be juggled? The light and the medium can, once they are in the air. */
+export const canJuggle = (e) => ['light', 'medium'].includes(weightOf(e));
 /** A hit in the air pops the enemy up again, a little less with every hit. */
 function juggle(e, dir, knock, launch) {
   e.juggle = (e.juggle || 0) + 1;

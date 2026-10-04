@@ -87,7 +87,7 @@ test('a blow up close does not break the stance: it answers with the cut', () =>
 });
 
 test('it settles into the stance before it can cut', () => {
-  assert.equal(SAMURAI.settle, 0.5);
+  assert.ok(Math.abs(SAMURAI.settle - 0.5 * 1.3) < 1e-9, '30% slower than the old 0.5 s');
   const e = samuraiAt(800, 800 - SAMURAI.range - 10);
   run(e, DT);
   assert.equal(e.state, 'stance');
@@ -131,6 +131,24 @@ test('after a stance it rests a moment, then takes it again', () => {
   assert.equal(e.state, 'stance', 'the rest is over (it used to never end)');
 });
 
+test('out of its stance, a little further off, it cuts with the sword', () => {
+  const S = SAMURAI.swing;
+  const e = samuraiAt(600, 500, { stanceCd: 9 }); // 100 px: past the kick, within the sword
+  run(e, DT);
+  assert.equal(e.state, 'swing');
+  run(e, S.wind * 0.9);
+  assert.equal(P.hp, 100, 'nothing while the sword is raised');
+  run(e, S.wind * 0.1 + S.strike);
+  assert.equal(P.hp, 100 - S.dmg, 'then the cut lands');
+  assert.equal(P.state, 'hurt', 'a plain hit, not a knockdown');
+  run(e, S.rec + 0.05);
+  assert.equal(e.state, 'chase');
+  // a plain hit interrupts it (the samurai is light)
+  const f = samuraiAt(600, 500, { stanceCd: 9, state: 'swing', t: 0.1 });
+  hurtEnemy(f, 1, 1, false, 'punch');
+  assert.equal(f.state, 'hurt');
+});
+
 test('the stance does not last for ever', () => {
   const e = samuraiAt(800, 100, { state: 'stance' });
   run(e, SAMURAI.stance + 0.1);
@@ -139,7 +157,7 @@ test('the stance does not last for ever', () => {
 });
 
 test('up close and out of its stance it kicks', () => {
-  const e = samuraiAt(560, 500, { stanceCd: 9 });
+  const e = samuraiAt(545, 500, { stanceCd: 9 });
   run(e, DT);
   assert.equal(e.state, 'windup');
   run(e, TYPES.samurai.wind + TYPES.samurai.act);

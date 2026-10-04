@@ -18,9 +18,14 @@ export const CRYPT_X = 4520;
 // (the last third of the wind-up).
 export const SWIND = 0.9,
   SWIND_LOCK = SWIND * (2 / 3);
-// The fatso only goes down to a second heavy blow landing within `window` seconds of the
-// first; the first one just makes him flinch.
-export const FAT = { window: 3 };
+// How enemies take the player's blows: TYPES[...].weight
+//   light  (the default) - flinch at any hit, are thrown and juggled with ease
+//   medium - plain hits do not stop their attacks; it takes a second heavy blow within
+//            `window` seconds of the first to knock them back, launch them or break an attack
+//            (the first only makes them flinch). Once in the air they juggle like the light.
+//   heavy  - never knocked back, their attacks never broken by the player
+//   boss   - their own rules (see their files in src/foes)
+export const WEIGHT = { window: 3, knockMedium: [170, 320] };
 // A bone throw costs 5% of the rage bar.
 export const BONE_COST = MAXR * 0.05;
 // Super attack: hold I this long with a full rage bar; it hits everything on screen.
@@ -82,7 +87,9 @@ export const SAMURAI = {
   lunge: 260, // it steps through the cut
   daze: 2, // seconds a hit from afar leaves it dazed
   seen: 3, // it only takes the stance after this long on screen
-  settle: 0.5, // seconds to settle into the stance (it cannot cut until it has)
+  settle: 0.65, // seconds to settle into the stance (it cannot cut until it has)
+  // a plain sword cut out of the stance: raised, brought down in front, a short recovery
+  swing: { wind: 0.38, strike: 0.12, rec: 0.45, min: 55, reach: 120, dy: 26, dmg: 12 },
   stanceCd: [1.8, 3.4], // before it takes the stance again
 };
 // Juggling: an enemy knocked into the air is popped up again by every hit until it lands.
@@ -176,7 +183,7 @@ export const TYPES = {
     cd: [1, 1.8],
     fat: 1,
     thick: 2,
-    heavy: 1,
+    weight: 'medium',
     col: '#e8dcc0',
     dk: '#b0a486',
     eye: '#ff8a2e',
@@ -284,6 +291,7 @@ export const TYPES = {
     cd: [0.5, 1.1],
     dragon: 1,
     bigBoss: 1,
+    weight: 'boss',
     shadow: 150,
     col: '#e6dfc8',
     dk: '#a99f86',
@@ -305,6 +313,7 @@ export const TYPES = {
     sword: 1,
     crown: 1,
     bigBoss: 1,
+    weight: 'boss',
     col: '#efe9d6',
     dk: '#b3ac99',
     eye: '#c58bff',

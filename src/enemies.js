@@ -77,6 +77,7 @@ export function updEnemy(e, dt, ctxE) {
   e.cd -= dt;
   e.armor -= dt;
   for (const k of F.timers ?? []) e[k] = (e[k] ?? 0) - dt;
+  if (e.heavyT > 0) e.heavyT -= dt; // the window for a medium enemy's second heavy blow
   // how long it has been on screen without a break
   e.shown = e.x > G.cam && e.x < G.cam + W ? (e.shown ?? 0) + dt : 0;
   e.moving = false;

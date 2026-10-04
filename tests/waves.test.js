@@ -68,7 +68,7 @@ test('zombies rise from the ground, riders ride in, the boss fights stay as they
   assert.deepEqual(waveSpawns(baron), WAVES[baron].sp);
 });
 
-test('the bonebreaker is no longer a heavy enemy', () => {
-  assert.ok(!TYPES.brute.heavy);
-  assert.ok(TYPES.fat.heavy);
+test('the bonebreaker is a light enemy, the fatso a medium one', () => {
+  assert.equal(TYPES.brute.weight ?? 'light', 'light');
+  assert.equal(TYPES.fat.weight, 'medium');
 });
