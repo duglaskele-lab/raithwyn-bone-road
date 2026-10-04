@@ -9,6 +9,9 @@ export const G = {
   msgT: 0,
   time: 0,
   cam: 0,
+  camY: 0, // Old Quarry's camera also moves down
+  camS: 0, // and follows a path: how far along it, in pixels
+  level: 1,
   freeze: 0,
   shake: 0,
   flash: 0,
@@ -75,6 +78,9 @@ export function reset() {
     acidT: 0,
   });
   G.cam = 0;
+  G.camY = 0;
+  G.camS = 0;
+  G.level = 1;
   G.waveI = 0;
   G.wave = null;
   G.goT = 0;
@@ -133,6 +139,7 @@ export function reset() {
     });
   }
   G.secretT = 0;
+  G.stageT = 0;
   G.secretDone = false;
   G.banner = { a: 'stage1', b: 'subtitle', t: 0 };
 }

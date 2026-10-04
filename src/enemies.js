@@ -1,11 +1,13 @@
 // Spawning enemies and running their AI. What each enemy does lives in src/foes (one file per
 // type, see foes/registry.js); this file holds what they all share.
-import { GB, GT, W, TYPES } from './config.js';
+import { GB, GT, H, W, TYPES } from './config.js';
 import { clamp, rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
 import { FOES, STATES } from './foes/index.js';
 import { sense } from './foes/kit.js';
+import { entryPoint, floorClamp, groundPoint, inView, level } from './level.js';
+import { random } from './util.js';
 
 export { inBreath } from './foes/baron.js';
 export { bikeReach } from './foes/biker.js';
@@ -17,7 +19,12 @@ export { bikeReach } from './foes/biker.js';
 export function spawn(type, side, x, y) {
   const T = TYPES[type],
     placed = x !== undefined;
-  if (!placed) {
+  if (!placed && level().floor) {
+    // Old Quarry: from off the screen where the floor goes on, else out of the ground
+    const at = side !== 0 && entryPoint(side, random);
+    if (!at) side = 0;
+    [x, y] = at || groundPoint(random);
+  } else if (!placed) {
     if (side === 0) {
       let n = 0;
       do {
@@ -79,10 +86,13 @@ export function updEnemy(e, dt, ctxE) {
   for (const k of F.timers ?? []) e[k] = (e[k] ?? 0) - dt;
   if (e.heavyT > 0) e.heavyT -= dt; // the window for a medium enemy's second heavy blow
   // how long it has been on screen without a break
-  e.shown = e.x > G.cam && e.x < G.cam + W ? (e.shown ?? 0) + dt : 0;
+  e.shown = inView(e.x, e.y) ? (e.shown ?? 0) + dt : 0;
   e.moving = false;
   STATES[e.state]?.tick(e, dt, sense(e), ctxE);
-  e.y = clamp(e.y, GT + 2, GB);
+  floorClamp(e, 2, 0);
   // flying, staggering or rushing about, an enemy stays on screen
-  if (STATES[e.state]?.pin) e.x = clamp(e.x, G.cam + 24, G.cam + W - 24);
+  if (STATES[e.state]?.pin) {
+    e.x = clamp(e.x, G.cam + 24, G.cam + W - 24);
+    if (level().floor) e.y = clamp(e.y, G.camY + 200, G.camY + H - 6);
+  }
 }

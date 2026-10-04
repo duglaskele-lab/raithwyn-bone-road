@@ -11,6 +11,7 @@
 import { G, reset } from './state.js';
 import { keys, pressed } from './input.js';
 import { seedRandom } from './util.js';
+import { startLevel } from './level.js';
 
 export const REPLAY_VERSION = 1;
 // The buttons the simulation reads (the rest belong to menus).
@@ -26,6 +27,8 @@ export const BUTTONS = [
   'hado',
   'super',
   'secret',
+  'lvlZ',
+  'lvl2',
 ];
 
 let rec = null, // the run being recorded, or the last one
@@ -39,13 +42,14 @@ function unmask(m, o) {
   });
 }
 
-/** Start a fresh run: a new seed, a fresh world, and a new recording. */
-export function newRun(seed = (Math.random() * 2 ** 32) >>> 0) {
+/** Start a fresh run: a new seed, a fresh world (at stage `level`), and a new recording. */
+export function newRun(seed = (Math.random() * 2 ** 32) >>> 0, level = 1) {
   play = null;
   seedRandom(seed);
   reset();
+  if (level !== 1) startLevel(level);
   G.state = 'play';
-  rec = { v: REPLAY_VERSION, seed, frames: [] };
+  rec = { v: REPLAY_VERSION, seed, level, frames: [] };
 }
 /** Note this frame's input, just before the world is updated with `dt`. */
 export function recordFrame(dt) {
@@ -71,6 +75,7 @@ export function startReplay(run = rec) {
   play = { run, i: 0, n: 0, done: 0 };
   seedRandom(run.seed);
   reset();
+  if (run.level > 1) startLevel(run.level);
   G.state = 'play';
   return true;
 }

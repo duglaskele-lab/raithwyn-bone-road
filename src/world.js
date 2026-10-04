@@ -2,20 +2,21 @@
 import {
   ACID,
   CHAIN_GAP,
+  DYNAMITE,
   GB,
   GT,
   HADO,
   PURPLE,
   RAGE,
   SECRET_HOLD,
+  STAGE_HOLD,
   W,
-  WAVES,
   ZOMBIE,
 } from './config.js';
 import { clamp, random, rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
-import { keys } from './input.js';
+import { keys, pressed } from './input.js';
 import { floatTxt, motes } from './fx.js';
 import { t } from './i18n.js';
 import { acidBite, addRage, headBonus, hitPlayer, hurtEnemy } from './combat.js';
@@ -24,18 +25,35 @@ import { dmgMult, styleGain, updStyle } from './style.js';
 import { updPlayer } from './player.js';
 import { spawn, updEnemy } from './enemies.js';
 import { waveSpawns } from './waves.js';
+import { explode, updFuses } from './blast.js';
+import { floorClamp, followPath, levelWaves, startLevel } from './level.js';
 
 // How full the screen is: zombies come in crowds and count as half an enemy each.
 const crowd = () => G.enemies.reduce((n, e) => n + (e.T.crowd || 1), 0);
 export function updWaves(dt) {
+  const WAVES = levelWaves();
   if (G.wave) {
     G.wave.t += dt;
+    const W0 = WAVES[G.waveI];
     for (const s of G.wave.sp)
       if (!s.done && G.wave.t >= s[2] && crowd() < 6) {
         s.done = true;
-        spawn(s[0], s[1]);
+        const e = spawn(s[0], s[1]);
+        if (W0?.mid && !G.wave.midT) {
+          e.wave0 = true;
+          G.wave.max0 = (G.wave.max0 ?? 0) + e.T.hp;
+        }
       }
-    if (G.wave.sp.every((s) => s.done) && G.enemies.length === 0) {
+    // a fight with a `mid` group: once its first enemies have lost half of their health,
+    // the others come (their delays counted from then)
+    if (W0?.mid && !G.wave.midT && G.wave.sp.every((s) => s.done)) {
+      const hp = G.enemies.reduce((n, e) => n + (e.wave0 ? Math.max(0, e.hp) : 0), 0);
+      if (hp <= G.wave.max0 * 0.5) {
+        G.wave.midT = G.wave.t;
+        G.wave.sp.push(...W0.mid.map((s) => [s[0], s[1], G.wave.t + s[2]]));
+      }
+    }
+    if (G.wave.sp.every((s) => s.done) && G.enemies.length === 0 && (!W0?.mid || G.wave.midT)) {
       G.wave = null;
       G.waveI++;
       G.goT = 6;
@@ -53,6 +71,17 @@ export function updWaves(dt) {
       }
     }
   } else if (G.waveI < WAVES.length) {
+    if (G.level === 2) {
+      if (followPath(dt, WAVES[G.waveI].s)) {
+        G.wave = { sp: waveSpawns(G.waveI), t: 0 };
+        G.goT = 0;
+        if (WAVES[G.waveI].final) {
+          G.banner = { a: '@armor', b: 'armorBanner', t: 0 };
+          SFX.boss();
+        }
+      }
+      return;
+    }
     const lim = WAVES[G.waveI].x,
       tg = clamp(P.x - 390, G.cam, lim);
     G.cam += (tg - G.cam) * Math.min(1, dt * 7);
@@ -66,7 +95,9 @@ export function updWaves(dt) {
 // The secret: hold X for SECRET_HOLD seconds before the first fight starts, and the road
 // folds away — the player lands at the gate of the final boss's arena.
 function secretWarp(dt) {
-  if (G.waveI !== 0 || G.wave || G.secretDone) return;
+  if (G.level !== 1 || G.waveI !== 0 || G.wave || G.secretDone) return;
+  stageWarp(dt);
+  if (G.secretDone) return;
   if (!keys.secret) {
     G.secretT = 0;
     return;
@@ -75,7 +106,8 @@ function secretWarp(dt) {
   if (random() < G.secretT * 0.3) motes(P.x, P.y - 90, 1, 80);
   if (G.secretT < SECRET_HOLD) return;
   G.secretDone = true;
-  const last = WAVES.length - 1,
+  const WAVES = levelWaves(),
+    last = WAVES.length - 1,
     lim = WAVES[last].x;
   G.waveI = last;
   G.cam = lim;
@@ -89,8 +121,30 @@ function secretWarp(dt) {
   G.shake = 10;
   SFX.nova();
 }
+// The other secret: hold Z and 2 together for STAGE_HOLD seconds on the first screen of the
+// Bone Road, and the player is taken to the gates of Old Quarry.
+function stageWarp(dt) {
+  if (!(keys.lvlZ && keys.lvl2)) {
+    G.stageT = 0;
+    return;
+  }
+  G.stageT = (G.stageT || 0) + dt;
+  if (random() < G.stageT * 0.4) motes(P.x, P.y - 90, 1, 80);
+  if (G.stageT < STAGE_HOLD) return;
+  G.stageT = 0;
+  startLevel(2);
+  G.flash = 0.6;
+  G.shake = 10;
+  SFX.nova();
+}
 export function update(dt) {
   G.time += dt;
+  // the Bone Road won: a moment of triumph, then on to Old Quarry (J, or by itself)
+  if (G.state === 'win' && G.level === 1 && G.endT > 2.4 && (pressed.atk || G.endT > 7)) {
+    startLevel(2);
+    G.state = 'play';
+    return;
+  }
   if (G.banner) {
     G.banner.t += dt;
     if (G.banner.t > 3) G.banner = null;
@@ -263,6 +317,69 @@ export function update(dt) {
         q.life = 0;
         plasmaBlast(q);
       }
+    } else if (q.k === 'tnt') {
+      // a lit stick of dynamite: it flies, bounces, lies there and blows up
+      q.fuse -= dt;
+      if (q.z > 0 || q.vz > 0) {
+        q.y += q.vy * dt;
+        q.vz -= DYNAMITE.g * dt;
+        q.z += q.vz * dt;
+        q.rot += dt * 14 * Math.sign(q.vx || 1);
+        if (q.z <= 0) {
+          q.z = 0;
+          q.vz = Math.abs(q.vz) > 160 ? -q.vz * 0.3 : 0;
+          q.vx *= 0.35;
+          q.vy *= 0.35;
+        }
+      } else q.vx *= Math.pow(0.02, dt);
+      floorClamp(q);
+      if (random() < 0.6)
+        G.parts.push({
+          k: 'dot',
+          x: q.x + Math.cos(q.rot) * 14,
+          y: q.y - q.z - 6 + Math.sin(q.rot) * 14,
+          vx: rnd(-50, 50),
+          vy: rnd(-120, -40),
+          g: 300,
+          t: 0,
+          life: 0.25,
+          s: 2.5,
+          col: '#ffcf5a',
+        });
+      if (q.fuse <= 0) {
+        q.life = 0;
+        explode(q.x, q.y, 'dynamite');
+      }
+    } else if (q.k === 'zspit') {
+      // a zombie spat out by the slime: it lands, and gets up to fight
+      q.rot += dt * 10 * Math.sign(q.vx);
+      q.y += q.vy * dt;
+      q.vz -= ACID.g * dt;
+      q.z += q.vz * dt;
+      if (random() < 0.6)
+        G.parts.push({
+          k: 'dot',
+          x: q.x,
+          y: q.y - q.z,
+          vx: rnd(-40, 40),
+          vy: rnd(10, 60),
+          g: 600,
+          t: 0,
+          life: 0.4,
+          s: rnd(3, 5),
+          col: '#9dff4a',
+        });
+      if (!q.hitP && Math.abs(P.x - q.x) < 30 && Math.abs(P.y - q.y) < 22 && q.z < 130 && P.z < 110)
+        q.hitP = hitPlayer(10, Math.sign(q.vx), true);
+      if (q.z <= 0) {
+        q.life = 0;
+        SFX.splash();
+        const o = { x: q.x, y: q.y };
+        floorClamp(o);
+        const e = spawn(q.kind, 0, o.x, o.y);
+        Object.assign(e, { state: 'down', t: 0.2, fromSlime: true, face: P.x >= o.x ? 1 : -1 });
+        G.pools.push({ x: o.x, y: o.y, t: 0, life: ACID.pool * 0.6, seed: rnd(6) });
+      }
     } else if (q.k === 'acid') {
       // The necromancer's acid ball: flies in an arc and leaves a puddle where it lands.
       q.rot += dt;
@@ -350,6 +467,7 @@ export function update(dt) {
     P.acidT = ACID.tick;
     acidBite(ACID.dmg);
   }
+  updFuses(dt);
   G.enemies = G.enemies.filter((e) => !e.dead);
   G.props = G.props.filter((e) => !e.dead);
   if (G.lastFoe && G.lastFoe.dead && G.lastFoeT > 1) G.lastFoeT = 1;

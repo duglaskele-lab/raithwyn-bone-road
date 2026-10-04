@@ -92,7 +92,7 @@ test('getting hurt costs two ranks of style, not all of it', () => {
 test('big graves, benches and crosses line the road and can be broken', () => {
   const decor = G.props.filter((u) => u.decor);
   assert.ok(decor.length >= 15, `only ${decor.length} pieces`);
-  for (const kind of Object.keys(DECOR))
+  for (const kind of ['bench', 'cross', 'tomb'])
     assert.ok(
       decor.some((u) => u.decor === kind),
       kind,

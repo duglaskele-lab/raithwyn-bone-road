@@ -8,6 +8,7 @@ import { PAUSE_BTN, drawHUD, drawWorld, overlay } from './render.js';
 import { MENU_STATES, drawMenu, drawPause, menuStep, pauseStep } from './menu.js';
 import { PORTRAITS } from './characters.js';
 import { update } from './world.js';
+import { startLevel } from './level.js';
 import { toggleRecording } from './recorder.js';
 import {
   lastRun,
@@ -117,7 +118,9 @@ function frame(dt) {
       recordFrame(dt);
       update(dt);
       if (replaying());
-      else if (G.endT > 1.5 && (pressed.start || pressed.atk)) newRun();
+      else if (G.state === 'win' && G.level === 1); // the next stage follows (see world.js)
+      else if (G.endT > 1.5 && (pressed.start || pressed.atk))
+        newRun(undefined, G.state === 'over' ? G.level : 1); // a lost stage is tried again
       else if (G.endT > 1.5 && pressed.pause) toTitle();
     }
     ctx.fillStyle = '#0c1218';
@@ -142,7 +145,15 @@ function frame(dt) {
       if (G.endT > 1.5 && !touch && !replaying())
         txt(t('replayHint'), W / 2, 398, 14, '#9bb0ac', 'center', 3);
     }
-    if (G.state === 'win' && G.endT > 1.2) {
+    if (G.state === 'win' && G.level === 1 && G.endT > 1.2) {
+      // the Bone Road is done: Old Quarry is next
+      overlay(Math.min(0.5, (G.endT - 1.2) * 0.5));
+      txt(t('stageClear'), W / 2, 210, 54, '#f0e9ff', 'center', 8);
+      txt(t('score') + P.score, W / 2, 252, 22, '#f0cf4f', 'center', 4);
+      txt(t('nextStage'), W / 2, 292, 22, '#f2b664', 'center', 4);
+      if (G.endT > 2.4)
+        txt(touch ? t('nextTouch') : t('nextKey'), W / 2, 330, 17, '#ece5cb', 'center', 4);
+    } else if (G.state === 'win' && G.endT > 1.2) {
       overlay(Math.min(0.5, (G.endT - 1.2) * 0.5));
       ctx.save();
       ctx.shadowColor = PURPLE;
@@ -231,4 +242,16 @@ function boot() {
 atlas.onload = atlas.onerror = boot;
 atlas.src = window.__ATLAS__ || 'assets/atlas.png';
 // Debug hook: poke at the live game from the browser console or from end-to-end tests.
-window.__game = { G, P, spawn, reset, keys, pressed, setLang, lastRun, startReplay, newRun };
+window.__game = {
+  G,
+  P,
+  spawn,
+  reset,
+  keys,
+  pressed,
+  setLang,
+  lastRun,
+  startReplay,
+  newRun,
+  startLevel,
+};

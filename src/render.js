@@ -2,6 +2,7 @@
 import {
   ACID,
   DECOR,
+  FONT,
   H,
   MAXR,
   OL,
@@ -13,7 +14,6 @@ import {
   SWIND_LOCK,
   TAU,
   W,
-  WAVES,
 } from './config.js';
 import { clamp, ease } from './util.js';
 import { FR } from './atlas-frames.js';
@@ -23,10 +23,13 @@ import { foeName, t } from './i18n.js';
 import { touch } from './input.js';
 import { RANKS, STYLE_STEP, dmgMult, scoreMult, styleRank } from './style.js';
 import { drawBG, drawFog, drawVignette } from './background.js';
+import { drawBG2, drawFront2 } from './bg2.js';
+import { levelWaves, roadDir } from './level.js';
 import { hadoLevel } from './combat.js';
 import { boneShape, drawAura, drawSkel } from './skeleton.js';
 import { drawBike } from './foes/bikes.js';
 import { FOES } from './foes/registry.js';
+import { stick } from './foes/dynamite.js';
 import {
   drawDragon,
   drawDragonBeam,
@@ -205,6 +208,64 @@ export function drawDecor(u) {
       ctx.lineTo(c[4], c[5]);
       ctx.stroke();
     }
+  } else if (u.decor === 'barrel' || u.decor === 'tnt') {
+    // a barrel: staves bulging out, iron hoops; the red one has TNT on it and a fuse
+    const red = u.decor === 'tnt',
+      body = red ? '#b02a1e' : D.col;
+    ctx.beginPath();
+    ctx.moveTo(-20, 0);
+    ctx.quadraticCurveTo(-27, -27, -20, -54);
+    ctx.lineTo(20, -54);
+    ctx.quadraticCurveTo(27, -27, 20, 0);
+    ctx.closePath();
+    fill(body);
+    ctx.strokeStyle = 'rgba(23,21,29,.35)';
+    ctx.lineWidth = 1.5;
+    for (const sx of [-12, -4, 4, 12]) {
+      ctx.beginPath();
+      ctx.moveTo(sx * 0.9, -2);
+      ctx.quadraticCurveTo(sx * 1.3, -27, sx * 0.9, -52);
+      ctx.stroke();
+    }
+    ctx.fillStyle = fl ? '#fff' : '#4a4850';
+    for (const hy of [-46, -10]) ctx.fillRect(-23, hy - 2, 46, 5);
+    ctx.beginPath();
+    ctx.ellipse(0, -54, 20, 5, 0, 0, TAU);
+    fill(red ? '#7a1a12' : '#6a4428');
+    if (red) {
+      ctx.fillStyle = '#f2e2b0';
+      ctx.font = `900 13px ${FONT}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('TNT', 0, -28);
+      // the fuse; lit, it spits sparks and the barrel blinks
+      ctx.strokeStyle = '#2c2a2e';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(4, -56);
+      ctx.quadraticCurveTo(10, -66, 6, -72);
+      ctx.stroke();
+      if (u.fuseT !== undefined) {
+        ctx.fillStyle = Math.floor(G.time * 16) % 2 ? '#fff6c0' : '#ff8a2a';
+        ctx.beginPath();
+        ctx.arc(6, -73, 4 + Math.random() * 2, 0, TAU);
+        ctx.fill();
+        if (Math.floor(G.time * 10) % 2) {
+          ctx.fillStyle = 'rgba(255,240,180,.35)';
+          ctx.fillRect(-24, -56, 48, 56);
+        }
+      }
+    } else if (u.hp < D.hp) {
+      ctx.strokeStyle = OL;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-6, -50);
+      ctx.lineTo(2, -36);
+      ctx.lineTo(-4, -24);
+      ctx.moveTo(10, -8);
+      ctx.lineTo(4, -20);
+      ctx.stroke();
+    }
   } else if (u.decor === 'bench') {
     for (const lx of [-26, 22]) {
       ctx.beginPath();
@@ -319,6 +380,47 @@ export function drawDebris(d) {
 export function drawProj(q) {
   const x = q.x - G.cam,
     y = q.y - q.z;
+  if (q.k === 'tnt') {
+    // a lit stick of dynamite; it blinks faster as the fuse burns down
+    ctx.save();
+    ctx.translate(x, y - 5);
+    ctx.rotate(q.rot);
+    stick(24, true, q.fuse < 1 && Math.floor(G.time * (q.fuse < 0.5 ? 16 : 8)) % 2 === 0);
+    ctx.restore();
+    return;
+  }
+  if (q.k === 'zspit') {
+    // a zombie curled up in a ball of slime
+    ctx.save();
+    ctx.translate(x, y - 20);
+    ctx.rotate(q.rot);
+    ctx.fillStyle = 'rgba(111,226,58,.85)';
+    ctx.strokeStyle = '#17301a';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, 26, 0, TAU);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#c8d4a8';
+    ctx.beginPath();
+    ctx.arc(6, -4, 10, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#10200e';
+    ctx.beginPath();
+    ctx.arc(9, -6, 2.5, 0, TAU);
+    ctx.arc(3, -6, 2.5, 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = '#c8d4a8';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-14, 8);
+    ctx.lineTo(4, 14);
+    ctx.moveTo(-10, -12);
+    ctx.lineTo(-16, 4);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
   if (q.k === 'hado') {
     const f = q.vx < 0,
       sc = [1, 1.5, 2.2][q.lv - 1] * (1.05 + 0.1 * Math.sin(G.time * 40));
@@ -529,6 +631,53 @@ export function drawPart(p) {
       ctx.restore();
       break;
     }
+    case 'boom': {
+      // a fire blast: a white-hot flash, an orange fireball rising and a scorch on the ground
+      const r = p.s * (0.35 + 0.65 * ease(Math.min(1, u * 1.8))),
+        a = 1 - u,
+        cy = y - r * 0.5 - u * 40;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const g = ctx.createRadialGradient(x, cy, 2, x, cy, r);
+      g.addColorStop(0, `rgba(255,255,230,${a})`);
+      g.addColorStop(0.3, `rgba(255,210,90,${0.95 * a})`);
+      g.addColorStop(0.65, `rgba(255,110,30,${0.7 * a})`);
+      g.addColorStop(1, 'rgba(200,40,10,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.ellipse(x, cy, r, r * 0.8, 0, 0, TAU);
+      ctx.fill();
+      const gg = ctx.createRadialGradient(x, y, 2, x, y, r * 1.1);
+      gg.addColorStop(0, `rgba(255,190,90,${0.6 * a})`);
+      gg.addColorStop(1, 'rgba(255,120,40,0)');
+      ctx.fillStyle = gg;
+      ctx.beginPath();
+      ctx.ellipse(x, y, r * 1.1, r * 0.42, 0, 0, TAU);
+      ctx.fill();
+      ctx.restore();
+      break;
+    }
+    case 'tracer':
+      // a bullet's streak from the muzzle to where it lands
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 1 - u;
+      ctx.strokeStyle = '#ffe9a0';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + (p.x2 - p.x) * (0.4 + u * 0.6), y + (p.y2 - p.y) * (0.4 + u * 0.6));
+      ctx.stroke();
+      ctx.restore();
+      break;
+    case 'smoke':
+      ctx.globalAlpha = (1 - u) * 0.45;
+      ctx.fillStyle = '#3a302c';
+      ctx.beginPath();
+      ctx.arc(x, y, p.s * (0.6 + u * 1.2), 0, TAU);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      break;
     case 'fxring':
       sprite('fx', 1, x, y, false, 1 + u * 2.2, 1 - u);
       break;
@@ -623,9 +772,15 @@ export function drawPlayer() {
   sprite(p.an[0], p.an[1], p.x - G.cam, p.y - p.z + 2, p.face < 0, 1, a);
 }
 export function drawWorld() {
-  drawBG();
-  drawFog();
-  drawVignette();
+  if (G.level === 2) drawBG2();
+  else {
+    drawBG();
+    drawFog();
+    drawVignette();
+  }
+  // the world below is drawn in road coordinates; Old Quarry's camera also moves up and down
+  ctx.save();
+  ctx.translate(0, -G.camY);
   // slam warning
   for (const e of G.enemies)
     if (e.state === 'swind') {
@@ -663,7 +818,8 @@ export function drawWorld() {
   const list = [];
   for (const d of G.debris) list.push([d.gy - 1, drawDebris, d]);
   for (const u of G.props) list.push([u.y, u.decor ? drawDecor : drawUrn, u]);
-  for (const e of G.enemies) list.push([e.y, outlined(e.T.dragon ? drawDragon : drawSkel, e), e]);
+  for (const e of G.enemies)
+    list.push([e.y, outlined(FOES[e.type]?.draw ?? (e.T.dragon ? drawDragon : drawSkel), e), e]);
   for (const it of G.items) list.push([it.y, drawItem, it]);
   for (const q of G.projs) list.push([q.y + 1, drawProj, q]);
   if (G.state !== 'title') list.push([P.y, drawPlayer, null]);
@@ -692,6 +848,8 @@ export function drawWorld() {
       ctx.fill();
       txt('!', x, e.y - 62, 24, '#fff', 'center');
     }
+  ctx.restore();
+  if (G.level === 2) drawFront2();
 }
 export function drawHUD() {
   const p = P;
@@ -782,7 +940,7 @@ export function drawHUD() {
       ctx.fillRect(bx + bw * 0.5 + 3, 37, 2, 12);
     } else if (boss.armor > 0)
       txt(t('immune', boss.armor.toFixed(1)), bx + bw + 4, 31, 12, '#fff', 'right', 3);
-    else
+    else if (boss.type === 'boss')
       for (let i = 0; i < 2; i++) {
         const x = bx + bw - 8 - i * 18,
           y = 26;
@@ -801,23 +959,39 @@ export function drawHUD() {
   }
   if (
     !G.wave &&
-    G.waveI < WAVES.length &&
+    G.waveI < levelWaves().length &&
     G.waveI > 0 &&
     G.goT > 0 &&
     Math.floor(G.time * 3) % 2 === 0
   ) {
-    txt(t('go'), W - 74, 250, 26, '#ece5cb', 'right', 5);
+    // the arrow points the way the road goes (right, down the slope or down the screen)
+    const [dx, dy] = roadDir(),
+      ax = dy > 0.8 ? W / 2 : W - 45,
+      ay = dy > 0.8 ? H - 70 : 241 + dy * 120;
+    txt(
+      t('go'),
+      ax - (dy > 0.8 ? 0 : 29),
+      ay + (dy > 0.8 ? -26 : 9),
+      26,
+      '#ece5cb',
+      dy > 0.8 ? 'center' : 'right',
+      5,
+    );
+    ctx.save();
+    ctx.translate(ax, ay);
+    ctx.rotate(Math.atan2(dy, dx));
     ctx.fillStyle = '#ece5cb';
     ctx.strokeStyle = OL;
     ctx.lineWidth = 4;
     ctx.lineJoin = 'round';
     ctx.beginPath();
-    ctx.moveTo(W - 62, 226);
-    ctx.lineTo(W - 28, 241);
-    ctx.lineTo(W - 62, 256);
+    ctx.moveTo(-17, -15);
+    ctx.lineTo(17, 0);
+    ctx.lineTo(-17, 15);
     ctx.closePath();
     ctx.stroke();
     ctx.fill();
+    ctx.restore();
   }
   if (G.banner) {
     const u = G.banner.t,

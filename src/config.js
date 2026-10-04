@@ -127,14 +127,72 @@ export const JUGGLE = {
   launch: 560,
   launchCarry: 25,
 };
+// The zombie miner's charge: now and then it raises its pickaxe for `wind` seconds, then runs
+// straight ahead at `speed` for at most `run` seconds; a hit knocks the player down.
+export const MINER = { wind: 0.7, speed: 430, run: 1.3, dmg: 15, rate: 0.5, cd: [5, 9] };
+// A stick of dynamite burns `fuse` seconds from the moment it is lit (at the start of the
+// throw) and flies `flight` seconds; it blows up as BLAST.dynamite.
+export const DYNAMITE = { fuse: 3, flight: 0.8, g: 1500 };
+// The mutant lizard: how often it hops back from a blow it sees coming, how far, then its
+// lunge (wind-up, speed, how long at most, damage).
+export const LIZARD = {
+  dodge: 0.7,
+  dodgeCd: [2.2, 3.8],
+  hopVx: 340,
+  hopVz: 430,
+  lwind: 0.42,
+  lunge: 560,
+  lungeT: 0.5,
+  lungeDmg: 16,
+};
+// The power armour's minigun: it spins up (`spin` s), then fires for `fire` s; the bullets
+// hit the ground first close in front, then further out (`reach0` to `reach1` px), a bullet
+// every `rate` s. A bullet on the player does `dmg`; every third in a row knocks her down.
+export const ARMOR = {
+  spin: 1.2,
+  fire: 2.6,
+  reach0: 60,
+  reach1: 760,
+  rate: 0.06,
+  dmg: 4,
+  cool: 0.9,
+  gunCd: [2.5, 4.5],
+  aimSpeed: 70,
+};
+// The slime: its roll (wind-up, speed, how long), its jump (wind-up, flight, landing blast
+// radius and damage), its spit (wind-up; at most `minions` of its spawn about at once).
+export const SLIME = {
+  rwind: 0.7,
+  roll: 430,
+  rollT: 1.6,
+  jwind: 0.55,
+  jumpT: 0.95,
+  landR: 170,
+  landDmg: 14,
+  spwind: 0.7,
+  minions: 4,
+  cds: { roll: [2.5, 4.5], jump: [3, 5], spit: [4, 7] },
+};
 // Secret: hold X this long right at the start of the level to skip straight to the final boss.
 export const SECRET_HOLD = 3;
+// The other secret: hold Z and 2 together this long on the first screen to go to stage 2.
+export const STAGE_HOLD = 2;
 // Breakable scenery along the road: hits needed, colour of the pieces, score.
 export const DECOR = {
   bench: { w: 34, hp: 1, col: '#7a5638', score: 20 },
   cross: { w: 14, hp: 1, col: '#8b8f84', score: 20 },
   // a big grave: three hits; a zombie or a skeleton may climb out of it
   tomb: { w: 40, hp: 3, col: '#6f7c80', score: 50, big: 1 },
+  // Old Quarry: a wooden barrel (two hits) and a red barrel that blows up (see BLAST)
+  barrel: { w: 26, hp: 2, col: '#8a5a32', score: 30 },
+  tnt: { w: 24, hp: 1, col: '#b02a1e', score: 30, boom: 'barrel' },
+};
+// Explosions: radius on the floor (an ellipse, 0.42 as deep as wide), damage to the player and
+// to enemies, and for a red barrel caught in a blast, the delay before it goes off too; a red
+// barrel that is hit burns its fuse for `lit` seconds first.
+export const BLAST = {
+  barrel: { r: 175, dmgP: 22, dmgE: 48, chain: 0.14, lit: 0.9 },
+  dynamite: { r: 150, dmgP: 20, dmgE: 42, chain: 0.14 },
 };
 
 // Enemy archetypes. Every numeric field is tuned by hand; see README for what each one means.
@@ -297,6 +355,99 @@ export const TYPES = {
     dk: '#b6ae98',
     eye: '#ff3b2f',
     score: 650,
+  },
+  // Old Quarry: a zombie miner with a pickaxe (see MINER)
+  miner: {
+    hp: 42,
+    scale: 1.02,
+    speed: 64,
+    dmg: 9,
+    reach: 80,
+    style: 'smash',
+    wind: 0.45,
+    act: 0.14,
+    rec: 0.55,
+    cd: [1, 1.9],
+    col: '#a6b48c',
+    dk: '#6d7c5b',
+    eye: '#ffe25a',
+    score: 140,
+  },
+  // a zombie with dynamite: keeps away, lights a stick and throws it (see DYNAMITE)
+  dynamite: {
+    hp: 30,
+    scale: 0.98,
+    speed: 80,
+    dmg: 6,
+    reach: 60,
+    keep: 290,
+    style: 'other',
+    wind: 1.15,
+    act: 0.16,
+    rec: 0.55,
+    cd: [2.2, 3.4],
+    col: '#b2ad8a',
+    dk: '#7a7558',
+    eye: '#ff9a3a',
+    score: 240,
+  },
+  // a big mutant lizard: fast, hops back from blows and lunges (see LIZARD)
+  lizard: {
+    hp: 130,
+    scale: 1.25,
+    speed: 150,
+    dmg: 12,
+    reach: 86,
+    style: 'other',
+    wind: 0.32,
+    act: 0.14,
+    rec: 0.45,
+    cd: [0.7, 1.4],
+    weight: 'medium',
+    shadow: 52,
+    col: '#6b7a3e',
+    dk: '#4a5628',
+    eye: '#b6ff3a',
+    score: 700,
+  },
+  // an elite in power armour with a minigun (see ARMOR); heavy: only crushing blows move it
+  armor: {
+    hp: 340,
+    scale: 1.3,
+    speed: 44,
+    dmg: 18,
+    reach: 92,
+    style: 'punch',
+    wind: 0.5,
+    act: 0.16,
+    rec: 0.6,
+    cd: [1, 1.8],
+    knock: 1,
+    weight: 'heavy',
+    shadow: 62,
+    col: '#5b636b',
+    dk: '#3c4248',
+    eye: '#7dff5a',
+    score: 2200,
+  },
+  // the mini-boss of Old Quarry: a radioactive slime (see SLIME)
+  slime: {
+    hp: 760,
+    scale: 1,
+    speed: 46,
+    dmg: 16,
+    reach: 120,
+    wind: 0.6,
+    act: 0.2,
+    rec: 0.6,
+    cd: [0.6, 1.2],
+    bigBoss: 1,
+    weight: 'medium',
+    shadow: 130,
+    col: '#6fe23a',
+    dk: '#2f8a1e',
+    eye: '#f4ff9a',
+    score: 5000,
   },
   // the final boss; its behaviour and drawing live in dragon.js
   dragon: {

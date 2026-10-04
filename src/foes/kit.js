@@ -1,8 +1,9 @@
 // The toolkit every enemy is built from: sensing the player, turning, moving, switching
 // state, melee hit boxes and lobbed projectiles.
-import { GB, GT, W } from '../config.js';
+import { GB, GT, H, W } from '../config.js';
 import { clamp } from '../util.js';
 import { G, P } from '../state.js';
+import { level } from '../level.js';
 
 /** The player is on the ground or out of the fight: nobody should start an attack. */
 export const playerDown = () => ['ko', 'down', 'getup', 'dead', 'win'].includes(P.state);
@@ -24,7 +25,7 @@ export const ahead = (e) => (P.x - e.x) * e.face;
 /** Walk towards a point on the road (kept on screen), at `sp` pixels a second. */
 export function moveTo(e, tx, ty, sp, dt) {
   tx = clamp(tx, G.cam + 40, G.cam + W - 40);
-  ty = clamp(ty, GT + 4, GB - 2);
+  ty = level().floor ? clamp(ty, G.camY + 220, G.camY + H - 8) : clamp(ty, GT + 4, GB - 2);
   const a = tx - e.x,
     b = ty - e.y,
     d = Math.hypot(a, b);
