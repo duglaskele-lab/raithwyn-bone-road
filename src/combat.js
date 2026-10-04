@@ -1,10 +1,23 @@
 // Damage rules: who can be hit, what a hit does, rage, the boss interrupt immunity.
-import { DECOR, JUGGLE, MAXR, RAGE, RL, SUPER_DMG, TAU, W, WEIGHT, ZOMBIE } from './config.js';
+import {
+  BLAST,
+  DECOR,
+  JUGGLE,
+  MAXR,
+  RAGE,
+  RL,
+  SUPER_DMG,
+  TAU,
+  W,
+  WEIGHT,
+  ZOMBIE,
+} from './config.js';
 import { random, rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
 import { motes, shatter, spark } from './fx.js';
 import { spawn } from './enemies.js';
+import { explode } from './blast.js';
 import { DRAGON, dragonZone, headPoint } from './dragon.js';
 import { FOES } from './foes/index.js';
 import { dmgMult, scoreMult, styleBreak, styleGain, styleKeep } from './style.js';
@@ -27,6 +40,17 @@ export function hurtEnemy(e, dmg, dir, knock, src, launch = false) {
   if (e.isProp) {
     // smashing scenery keeps the style meter from draining between fights
     styleKeep();
+    if (DECOR[e.decor]?.boom) {
+      // a red barrel: a blow lights its fuse (time to get away), a shot sets it off at once
+      if (e.fuseT === undefined) {
+        e.fuseT = ['bone', 'hado', 'super', 'blast'].includes(src) ? 0.05 : BLAST.barrel.lit;
+        e.flashT = G.time + 0.15;
+        spark(e.x - dir * 6, e.y - 30, '#ffcf5a', false);
+        SFX.clack();
+        SFX.fuse();
+      }
+      return true;
+    }
     if (e.hp > 1) {
       // sturdy scenery (a big grave) cracks first and breaks after a few hits
       e.hp--;
@@ -67,7 +91,7 @@ export function hurtEnemy(e, dmg, dir, knock, src, launch = false) {
     return true;
   }
   e.engage = false;
-  if (F.guard?.(e, knock, src, dir)) return true;
+  if (F.guard?.(e, knock, src, dir, crush)) return true;
   // the rest depends on its weight class (WEIGHT in config.js)
   const w = weightOf(e);
   if (w === 'boss') return true;
@@ -244,6 +268,7 @@ export function breakProp(e) {
         col: i % 3 ? D.col : '#566266',
         life: 3,
       });
+  if (D?.boom) explode(e.x, e.y, D.boom);
   if (D && D.big) {
     // a big grave: a zombie (25%) or a skeleton (25%) may climb out, or nothing (50%)
     const r = random();

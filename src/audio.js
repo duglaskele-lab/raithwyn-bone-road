@@ -6,6 +6,7 @@ import { mulberry } from './util.js';
 const rnd = (a = 1, b) => (b === undefined ? Math.random() * a : a + Math.random() * (b - a));
 import { G } from './state.js';
 import { songTick, songsAttach } from './songs.js';
+import { levelWaves } from './level.js';
 
 let AC = null,
   MG = null,
@@ -214,6 +215,36 @@ export const SFX = {
   thud() {
     tone('sine', 110, 40, 0.16, 0.5);
     noise(0.1, 0.28, 320, 100);
+  },
+  // Old Quarry
+  boom() {
+    tone('sine', 90, 24, 0.9, 0.9);
+    noise(0.9, 0.7, 1800, 80, 0.6);
+    noise(0.25, 0.4, 4000, 900, 1.2);
+  },
+  fuse() {
+    noise(0.12, 0.08, 6000, 4500, 3, 0, 'highpass');
+  },
+  gun() {
+    noise(0.05, 0.22, 3500, 900, 1.6);
+    tone('square', 180, 70, 0.04, 0.08);
+  },
+  spin() {
+    tone('sawtooth', 40, 260, 0.8, 0.08, 0, 900);
+    noise(0.8, 0.06, 600, 2400, 2);
+  },
+  clang() {
+    tone('square', 620, 540, 0.12, 0.1);
+    tone('triangle', 1240, 1180, 0.2, 0.08);
+    noise(0.06, 0.2, 5000, 2500, 2);
+  },
+  squelch() {
+    tone('sine', 220, 70, 0.25, 0.3);
+    noise(0.3, 0.3, 500, 150, 2);
+  },
+  hiss() {
+    noise(0.45, 0.3, 2400, 900, 1.5);
+    tone('sawtooth', 300, 180, 0.3, 0.06, 0, 1200);
   },
   boss() {
     tone('sawtooth', 73, 44, 1.2, 0.35);
@@ -638,11 +669,218 @@ export const THEMES = {
     },
   },
 };
+// Old Quarry's two themes share one band: a galloping bass, a kick and snare, a shaker, a
+// tremolo guitar, a whistled tune, a trumpet, bells, a choir and a whip. Each section is four
+// bars (64 sixteenths) with a chord per bar and the parts it uses; a melody is written out as
+// MIDI notes, 16 to a bar (0 = rest; a note rings until the next one). After the first pass
+// the intro is skipped.
+function westernBand(cfg) {
+  return {
+    step: 60 / cfg.bpm / 4,
+    ...cfg,
+    at(n) {
+      const len = 64,
+        k = Math.floor(n / len),
+        f = this.form,
+        idx = k < f.length ? k : 1 + ((k - f.length) % (f.length - 1));
+      return { sec: this.sections[f[idx]], s: n % len };
+    },
+    play(n, d) {
+      const st = this.step,
+        { sec, s } = this.at(n),
+        bar = Math.floor(s / 16),
+        b = s % 16,
+        c = this.chords[sec.ch[bar]],
+        beat = b % 4;
+      // drums
+      const kick = (v = 0.42) => tone('sine', 145, 40, 0.16, v, d),
+        snare = (v = 0.2) => {
+          noise(0.12, v, 2200, 900, 0.9, d);
+          tone('triangle', 200, 140, 0.06, 0.09, d);
+        };
+      if (sec.drums === 'full') {
+        if (b % 8 === 0) kick();
+        if (b % 8 === 4) snare();
+        if (b === 14 && bar === 3) snare(0.14);
+      } else if (sec.drums === 'drive') {
+        if (b % 4 === 0) kick(0.45);
+        if (b % 8 === 4) snare(0.24);
+        if (b % 8 === 7) kick(0.25);
+      } else if (sec.drums === 'half') {
+        if (b === 0) kick(0.35);
+        if (b === 8) snare(0.18);
+      } else if (sec.drums === 'fill') {
+        if (b % 8 === 0) kick();
+        if (bar === 3 ? b % 2 === 0 && b > 4 : b % 8 === 4)
+          snare(0.12 + (bar === 3 ? b * 0.008 : 0.08));
+      }
+      if (sec.drums && sec.drums !== 'half')
+        noise(0.022, beat === 2 ? 0.05 : 0.025, 8200, 6800, 2, d, 'highpass');
+      if (sec.drums === 'shaker')
+        noise(0.03, beat === 0 ? 0.04 : 0.02, 7000, 5000, 1.5, d, 'highpass');
+      // the bass: a gallop (DUM da-da) on the root and the fifth, or driving eighths
+      if (sec.bass === 'gallop' && beat !== 1) {
+        const f = hz(c.root + (beat === 0 ? 0 : 7));
+        tone('sawtooth', f, f, st * 0.85, beat === 0 ? 0.15 : 0.09, d, 700);
+      } else if (sec.bass === 'drive' && b % 2 === 0) {
+        const f = hz(c.root + (b % 8 === 6 ? 12 : 0));
+        tone('sawtooth', f, f, st * 1.5, 0.14, d, 650);
+      } else if (sec.bass === 'pedal' && b % 8 === 0) {
+        const f = hz(c.root);
+        tone('sawtooth', f, f, st * 7, 0.12, d, 500);
+      }
+      // the guitar: stabs on the off-beat, or a shimmering tremolo
+      if (sec.gtr === 'stab' && beat === 2)
+        for (const m of c.pad) tone('triangle', hz(m), hz(m), st * 0.7, 0.026, d, 2600);
+      if (sec.gtr === 'trem' && b % 2 === 0)
+        for (const m of c.pad.slice(0, 2)) tone('sawtooth', hz(m), hz(m), st * 0.8, 0.012, d, 2200);
+      // a choir and bells
+      if (sec.choir && b === 0)
+        for (const m of [c.pad[0], c.pad[2] + 12])
+          tone('triangle', hz(m), hz(m) * 1.004, st * 15, 0.026, d, 1200);
+      if (sec.bell && b === 0 && (bar % 2 === 0 || sec.bell === 2)) {
+        const m = c.pad[0] + 12;
+        tone('sine', hz(m), hz(m), 2.2, 0.08, d);
+        tone('sine', hz(m) * 2.76, hz(m) * 2.76, 1.2, 0.025, d);
+      }
+      // melodies
+      for (const [part, voice] of [
+        ['whistle', 'whistle'],
+        ['horn', 'horn'],
+      ]) {
+        const mel = sec[part] && this[sec[part]];
+        if (!mel) continue;
+        const m = mel[s];
+        if (!m) continue;
+        let len = 1;
+        while (len < 8 && !mel[s + len] && s + len < 64) len++;
+        const up = (sec.up || 0) * 12,
+          f = hz(m + up),
+          dur = st * len * 0.95;
+        if (voice === 'whistle') {
+          // a whistled tune: a pure tone with a little vibrato (two voices beating slowly)
+          tone('sine', f, f, dur, 0.05, d, 0);
+          tone('sine', f * 1.006, f * 1.003, dur, 0.025, d, 0);
+        } else {
+          // a trumpet doubled an octave down
+          tone('square', f, f * 0.996, dur, 0.036, d, 2400);
+          tone('sawtooth', f / 2, f / 2, dur, 0.026, d, 1300);
+        }
+      }
+      // a whip crack at the end of the section
+      if (sec.whip && s === 62) {
+        noise(0.09, 0.5, 6000, 900, 3, d);
+        noise(0.05, 0.3, 3000, 8000, 2, d + 0.03);
+      }
+    },
+  };
+}
+const AM = {
+  Am: { root: 33, pad: [57, 60, 64] },
+  G: { root: 31, pad: [55, 59, 62] },
+  F: { root: 29, pad: [53, 57, 60] },
+  E: { root: 28, pad: [52, 56, 59] },
+  Dm: { root: 38, pad: [50, 53, 57] },
+  C: { root: 36, pad: [55, 60, 64] },
+};
+const DM = {
+  Dm: { root: 38, pad: [62, 65, 69] },
+  Bb: { root: 34, pad: [58, 62, 65] },
+  C: { root: 36, pad: [60, 64, 67] },
+  A: { root: 33, pad: [57, 61, 64] },
+  Gm: { root: 31, pad: [55, 58, 62] },
+  F: { root: 41, pad: [57, 60, 65] },
+};
+// "Old Quarry": a ride through the town and down the mine, in A minor at 136 BPM, on the
+// Andalusian cadence (Am G F E) of the spaghetti westerns.
+THEMES.frontier = westernBand({
+  bpm: 136,
+  chords: AM,
+  // the whistled tune (four bars) and the trumpet's answer
+  tune: [
+    76, 0, 0, 0, 81, 0, 0, 0, 83, 0, 84, 0, 83, 0, 81, 0, 79, 0, 0, 0, 0, 0, 76, 0, 74, 0, 76, 0,
+    79, 0, 0, 0, 77, 0, 0, 0, 76, 0, 74, 0, 72, 0, 0, 0, 74, 0, 72, 0, 71, 0, 0, 0, 0, 0, 0, 0, 68,
+    0, 71, 0, 76, 0, 0, 0,
+  ],
+  call: [
+    69, 0, 0, 72, 0, 0, 76, 0, 0, 0, 74, 0, 72, 0, 71, 0, 71, 0, 0, 74, 0, 0, 79, 0, 0, 0, 77, 0,
+    76, 0, 74, 0, 72, 0, 0, 77, 0, 0, 81, 0, 0, 0, 79, 0, 77, 0, 76, 0, 76, 0, 0, 0, 0, 0, 75, 0,
+    76, 0, 0, 0, 0, 0, 0, 0,
+  ],
+  sections: {
+    intro: { ch: ['Am', 'G', 'F', 'E'], drums: 'shaker', bass: 'pedal', whistle: 'tune', bell: 1 },
+    ride: { ch: ['Am', 'Am', 'G', 'E'], drums: 'full', bass: 'gallop', gtr: 'stab' },
+    A: { ch: ['Am', 'G', 'F', 'E'], drums: 'full', bass: 'gallop', gtr: 'stab', whistle: 'tune' },
+    B: { ch: ['Am', 'G', 'F', 'E'], drums: 'full', bass: 'gallop', gtr: 'trem', horn: 'call' },
+    A2: {
+      ch: ['Am', 'G', 'F', 'E'],
+      drums: 'full',
+      bass: 'gallop',
+      gtr: 'stab',
+      whistle: 'tune',
+      up: 1,
+    },
+    bridge: { ch: ['Dm', 'Am', 'Dm', 'E'], drums: 'half', bass: 'pedal', choir: 1, bell: 2 },
+    B2: {
+      ch: ['Am', 'G', 'F', 'E'],
+      drums: 'full',
+      bass: 'gallop',
+      gtr: 'trem',
+      horn: 'call',
+      choir: 1,
+    },
+    turn: { ch: ['Am', 'C', 'G', 'E'], drums: 'fill', bass: 'gallop', gtr: 'stab', whip: 1 },
+  },
+  form: ['intro', 'ride', 'A', 'B', 'ride', 'A2', 'bridge', 'B2', 'turn'],
+});
+// "Showdown in the Deep": the slime's hall and the last fight, in D minor at 156 BPM. A
+// trumpet fanfare over a pedal, driving eighths, tremolo guitars, bells and a choir.
+THEMES.showdown = westernBand({
+  bpm: 156,
+  chords: DM,
+  fanfare: [
+    69, 0, 0, 0, 74, 0, 0, 0, 72, 0, 74, 0, 77, 0, 0, 0, 76, 0, 0, 0, 74, 0, 72, 0, 70, 0, 0, 0, 69,
+    0, 0, 0, 67, 0, 0, 0, 72, 0, 0, 0, 70, 0, 69, 0, 67, 0, 65, 0, 64, 0, 0, 0, 0, 0, 0, 0, 69, 0,
+    0, 0, 0, 0, 0, 0,
+  ],
+  riff: [
+    62, 0, 62, 65, 0, 62, 69, 0, 67, 0, 65, 0, 64, 0, 0, 0, 58, 0, 58, 62, 0, 58, 65, 0, 64, 0, 62,
+    0, 60, 0, 0, 0, 60, 0, 60, 64, 0, 60, 67, 0, 65, 0, 64, 0, 62, 0, 0, 0, 61, 0, 64, 0, 69, 0, 67,
+    0, 64, 0, 61, 0, 57, 0, 0, 0,
+  ],
+  sections: {
+    call: { ch: ['Dm', 'Dm', 'Bb', 'A'], drums: 'half', bass: 'pedal', horn: 'fanfare', bell: 1 },
+    drive: { ch: ['Dm', 'Bb', 'C', 'A'], drums: 'drive', bass: 'drive', gtr: 'trem' },
+    A: { ch: ['Dm', 'Bb', 'C', 'A'], drums: 'drive', bass: 'drive', gtr: 'stab', horn: 'riff' },
+    B: {
+      ch: ['Dm', 'Dm', 'Bb', 'A'],
+      drums: 'drive',
+      bass: 'drive',
+      gtr: 'trem',
+      horn: 'fanfare',
+      choir: 1,
+    },
+    brk: { ch: ['Gm', 'Dm', 'Bb', 'A'], drums: 'half', bass: 'pedal', choir: 1, bell: 2 },
+    A2: {
+      ch: ['Dm', 'Bb', 'C', 'A'],
+      drums: 'drive',
+      bass: 'drive',
+      gtr: 'trem',
+      horn: 'riff',
+      up: 1,
+      whip: 1,
+    },
+  },
+  form: ['call', 'drive', 'A', 'B', 'drive', 'brk', 'A2', 'B'],
+});
 /** Which theme plays now: the night theme in the fight, the dragon's own theme in its fight
  * (its outro once it falls apart), the old theme on the menu. The western stays in THEMES
  * for later use. */
 export function themeFor(state, enemies = G.enemies, wave = G.wave) {
   if (state === 'select') return 'tense';
+  if (state === 'play' && G.level === 2)
+    // Old Quarry: its ride, and the showdown for the slime and the last fight
+    return wave && levelWaves()[G.waveI]?.boss ? 'showdown' : 'frontier';
   if (state === 'play') {
     // the Bone Dragon brings its own music, faster in its second phase
     const d = enemies.find((e) => e.T?.dragon);

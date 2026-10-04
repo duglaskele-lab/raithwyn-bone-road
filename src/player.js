@@ -19,6 +19,7 @@ import { G, P } from './state.js';
 import { keys, pressed } from './input.js';
 import { SFX } from './audio.js';
 import { dust, motes } from './fx.js';
+import { floorClamp, viewClamp } from './level.js';
 import { hadoLevel, strike, superNova } from './combat.js';
 
 export function toIdle() {
@@ -402,7 +403,14 @@ export function updPlayer(dt) {
       p.an = ['laugh', [0, 1, 2, 1, 2, 1, 2, 1][Math.floor(p.t / 0.13) % 8]]; // never frame 3
       break;
   }
-  const maxX = G.wave || G.waveI >= WAVES.length ? G.cam + W - 30 : G.cam + W + 200;
-  p.x = clamp(p.x, G.cam + 30, Math.min(maxX, WAVES[WAVES.length - 1].x + W - 30));
-  p.y = clamp(p.y, GT, GB);
+  if (G.level === 2) {
+    // Old Quarry: on the floor and on screen (the camera comes along between fights)
+    floorClamp(p);
+    viewClamp(p);
+    floorClamp(p);
+  } else {
+    const maxX = G.wave || G.waveI >= WAVES.length ? G.cam + W - 30 : G.cam + W + 200;
+    p.x = clamp(p.x, G.cam + 30, Math.min(maxX, WAVES[WAVES.length - 1].x + W - 30));
+    p.y = clamp(p.y, GT, GB);
+  }
 }
