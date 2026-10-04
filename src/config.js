@@ -18,6 +18,9 @@ export const CRYPT_X = 4520;
 // (the last third of the wind-up).
 export const SWIND = 0.9,
   SWIND_LOCK = SWIND * (2 / 3);
+// The fatso only goes down to a second heavy blow landing within `window` seconds of the
+// first; the first one just makes him flinch.
+export const FAT = { window: 3 };
 // A bone throw costs 5% of the rage bar.
 export const BONE_COST = MAXR * 0.05;
 // Super attack: hold I this long with a full rage bar; it hits everything on screen.
@@ -79,7 +82,8 @@ export const SAMURAI = {
   lunge: 260, // it steps through the cut
   daze: 2, // seconds a hit from afar leaves it dazed
   seen: 3, // it only takes the stance after this long on screen
-  stanceCd: [0.9, 1.7], // before it takes the stance again (it is quick to return to it)
+  settle: 0.5, // seconds to settle into the stance (it cannot cut until it has)
+  stanceCd: [1.8, 3.4], // before it takes the stance again
 };
 // Juggling: an enemy knocked into the air is popped up again by every hit until it lands.
 // Heavy enemies and bosses fall regardless, unless their TYPES entry says juggle: 1.

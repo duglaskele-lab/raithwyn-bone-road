@@ -24,7 +24,7 @@ import { touch } from './input.js';
 import { RANKS, STYLE_STEP, dmgMult, scoreMult, styleRank } from './style.js';
 import { drawBG, drawFog, drawVignette } from './background.js';
 import { hadoLevel } from './combat.js';
-import { boneShape, drawSkel } from './skeleton.js';
+import { boneShape, drawAura, drawSkel } from './skeleton.js';
 import { drawBike } from './foes/bikes.js';
 import { FOES } from './foes/registry.js';
 import {
@@ -423,9 +423,11 @@ function outlined(draw, e) {
       [layer, lc] = canvasLayer('layer', w, h),
       [sil, sc] = canvasLayer('sil', w, h),
       [ring, rc] = canvasLayer('ring', w, h);
+    // a glow round it is not part of its shape: it goes straight on screen, unoutlined
+    if (!e.T.dragon) drawAura(e);
     lc.setTransform(main.getTransform());
     setCtx(lc);
-    draw(e);
+    draw(e, false);
     setCtx(main);
     // the silhouette: red, and drawn over itself until even see-through parts are solid
     sc.drawImage(layer, 0, 0);

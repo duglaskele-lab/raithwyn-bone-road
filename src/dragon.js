@@ -26,7 +26,8 @@ export const DRAGON = {
   body: 120, // half-width of the body hit box
   bite: { wind: 0.6, strike: 0.22, down: 1.3, up: 0.5, dmg: 18, min: 110, max: 320, dy: 50 },
   claw: { wind: 0.5, swipe: 0.2, rec: 0.55, dmg: 14, min: 20, max: 240, dy: 60 },
-  laser: { wind: 1.0, fire: 1.1, rec: 0.5, dmg: 22, band: 40, dy: 110, cd: 5 },
+  // fire2: in the second phase the beam burns this much longer (and widens more slowly)
+  laser: { wind: 1.0, fire: 1.1, fire2: 1.5, rec: 0.5, dmg: 22, band: 40, dy: 110, cd: 5 },
   // three plasma balls spat one after another in arcs at a player far away; each one blows up
   // where it lands (rx, ry: the blast)
   plasma: {
@@ -651,6 +652,7 @@ function step(e, dt) {
     }
     case 'laser': {
       const L = C.laser,
+        fire = laserFire(e),
         hx = e.x + e.face * 25,
         hy = e.laserY - e.z - 108;
       if (e.t < L.wind && random() < 0.3 + e.t) {
@@ -671,7 +673,7 @@ function step(e, dt) {
           col: '#f0dcff',
         });
       }
-      if (e.t > L.wind && e.t < L.wind + L.fire && random() < 0.8) {
+      if (e.t > L.wind && e.t < L.wind + fire && random() < 0.8) {
         // sparks thrown off the beam
         const x = hx + e.face * rnd(40, W);
         G.parts.push({
@@ -687,7 +689,7 @@ function step(e, dt) {
           col: '#ffffff',
         });
       }
-      if (e.t > L.wind && e.t < L.wind + L.fire) {
+      if (e.t > L.wind && e.t < L.wind + fire) {
         if (!e.fired) {
           e.fired = true;
           SFX.laser();
@@ -696,7 +698,7 @@ function step(e, dt) {
         if (!e.hitDone && f > 0 && Math.abs(P.y - e.laserY) < laserBand(e) && P.z < 160)
           if (hitPlayer(L.dmg, e.face, true)) e.hitDone = true;
       }
-      if (e.t > L.wind + L.fire + L.rec) {
+      if (e.t > L.wind + fire + L.rec) {
         e.fired = false;
         finish(e);
       }
@@ -979,6 +981,8 @@ export function drawShocks() {
     ctx.restore();
   }
 }
+/** How long the beam burns: half as long again in the second phase. */
+export const laserFire = (e) => DRAGON.laser.fire * (e.phase2 ? DRAGON.laser.fire2 : 1);
 /**
  * Half-width of the beam. In the second phase it fires as wide as in the first and widens
  * while it burns, ending three times as wide.
@@ -986,13 +990,13 @@ export function drawShocks() {
 export function laserBand(e) {
   const L = DRAGON.laser;
   if (!e.phase2) return L.band;
-  const u = clamp((e.t - L.wind) / L.fire, 0, 1);
+  const u = clamp((e.t - L.wind) / laserFire(e), 0, 1);
   return L.band * (1 + (DRAGON.laserGrow - 1) * u);
 }
 /** Light thrown on the ground by the firing beam. */
 export function drawDragonGround(e) {
   const L = DRAGON.laser;
-  if (e.state !== 'laser' || e.t < L.wind || e.t > L.wind + L.fire) return;
+  if (e.state !== 'laser' || e.t < L.wind || e.t > L.wind + laserFire(e)) return;
   const x0 = e.x - G.cam + e.face * 20,
     x1 = e.face > 0 ? W + 40 : -40,
     band = laserBand(e),
@@ -1052,11 +1056,11 @@ export function drawDragonBeam(e) {
     core.addColorStop(1, 'rgba(176,92,255,0)');
     ctx.fillStyle = core;
     ctx.fillRect(hx - 60, hy - 60, 120, 120);
-  } else if (e.t < L.wind + L.fire) {
+  } else if (e.t < L.wind + laserFire(e)) {
     // the beam shoots out from the heart, flickers, and thins out at the end
     const s = e.t - L.wind,
       grow = Math.min(1, s / 0.12),
-      k = Math.min(1, s / 0.06) * Math.min(1, (L.wind + L.fire - e.t) / 0.2),
+      k = Math.min(1, s / 0.06) * Math.min(1, (L.wind + laserFire(e) - e.t) / 0.2),
       w = laserBand(e) * k + Math.sin(G.time * 70) * 4,
       xe = hx + (x1 - hx) * grow;
     for (const [ww, c] of [

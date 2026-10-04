@@ -1,6 +1,6 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { HOG, JUGGLE, MAXR, RW, TYPES } from '../src/config.js';
+import { FAT, HOG, JUGGLE, MAXR, RW, TYPES } from '../src/config.js';
 import { G, P } from '../src/state.js';
 import { addRage, canJuggle, hadoLevel, hitPlayer, hurtEnemy } from '../src/combat.js';
 import { spawn, updEnemy } from '../src/enemies.js';
@@ -106,6 +106,23 @@ test('heavy enemies and bosses fall through a juggle unless their type allows it
   assert.equal(e.vz, vz, 'no pop: it keeps falling');
   assert.ok(!canJuggle(spawn('boss', 0)));
   assert.ok(canJuggle({ T: { ...TYPES.brute, juggle: 1 } }), 'an exception can be made');
+});
+
+test('the fatso goes down only to two heavy blows within 3 seconds', () => {
+  const e = spawn('fat', 1, 500, 450);
+  hurtEnemy(e, 1, 1, true, 'punch');
+  assert.equal(e.state, 'hurt', 'the first heavy blow: a flinch');
+  for (let i = 0; i < 60; i++) updEnemy(e, 1 / 60, { n: 0 });
+  hurtEnemy(e, 1, 1, true, 'punch');
+  assert.equal(e.state, 'air', 'the second within 3 s knocks him down');
+  // too slow: the window closes and it starts again
+  const f = spawn('fat', 1, 600, 450);
+  hurtEnemy(f, 1, 1, true, 'hado');
+  for (let i = 0; i < 200; i++) updEnemy(f, 1 / 60, { n: 0 });
+  Object.assign(f, { state: 'chase', z: 0 });
+  hurtEnemy(f, 1, 1, true, 'punch');
+  assert.notEqual(f.state, 'air', '3 s later it counts as a first blow again');
+  assert.equal(FAT.window, 3);
 });
 
 test('a leaping monkey is swatted out of the air by a plain hit', () => {
