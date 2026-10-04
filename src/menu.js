@@ -221,17 +221,11 @@ function item(label, b, on) {
     5,
   );
 }
-// Raithwyn laughing on the main menu. Most loops stop short of the last, widest frame (3);
-// one loop in ten plays it. Each loop decides by its own number, so the choice holds steady.
-const LAUGH = [0, 0, 0, 1, 2, 1, 2, 1, 2, 3, 3, 0],
-  LAUGH_T = 0.13,
-  LAUGH_FULL = 0.1;
-export const laughFull = (loop) => mulberry(loop * 7919 + 13)() < LAUGH_FULL;
-export function laughFrame(time) {
-  const n = Math.floor(time / LAUGH_T),
-    f = LAUGH[n % LAUGH.length];
-  return f === 3 && !laughFull(Math.floor(n / LAUGH.length)) ? 2 : f;
-}
+// Raithwyn laughing on the main menu. The last laugh frame (3) is never shown: it jars with
+// the rest of the loop.
+const LAUGH = [0, 0, 0, 1, 2, 1, 2, 1, 2, 1, 0, 0],
+  LAUGH_T = 0.13;
+export const laughFrame = (time) => LAUGH[Math.floor(time / LAUGH_T) % LAUGH.length];
 function drawMain() {
   backdrop(0.35);
   const g = ctx.createLinearGradient(0, 0, W, 0);
