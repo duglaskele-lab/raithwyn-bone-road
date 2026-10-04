@@ -149,6 +149,41 @@ test('weight classes: light, medium (the fatso), heavy, boss', () => {
   assert.equal(h.hp, 96, 'but it takes the damage');
 });
 
+test('crushing blows: a level II-III dark ball or the super throws the medium and the heavy', () => {
+  // the heavy: a level I ball does not move it, a level II one knocks it back
+  const h = spawn('grunt', 1, 500, 450);
+  h.T = { ...TYPES.grunt, weight: 'heavy' };
+  h.hp = 999;
+  hurtEnemy(h, 1, 1, true, 'hado');
+  assert.equal(h.state, 'chase', 'a level I ball: nothing');
+  for (const src of ['hado2', 'hado3', 'super']) {
+    Object.assign(h, { state: 'windup', z: 0, vx: 0, vz: 0 });
+    hurtEnemy(h, 1, 1, true, src);
+    assert.equal(h.state, 'air', `${src} knocks it back`);
+    assert.deepEqual([h.vx, h.vz], WEIGHT.knockHeavy);
+    // and it is never juggled
+    hurtEnemy(h, 1, 1, true, 'super');
+    assert.equal(h.vz, WEIGHT.knockHeavy[1], 'no pop in the air');
+  }
+  // the medium: one crushing blow is enough
+  for (const src of ['hado2', 'super']) {
+    const f = spawn('fat', 1, 500, 450);
+    hurtEnemy(f, 1, 1, true, src);
+    assert.equal(f.state, 'air', src);
+  }
+});
+
+test('a heavy blow breaks the attack of a medium enemy, a plain one does not', () => {
+  const f = spawn('fat', 1, 500, 450);
+  f.hp = 999;
+  Object.assign(f, { state: 'windup', t: 0 });
+  hurtEnemy(f, 1, 1, false, 'punch');
+  assert.equal(f.state, 'windup', 'a plain hit: the attack goes on');
+  hurtEnemy(f, 1, 1, true, 'punch');
+  assert.equal(f.state, 'hurt', 'the first heavy blow: broken, but not thrown');
+  assert.ok(f.heavyT > 0);
+});
+
 test('the fatso goes down only to two heavy blows within 3 seconds', () => {
   const e = spawn('fat', 1, 500, 450);
   hurtEnemy(e, 1, 1, true, 'punch');

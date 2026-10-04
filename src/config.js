@@ -22,12 +22,14 @@ export const SWIND = 0.9,
   SWIND_LOCK = SWIND * (2 / 3);
 // How enemies take the player's blows: TYPES[...].weight
 //   light  (the default) - flinch at any hit, are thrown and juggled with ease
-//   medium - plain hits do not stop their attacks; it takes a second heavy blow within
-//            `window` seconds of the first to knock them back, launch them or break an attack
-//            (the first only makes them flinch). Once in the air they juggle like the light.
-//   heavy  - never knocked back, their attacks never broken by the player
+//   medium - plain hits do not stop their attacks, a heavy blow breaks them (a flinch). It
+//            takes a second heavy blow within `window` seconds of the first, or one crushing
+//            blow (a dark ball of level II or III, the super), to knock them back or launch
+//            them. Once in the air they juggle like the light.
+//   heavy  - only a crushing blow knocks them back (never juggled); nothing else moves them
+//            or breaks their attacks
 //   boss   - their own rules (see their files in src/foes)
-export const WEIGHT = { window: 3, knockMedium: [170, 320] };
+export const WEIGHT = { window: 3, knockMedium: [170, 320], knockHeavy: [130, 260] };
 // Rage gained (scaled to the 300 bar: 1.5 times the old amounts on the old 200 bar).
 export const RAGE = {
   punch: 5.25, // each of the first two punches of a combo, per enemy hit
