@@ -122,17 +122,20 @@ test("the fatso's ground slam cannot be interrupted in the last third of its win
   const e = spawn('fat', 1, 500, 450);
   e.state = 'swind';
   e.t = SWIND_LOCK - 0.05;
+  hurtEnemy(e, 16, 1, false, 'punch');
+  assert.equal(e.state, 'swind', 'a plain hit does not stop it');
   hurtEnemy(e, 16, 1, true, 'punch');
-  assert.equal(e.state, 'swind', 'one heavy blow is not enough for the fatso');
+  assert.equal(e.state, 'hurt', 'early on, a heavy blow breaks it');
+  Object.assign(e, { state: 'swind', t: SWIND_LOCK - 0.05 });
   hurtEnemy(e, 16, 1, true, 'punch');
-  assert.equal(e.state, 'air', 'early on, two heavy blows still stop it');
+  assert.equal(e.state, 'air', 'and a second one within 3 s knocks him back');
 
   e.state = 'swind';
   e.t = SWIND_LOCK + 0.01;
   const hp = e.hp;
-  for (const src of ['punch', 'hado', 'super']) hurtEnemy(e, 5, 1, true, src);
+  for (const src of ['punch', 'hado', 'hado3', 'super']) hurtEnemy(e, 5, 1, true, src);
   assert.equal(e.state, 'swind');
-  assert.equal(e.hp, hp - 15, 'the hits still deal damage');
+  assert.equal(e.hp, hp - 20, 'the hits still deal damage');
 });
 
 test('the necromancer keeps his distance and spits acid', () => {

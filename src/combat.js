@@ -18,8 +18,12 @@ export function addRage(n) {
 /**
  * A hit on an enemy (or a breakable prop): `dir` is the side it is hit towards, `knock` a heavy
  * blow, `src` what hit it, `launch` a launcher that throws a light enemy up instead of away.
+ * A crushing blow (a dark ball of level II or III, the super) throws even the medium and the
+ * heavy at once (see WEIGHT).
  */
 export function hurtEnemy(e, dmg, dir, knock, src, launch = false) {
+  const crush = src === 'super' || src === 'hado2' || src === 'hado3';
+  if (crush) src = src === 'super' ? 'super' : 'hado'; // the foes' own rules see a dark ball
   if (e.isProp) {
     // smashing scenery keeps the style meter from draining between fights
     styleKeep();
@@ -66,16 +70,20 @@ export function hurtEnemy(e, dmg, dir, knock, src, launch = false) {
   if (F.guard?.(e, knock, src, dir)) return true;
   // the rest depends on its weight class (WEIGHT in config.js)
   const w = weightOf(e);
-  if (w === 'boss' || w === 'heavy') return true;
+  if (w === 'boss') return true;
+  // the heavy: only a crushing blow moves it, and only on the ground (it is never juggled)
+  if (w === 'heavy' && !(crush && e.state !== 'air')) return true;
   if (e.state === 'air') {
     // up in the air: juggled
     juggle(e, dir, knock, launch);
     return true;
   }
-  const busy = ['windup', 'attack', ...(F.attacks ?? [])].includes(e.state);
+  const heavy = knock,
+    busy = ['windup', 'attack', ...(F.attacks ?? [])].includes(e.state);
   if (w === 'medium' && knock) {
-    // a medium enemy needs a second heavy blow in time; the first counts as a plain hit
-    if (e.heavyT > 0) e.heavyT = 0;
+    // a medium enemy needs a second heavy blow in time (or a crushing one); the first only
+    // makes it flinch, breaking its attack
+    if (e.heavyT > 0 || crush) e.heavyT = 0;
     else {
       e.heavyT = WEIGHT.window;
       knock = false;
@@ -90,12 +98,13 @@ export function hurtEnemy(e, dmg, dir, knock, src, launch = false) {
       e.vx = dir * JUGGLE.launchCarry;
       e.vz = JUGGLE.launch;
     } else {
-      const [vx, vz] = w === 'medium' ? WEIGHT.knockMedium : [270, 430];
+      const [vx, vz] =
+        w === 'light' ? [270, 430] : WEIGHT[w === 'heavy' ? 'knockHeavy' : 'knockMedium'];
       e.vx = dir * vx;
       e.vz = vz;
     }
-  } else if (w === 'medium' && busy) {
-    e.x += dir * 4; // its attack goes on
+  } else if (w === 'medium' && busy && !heavy) {
+    e.x += dir * 4; // a plain hit: its attack goes on
   } else {
     e.state = 'hurt';
     e.t = 0;

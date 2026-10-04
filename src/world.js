@@ -196,7 +196,7 @@ export function update(dt) {
         if (zone) {
           q.hit.add(e);
           const dmg = HADO.dmg[q.lv - 1] * dmgMult() * headBonus(e, zone);
-          if (hurtEnemy(e, dmg, Math.sign(q.vx), true, 'hado')) {
+          if (hurtEnemy(e, dmg, Math.sign(q.vx), true, q.lv > 1 ? `hado${q.lv}` : 'hado')) {
             if (!e.isProp) styleGain(18);
             G.parts.push({
               k: 'fxring',
