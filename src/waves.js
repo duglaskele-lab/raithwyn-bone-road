@@ -14,10 +14,11 @@ function pick(pool) {
   for (const k of names) if ((r -= pool[k]) < 0) return k;
   return names[names.length - 1];
 }
-/** Where an enemy comes from: zombies climb out of the ground, a rider rides in from a side. */
+/** Where an enemy comes from: zombies climb out of the ground, a rider or a power armour comes
+ *  in from a side. */
 function side(type) {
   if (type === 'zombie' || type === 'slime') return 0;
-  if (type === 'biker') return random() < 0.5 ? -1 : 1;
+  if (type === 'biker' || type === 'armor') return random() < 0.5 ? -1 : 1;
   const r = random();
   return r < 0.15 ? 0 : r < 0.6 ? 1 : -1;
 }

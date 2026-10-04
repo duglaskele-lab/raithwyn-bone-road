@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   ARMOR,
   BLAST,
+  CORPSE_T,
   DYNAMITE,
   LIZARD,
   MINER,
@@ -404,4 +405,45 @@ test('a run started on Old Quarry (a retry after losing there) replays on Old Qu
   assert.equal(G.level, 2);
   assert.ok(P.x < x, 'back at the start of the stage');
   stopReplay();
+});
+
+test('a lizard or a power armour falls down dead instead of bursting into bones', () => {
+  for (const type of ['lizard', 'armor']) {
+    freshGame();
+    quarry();
+    P.x = 300;
+    const e = spawn(type, 1, 600, 450);
+    e.state = 'chase';
+    hurtEnemy(e, 9999, 1, false, 'punch');
+    assert.ok(!e.dead, `${type}: not gone at once`);
+    assert.equal(e.state, 'fall');
+    assert.ok(!G.debris.some((d) => d.k === 'bone'), `${type}: no bones`);
+    assert.ok(!hurtEnemy(e, 5, 1, false, 'punch'), 'a dead one takes no more hits');
+    step(1);
+    assert.equal(e.state, 'corpse', 'lying on the ground');
+    assert.equal(e.z, 0);
+    step(CORPSE_T);
+    assert.ok(e.dead && !G.enemies.includes(e), 'then it is gone');
+  }
+});
+
+test('the power armour never climbs out of the ground, and telegraphs its kick', () => {
+  quarry(px(0.6));
+  for (let i = 0; i < 20; i++) {
+    const e = spawn('armor', 0);
+    assert.notEqual(e.state, 'rise');
+    assert.ok(e.x < G.cam || e.x > G.cam + 960, 'from a side');
+  }
+  assert.equal(TYPES.armor.style, 'kick');
+  assert.ok(TYPES.armor.wind >= 0.5);
+  freshGame();
+  quarry();
+  P.x = 500;
+  P.y = 450;
+  const k = spawn('armor', 1, 590, 450);
+  Object.assign(k, { state: 'windup', t: 0, face: -1, gunCd: 99 });
+  step(TYPES.armor.wind - 0.05);
+  assert.equal(P.hp, 100, 'nothing yet: time to get away');
+  step(0.2);
+  assert.ok(P.hp < 100 && ['ko', 'down', 'getup'].includes(P.state), 'the kick knocks her down');
 });

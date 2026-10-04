@@ -2,7 +2,7 @@
 // (in the spirit of the deathclaw). Fast on its feet. It sees a blow coming and hops back out
 // of reach, then lunges in claws first; up close it rakes with its claws. A medium enemy:
 // plain hits do not stop it (see WEIGHT).
-import { LIZARD, OL, TAU } from '../config.js';
+import { CORPSE_T, LIZARD, OL, TAU } from '../config.js';
 import { clamp, ease, random, rnd } from '../util.js';
 import { G, P } from '../state.js';
 import { SFX } from '../audio.js';
@@ -135,22 +135,37 @@ function lizPose(e) {
       o.aF = [-0.5, 0.2];
       o.aB = [-0.7, 0.1];
       break;
+    case 'fall':
     case 'air':
-      o.rot = -Math.min(1.4, t * 5);
-      o.aF = [1.9, 2.4];
-      o.lF = [1.0, 0.2, 0.8];
+      // thrown off its feet: it pitches forward, legs flung back
+      o.rot = Math.min(0.6, t * 4);
+      o.aF = [1.6, 2.2];
+      o.aB = [1.4, 2.0];
+      o.lF = [-0.7, -0.9, -0.8];
+      o.lB = [-0.9, -1.1, -1.0];
       o.jaw = 0.8;
       break;
+    case 'corpse':
     case 'down':
-      o.rot = -1.45;
-      o.hipH = 20;
-      o.lF = [0.3, 0.1, 0.5];
-      o.lB = [0.1, 0.1, 0.5];
+      // flat on its belly, legs stretched out behind, claws forward
+      o.rot = 0.6;
+      o.hipH = 26;
+      o.lean = 1.0;
+      o.head = -0.25;
+      o.jaw = 0.5;
+      o.lF = [-0.95, -1.0, -0.9];
+      o.lB = [-1.05, -1.1, -1.0];
+      o.aF = [0.75, 0.95];
+      o.aB = [0.65, 0.85];
+      o.tail = 0;
       break;
     case 'getup': {
-      const u = ease(clamp(t / 0.45, 0, 1));
-      o.rot = -1.45 * (1 - u);
-      o.hipH = 20 + 62 * u;
+      const u = ease(clamp(t / 0.45, 0, 1)),
+        mix = (a, b) => a.map((v, i) => v + (b[i] - v) * u);
+      o.rot = 0.6 * (1 - u);
+      o.hipH = 26 + 56 * u;
+      o.lF = mix([-0.95, -1.0, -0.9], o.lF);
+      o.lB = mix([-1.05, -1.1, -1.0], o.lB);
       break;
     }
     case 'rise': {
@@ -173,6 +188,8 @@ export function drawLizard(e, aura = true) {
     belly = fl ? '#fff' : '#b8b07a';
   if (aura) drawAura(e);
   ctx.save();
+  // a dead one fades away where it lies
+  if (e.state === 'corpse') ctx.globalAlpha = clamp((CORPSE_T - e.t) / 0.5, 0, 1);
   ctx.translate(e.x - G.cam, e.y - e.z);
   if (e.state === 'rise') {
     const p = ease(Math.min(1, e.t / 0.85));
@@ -402,6 +419,7 @@ export function drawLizard(e, aura = true) {
 
 export default defineFoe('lizard', {
   draw: drawLizard,
+  corpse: true, // not a skeleton: it falls down dead
   init: { dodgeCd: [0.5, 1.5], lcd: [2, 4] },
   timers: ['dodgeCd', 'lcd'],
   spawn(e) {

@@ -173,6 +173,8 @@ export const SLIME = {
   minions: 4,
   cds: { roll: [2.5, 4.5], jump: [3, 5], spit: [4, 7] },
 };
+// How long a creature that died whole (a lizard, a power armour) lies on the ground.
+export const CORPSE_T = 1.6;
 // Secret: hold X this long right at the start of the level to skip straight to the final boss.
 export const SECRET_HOLD = 3;
 // The other secret: hold Z and 2 together this long on the first screen to go to stage 2.
@@ -412,18 +414,18 @@ export const TYPES = {
   // an elite in power armour with a minigun (see ARMOR); heavy: only crushing blows move it
   armor: {
     hp: 340,
-    scale: 0.98,
+    scale: 1.13,
     speed: 44,
     dmg: 18,
     reach: 92,
-    style: 'punch',
-    wind: 0.5,
+    style: 'kick',
+    wind: 0.6, // the kick, with a clear warning
     act: 0.16,
     rec: 0.6,
     cd: [1, 1.8],
     knock: 1,
     weight: 'heavy',
-    shadow: 48,
+    shadow: 55,
     col: '#5b636b',
     dk: '#3c4248',
     eye: '#7dff5a',

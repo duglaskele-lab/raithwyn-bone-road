@@ -7,7 +7,7 @@ import { dust } from '../fx.js';
 import { hitPlayer } from '../combat.js';
 import { defineState, FOES } from './registry.js';
 import { faceP, go, inFront, moveTo } from './kit.js';
-import { W } from '../config.js';
+import { CORPSE_T, W } from '../config.js';
 
 defineState('rise', (e) => {
   if (random() < 0.5)
@@ -151,4 +151,25 @@ defineState('getup', (e) => {
     go(e, 'chase');
     e.cd = Math.max(e.cd, 0.5);
   }
+});
+
+// A creature that is not a skeleton dies whole (see `corpse` in registry.js): it falls...
+defineState('fall', {
+  pin: true,
+  tick(e, dt) {
+    e.x += e.vx * dt;
+    e.vz -= 1500 * dt;
+    e.z += e.vz * dt;
+    if (e.z <= 0) {
+      e.z = 0;
+      go(e, 'corpse');
+      dust(e.x, e.y, 8);
+      SFX.thud();
+      G.shake = Math.max(G.shake, 5);
+    }
+  },
+});
+// ...and lies still, fading away.
+defineState('corpse', (e) => {
+  if (e.t > CORPSE_T) e.dead = true;
 });

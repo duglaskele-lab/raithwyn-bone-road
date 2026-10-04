@@ -64,6 +64,7 @@ export function hurtEnemy(e, dmg, dir, knock, src, launch = false) {
   const F = FOES[e.type];
   if (
     e.dead ||
+    e.dying ||
     e.state === 'down' ||
     (e.state === 'getup' && e.t < 0.25) ||
     (e.state === 'rise' && e.t < 0.45) ||
@@ -153,6 +154,22 @@ function juggle(e, dir, knock, launch) {
 export function killEnemy(e, dir) {
   const F = FOES[e.type];
   if (F.die) return F.die(e, dir);
+  if (F.corpse) {
+    // not a skeleton: thrown back, it falls and lies there a moment before it is gone
+    P.score += Math.round(e.T.score * scoreMult());
+    Object.assign(e, {
+      dying: true,
+      engage: false,
+      state: 'fall',
+      t: 0,
+      vx: dir * 160,
+      vz: 260,
+      hp: 0,
+    });
+    SFX.thud();
+    if (random() < 0.12) G.items.push({ kind: 'rage', x: e.x, y: e.y, z: 60, vz: 200, t: 0 });
+    return;
+  }
   e.dead = true;
   P.score += Math.round(e.T.score * scoreMult());
   shatter(e, dir);
