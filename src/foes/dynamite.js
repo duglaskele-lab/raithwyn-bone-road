@@ -9,7 +9,7 @@ import { SFX } from '../audio.js';
 import { ctx } from '../gfx.js';
 import { defineFoe } from './registry.js';
 import { lob } from './kit.js';
-import { hardHat, flannel } from './miner.js';
+import { flannel } from './miner.js';
 
 /** A stick of dynamite, centred, `len` long, lying along x; `lit` adds a burning fuse. */
 export function stick(len, lit, fl) {
@@ -76,15 +76,34 @@ export default defineFoe('dynamite', {
       }
       ctx.restore();
     },
-    head: (c) => hardHat(c.fl, false),
+    head(c) {
+      // a battered cowboy hat (no miner's helmet, no pick: just dynamite)
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = OL;
+      ctx.lineWidth = 2.4;
+      ctx.fillStyle = c.fl ? '#fff' : '#5a3a24';
+      ctx.beginPath();
+      ctx.ellipse(1, -8, 24, 5, -0.08, 0, TAU);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-11, -9);
+      ctx.lineTo(-9, -24);
+      ctx.quadraticCurveTo(1, -20, 11, -25);
+      ctx.lineTo(12, -9);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#2a1a10';
+      ctx.fillRect(-10, -13, 22, 4);
+    },
     weapon(c) {
       const { e, h, fl } = c;
-      // the stick in its hand, lit
-      if (e.state !== 'windup') return;
+      // a stick always in its hand; lit for the throw
       ctx.save();
       ctx.translate(h[0], h[1]);
       ctx.rotate(-c.wa + 0.4);
-      stick(22, true, fl);
+      stick(22, e.state === 'windup', fl);
       ctx.restore();
     },
   },
