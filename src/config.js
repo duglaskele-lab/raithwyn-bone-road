@@ -40,10 +40,11 @@ export const RAGE = {
 };
 // A bone throw costs 5% of the rage bar.
 export const BONE_COST = MAXR * 0.05;
-// The dark ball: a tap of L throws level I; holding L charges it, one level every `step`
-// seconds, as far as the rage allows (I costs 100, II 200, III 300); letting go throws it.
-// The higher levels are worth saving for: more damage per point of rage, and wider.
-export const HADO = { step: 0.45, dmg: [50, 110, 180] };
+// The dark ball: L throws level I (100 rage). With rage for more, holding L charges it — a
+// hidden trick, nothing shows it: after `step` seconds level II (200), after another `step`
+// level III (300); letting go throws it. The higher levels are worth saving for: more damage
+// per point of rage, and wider.
+export const HADO = { step: 0.3, dmg: [50, 110, 180] };
 // Super attack: hold I this long with a full rage bar; it hits everything on screen.
 export const SUPER_HOLD = 1.0,
   SUPER_DMG = 150;

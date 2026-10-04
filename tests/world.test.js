@@ -58,6 +58,15 @@ test('a tap of L throws a level I dark ball; holding it charges it up', () => {
   step(1);
   assert.equal(P.hl, 1);
   assert.equal(P.rage, 200);
+  // rage for level I only: no charging at all, it goes at once
+  freshGame();
+  P.rage = 150;
+  pressed.hado = true;
+  keys.hado = true;
+  step(1 / 30);
+  assert.equal(P.state, 'hado', 'straight into the throw');
+  delete keys.hado;
+  assert.equal(HADO.step, 0.3);
   // held: level II after one step, level III after two, as far as the rage reaches
   for (const [rage, hold, lv] of [
     [300, HADO.step * 2 + 0.1, 3],

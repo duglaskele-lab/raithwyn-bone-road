@@ -609,34 +609,6 @@ export function drawPlayer() {
       ctx.restore();
     }
   }
-  if (p.state === 'hcharge') {
-    // charging the dark ball: a ball of light in her hands that grows with each level, and
-    // the level shown as three pips over her head
-    const x = p.x - G.cam + p.face * 46,
-      y = p.y - p.z - 102,
-      r = 10 + 9 * p.hl + Math.sin(G.time * 30) * 2;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    const g = ctx.createRadialGradient(x, y, 1, x, y, r * 2.4);
-    g.addColorStop(0, 'rgba(255,255,255,.95)');
-    g.addColorStop(0.35, `rgba(208,160,255,${0.45 + 0.15 * p.hl})`);
-    g.addColorStop(1, 'rgba(176,92,255,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(x - r * 2.4, y - r * 2.4, r * 4.8, r * 4.8);
-    ctx.restore();
-    for (let i = 0; i < 3; i++) {
-      const px = p.x - G.cam + (i - 1) * 16,
-        py = p.y - p.z - 200;
-      ctx.fillStyle = OL;
-      ctx.beginPath();
-      ctx.arc(px, py, 6.5, 0, TAU);
-      ctx.fill();
-      ctx.fillStyle = i < p.hl ? (p.hl === 3 ? '#ffffff' : '#d9b8ff') : '#3a2f4a';
-      ctx.beginPath();
-      ctx.arc(px, py, 4.5, 0, TAU);
-      ctx.fill();
-    }
-  }
   if (p.state === 'hado') {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
