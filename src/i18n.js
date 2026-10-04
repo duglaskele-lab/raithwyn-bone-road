@@ -95,6 +95,12 @@ export const STR = {
     plusRage: '+50 rage',
     bossBanner: 'Lord of the road',
     dragonBanner: 'The lich of the crypt',
+    replay: 'Replay',
+    replayStop: 'Esc: stop',
+    replayOver: 'End of the replay',
+    replayBack: 'Enter: main menu',
+    replayHint: 'F7: watch the replay · F8: save it',
+    replayBad: 'That file is not a replay of this version of the game',
     help: {
       move: ['Move', 'W A S D / arrows'],
       run: ['Run', 'Shift / double tap'],
@@ -106,6 +112,7 @@ export const STR = {
       pause: ['Pause menu', 'Esc / P'],
       mute: ['Sound', 'M'],
       record: ['Record video', 'F9'],
+      replay: ['Replay: watch / save', 'F7 / F8'],
     },
     pad: { hado: 'Hado', bone: 'Bone', jump: 'Jump', atk: 'Hit', super: 'Super' },
     foe: {
@@ -213,6 +220,12 @@ export const STR = {
     plusRage: '+50 ярости',
     bossBanner: 'Хозяин тракта',
     dragonBanner: 'Лич из склепа',
+    replay: 'Повтор',
+    replayStop: 'Esc — выход',
+    replayOver: 'Конец повтора',
+    replayBack: 'Enter — главное меню',
+    replayHint: 'F7 — посмотреть повтор · F8 — сохранить',
+    replayBad: 'Этот файл не повтор этой версии игры',
     help: {
       move: ['Ходить', 'W A S D / стрелки'],
       run: ['Бег', 'Shift / двойное нажатие'],
@@ -224,6 +237,7 @@ export const STR = {
       pause: ['Меню паузы', 'Esc / P'],
       mute: ['Звук', 'M'],
       record: ['Запись видео', 'F9'],
+      replay: ['Повтор: смотреть / сохранить', 'F7 / F8'],
     },
     pad: { hado: 'Хаду', bone: 'Кость', jump: 'Прыг', atk: 'Удар', super: 'Супер' },
     foe: {

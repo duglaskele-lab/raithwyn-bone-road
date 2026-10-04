@@ -1,11 +1,12 @@
 // Damage rules: who can be hit, what a hit does, rage, the boss interrupt immunity.
-import { DECOR, MAXR, RL, RW, SUPER_DMG, SWIND_LOCK, TAU, W, ZOMBIE } from './config.js';
-import { rnd } from './util.js';
+import { DECOR, JUGGLE, MAXR, RL, SUPER_DMG, TAU, W, ZOMBIE } from './config.js';
+import { random, rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
 import { motes, shatter, spark } from './fx.js';
 import { spawn } from './enemies.js';
-import { DRAGON, dragonDie, dragonInterrupt, dragonPush, dragonZone, headPoint } from './dragon.js';
+import { DRAGON, dragonZone, headPoint } from './dragon.js';
+import { FOES } from './foes/index.js';
 import { dmgMult, scoreMult, styleBreak, styleGain, styleKeep } from './style.js';
 
 export function hadoLevel(rage) {
@@ -28,15 +29,15 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
     } else breakProp(e);
     return true;
   }
+  const F = FOES[e.type];
   if (
     e.dead ||
     e.state === 'down' ||
     (e.state === 'getup' && e.t < 0.25) ||
     (e.state === 'rise' && e.t < 0.45) ||
-    (e.T.dragon && (e.state === 'intro' || e.state === 'dying'))
+    F.immune?.(e)
   )
     return false;
-  if (e.state === 'ride' && e.t < RW) return false;
   e.hp -= dmg;
   e.flash = 0.12;
   G.lastFoe = e;
@@ -51,85 +52,19 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
   );
   knock ? SFX.heavy() : SFX.punch();
   SFX.clack();
-  if (e.T.dragon) {
-    // only a heavy blow during some wind-ups staggers the dragon (see dragonInterrupt)
-    if (e.hp <= 0) killEnemy(e, dir);
-    else {
-      dragonPush(e, dir, knock || src === 'hado' || src === 'super');
-      dragonInterrupt(e, knock, src);
-    }
-    return true;
-  }
-  if (e.mounted) {
-    // knocked off the bike
-    e.mounted = false;
-    e.w = 16 * e.T.scale;
-    G.debris.push({
-      k: 'bike',
-      x: e.x,
-      gy: e.y,
-      z: 0,
-      vx: e.rdir * 380,
-      vz: 0,
-      rot: 0,
-      vr: 0,
-      dir: e.rdir,
-      hog: e.bike === 'hog',
-      tilt: 0,
-      life: 2.6,
-    });
-    G.shake = Math.max(G.shake, 8);
-    if (e.hp <= 0) {
-      killEnemy(e, dir);
-      return true;
-    }
-    e.state = 'air';
-    e.t = 0;
-    e.z = 56;
-    e.vx = e.rdir * 150;
-    e.vz = 430;
-    e.chCd = rnd(2, 3.5);
-    return true;
-  }
+  // the foe's own rules first (see foes/registry.js), then the usual flinch
+  if (F.onHit?.(e, dmg, dir, knock, src)) return true;
   if (e.hp <= 0) {
     killEnemy(e, dir);
     return true;
   }
   e.engage = false;
-  if (e.T.samurai && samuraiHit(e, knock, src)) return true;
-  if (e.T.zombie && !e.headless && (knock || src === 'hado' || Math.random() < ZOMBIE.headOff))
-    popHead(e, dir);
-  if (e.type === 'boss') {
-    // charging, summoning, roaring and the acid breath (wind-up included) cannot be stopped
-    if (['charge', 'summon', 'rise', 'roar', 'bwind', 'breath'].includes(e.state)) return true;
-    const atk = ['windup', 'attack', 'cwind'].includes(e.state),
-      combo = src === 'punch' || src === 'air';
-    if (combo) {
-      if (e.armor > 0) return true;
-      if (atk) {
-        e.state = 'hurt';
-        e.t = 0;
-        e.vx = dir * 110;
-        e.breaks++;
-        if (e.breaks >= 2) {
-          e.breaks = 0;
-          e.armor = 4;
-          SFX.boss();
-        }
-      } else if (knock) {
-        e.state = 'hurt';
-        e.t = 0;
-        e.vx = dir * 110;
-      }
-    } else if (src === 'hado' || src === 'super') {
-      e.state = 'hurt';
-      e.t = 0;
-      e.vx = dir * 110;
-    }
+  if (F.guard?.(e, knock, src, dir)) return true;
+  if (e.state === 'air') {
+    // up in the air: a light enemy is juggled, a heavy one just keeps falling
+    if (canJuggle(e)) juggle(e, dir, knock);
     return true;
   }
-  // Past the last third of the wind-up the fatso's ground slam can no longer be stopped.
-  if (e.state === 'swind' && e.t >= SWIND_LOCK) return true;
   const busy = e.state === 'windup' || e.state === 'attack' || e.state === 'swind';
   if (knock || e.state === 'leap') {
     e.state = 'air';
@@ -147,41 +82,30 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
   }
   return true;
 }
-/**
- * The samurai's guard. A hit from afar (a bone, a dark ball, the super) breaks its stance and
- * dazes it; a blow up close only sets off the cut. The cut is too fast to stop, and a dazed
- * samurai stays dazed unless it is knocked flat. Returns true when the hit is fully handled.
- */
-function samuraiHit(e, knock, src) {
-  const far = src === 'bone' || src === 'hado' || src === 'super';
-  if (e.state === 'stance' || e.state === 'draw') {
-    if (far) {
-      Object.assign(e, { state: 'daze', t: 0, z: 0 });
-      SFX.daze();
-    } else if (e.state === 'stance') Object.assign(e, { state: 'draw', t: 0 });
-    return true;
-  }
-  if (e.state === 'slash') return true;
-  return e.state === 'daze' && !knock;
+/** Can this enemy be juggled? Light ones can; heavy ones and bosses only if TYPES says so. */
+export const canJuggle = (e) => e.T.juggle ?? !(e.T.heavy || e.T.bigBoss);
+/** A hit in the air pops the enemy up again, a little less with every hit. */
+function juggle(e, dir, knock) {
+  e.juggle = (e.juggle || 0) + 1;
+  e.t = 0;
+  e.vz = Math.max(
+    JUGGLE.min,
+    (knock ? JUGGLE.popKnock : JUGGLE.pop) - JUGGLE.decay * (e.juggle - 1),
+  );
+  e.vx = dir * (knock ? JUGGLE.carryKnock : JUGGLE.carry);
+  styleGain(JUGGLE.style);
 }
 export function killEnemy(e, dir) {
-  if (e.T.dragon) {
-    // the dragon does not fall to bones: it roars, collapses and breaks apart (dragon.js)
-    if (e.state === 'dying') return;
-    P.score += Math.round(e.T.score * scoreMult());
-    dragonDie(e);
-    finale(e);
-    return;
-  }
+  const F = FOES[e.type];
+  if (F.die) return F.die(e, dir);
   e.dead = true;
   P.score += Math.round(e.T.score * scoreMult());
   shatter(e, dir);
   if (e.T.bigBoss) finale(e);
-  else if (Math.random() < 0.12)
-    G.items.push({ kind: 'rage', x: e.x, y: e.y, z: 60, vz: 200, t: 0 });
+  else if (random() < 0.12) G.items.push({ kind: 'rage', x: e.x, y: e.y, z: 60, vz: 200, t: 0 });
 }
 // A boss falls: slow motion, a flash, every other enemy crumbles, the arena is cleared.
-function finale(e) {
+export function finale(e) {
   {
     G.slow = 1.4;
     G.shake = 16;
@@ -291,7 +215,7 @@ export function breakProp(e) {
       });
   if (D && D.big) {
     // a big grave: a zombie (25%) or a skeleton (25%) may climb out, or nothing (50%)
-    const r = Math.random();
+    const r = random();
     if (r < 0.5) spawn(r < 0.25 ? 'zombie' : 'grunt', 0, e.x, e.y);
     G.shake = Math.max(G.shake, 8);
   }

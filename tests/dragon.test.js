@@ -8,6 +8,7 @@ import { spawn, updEnemy } from '../src/enemies.js';
 import { DRAGON, dragonHead, dragonZone, laserBand, updShocks } from '../src/dragon.js';
 import { update } from '../src/world.js';
 import { DT, allFinite, freshGame } from './helpers.js';
+import { setRandom } from '../src/util.js';
 
 beforeEach(freshGame);
 
@@ -322,9 +323,8 @@ test('far away, it spits three plasma balls in arcs that blow up where they land
 });
 
 test('now and then it kicks a hind leg at a player close behind it', () => {
-  const random = Math.random;
+  const random = setRandom(() => 0);
   try {
-    Math.random = () => 0;
     const d = dragonAt(750, 450, { cd: 99, kickCd: 0 }); // facing left, the player behind
     for (let i = 0; i < 60 && d.state !== 'kick'; i++) run(d, DT);
     assert.equal(d.state, 'kick');
@@ -343,7 +343,7 @@ test('now and then it kicks a hind leg at a player close behind it', () => {
     assert.notEqual(d.state, 'kick');
     assert.equal(d.face, 1);
   } finally {
-    Math.random = random;
+    setRandom(random);
   }
 });
 

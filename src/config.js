@@ -78,7 +78,19 @@ export const SAMURAI = {
   dmg: 18,
   lunge: 260, // it steps through the cut
   daze: 2, // seconds a hit from afar leaves it dazed
+  seen: 3, // it only takes the stance after this long on screen
   stanceCd: [0.9, 1.7], // before it takes the stance again (it is quick to return to it)
+};
+// Juggling: an enemy knocked into the air is popped up again by every hit until it lands.
+// Heavy enemies and bosses fall regardless, unless their TYPES entry says juggle: 1.
+export const JUGGLE = {
+  pop: 330, // upward speed a plain hit gives
+  popKnock: 420, // and a heavy one
+  decay: 45, // each further hit in the same juggle pops a little less
+  min: 170,
+  carry: 55, // a plain hit nudges it along so it stays in reach
+  carryKnock: 190,
+  style: 6, // extra style points for a hit in the air
 };
 // Secret: hold X this long right at the start of the level to skip straight to the final boss.
 export const SECRET_HOLD = 3;

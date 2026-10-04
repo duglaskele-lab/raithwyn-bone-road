@@ -18,13 +18,15 @@ import {
 import { clamp, ease } from './util.js';
 import { FR } from './atlas-frames.js';
 import { G, P } from './state.js';
-import { atlas, ctx, portraits, ready, rr, sprite, txt } from './gfx.js';
+import { atlas, ctx, portraits, ready, rr, setCtx, sprite, txt } from './gfx.js';
 import { foeName, t } from './i18n.js';
 import { touch } from './input.js';
 import { RANKS, STYLE_STEP, dmgMult, scoreMult, styleRank } from './style.js';
 import { drawBG, drawFog, drawVignette } from './background.js';
 import { hadoLevel } from './combat.js';
-import { boneShape, drawBike, drawSkel } from './skeleton.js';
+import { boneShape, drawSkel } from './skeleton.js';
+import { drawBike } from './foes/bikes.js';
+import { FOES } from './foes/registry.js';
 import {
   drawDragon,
   drawDragonBeam,
@@ -398,6 +400,56 @@ export function drawProj(q) {
   } else boneShape(20, 4.6, '#ece5cb');
   ctx.restore();
 }
+// A red outline round an enemy in an attack no hit can stop. The enemy is drawn alone on a
+// layer; its silhouette, made solid and red, is stamped a few pixels around itself and the
+// silhouette's own area cut out, leaving a ring; the ring and then the layer go on screen.
+const layers = {};
+function canvasLayer(name, w, h) {
+  let c = layers[name];
+  if (!c || c.width !== w || c.height !== h)
+    c = layers[name] = Object.assign(document.createElement('canvas'), { width: w, height: h });
+  const x = c.getContext('2d');
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  x.globalCompositeOperation = 'source-over';
+  x.clearRect(0, 0, w, h);
+  return [c, x];
+}
+function outlined(draw, e) {
+  if (!FOES[e.type]?.unstoppable?.(e) || typeof document === 'undefined') return draw;
+  return (e) => {
+    const main = ctx,
+      w = main.canvas.width,
+      h = main.canvas.height,
+      [layer, lc] = canvasLayer('layer', w, h),
+      [sil, sc] = canvasLayer('sil', w, h),
+      [ring, rc] = canvasLayer('ring', w, h);
+    lc.setTransform(main.getTransform());
+    setCtx(lc);
+    draw(e);
+    setCtx(main);
+    // the silhouette: red, and drawn over itself until even see-through parts are solid
+    sc.drawImage(layer, 0, 0);
+    sc.globalCompositeOperation = 'source-in';
+    sc.fillStyle = '#ff2a2a';
+    sc.fillRect(0, 0, w, h);
+    sc.globalCompositeOperation = 'source-over';
+    for (let i = 0; i < 4; i++) sc.drawImage(sil, 0, 0);
+    const r = 3 * (w / W);
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * TAU;
+      rc.drawImage(sil, Math.cos(a) * r, Math.sin(a) * r);
+    }
+    rc.globalCompositeOperation = 'destination-out';
+    rc.drawImage(sil, 0, 0);
+    main.save();
+    main.setTransform(1, 0, 0, 1, 0, 0);
+    main.globalAlpha = 0.8 + 0.2 * Math.sin(G.time * 18);
+    main.drawImage(ring, 0, 0);
+    main.globalAlpha = 1;
+    main.drawImage(layer, 0, 0);
+    main.restore();
+  };
+}
 export function drawPart(p) {
   const u = p.t / p.life,
     x = p.x - G.cam,
@@ -609,7 +661,7 @@ export function drawWorld() {
   const list = [];
   for (const d of G.debris) list.push([d.gy - 1, drawDebris, d]);
   for (const u of G.props) list.push([u.y, u.decor ? drawDecor : drawUrn, u]);
-  for (const e of G.enemies) list.push([e.y, e.T.dragon ? drawDragon : drawSkel, e]);
+  for (const e of G.enemies) list.push([e.y, outlined(e.T.dragon ? drawDragon : drawSkel, e), e]);
   for (const it of G.items) list.push([it.y, drawItem, it]);
   for (const q of G.projs) list.push([q.y + 1, drawProj, q]);
   if (G.state !== 'title') list.push([P.y, drawPlayer, null]);

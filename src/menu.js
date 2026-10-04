@@ -9,6 +9,7 @@ import { CHARS, LEVEL, LOCKED, SLOTS, STATS } from './characters.js';
 import { STR, lang, nextLang, t } from './i18n.js';
 import { ctx, portraits, ready, rr, sprite, txt, wrapTxt } from './gfx.js';
 import { drawHUD, drawWorld, overlay } from './render.js';
+import { newRun } from './replay.js';
 
 // ---- layout (game pixels); the hit boxes double as touch and mouse targets ----
 const box = (cx, y, w, h = 44) => [cx - w / 2, y - h / 2 - 8, w, h];
@@ -43,10 +44,8 @@ const go = (state, menu = 0) => {
 
 function startFight() {
   const c = CHARS[G.sel];
-  if (c && c.playable) {
-    reset();
-    G.state = 'play';
-  } else {
+  if (c && c.playable) newRun();
+  else {
     SFX.deny();
     G.msgT = 1.8;
   }

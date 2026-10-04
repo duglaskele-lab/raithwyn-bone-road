@@ -12,7 +12,7 @@ import {
   WAVES,
   ZOMBIE,
 } from './config.js';
-import { clamp, tl } from './util.js';
+import { clamp, random, tl } from './util.js';
 import { G, P } from './state.js';
 import { keys, pressed } from './input.js';
 import { SFX } from './audio.js';
@@ -228,7 +228,7 @@ export function updPlayer(dt) {
         break;
       }
       p.an = ['hado', i];
-      if (i >= 1 && i <= 3 && Math.random() < 0.6)
+      if (i >= 1 && i <= 3 && random() < 0.6)
         motes(p.x + p.face * (i === 1 ? 40 : 150), p.y - 102, 1, 90);
       if (i >= 4 && !p.sw) {
         p.sw = 1;
@@ -260,8 +260,7 @@ export function updPlayer(dt) {
         }
         p.sup = Math.min(1, p.t / SUPER_HOLD);
         p.an = ['orb', Math.min(5, Math.floor(p.sup * 6))];
-        if (Math.random() < 0.3 + 0.6 * p.sup)
-          motes(p.x + p.face * 52, p.y - 112, 1, 60 + 140 * p.sup);
+        if (random() < 0.3 + 0.6 * p.sup) motes(p.x + p.face * 52, p.y - 112, 1, 60 + 140 * p.sup);
         if (p.t >= SUPER_HOLD) {
           p.sw = 1;
           p.t = 0;
@@ -306,7 +305,7 @@ export function updPlayer(dt) {
       p.face = d >= 0 ? 1 : -1;
       p.x += Math.sign(d) * Math.min(Math.abs(d), 740 * dt);
       p.y += clamp(e.y - p.y, -220 * dt, 220 * dt);
-      if (Math.random() < 0.5) dust(p.x, p.y, 1);
+      if (random() < 0.5) dust(p.x, p.y, 1);
       if (Math.abs(e.x - p.x) < 82) {
         p.puller = null;
         toIdle();

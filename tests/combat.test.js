@@ -1,8 +1,8 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { HOG, MAXR, RW } from '../src/config.js';
+import { HOG, JUGGLE, MAXR, RW, TYPES } from '../src/config.js';
 import { G, P } from '../src/state.js';
-import { addRage, hadoLevel, hitPlayer, hurtEnemy } from '../src/combat.js';
+import { addRage, canJuggle, hadoLevel, hitPlayer, hurtEnemy } from '../src/combat.js';
 import { spawn, updEnemy } from '../src/enemies.js';
 import { freshGame } from './helpers.js';
 
@@ -74,6 +74,38 @@ test('every second rocker rides a long chopper that hits along its whole length'
     updEnemy(e, 0.001, { n: 0 });
     assert.equal(P.hp < 100, hit, `${e.bike}, ${behind} px behind`);
   }
+});
+
+test('light enemies can be juggled: every hit in the air pops them up again', () => {
+  const e = spawn('grunt', 1, 500, 450);
+  hurtEnemy(e, 1, 1, true, 'punch');
+  assert.equal(e.state, 'air');
+  for (let i = 0; i < 10; i++) updEnemy(e, 1 / 60, { n: 0 });
+  assert.ok(e.z > 0);
+  hurtEnemy(e, 1, 1, false, 'punch');
+  assert.equal(e.state, 'air', 'still in the air');
+  assert.equal(e.vz, JUGGLE.pop);
+  assert.equal(e.juggle, 1);
+  hurtEnemy(e, 1, 1, false, 'punch');
+  assert.equal(e.vz, JUGGLE.pop - JUGGLE.decay, 'each pop a little lower');
+  for (let i = 0; i < 30; i++) hurtEnemy(e, 0, 1, false, 'punch');
+  assert.equal(e.vz, JUGGLE.min, 'never below the minimum');
+  assert.ok(P.sty > 0, 'juggling is stylish');
+  for (let i = 0; i < 120 && e.state === 'air'; i++) updEnemy(e, 1 / 60, { n: 0 });
+  assert.equal(e.state, 'down');
+  assert.equal(e.juggle, 0, 'a new juggle starts from scratch');
+});
+
+test('heavy enemies and bosses fall through a juggle unless their type allows it', () => {
+  const e = spawn('brute', 1, 500, 450);
+  hurtEnemy(e, 1, 1, true, 'punch');
+  for (let i = 0; i < 10; i++) updEnemy(e, 1 / 60, { n: 0 });
+  const vz = e.vz;
+  hurtEnemy(e, 1, 1, false, 'punch');
+  assert.equal(e.state, 'air');
+  assert.equal(e.vz, vz, 'no pop: it keeps falling');
+  assert.ok(!canJuggle(spawn('boss', 0)));
+  assert.ok(canJuggle({ T: { ...TYPES.brute, juggle: 1 } }), 'an exception can be made');
 });
 
 test('a leaping monkey is swatted out of the air by a plain hit', () => {
