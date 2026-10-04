@@ -3,7 +3,7 @@
 // jumps (not always at the player) and splashes down, and spits out zombies that get up and
 // fight. Its attacks are broken like a medium enemy's: plain hits do nothing to them, a heavy
 // blow breaks one, two heavy blows within WEIGHT.window seconds (or one crushing blow) send it
-// sliding back.
+// sliding back. It leaves no puddles.
 import { ACID, SLIME, TAU, W, WEIGHT } from '../config.js';
 import { clamp, lerp, random, rnd } from '../util.js';
 import { G, P } from '../state.js';
@@ -34,12 +34,6 @@ function splash(x, y, n, v = 300) {
       col: random() < 0.5 ? '#9dff4a' : '#4fd12a',
     });
 }
-function puddle(x, y) {
-  const p = { x, y };
-  floorClamp(p);
-  G.pools.push({ x: p.x, y: p.y, t: 0, life: ACID.pool, seed: rnd(6) });
-}
-
 // --- drawing ----------------------------------------------------------------------------------
 
 /** Squash and stretch for its state: [width, height] factors. */
@@ -214,15 +208,6 @@ export function drawSlime(e) {
       ctx.fill();
     }
   }
-  // drips at the foot
-  ctx.fillStyle = '#4fd12a';
-  for (let i = 0; i < 5; i++) {
-    const x = -rx * 0.8 + i * rx * 0.4,
-      h = 6 + 6 * Math.abs(Math.sin(t * 2 + i));
-    ctx.beginPath();
-    ctx.ellipse(x, 2, 10, h * 0.5, 0, 0, TAU);
-    ctx.fill();
-  }
   ctx.restore();
   // a warning over it before it rolls or jumps
   if (e.state === 'rwind' || e.state === 'jwind') {
@@ -297,7 +282,6 @@ export default defineFoe('slime', {
     SFX.squelch();
     SFX.boom();
     splash(e.x, e.y, 40, 520);
-    for (let i = 0; i < 5; i++) puddle(e.x + rnd(-140, 140) + dir * 20, e.y + rnd(-30, 30));
     G.items.push({ kind: 'hp', x: e.x, y: e.y, z: 60, vz: 260, t: 0 });
   },
   states: {
@@ -375,8 +359,6 @@ export default defineFoe('slime', {
       const ex = (P.x - e.x) / SLIME.landR,
         ey = (P.y - e.y) / (SLIME.landR * 0.38);
       if (ex * ex + ey * ey < 1 && P.z < 40) hitPlayer(SLIME.landDmg, P.x >= e.x ? 1 : -1, true);
-      puddle(e.x - 110, e.y + rnd(-20, 20));
-      puddle(e.x + 110, e.y + rnd(-20, 20));
       go(e, 'recover', -0.3, { jumpCd: cd('jump'), landT: 0.4 });
     },
     spwind(e) {

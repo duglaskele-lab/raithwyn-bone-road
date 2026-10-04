@@ -385,13 +385,13 @@ export const TYPES = {
     wind: 1.15,
     act: 0.16,
     rec: 0.55,
-    cd: [2.2, 3.4],
+    cd: [3.1, 4.9], // 30% rarer than at first
     col: '#b2ad8a',
     dk: '#7a7558',
     eye: '#ff9a3a',
     score: 240,
   },
-  // a big mutant lizard: fast, hops back from blows and lunges (see LIZARD)
+  // a big mutant lizard: fast, hops back from blows and lunges (see LIZARD); light
   lizard: {
     hp: 130,
     scale: 1.25,
@@ -403,7 +403,6 @@ export const TYPES = {
     act: 0.14,
     rec: 0.45,
     cd: [0.7, 1.4],
-    weight: 'medium',
     shadow: 52,
     col: '#6b7a3e',
     dk: '#4a5628',
@@ -413,7 +412,7 @@ export const TYPES = {
   // an elite in power armour with a minigun (see ARMOR); heavy: only crushing blows move it
   armor: {
     hp: 340,
-    scale: 1.3,
+    scale: 0.98,
     speed: 44,
     dmg: 18,
     reach: 92,
@@ -424,7 +423,7 @@ export const TYPES = {
     cd: [1, 1.8],
     knock: 1,
     weight: 'heavy',
-    shadow: 62,
+    shadow: 48,
     col: '#5b636b',
     dk: '#3c4248',
     eye: '#7dff5a',

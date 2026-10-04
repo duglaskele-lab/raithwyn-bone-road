@@ -3,14 +3,14 @@
 // Everything is drawn in road coordinates (see level2.js); the textures and the houses are
 // painted once into offscreen canvases.
 import { FONT, H, OL, TAU, W } from './config.js';
-import { mulberry } from './util.js';
+import { clamp, mulberry } from './util.js';
 import { G, P } from './state.js';
 import { ctx } from './gfx.js';
 import { mk } from './background.js';
 import { t } from './i18n.js';
-import { DEPTH, FLOOR, L2, shaftY, slantY } from './level2.js';
+import { DEPTH, FLOOR, L2, topY } from './level2.js';
 
-const { SLANT, QUARRY, MINE_Y, SHAFT, DEEP_Y, END_X, GATE_X, PORTAL_X, HALL_X } = L2;
+const { Y_A, Y_B, Y_C, SLANT1, SLANT2, A_END, CLIFF_X, PORTAL_X, HALL_X, END_X, GATE_X } = L2;
 let T = null;
 
 // --- textures ------------------------------------------------------------------------------
@@ -303,7 +303,7 @@ const HOUSES = [
   ['mineoffice', 'MINING CO.', 260, 210, '#6a4a32', '#ead6a0'],
 ];
 function house(spec, seed) {
-  const [kind, sign, w, h, body, trim] = spec;
+  const [kind, , w, h, body, trim] = spec;
   return mk(w + 20, h + 10, (g) => {
     const r = mulberry(seed),
       x0 = 10,
@@ -372,19 +372,15 @@ function house(spec, seed) {
     g.strokeStyle = OL;
     g.lineWidth = 3;
     g.stroke();
-    // the sign board
-    const sw = Math.min(w - 40, sign.length * 15 + 30),
+    // the sign board: no lettering, a painted picture of the trade
+    const sw = 64,
       sx = x0 + (w - sw) / 2,
-      sy = top + 42;
+      sy = top + 40;
     g.fillStyle = '#2a1c16';
-    g.fillRect(sx - 3, sy - 3, sw + 6, 34);
+    g.fillRect(sx - 3, sy - 3, sw + 6, 40);
     g.fillStyle = trim;
-    g.fillRect(sx, sy, sw, 28);
-    g.fillStyle = '#3a2416';
-    g.font = `900 ${sign.length > 10 ? 15 : 19}px ${FONT}`;
-    g.textAlign = 'center';
-    g.textBaseline = 'middle';
-    g.fillText(sign, sx + sw / 2, sy + 15);
+    g.fillRect(sx, sy, sw, 34);
+    sign(g, kind, sx + sw / 2, sy + 17);
     // windows: an upper row (dark glass catching the sunset) and the shop front below
     const win = (x, y, ww, wh) => {
       g.fillStyle = '#2a1c22';
@@ -498,6 +494,102 @@ function house(spec, seed) {
       }
   });
 }
+/** The picture on a shop's sign (centred at x, y, about 50 by 26). */
+function sign(g, kind, x, y) {
+  const ink = '#3a2416';
+  g.save();
+  g.translate(x, y);
+  g.fillStyle = g.strokeStyle = ink;
+  g.lineWidth = 3;
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+  const line = (...p) => {
+    g.beginPath();
+    p.forEach(([a, b], i) => (i ? g.lineTo(a, b) : g.moveTo(a, b)));
+    g.stroke();
+  };
+  const circle = (a, b, r, fill = true) => {
+    g.beginPath();
+    g.arc(a, b, r, 0, TAU);
+    fill ? g.fill() : g.stroke();
+  };
+  switch (kind) {
+    case 'saloon':
+      // a bottle and a glass
+      g.fillRect(-14, -4, 10, 16);
+      g.fillRect(-11, -11, 4, 8);
+      line([4, -6], [6, 10], [14, 10], [16, -6]);
+      break;
+    case 'sheriff':
+      star(g, 0, 0, 12, '#c8962a');
+      break;
+    case 'bank':
+      // a stack of coins
+      for (let i = 0; i < 3; i++) {
+        g.fillStyle = '#c8962a';
+        g.beginPath();
+        g.ellipse(-6 + i * 6, 8 - i * 6, 10, 4, 0, 0, TAU);
+        g.fill();
+        g.stroke();
+      }
+      break;
+    case 'hotel':
+      // a bed
+      line([-18, 10], [-18, -6]);
+      line([-18, 4], [18, 4], [18, 10]);
+      g.fillRect(-14, -2, 30, 6);
+      circle(-11, -5, 4);
+      break;
+    case 'undertaker':
+      // a coffin
+      g.beginPath();
+      g.moveTo(-6, -12);
+      g.lineTo(6, -12);
+      g.lineTo(10, -4);
+      g.lineTo(6, 12);
+      g.lineTo(-6, 12);
+      g.lineTo(-10, -4);
+      g.closePath();
+      g.fill();
+      break;
+    case 'assay':
+      // scales
+      line([0, -10], [0, 10]);
+      line([-16, -6], [16, -6]);
+      line([-16, -6], [-20, 4], [-12, 4], [-16, -6]);
+      line([16, -6], [12, 4], [20, 4], [16, -6]);
+      line([-8, 10], [8, 10]);
+      break;
+    case 'smith':
+      // a horseshoe
+      g.lineWidth = 5;
+      g.beginPath();
+      g.arc(0, -2, 10, Math.PI * 0.85, Math.PI * 2.15);
+      g.stroke();
+      break;
+    case 'barber':
+      // scissors
+      circle(-12, 6, 4, false);
+      circle(-12, -6, 4, false);
+      line([-8, 4], [14, -6]);
+      line([-8, -4], [14, 6]);
+      break;
+    case 'mineoffice':
+      // crossed pickaxes
+      for (const k of [-1, 1]) {
+        line([-12 * k, 12], [12 * k, -10]);
+        line([4 * k, -16], [18 * k, -6]);
+      }
+      break;
+    default:
+      // a barrel and a sack
+      g.fillRect(-16, -8, 14, 18);
+      g.beginPath();
+      g.ellipse(9, 4, 9, 9, 0, 0, TAU);
+      g.fill();
+  }
+  g.restore();
+}
 function star(g, x, y, r, col) {
   g.fillStyle = col;
   g.beginPath();
@@ -512,23 +604,23 @@ function star(g, x, y, r, col) {
   g.lineWidth = 2;
   g.stroke();
 }
-// Where the houses stand: on Main Street (base on the street's back edge) and stepping down
-// the slant. [x, house index]
+// Where the houses stand: [x, house]. Along Main Street and the lower street their fronts
+// stand on the back edge of the street; on the first slant they step down on stone footings.
 const STREET = [
   [430, 0],
   [770, 1],
   [1140, 2],
   [1400, 3],
   [1720, 4],
-  [2080, 5],
-  [2370, 8],
-  [2620, 6],
-  [2930, 7],
-  [3230, 9],
+  [2090, 8],
+  [2460, 5],
+  [2780, 6],
+  [3260, 7],
+  [3560, 9],
+  [3870, 0],
+  [4200, 2],
+  [4460, 3],
 ];
-const baseY = (x) => (x < SLANT[0] ? 358 : Math.min(slantY(x), slantY(SLANT[1])));
-
-// --- the mine's timber sets and lamps --------------------------------------------------------
 
 function makeTimber() {
   // two posts and a cap over the tunnel, seen from the front
@@ -570,13 +662,13 @@ function makeGlow(col, r) {
     g.fillRect(0, 0, r * 2, r * 2);
   });
 }
-
 function init() {
   T = makeTextures();
   Object.assign(T, makeSky());
   T.houses = HOUSES.map((h, i) => house(h, 900 + i * 7));
   T.timber = makeTimber();
   T.lamp = makeGlow('rgba(255,190,90,.55)', 150);
+  T.small = makeGlow('rgba(255,200,110,.5)', 70);
   T.green = makeGlow('rgba(120,255,90,.5)', 220);
   T.red = makeGlow('rgba(255,60,40,.5)', 120);
 }
@@ -588,16 +680,29 @@ const poly = (pts) => {
   pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])));
   ctx.closePath();
 };
-// The open sky over the town and the quarry rim, in road coordinates.
+// The cliff over the mining camp: its face from the camp's back edge up, ragged at the top.
+const CLIFF = [
+  [CLIFF_X - 40, Y_C],
+  [CLIFF_X - 10, Y_C - 120],
+  [CLIFF_X + 30, Y_C - 190],
+  [CLIFF_X + 20, Y_C - 260],
+  [CLIFF_X + 90, Y_C - 330],
+  [CLIFF_X + 170, Y_C - 360],
+  [CLIFF_X + 260, Y_C - 450],
+  [CLIFF_X + 380, Y_C - 470],
+  [CLIFF_X + 480, Y_C - 560],
+  [END_X + 800, Y_C - 640],
+];
+// The open sky over the town: down to the back edges of the streets and up to the cliff.
 const SKY = [
   [-3000, -4000],
-  [5200, -4000],
-  [5200, 430],
-  [QUARRY[1] + 60, 430],
-  [QUARRY[0] + 140, 520],
-  [SLANT[0] + 900, slantY(SLANT[0] + 900) - 120],
-  [SLANT[0], 300],
-  [-3000, 300],
+  [END_X + 800, -4000],
+  ...CLIFF.slice().reverse(),
+  [SLANT2[1], Y_C],
+  [SLANT2[0], Y_B],
+  [SLANT1[1], Y_B],
+  [SLANT1[0], Y_A],
+  [-3000, Y_A],
 ];
 const view = (x0, x1, y0 = -1e9, y1 = 1e9) =>
   x1 > G.cam - 40 && x0 < G.cam + W + 40 && y1 > G.camY - 40 && y0 < G.camY + H + 40;
@@ -617,7 +722,6 @@ function drawSky() {
     for (let x = -(((G.cam * par) % tw) + tw) % tw; x < W; x += tw)
       ctx.drawImage(img, Math.floor(x), off + dy * par);
   }
-  // heat shimmer of dust in the air
   ctx.fillStyle = 'rgba(255,214,150,.08)';
   for (let i = 0; i < 4; i++) {
     const x = ((((i * 380 - G.cam * 0.5 + G.time * 14) % 1520) + 1520) % 1520) - 380;
@@ -628,124 +732,53 @@ function drawSky() {
   ctx.restore();
 }
 function drawFloors() {
-  for (const i of [3, 4, 5, 0, 1, 2]) {
-    const f = FLOOR[i],
-      xs = f.map((p) => p[0]),
+  for (const [i, f] of FLOOR.entries()) {
+    const xs = f.map((p) => p[0]),
       ys = f.map((p) => p[1]);
     if (!view(Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys))) continue;
-    ctx.fillStyle = T.patterns[i < 2 ? 'road' : i === 2 ? 'dirt' : 'mfloor'];
+    ctx.fillStyle = T.patterns.road;
     poly(f);
     ctx.fill();
-    // darker towards the back wall, lighter in front
-    const top = Math.min(...ys),
-      g = ctx.createLinearGradient(0, top, 0, top + DEPTH);
-    g.addColorStop(0, i < 2 ? 'rgba(70,34,20,.28)' : 'rgba(10,6,4,.35)');
-    g.addColorStop(0.35, 'rgba(0,0,0,0)');
-    g.addColorStop(1, i < 2 ? 'rgba(255,220,170,.1)' : 'rgba(0,0,0,0)');
-    if (i !== 2 && i !== 1 && i !== 4) {
-      ctx.fillStyle = g;
-      poly(f);
-      ctx.fill();
-    }
   }
-  // along the slants: a band of shadow under the back edge
-  for (const [x0, x1, y0, y1] of [
-    [SLANT[0], SLANT[1], 358, slantY(SLANT[1])],
-    [SHAFT[0], SHAFT[1], MINE_Y, shaftY(SHAFT[1])],
-  ]) {
-    if (!view(x0, x1, y0 - 40, y1 + 200)) continue;
-    ctx.fillStyle = 'rgba(30,14,8,.25)';
-    poly([
-      [x0, y0],
-      [x1, y1],
-      [x1, y1 + 40],
-      [x0, y0 + 40],
-    ]);
-    ctx.fill();
-  }
-  quarryFloor();
-}
-// The quarry road: cart ruts winding down, rubble along the walls, planks and tools.
-function quarryFloor() {
-  const [x0, x1, y0, y1] = QUARRY;
-  if (!view(x0, x1, y0, y1)) return;
-  const r = mulberry(71);
-  // shade along both walls
-  for (const [x, d] of [
-    [x0, 1],
-    [x1, -1],
-  ]) {
-    const g = ctx.createLinearGradient(x, 0, x + d * 90, 0);
-    g.addColorStop(0, 'rgba(40,16,8,.4)');
-    g.addColorStop(1, 'rgba(40,16,8,0)');
+  // past the mine's mouth the dusty road turns into the tunnel's dark floor
+  if (view(PORTAL_X - 120, END_X)) {
+    ctx.fillStyle = T.patterns.mfloor;
+    ctx.fillRect(PORTAL_X + 120, Y_C, END_X - PORTAL_X, DEPTH);
+    const g = ctx.createLinearGradient(PORTAL_X - 120, 0, PORTAL_X + 121, 0);
+    g.addColorStop(0, 'rgba(90,70,56,0)');
+    g.addColorStop(1, 'rgba(90,70,56,1)');
     ctx.fillStyle = g;
-    ctx.fillRect(Math.min(x, x + d * 90), y0, 90, y1 - y0);
+    ctx.fillRect(PORTAL_X - 120, Y_C, 241, DEPTH);
   }
-  // two cart ruts snaking down
-  ctx.strokeStyle = 'rgba(90,46,24,.35)';
-  ctx.lineWidth = 7;
-  for (const off of [-40, 40]) {
-    ctx.beginPath();
-    for (let y = y0; y <= y1; y += 20) {
-      const x = (x0 + x1) / 2 - 60 + off + Math.sin((y - y0) / 170) * 140;
-      y === y0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-  }
-  // rubble heaps by the walls
-  for (let i = 0; i < 18; i++) {
-    const side = i % 2,
-      x = side ? x1 - 20 - r() * 70 : x0 + 20 + r() * 70,
-      y = y0 + 60 + r() * (y1 - y0 - 100);
-    if (!view(x - 60, x + 60, y - 60, y + 30)) continue;
-    for (let k = 0; k < 6; k++) {
-      const a = 6 + r() * 12;
-      ctx.fillStyle = k % 2 ? '#8a5a3c' : '#6e4430';
-      ctx.beginPath();
-      ctx.ellipse(x + (r() - 0.5) * 40, y - r() * 14, a, a * 0.7, 0, 0, TAU);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(30,12,6,.6)';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-    }
-  }
-  // planks and a pickaxe left lying about
-  for (const [x, y, a] of [
-    [3700, 1180, 0.3],
-    [4150, 1420, -0.2],
-    [3620, 1560, 0.1],
-  ]) {
-    if (!view(x - 60, x + 60, y - 30, y + 30)) continue;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(a);
-    ctx.fillStyle = '#8a6440';
-    ctx.fillRect(-50, -6, 100, 12);
-    ctx.strokeStyle = OL;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(-50, -6, 100, 12);
-    ctx.restore();
-  }
-  if (view(3980, 4060, 860, 920)) {
-    ctx.save();
-    ctx.translate(4020, 900);
-    ctx.rotate(-0.5);
-    ctx.fillStyle = '#6a4428';
-    ctx.fillRect(-3, -40, 6, 46);
-    ctx.fillStyle = '#7a7a82';
-    ctx.beginPath();
-    ctx.moveTo(-26, -36);
-    ctx.quadraticCurveTo(0, -48, 26, -36);
-    ctx.lineTo(0, -42);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = OL;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.restore();
-  }
+  // shade under the back edge of every street, slant and tunnel
+  ctx.fillStyle = 'rgba(40,18,10,.24)';
+  poly([
+    [0, Y_A],
+    [SLANT1[0], Y_A],
+    [SLANT1[1], Y_B],
+    [SLANT2[0], Y_B],
+    [SLANT2[1], Y_C],
+    [END_X, Y_C],
+    [END_X, Y_C + 26],
+    [SLANT2[1], Y_C + 26],
+    [SLANT2[0], Y_B + 26],
+    [SLANT1[1], Y_B + 26],
+    [SLANT1[0], Y_A + 26],
+    [0, Y_A + 26],
+  ]);
+  ctx.fill();
+  // wheel ruts down the slants
+  ctx.strokeStyle = 'rgba(110,72,44,.22)';
+  ctx.lineWidth = 5;
+  for (const [a, b] of [SLANT1, SLANT2])
+    if (view(a, b))
+      for (const o of [70, 120]) {
+        ctx.beginPath();
+        ctx.moveTo(a - 60, topY(a) + o);
+        ctx.lineTo(b + 60, topY(b) + o);
+        ctx.stroke();
+      }
 }
-// The boardwalk along the back of the street, with the posts of the porch roofs.
 function boardwalk(x0, x1, y) {
   ctx.fillStyle = '#7a5434';
   ctx.fillRect(x0, y - 34, x1 - x0, 14);
@@ -788,213 +821,364 @@ function porch(x0, x1, y, h) {
   }
 }
 function drawTown() {
-  // the edge of town: a split-rail fence, a cactus and an old wagon wheel
-  if (view(-200, GATE_X + 100)) {
+  // the edge of town: a split-rail fence and a cactus
+  if (view(-200, GATE_X)) {
     ctx.strokeStyle = '#5a3a22';
     ctx.lineWidth = 6;
-    for (let x = -200; x < GATE_X - 20; x += 70) {
+    for (let x = -200; x < GATE_X - 290; x += 70) {
       ctx.beginPath();
-      ctx.moveTo(x, 358);
-      ctx.lineTo(x, 300);
+      ctx.moveTo(x, Y_A);
+      ctx.lineTo(x, Y_A - 58);
       ctx.stroke();
     }
     ctx.lineWidth = 4;
-    for (const y of [318, 338]) {
+    for (const y of [Y_A - 40, Y_A - 20]) {
       ctx.beginPath();
       ctx.moveTo(-200, y);
-      ctx.lineTo(GATE_X - 20, y + 2);
+      ctx.lineTo(GATE_X - 290, y + 2);
       ctx.stroke();
     }
     ctx.fillStyle = '#3e5a2c';
-    cactus(ctx, 120, 352, 1.4);
-    ctx.strokeStyle = OL;
-    ctx.lineWidth = 2;
+    cactus(ctx, 120, Y_A - 6, 1.4);
   }
   for (const [x, k] of STREET) {
     const img = T.houses[k],
-      y = baseY(x + img.width / 2);
-    if (!view(x - 40, x + img.width + 40, y - 400, y + 40)) continue;
-    // on the slant the house stands on a stone footing down to the street
-    if (x + img.width > SLANT[0]) {
-      const l = baseY(x),
-        r2 = baseY(x + img.width);
+      w = img.width,
+      y = topY(x + w / 2),
+      l = topY(x),
+      r = topY(x + w);
+    if (!view(x - 40, x + w + 40, y - 400, y + 40)) continue;
+    if (l !== r) {
+      // on the slant: a stone footing down to the street
       ctx.fillStyle = '#6e5a4a';
       poly([
         [x, y - 34],
-        [x + img.width, y - 34],
-        [x + img.width, Math.max(r2, y)],
+        [x + w, y - 34],
+        [x + w, Math.max(r, y)],
         [x, Math.max(l, y)],
       ]);
       ctx.fill();
       ctx.strokeStyle = 'rgba(30,20,14,.6)';
       ctx.lineWidth = 2;
-      for (let yy = y - 24; yy < Math.max(l, r2); yy += 12) {
+      for (let yy = y - 24; yy < Math.max(l, r); yy += 12) {
         ctx.beginPath();
         ctx.moveTo(x, yy);
-        ctx.lineTo(x + img.width, yy);
+        ctx.lineTo(x + w, yy);
         ctx.stroke();
       }
     }
     ctx.drawImage(img, x, y - 34 - img.height + 8);
-    boardwalk(x - 4, x + img.width + 4, y);
-    porch(x + 14, x + img.width - 14, y, 104);
+    boardwalk(x - 4, x + w + 4, y);
+    porch(x + 14, x + w - 14, y, 104);
+  }
+  // down the second slant, the edge of town: a fence, stacked lumber, a water tower
+  if (view(SLANT2[0] - 100, SLANT2[1] + 100, Y_B - 300, Y_C + 40)) {
+    ctx.strokeStyle = '#5a3a22';
+    for (let x = SLANT2[0] - 60; x < SLANT2[1] - 40; x += 70) {
+      const y = topY(x);
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x, y - 56);
+      ctx.stroke();
+    }
+    ctx.lineWidth = 4;
+    for (const d of [40, 20]) {
+      ctx.beginPath();
+      ctx.moveTo(SLANT2[0] - 60, topY(SLANT2[0] - 60) - d);
+      ctx.lineTo(SLANT2[1] - 40, topY(SLANT2[1] - 40) - d);
+      ctx.stroke();
+    }
+    waterTower(SLANT2[0] + 330, topY(SLANT2[0] + 330) - 6);
+    lumber(SLANT2[0] + 620, topY(SLANT2[0] + 620) - 4);
   }
 }
-// The welcome arch: two log posts and a board over the road (the front post is drawn over
-// everything by drawFront2).
-function archPost(x, y0, y1) {
-  const gr = ctx.createLinearGradient(x - 12, 0, x + 12, 0);
-  gr.addColorStop(0, '#4a2e1a');
-  gr.addColorStop(0.5, '#86603a');
-  gr.addColorStop(1, '#3e2614');
-  ctx.fillStyle = gr;
-  ctx.fillRect(x - 12, y0, 24, y1 - y0);
+function waterTower(x, y) {
+  ctx.strokeStyle = '#4a2e1a';
+  ctx.lineWidth = 7;
+  ctx.beginPath();
+  for (const d of [-40, 40]) {
+    ctx.moveTo(x + d, y);
+    ctx.lineTo(x + d * 0.7, y - 150);
+  }
+  ctx.moveTo(x - 40, y);
+  ctx.lineTo(x + 28, y - 150);
+  ctx.moveTo(x + 40, y);
+  ctx.lineTo(x - 28, y - 150);
+  ctx.stroke();
+  ctx.fillStyle = '#7a5232';
   ctx.strokeStyle = OL;
   ctx.lineWidth = 3;
-  ctx.strokeRect(x - 12, y0, 24, y1 - y0);
-  for (let y = y0 + 30; y < y1; y += 46) {
+  ctx.fillRect(x - 54, y - 236, 108, 90);
+  ctx.strokeRect(x - 54, y - 236, 108, 90);
+  ctx.strokeStyle = '#3a3a40';
+  for (const yy of [-220, -186, -160]) {
     ctx.beginPath();
-    ctx.moveTo(x - 10, y);
-    ctx.lineTo(x + 4, y + 6);
+    ctx.moveTo(x - 54, y + yy);
+    ctx.lineTo(x + 54, y + yy);
     ctx.stroke();
   }
+  ctx.fillStyle = '#5a3a22';
+  ctx.beginPath();
+  ctx.moveTo(x - 62, y - 236);
+  ctx.lineTo(x, y - 276);
+  ctx.lineTo(x + 62, y - 236);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = OL;
+  ctx.stroke();
+}
+function lumber(x, y) {
+  for (let r = 0; r < 4; r++)
+    for (let i = 0; i < 6 - r; i++) {
+      const cx = x - 60 + i * 22 + r * 11,
+        cy = y - 10 - r * 19;
+      ctx.fillStyle = '#8a6440';
+      ctx.strokeStyle = OL;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 10, 0, TAU);
+      ctx.fill();
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(40,20,10,.5)';
+      ctx.beginPath();
+      ctx.arc(cx, cy, 5, 0, TAU);
+      ctx.stroke();
+    }
+}
+// --- the welcome arch -------------------------------------------------------------------------
+// Two log posts, one each side of the road (the back one on the boardwalk side, the front one
+// at the near edge, drawn over everything by drawFront2), a cross-beam on top and between the
+// posts a big carved board with the town's name, high over the road.
+const ARCH_L = GATE_X - 262,
+  ARCH_R = GATE_X + 262,
+  BEAM_Y = 34;
+function log(x, y0, y1, w = 30) {
+  const gr = ctx.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
+  gr.addColorStop(0, '#3e2614');
+  gr.addColorStop(0.45, '#8c643c');
+  gr.addColorStop(1, '#3a2312');
+  ctx.fillStyle = gr;
+  ctx.fillRect(x - w / 2, y0, w, y1 - y0);
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 3;
+  ctx.strokeRect(x - w / 2, y0, w, y1 - y0);
+  // bark and knots
+  ctx.strokeStyle = 'rgba(30,16,8,.55)';
+  ctx.lineWidth = 1.5;
+  for (let y = y0 + 22; y < y1 - 10; y += 38) {
+    ctx.beginPath();
+    ctx.moveTo(x - w / 2 + 3, y);
+    ctx.quadraticCurveTo(x, y + 8, x + w / 2 - 4, y + 2);
+    ctx.stroke();
+  }
+  ctx.fillStyle = 'rgba(30,16,8,.5)';
+  for (let y = y0 + 60; y < y1 - 20; y += 110) {
+    ctx.beginPath();
+    ctx.ellipse(x + 4, y, 4, 6, 0, 0, TAU);
+    ctx.fill();
+  }
+  // the cut end on top
+  ctx.fillStyle = '#c8a070';
+  ctx.beginPath();
+  ctx.ellipse(x, y0, w / 2, 5, 0, 0, TAU);
+  ctx.fill();
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+function hangingLantern(x, y) {
+  ctx.strokeStyle = '#2c2a2e';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x, y + 16);
+  ctx.stroke();
+  ctx.fillStyle = '#2c2a2e';
+  ctx.fillRect(x - 9, y + 16, 18, 5);
+  ctx.fillStyle = '#ffd88a';
+  ctx.fillRect(x - 7, y + 21, 14, 18);
+  ctx.strokeRect(x - 7, y + 21, 14, 18);
+  ctx.fillStyle = '#2c2a2e';
+  ctx.fillRect(x - 9, y + 39, 18, 4);
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.6 + 0.15 * Math.sin(G.time * 7 + x);
+  ctx.drawImage(T.small, x - 70, y - 40);
+  ctx.restore();
 }
 function drawArch() {
-  const x = GATE_X;
-  if (!view(x - 300, x + 300)) return;
-  archPost(x - 262, 22, 358);
-  // the board, hung on chains from the cross-beam
-  const bx = x - 230,
-    bw = 460,
-    by = 82;
-  ctx.fillStyle = '#4a2e1a';
-  ctx.fillRect(x - 280, 30, 560, 22);
+  if (!view(ARCH_L - 80, ARCH_R + 80)) return;
+  // stones piled round the foot of the back post
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2;
+  for (const [dx, dy, r] of [
+    [-22, -6, 12],
+    [20, -5, 11],
+    [-4, -4, 13],
+    [-14, -18, 9],
+    [10, -18, 9],
+  ]) {
+    ctx.fillStyle = '#8a7a6a';
+    ctx.beginPath();
+    ctx.ellipse(ARCH_L + dx, Y_A + dy, r, r * 0.7, 0, 0, TAU);
+    ctx.fill();
+    ctx.stroke();
+  }
+  log(ARCH_L, BEAM_Y - 10, Y_A - 8, 32);
+  // the cross-beam, resting on both posts, its ends sticking out
+  const bx0 = ARCH_L - 46,
+    bx1 = ARCH_R + 46;
+  ctx.fillStyle = '#6a4428';
+  ctx.fillRect(bx0, BEAM_Y, bx1 - bx0, 22);
   ctx.strokeStyle = OL;
   ctx.lineWidth = 3;
-  ctx.strokeRect(x - 280, 30, 560, 22);
-  ctx.strokeStyle = '#2c2a2e';
-  ctx.lineWidth = 3;
-  for (const cx of [bx + 30, bx + bw - 30]) {
+  ctx.strokeRect(bx0, BEAM_Y, bx1 - bx0, 22);
+  ctx.fillStyle = '#c8a070';
+  for (const x of [bx0, bx1]) {
     ctx.beginPath();
-    ctx.moveTo(cx, 52);
-    ctx.lineTo(cx, by);
+    ctx.ellipse(x, BEAM_Y + 11, 5, 11, 0, 0, TAU);
+    ctx.fill();
     ctx.stroke();
   }
+  // knee braces from the posts up to the beam
+  ctx.strokeStyle = '#5a3a22';
+  ctx.lineWidth = 9;
+  ctx.beginPath();
+  ctx.moveTo(ARCH_L + 10, BEAM_Y + 110);
+  ctx.lineTo(ARCH_L + 70, BEAM_Y + 22);
+  ctx.moveTo(ARCH_R - 10, BEAM_Y + 110);
+  ctx.lineTo(ARCH_R - 70, BEAM_Y + 22);
+  ctx.stroke();
+  // rope lashed round the joints
+  ctx.strokeStyle = '#c8b07a';
+  ctx.lineWidth = 2;
+  for (const x of [ARCH_L, ARCH_R])
+    for (let i = 0; i < 4; i++) {
+      ctx.beginPath();
+      ctx.moveTo(x - 16, BEAM_Y + 4 + i * 5);
+      ctx.lineTo(x + 16, BEAM_Y + 8 + i * 5);
+      ctx.stroke();
+    }
+  // the board: thick planks with notched corners, held by iron straps to both posts
+  const x0 = ARCH_L + 18,
+    x1 = ARCH_R - 18,
+    y0 = BEAM_Y + 34,
+    y1 = BEAM_Y + 150,
+    n = 12;
   ctx.save();
-  ctx.translate(x, by + 44);
-  ctx.rotate(Math.sin(G.time * 0.8) * 0.012);
+  poly([
+    [x0 + n, y0],
+    [x1 - n, y0],
+    [x1, y0 + n],
+    [x1, y1 - n],
+    [x1 - n, y1],
+    [x0 + n, y1],
+    [x0, y1 - n],
+    [x0, y0 + n],
+  ]);
   ctx.fillStyle = '#2a1a10';
-  ctx.fillRect(-bw / 2 - 5, -44 - 5, bw + 10, 98);
-  const wg = ctx.createLinearGradient(0, -44, 0, 44);
-  wg.addColorStop(0, '#b07a46');
+  ctx.lineWidth = 10;
+  ctx.strokeStyle = '#2a1a10';
+  ctx.stroke();
+  const wg = ctx.createLinearGradient(0, y0, 0, y1);
+  wg.addColorStop(0, '#c08850');
   wg.addColorStop(1, '#8a5a32');
   ctx.fillStyle = wg;
-  ctx.fillRect(-bw / 2, -44, bw, 88);
-  ctx.strokeStyle = 'rgba(40,20,10,.4)';
-  ctx.lineWidth = 1.5;
-  for (const y of [-14, 16]) {
+  ctx.fill();
+  ctx.clip();
+  // planks and grain
+  ctx.strokeStyle = 'rgba(40,20,10,.45)';
+  ctx.lineWidth = 2;
+  for (let y = y0 + 29; y < y1; y += 29) {
     ctx.beginPath();
-    ctx.moveTo(-bw / 2, y);
-    ctx.lineTo(bw / 2, y);
+    ctx.moveTo(x0, y);
+    ctx.lineTo(x1, y);
     ctx.stroke();
   }
+  ctx.strokeStyle = 'rgba(40,20,10,.15)';
+  ctx.lineWidth = 1;
+  for (let y = y0 + 6; y < y1; y += 7) {
+    ctx.beginPath();
+    ctx.moveTo(x0, y);
+    ctx.bezierCurveTo(x0 + 150, y + 3, x1 - 150, y - 3, x1, y + 1);
+    ctx.stroke();
+  }
+  ctx.restore();
+  // a carved border
+  ctx.strokeStyle = 'rgba(40,20,10,.6)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x0 + 10, y0 + 10, x1 - x0 - 20, y1 - y0 - 20);
+  // iron straps and bolts at both ends
+  for (const x of [x0 - 14, x1 - 22])
+    for (const y of [y0 + 14, y1 - 30]) {
+      ctx.fillStyle = '#3a3a40';
+      ctx.fillRect(x, y, 36, 14);
+      ctx.strokeStyle = OL;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x, y, 36, 14);
+      ctx.fillStyle = '#9a98a0';
+      for (const bx of [x + 7, x + 29]) {
+        ctx.beginPath();
+        ctx.arc(bx, y + 7, 2.5, 0, TAU);
+        ctx.fill();
+      }
+    }
+  // the lettering, burnt in and painted
+  const cx = GATE_X;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
+  ctx.font = `900 19px ${FONT}`;
   ctx.fillStyle = '#2a160c';
-  ctx.font = `900 18px ${FONT}`;
-  ctx.fillText(t('welcome'), 0, -22);
-  ctx.font = `900 38px ${FONT}`;
-  ctx.lineWidth = 5;
+  ctx.fillText(t('welcome'), cx, y0 + 30);
+  ctx.font = `900 46px ${FONT}`;
+  ctx.lineWidth = 7;
   ctx.strokeStyle = '#2a160c';
-  ctx.strokeText('OLD QUARRY', 0, 14);
+  ctx.strokeText('OLD QUARRY', cx, y0 + 78);
   ctx.fillStyle = '#f2d27a';
-  ctx.fillText('OLD QUARRY', 0, 14);
-  // a cow skull nailed on top
+  ctx.fillText('OLD QUARRY', cx, y0 + 78);
+  ctx.fillStyle = 'rgba(255,255,255,.25)';
+  ctx.fillText('OLD QUARRY', cx - 1, y0 + 76);
+  ctx.fillStyle = '#f2d27a';
+  ctx.fillText('OLD QUARRY', cx, y0 + 78);
+  // stars either side of the name
+  star(ctx, cx - 186, y0 + 78, 9, '#f2d27a');
+  star(ctx, cx + 186, y0 + 78, 9, '#f2d27a');
+  // a horseshoe nailed on for luck
+  ctx.strokeStyle = '#4a4a52';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.arc(x1 - 44, y1 - 46, 10, Math.PI * 0.85, Math.PI * 2.15);
+  ctx.stroke();
+  // a cow skull on the middle of the beam
+  ctx.save();
+  ctx.translate(cx, BEAM_Y + 6);
   ctx.fillStyle = '#ece5cb';
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.ellipse(0, -52, 14, 10, 0, 0, TAU);
+  ctx.ellipse(0, 0, 15, 11, 0, 0, TAU);
   ctx.fill();
+  ctx.stroke();
+  ctx.fillRect(-7, 6, 14, 16);
+  ctx.strokeRect(-7, 6, 14, 16);
   ctx.strokeStyle = '#ece5cb';
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 5;
   ctx.beginPath();
-  ctx.moveTo(-12, -56);
-  ctx.quadraticCurveTo(-30, -60, -34, -74);
-  ctx.moveTo(12, -56);
-  ctx.quadraticCurveTo(30, -60, 34, -74);
+  ctx.moveTo(-12, -4);
+  ctx.quadraticCurveTo(-32, -8, -38, -24);
+  ctx.moveTo(12, -4);
+  ctx.quadraticCurveTo(32, -8, 38, -24);
   ctx.stroke();
   ctx.fillStyle = OL;
   ctx.beginPath();
-  ctx.arc(-5, -53, 2.5, 0, TAU);
-  ctx.arc(5, -53, 2.5, 0, TAU);
+  ctx.arc(-5, 0, 3, 0, TAU);
+  ctx.arc(5, 0, 3, 0, TAU);
   ctx.fill();
   ctx.restore();
-}
-// Below the slant: the hillside down to the quarry, with a rail fence along the edge.
-function drawSlantEdge() {
-  if (!view(SLANT[0] - 40, SLANT[1] + 40)) return;
-  ctx.strokeStyle = '#4a2e1a';
-  ctx.lineWidth = 5;
-  const b = (x) => slantY(x) + 190;
-  for (let x = SLANT[0] + 40; x < QUARRY[0] - 10; x += 80) {
-    ctx.beginPath();
-    ctx.moveTo(x, b(x) + 6);
-    ctx.lineTo(x, b(x) + 50);
-    ctx.stroke();
-  }
-}
-// The quarry: its back wall with a crane and scaffolds, rails down the side of the road.
-function drawQuarry() {
-  const [x0, x1, y0, y1] = QUARRY;
-  if (!view(x0 - 200, x1 + 200, y0 - 400, y1 + 100)) return;
-  // the cut face of the quarry over the road's top
-  ctx.fillStyle = 'rgba(40,14,8,.35)';
-  ctx.fillRect(x0 + 140, y0 - 14, x1 - x0 - 140, 14);
-  // scaffolding up the face
-  ctx.strokeStyle = '#5a3a22';
-  ctx.lineWidth = 5;
-  for (let x = x1 - 360; x <= x1 - 60; x += 100) {
-    ctx.beginPath();
-    ctx.moveTo(x, y0 - 4);
-    ctx.lineTo(x, y0 - 230);
-    ctx.stroke();
-  }
-  for (let y = y0 - 60; y > y0 - 240; y -= 60) {
-    ctx.beginPath();
-    ctx.moveTo(x1 - 370, y);
-    ctx.lineTo(x1 - 50, y);
-    ctx.stroke();
-  }
-  ctx.lineWidth = 3;
-  for (let x = x1 - 360; x < x1 - 60; x += 100) {
-    ctx.beginPath();
-    ctx.moveTo(x, y0 - 4);
-    ctx.lineTo(x + 100, y0 - 60);
-    ctx.stroke();
-  }
-  // a wooden crane with a hanging bucket
-  ctx.lineWidth = 7;
-  ctx.beginPath();
-  ctx.moveTo(x0 + 220, y0 - 4);
-  ctx.lineTo(x0 + 220, y0 - 250);
-  ctx.lineTo(x0 + 420, y0 - 210);
-  ctx.stroke();
-  ctx.strokeStyle = '#2c2a2e';
-  ctx.lineWidth = 2;
-  const sw = Math.sin(G.time * 0.7) * 6;
-  ctx.beginPath();
-  ctx.moveTo(x0 + 410, y0 - 212);
-  ctx.lineTo(x0 + 410 + sw, y0 - 120);
-  ctx.stroke();
-  ctx.fillStyle = '#4c4a50';
-  ctx.fillRect(x0 + 394 + sw, y0 - 122, 32, 24);
-  ctx.strokeStyle = OL;
-  ctx.strokeRect(x0 + 394 + sw, y0 - 122, 32, 24);
-  // the rails down the right of the road, with an ore cart
-  rails(x1 - 70, y0, x1 - 70, y1, true);
-  oreCart(x1 - 70, 1250, true);
-  // a warning sign
-  signPost(x0 + 70, 780, 'DANGER', 'EXPLOSIVES');
-  signPost(x1 - 150, 1700, '→ MINE', 'No. 3');
+  // lanterns hanging from the ends of the beam
+  hangingLantern(bx0 + 18, BEAM_Y + 22);
+  hangingLantern(bx1 - 18, BEAM_Y + 22);
 }
 function rails(xa, ya, xb, yb, vertical) {
   if (vertical) {
@@ -1059,37 +1243,6 @@ function oreCart(x, y, vertical) {
   }
   ctx.restore();
 }
-function signPost(x, y, a, b) {
-  ctx.fillStyle = '#5a3a22';
-  ctx.fillRect(x - 4, y - 90, 8, 90);
-  ctx.fillStyle = '#d8b878';
-  ctx.fillRect(x - 54, y - 96, 108, 46);
-  ctx.strokeStyle = OL;
-  ctx.lineWidth = 2.5;
-  ctx.strokeRect(x - 54, y - 96, 108, 46);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#a02818';
-  ctx.font = `900 15px ${FONT}`;
-  ctx.fillText(a, x, y - 82);
-  ctx.fillStyle = '#3a2416';
-  ctx.font = `900 11px ${FONT}`;
-  ctx.fillText(b, x, y - 63);
-}
-// The mine: rock all round, a back wall with timber sets and lamps every few steps, rails on
-// the floor, the slime's flooded hall and the cavern of the last fight.
-const TUN = 330; // height of a tunnel's back wall
-function tunnelWall(xa, xb, top) {
-  // top(x): the floor's back edge
-  const step = 280;
-  for (let x = Math.ceil(xa / step) * step; x < xb; x += step) {
-    if (!view(x - 120, x + 120)) continue;
-    const y = top(x);
-    if (!view(x - 120, x + 120, y - TUN, y + 10)) continue;
-    ctx.drawImage(T.timber, x - 100, y - TUN);
-    if ((x / step) % 2 === 0) lantern(x, y - TUN + 44);
-  }
-}
 function lantern(x, y) {
   ctx.strokeStyle = '#2c2a2e';
   ctx.lineWidth = 2;
@@ -1105,89 +1258,6 @@ function lantern(x, y) {
   ctx.strokeStyle = '#2c2a2e';
   ctx.strokeRect(x - 6, y + 22, 12, 16);
   ctx.fillRect(x - 8, y + 38, 16, 4);
-}
-function drawMine() {
-  // the back walls of the tunnels: darker rock, then the timbers
-  const mineTop = (x) => (x < SHAFT[0] ? MINE_Y : x < SHAFT[1] ? shaftY(x) : DEEP_Y);
-  const back = [
-    [PORTAL_X, MINE_Y - TUN],
-    [SHAFT[0], MINE_Y - TUN],
-    [SHAFT[1], DEEP_Y - TUN],
-    [END_X + 600, DEEP_Y - TUN],
-    [END_X + 600, DEEP_Y],
-    [SHAFT[1], DEEP_Y],
-    [SHAFT[0], MINE_Y],
-    [PORTAL_X, MINE_Y],
-  ];
-  ctx.fillStyle = 'rgba(10,6,4,.35)';
-  poly(back);
-  ctx.fill();
-  // the slime's flooded hall: a glowing green pool far back
-  const hx = HALL_X;
-  if (view(hx - 700, hx + 700, MINE_Y - 400, MINE_Y + 200)) {
-    ctx.fillStyle = '#1c1612';
-    ctx.beginPath();
-    ctx.ellipse(hx, MINE_Y - 20, 420, 300, 0, Math.PI, TAU);
-    ctx.fill();
-    const k = 0.75 + 0.25 * Math.sin(G.time * 2);
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = k;
-    ctx.drawImage(T.green, hx - 380, MINE_Y - 360, 760, 420);
-    ctx.restore();
-    ctx.fillStyle = '#5fd83a';
-    ctx.beginPath();
-    ctx.ellipse(hx, MINE_Y - 22, 300, 24, 0, 0, TAU);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(220,255,160,.6)';
-    for (let i = 0; i < 7; i++) {
-      const bx = hx - 260 + ((i * 131 + G.time * 30) % 520),
-        r = 4 + ((i * 7) % 5);
-      ctx.beginPath();
-      ctx.arc(bx, MINE_Y - 24 - ((G.time * 20 + i * 9) % 20), r, 0, TAU);
-      ctx.fill();
-    }
-    // leaking drums of waste by the pool
-    for (const [dx, tip] of [
-      [-330, 0],
-      [-290, 0.4],
-      [320, 0],
-    ])
-      drum(hx + dx, MINE_Y - 8, tip);
-  }
-  // the last cavern: a broken-down drill rig and red emergency lamps
-  const fx = END_X - 480;
-  if (view(fx - 700, fx + 800, DEEP_Y - 500, DEEP_Y + 200)) {
-    ctx.fillStyle = '#1a1210';
-    ctx.beginPath();
-    ctx.ellipse(fx, DEEP_Y - 60, 640, 300, 0, Math.PI, TAU);
-    ctx.fill();
-    drillRig(fx + 120, DEEP_Y - 6);
-    for (const dx of [-480, -160, 400]) {
-      const on = Math.floor(G.time * 2 + dx) % 2 === 0;
-      ctx.fillStyle = on ? '#ff3a2a' : '#6a1a14';
-      ctx.beginPath();
-      ctx.arc(fx + dx, DEEP_Y - 250, 9, 0, TAU);
-      ctx.fill();
-      if (on) {
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.drawImage(T.red, fx + dx - 120, DEEP_Y - 370);
-        ctx.restore();
-      }
-    }
-  }
-  tunnelWall(PORTAL_X + 200, HALL_X - 430, () => MINE_Y);
-  tunnelWall(HALL_X + 430, SHAFT[0], () => MINE_Y);
-  tunnelWall(SHAFT[0], SHAFT[1], shaftY);
-  tunnelWall(SHAFT[1], END_X - 900, () => DEEP_Y);
-  // rails along the back of the floor
-  if (view(PORTAL_X, SHAFT[0], MINE_Y - 50, MINE_Y + 60))
-    rails(PORTAL_X, MINE_Y + 8, SHAFT[0], MINE_Y + 8);
-  if (view(SHAFT[0], SHAFT[1])) rails(SHAFT[0], MINE_Y + 8, SHAFT[1], shaftY(SHAFT[1]) + 8);
-  if (view(SHAFT[1], END_X)) rails(SHAFT[1], DEEP_Y + 8, END_X - 700, DEEP_Y + 8);
-  for (const x of [5050, 8350]) if (view(x - 60, x + 60)) oreCart(x, mineTop(x) + 22, false);
-  drawPortal();
 }
 function drum(x, y, tip) {
   ctx.save();
@@ -1245,29 +1315,293 @@ function drillRig(x, y) {
     ctx.stroke();
   }
 }
-// The mine's mouth at the bottom of the quarry: a timber portal in the rock.
-function drawPortal() {
-  const x = PORTAL_X,
-    y = MINE_Y;
-  if (!view(x - 200, x + 300, y - 400, y + 40)) return;
-  ctx.fillStyle = '#0c0806';
-  ctx.fillRect(x + 20, y - 250, 160, 250);
+// --- the mining camp and the way into the mine --------------------------------------------------
+const TUN = 330; // height of a tunnel's back wall
+function tunnelWall(xa, xb) {
+  const step = 280;
+  for (let x = Math.ceil(xa / step) * step; x < xb; x += step) {
+    if (!view(x - 120, x + 120, Y_C - TUN, Y_C + 10)) continue;
+    ctx.drawImage(T.timber, x - 100, Y_C - TUN);
+    if ((x / step) % 2 === 0) lantern(x, Y_C - TUN + 44);
+  }
+}
+/** The headframe over the old shaft: a tall timber A-frame with a turning wheel. */
+function headframe(x, y) {
+  ctx.strokeStyle = '#4a2e1a';
+  ctx.lineCap = 'round';
+  ctx.lineWidth = 10;
+  ctx.beginPath();
+  ctx.moveTo(x - 60, y);
+  ctx.lineTo(x - 14, y - 300);
+  ctx.moveTo(x + 60, y);
+  ctx.lineTo(x + 14, y - 300);
+  ctx.moveTo(x + 60, y);
+  ctx.lineTo(x + 150, y - 190);
+  ctx.stroke();
+  ctx.lineWidth = 5;
+  for (let k = 0; k < 4; k++) {
+    const a = y - 40 - k * 64,
+      w0 = 60 - (46 * (y - a)) / 300;
+    ctx.beginPath();
+    ctx.moveTo(x - w0, a);
+    ctx.lineTo(x + w0, a);
+    ctx.lineTo(x - w0 + 8, a - 64);
+    ctx.stroke();
+  }
+  // the wheel at the top, turning, and the cable down into the shaft and over to the hoist
+  const wy = y - 316,
+    a = G.time * 1.5;
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.arc(x, wy, 34, 0, TAU);
+  ctx.stroke();
+  ctx.lineWidth = 3;
+  for (let i = 0; i < 6; i++) {
+    const b = a + (i / 6) * Math.PI;
+    ctx.beginPath();
+    ctx.moveTo(x - Math.cos(b) * 34, wy - Math.sin(b) * 34);
+    ctx.lineTo(x + Math.cos(b) * 34, wy + Math.sin(b) * 34);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = '#2c2a2e';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x - 34, wy);
+  ctx.lineTo(x - 34, y - 20);
+  ctx.moveTo(x + 30, wy - 14);
+  ctx.lineTo(x + 190, y - 60);
+  ctx.stroke();
+  ctx.lineCap = 'butt';
+  // the hoist house
+  ctx.fillStyle = '#6a4a32';
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 3;
+  ctx.fillRect(x + 150, y - 90, 110, 90);
+  ctx.strokeRect(x + 150, y - 90, 110, 90);
+  ctx.fillStyle = '#4a3020';
+  ctx.beginPath();
+  ctx.moveTo(x + 140, y - 90);
+  ctx.lineTo(x + 205, y - 126);
+  ctx.lineTo(x + 270, y - 90);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#ffcf7a';
+  ctx.fillRect(x + 172, y - 66, 26, 22);
+  ctx.strokeRect(x + 172, y - 66, 26, 22);
+  // a smoke stack puffing
+  ctx.fillStyle = '#3a3a40';
+  ctx.fillRect(x + 230, y - 150, 14, 60);
+  ctx.strokeRect(x + 230, y - 150, 14, 60);
+  ctx.fillStyle = 'rgba(80,70,70,.35)';
+  for (let i = 0; i < 4; i++) {
+    const u = (G.time * 0.4 + i / 4) % 1;
+    ctx.beginPath();
+    ctx.arc(x + 237 + u * 30, y - 160 - u * 90, 8 + u * 16, 0, TAU);
+    ctx.fill();
+  }
+}
+/** The mine's mouth in the cliff: a heavy timber portal with lamps, rails into the dark. */
+function portal(x, y) {
+  const w = 230,
+    h = 250;
+  // the rock round it, a little darker and rough
+  ctx.fillStyle = 'rgba(40,16,8,.35)';
+  ctx.beginPath();
+  ctx.ellipse(x + w / 2, y - h / 2, w * 0.85, h * 0.75, 0, Math.PI, TAU);
+  ctx.lineTo(x + w / 2 + w * 0.85, y);
+  ctx.lineTo(x + w / 2 - w * 0.85, y);
+  ctx.closePath();
+  ctx.fill();
+  // the dark inside, with a faint glow of lamps far in
+  const g = ctx.createLinearGradient(x, 0, x + w, 0);
+  g.addColorStop(0, '#0a0604');
+  g.addColorStop(1, '#1a0e08');
+  ctx.fillStyle = g;
+  ctx.fillRect(x + 22, y - h + 20, w - 44, h - 20);
+  for (const [dx, dy, s] of [
+    [0.5, 0.45, 1],
+    [0.42, 0.5, 0.6],
+  ]) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.35 * s + 0.08 * Math.sin(G.time * 5);
+    ctx.drawImage(T.small, x + w * dx - 70 * s, y - h * dy - 70 * s, 140 * s, 140 * s);
+    ctx.restore();
+  }
   const wood = (a, b, c, d) => {
-    ctx.fillStyle = '#6a4428';
+    const gr = ctx.createLinearGradient(a, 0, a + c, 0);
+    gr.addColorStop(0, '#4a2e1a');
+    gr.addColorStop(0.5, '#7a5232');
+    gr.addColorStop(1, '#3e2614');
+    ctx.fillStyle = gr;
     ctx.fillRect(a, b, c, d);
     ctx.strokeStyle = OL;
     ctx.lineWidth = 3;
     ctx.strokeRect(a, b, c, d);
   };
-  wood(x, y - 270, 30, 270);
-  wood(x + 170, y - 270, 30, 270);
-  wood(x - 20, y - 300, 240, 36);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#e8d9a8';
-  ctx.font = `900 16px ${FONT}`;
-  ctx.fillText('MINE No. 3', x + 100, y - 282);
+  // posts, a double header and corner braces
+  wood(x, y - h, 34, h);
+  wood(x + w - 34, y - h, 34, h);
+  wood(x - 24, y - h - 40, w + 48, 30);
+  wood(x - 10, y - h - 10, w + 20, 22);
+  ctx.strokeStyle = '#5a3a22';
+  ctx.lineWidth = 9;
+  ctx.beginPath();
+  ctx.moveTo(x + 34, y - h + 60);
+  ctx.lineTo(x + 84, y - h + 12);
+  ctx.moveTo(x + w - 34, y - h + 60);
+  ctx.lineTo(x + w - 84, y - h + 12);
+  ctx.stroke();
+  // crossed pickaxes over the mouth
+  ctx.save();
+  ctx.translate(x + w / 2, y - h - 66);
+  for (const k of [-1, 1]) {
+    ctx.save();
+    ctx.rotate(k * 0.7);
+    ctx.fillStyle = '#7a5232';
+    ctx.fillRect(-4, -30, 8, 62);
+    ctx.strokeStyle = OL;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-4, -30, 8, 62);
+    ctx.fillStyle = '#8e9098';
+    ctx.beginPath();
+    ctx.moveTo(-26, -30);
+    ctx.quadraticCurveTo(0, -42, 26, -30);
+    ctx.lineTo(4, -24);
+    ctx.lineTo(-4, -24);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+  ctx.restore();
+  // lamps on both posts
+  for (const lx of [x + 17, x + w - 17]) hangingLantern(lx, y - h + 30);
+  // rails out of the mouth
+  rails(x - 220, y + 8, x + w, y + 8);
+  oreCart(x - 120, y + 22, false);
 }
+function drawCamp() {
+  if (!view(SLANT2[1] - 300, PORTAL_X + 600, Y_C - 700, Y_C + 200)) return;
+  // the cliff face: sandstone layers, cracks, a few dry bushes on the ledges
+  ctx.save();
+  poly([...CLIFF, [END_X + 800, Y_C + 400], [CLIFF_X - 40, Y_C + 400]]);
+  ctx.clip();
+  ctx.fillStyle = T.patterns.strata;
+  ctx.fillRect(CLIFF_X - 60, Y_C - 700, PORTAL_X - CLIFF_X + 900, 700);
+  const sh = ctx.createLinearGradient(CLIFF_X - 40, 0, CLIFF_X + 220, 0);
+  sh.addColorStop(0, 'rgba(255,190,120,.25)');
+  sh.addColorStop(1, 'rgba(40,14,8,.2)');
+  ctx.fillStyle = sh;
+  ctx.fillRect(CLIFF_X - 60, Y_C - 700, 900, 700);
+  ctx.restore();
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  CLIFF.slice(0, 9).forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])));
+  ctx.stroke();
+  headframe(SLANT2[1] - 110, Y_C - 4);
+  // crates and a lamp post in the camp
+  for (const [x, s] of [
+    [CLIFF_X + 80, 1],
+    [CLIFF_X + 118, 0.8],
+    [CLIFF_X + 96, 0.7],
+  ]) {
+    const y = Y_C - 2 - (s < 0.75 ? 40 : 0);
+    ctx.fillStyle = '#9a7048';
+    ctx.strokeStyle = OL;
+    ctx.lineWidth = 2;
+    ctx.fillRect(x - 20 * s, y - 40 * s, 40 * s, 40 * s);
+    ctx.strokeRect(x - 20 * s, y - 40 * s, 40 * s, 40 * s);
+    ctx.beginPath();
+    ctx.moveTo(x - 20 * s, y - 40 * s);
+    ctx.lineTo(x + 20 * s, y);
+    ctx.stroke();
+  }
+  portal(PORTAL_X, Y_C);
+}
+function drawMine() {
+  if (!view(PORTAL_X, END_X + 800, Y_C - 700, Y_C + 300)) return;
+  // inside the hill: dark rock, the tunnel's back wall a shade darker
+  // the inside of the hill begins past the portal behind a ragged edge of rock
+  const edge = [];
+  for (let y = Y_C - 900, i = 0; y <= Y_C; y += 40, i++)
+    edge.push([PORTAL_X + 250 + ((i * 37) % 50) + (y > Y_C - 300 ? 0 : 40), y]);
+  ctx.fillStyle = T.patterns.rock;
+  poly([...edge, [END_X + 800, Y_C], [END_X + 800, Y_C - 900]]);
+  ctx.fill();
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  edge.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])));
+  ctx.stroke();
+  // deeper in, darker
+  const g = ctx.createLinearGradient(PORTAL_X + 260, 0, PORTAL_X + 760, 0);
+  g.addColorStop(0, 'rgba(10,6,4,0)');
+  g.addColorStop(1, 'rgba(10,6,4,.35)');
+  ctx.fillStyle = g;
+  poly([...edge, [END_X + 800, Y_C], [END_X + 800, Y_C - 900]]);
+  ctx.fill();
+  // the slime's flooded hall: a glowing green pool far back
+  const hx = HALL_X;
+  if (view(hx - 500, hx + 500)) {
+    ctx.fillStyle = '#1c1612';
+    ctx.beginPath();
+    ctx.ellipse(hx, Y_C - 20, 420, 300, 0, Math.PI, TAU);
+    ctx.fill();
+    const k = 0.75 + 0.25 * Math.sin(G.time * 2);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = k;
+    ctx.drawImage(T.green, hx - 380, Y_C - 360, 760, 420);
+    ctx.restore();
+    ctx.fillStyle = '#5fd83a';
+    ctx.beginPath();
+    ctx.ellipse(hx, Y_C - 22, 300, 24, 0, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(220,255,160,.6)';
+    for (let i = 0; i < 7; i++) {
+      const bx = hx - 260 + ((i * 131 + G.time * 30) % 520);
+      ctx.beginPath();
+      ctx.arc(bx, Y_C - 24 - ((G.time * 20 + i * 9) % 20), 4 + ((i * 7) % 5), 0, TAU);
+      ctx.fill();
+    }
+    for (const [dx, tip] of [
+      [-330, 0],
+      [-290, 0.4],
+      [320, 0],
+    ])
+      drum(hx + dx, Y_C - 8, tip);
+  }
+  // the last cavern: a broken-down drill rig and red emergency lamps
+  const fx = END_X - 480;
+  if (view(fx - 700, fx + 800)) {
+    ctx.fillStyle = '#1a1210';
+    ctx.beginPath();
+    ctx.ellipse(fx, Y_C - 60, 640, 300, 0, Math.PI, TAU);
+    ctx.fill();
+    drillRig(fx + 120, Y_C - 6);
+    for (const dx of [-480, -160, 400]) {
+      const on = Math.floor(G.time * 2 + dx) % 2 === 0;
+      ctx.fillStyle = on ? '#ff3a2a' : '#6a1a14';
+      ctx.beginPath();
+      ctx.arc(fx + dx, Y_C - 250, 9, 0, TAU);
+      ctx.fill();
+      if (on) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.drawImage(T.red, fx + dx - 120, Y_C - 370);
+        ctx.restore();
+      }
+    }
+  }
+  tunnelWall(PORTAL_X + 380, HALL_X - 430);
+  tunnelWall(HALL_X + 430, END_X - 900);
+  if (view(PORTAL_X, END_X)) rails(PORTAL_X + 230, Y_C + 8, END_X - 700, Y_C + 8);
+  if (view(6750, 6870)) oreCart(6810, Y_C + 22, false);
+}
+
 // --- public ----------------------------------------------------------------------------------
 
 /** Everything behind the fighters. */
@@ -1275,71 +1609,57 @@ export function drawBG2() {
   if (!T) init();
   ctx.save();
   ctx.translate(-G.cam, -G.camY);
-  // the ground itself: sandstone, and the mine's darker rock past its mouth
+  // the ground itself: sandstone under the streets and in the cliff
   ctx.fillStyle = T.patterns.strata;
   ctx.fillRect(G.cam - 10, G.camY - 10, W + 20, H + 20);
-  if (G.cam + W > PORTAL_X && G.camY + H > MINE_Y - 500) {
-    ctx.fillStyle = T.patterns.rock;
-    poly([
-      [PORTAL_X + 20, MINE_Y - 420],
-      [END_X + 800, MINE_Y - 420],
-      [END_X + 800, DEEP_Y + 1200],
-      [PORTAL_X + 20, DEEP_Y + 1200],
-    ]);
-    ctx.fill();
-  }
   drawSky();
   drawTown();
   drawArch();
-  drawSlantEdge();
-  drawQuarry();
+  drawCamp();
   drawMine();
   drawFloors();
-  // rails across the bottom of the quarry into the mine's mouth
-  if (view(QUARRY[0], PORTAL_X + 200))
-    rails(QUARRY[1] - 70, MINE_Y + 8, PORTAL_X + 200, MINE_Y + 8);
   ctx.restore();
 }
+/** How far into the mine the camera is: 0 outside, 1 well inside. */
+const inside = () => clamp((G.cam + W / 2 - PORTAL_X - 150) / 500, 0, 1);
 /** Things in front of the fighters, and the light: the arch's front post, the mine's gloom. */
 export function drawFront2() {
   if (!T) init();
   ctx.save();
   ctx.translate(-G.cam, -G.camY);
-  if (view(GATE_X + 200, GATE_X + 330)) {
+  if (view(ARCH_R - 60, ARCH_R + 60)) {
     // see-through while someone stands behind it
-    const px = GATE_X + 262,
-      hid = [P, ...G.enemies].some((o) => Math.abs(o.x - px) < 70);
+    const hid = [P, ...G.enemies].some((o) => Math.abs(o.x - ARCH_R) < 70);
     ctx.globalAlpha = hid ? 0.45 : 1;
-    archPost(px, 22, 560);
+    log(ARCH_R, BEAM_Y - 10, 560, 32);
     ctx.globalAlpha = 1;
   }
   ctx.restore();
-  // the mine is dark: light round the heroine and from the lamps, gloom at the edges
-  const inMine = G.cam + W * 0.5 > PORTAL_X + 100 && G.camY > MINE_Y - 700;
-  if (inMine) {
+  const k = inside();
+  if (k > 0) {
+    // the mine is dark: light round the heroine and from the lamps, gloom at the edges
     const px = P.x - G.cam,
       py = P.y - G.camY - 90,
       g = ctx.createRadialGradient(px, py, 120, px, py, 620);
     g.addColorStop(0, 'rgba(8,4,2,0)');
-    g.addColorStop(1, 'rgba(8,4,2,.55)');
+    g.addColorStop(1, `rgba(8,4,2,${0.55 * k})`);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     ctx.translate(-G.cam, -G.camY);
-    const mtop = (x) => (x < SHAFT[0] ? MINE_Y : x < SHAFT[1] ? shaftY(x) : DEEP_Y);
     for (let x = Math.ceil((G.cam - 200) / 560) * 560; x < G.cam + W + 200; x += 560)
-      if (x > PORTAL_X + 200 && x < END_X - 900 && Math.abs(x - HALL_X) > 430) {
-        const y = mtop(x) - TUN + 74;
-        ctx.globalAlpha = 0.8 + 0.2 * Math.sin(G.time * 9 + x);
-        ctx.drawImage(T.lamp, x - 150, y - 150);
+      if (x > PORTAL_X + 380 && x < END_X - 900 && Math.abs(x - HALL_X) > 430) {
+        ctx.globalAlpha = (0.8 + 0.2 * Math.sin(G.time * 9 + x)) * k;
+        ctx.drawImage(T.lamp, x - 150, Y_C - TUN + 74 - 150);
       }
     ctx.restore();
-  } else {
+  }
+  if (k < 1) {
     // warm evening haze at the edges
     const g = ctx.createRadialGradient(W / 2, H * 0.55, H * 0.45, W / 2, H * 0.55, H * 1.05);
     g.addColorStop(0, 'rgba(40,14,8,0)');
-    g.addColorStop(1, 'rgba(40,14,8,.4)');
+    g.addColorStop(1, `rgba(40,14,8,${0.4 * (1 - k)})`);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
   }

@@ -113,7 +113,58 @@ function armorPose(e) {
       o.aB = [2.3, 2.7];
       break;
   }
+  // the gun: aimed at where its bullets land. As it spins up it tips down to the ground just
+  // in front, and fires from there, lifting as the stream walks out.
+  if (e.state === 'spin' || e.state === 'fire') {
+    o.aF[0] = 0.9;
+    const fire = e.state === 'fire',
+      a = aimAt(e, o, e.x + e.face * (fire ? e.reachD : ARMOR.reach0), fire ? e.aimY : e.y),
+      u = fire ? 1 : ease(clamp(e.t / 0.45, 0, 1));
+    o.aF[1] = 1.35 + (a - 1.35) * u;
+  }
   return o;
+}
+/** Where its parts are, in its own frame (feet at 0,0, facing +x, before scaling). */
+function geo(o) {
+  const lh = (l) => THIGH * Math.cos(l[0]) + SHIN * Math.cos(l[1]),
+    hipH = (o.hipH ?? Math.max(lh(o.lF), lh(o.lB))) + 10,
+    neck = [Math.sin(o.lean) * 62, -Math.cos(o.lean) * 62],
+    sh = [neck[0] * 0.86, neck[1] * 0.86],
+    A = chain(
+      [sh[0] + 4, sh[1] + 4],
+      [
+        [o.aF[0], UARM],
+        [o.aF[1], FARM],
+      ],
+    );
+  return { hipH, neck, sh, A };
+}
+/** A point of its frame (hip at 0,0 after the body's lift) on the road. */
+function toWorld(e, o, g, p) {
+  const s = e.T.scale,
+    c = Math.cos(o.rot),
+    n = Math.sin(o.rot),
+    x = p[0] * c - p[1] * n,
+    y = p[0] * n + p[1] * c;
+  return [e.x + e.face * s * x, e.y - e.z + s * (y - g.hipH + o.bob)];
+}
+/** The forearm angle that points the gun from the elbow at (tx, ty) on the road. */
+function aimAt(e, o, tx, ty) {
+  const s = e.T.scale,
+    g = geo(o),
+    el = g.A[1],
+    lx = ((tx - e.x) * e.face) / s,
+    ly = (ty - e.y + e.z) / s + g.hipH - o.bob;
+  return Math.atan2(lx - el[0], ly - el[1]);
+}
+/** The end of the gun's barrels, on the road (where the bullets come from). */
+export function muzzle(e) {
+  const o = armorPose(e),
+    g = geo(o),
+    a = o.aF[1],
+    h = g.A[2],
+    L = 86 - o.recoil;
+  return toWorld(e, o, g, [h[0] + Math.sin(a) * L, h[1] + Math.cos(a) * L]);
 }
 
 // --- drawing ----------------------------------------------------------------------------------
@@ -366,12 +417,9 @@ export function drawArmor(e, aura = true) {
     ctx.translate(0, (1 - p) * 240 * s);
   }
   ctx.scale(e.face * s, s);
-  const lh = (l) => THIGH * Math.cos(l[0]) + SHIN * Math.cos(l[1]);
-  const hipH = (o.hipH ?? Math.max(lh(o.lF), lh(o.lB))) + 10;
+  const { hipH, neck, sh, A } = geo(o);
   ctx.translate(0, -hipH + o.bob);
   ctx.rotate(o.rot);
-  const neck = [Math.sin(o.lean) * 62, -Math.cos(o.lean) * 62],
-    sh = [neck[0] * 0.86, neck[1] * 0.86];
   // the far leg and arm (punching arm), darker
   leg(o.lB, -6, PAL.dk);
   const B = chain(
@@ -405,11 +453,17 @@ export function drawArmor(e, aura = true) {
       [8, 22],
     ],
   );
-  const pulse = 0.6 + 0.4 * Math.sin(G.time * 5 + e.seed);
-  ctx.fillStyle = fl ? '#fff' : `rgba(125,255,90,${pulse})`;
-  ctx.shadowColor = PAL.gl;
-  ctx.shadowBlur = 14;
+  // the reactor's gauge is its health: it drains, from green through amber to red
+  const pulse = 0.75 + 0.25 * Math.sin(G.time * 5 + e.seed),
+    hp = clamp(e.hp / T.hp, 0, 1),
+    gc = hp > 0.5 ? '125,255,90' : hp > 0.25 ? '255,200,60' : '255,70,50',
+    gh = 46 * hp;
+  ctx.fillStyle = '#10140e';
   ctx.fillRect(-14, -28, 18, 46);
+  ctx.fillStyle = fl ? '#fff' : `rgba(${gc},${pulse})`;
+  ctx.shadowColor = `rgb(${gc})`;
+  ctx.shadowBlur = 14;
+  ctx.fillRect(-14, 18 - gh, 18, gh);
   ctx.shadowBlur = 0;
   ctx.strokeStyle = OL;
   ctx.lineWidth = 2;
@@ -521,13 +575,6 @@ export function drawArmor(e, aura = true) {
   // the near leg
   leg(o.lF, 6, PAL.pl);
   // the gun arm, with its big shoulder plate
-  const A = chain(
-    [sh[0] + 4, sh[1] + 4],
-    [
-      [o.aF[0], UARM],
-      [o.aF[1], FARM],
-    ],
-  );
   armLimb(A[0], A[1], 12, 11, PAL.pl);
   joint(A[1], 8);
   armLimb(A[1], A[2], 11, 12, PAL.pl);
@@ -654,8 +701,7 @@ export function drawArmor(e, aura = true) {
 function bullet(e) {
   const x = e.x + e.face * e.reachD + rnd(-14, 14),
     y = e.aimY + rnd(-10, 10),
-    mx = e.x + e.face * 120 * e.T.scale,
-    my = e.y - 108 * e.T.scale;
+    [mx, my] = muzzle(e);
   G.parts.push({ k: 'tracer', x: mx, y: my, x2: x, y2: y, t: 0, life: 0.06 });
   G.parts.push({
     k: 'dust',
@@ -766,8 +812,8 @@ export default defineFoe('armor', {
       if (random() < 0.3)
         G.parts.push({
           k: 'smoke',
-          x: e.x + e.face * 150 * e.T.scale,
-          y: e.y - 110 * e.T.scale,
+          x: muzzle(e)[0],
+          y: muzzle(e)[1],
           vx: rnd(-10, 10),
           vy: rnd(-50, -20),
           g: 0,

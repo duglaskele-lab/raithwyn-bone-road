@@ -378,7 +378,6 @@ export function update(dt) {
         floorClamp(o);
         const e = spawn(q.kind, 0, o.x, o.y);
         Object.assign(e, { state: 'down', t: 0.2, fromSlime: true, face: P.x >= o.x ? 1 : -1 });
-        G.pools.push({ x: o.x, y: o.y, t: 0, life: ACID.pool * 0.6, seed: rnd(6) });
       }
     } else if (q.k === 'acid') {
       // The necromancer's acid ball: flies in an arc and leaves a puddle where it lands.

@@ -27,7 +27,7 @@ import {
   pathPx,
   startLevel,
 } from '../src/level.js';
-import { FLOOR, L2, PATH, WAVEGEN2, WAVES2 } from '../src/level2.js';
+import { FLOOR, L2, PATH, WAVEGEN2, WAVES2, topY } from '../src/level2.js';
 import { setRandom } from '../src/util.js';
 import { DT, freshGame } from './helpers.js';
 
@@ -88,61 +88,81 @@ test('winning the Bone Road leads on to Old Quarry, keeping score and lives', ()
   assert.equal(P.lives, 1);
 });
 
-test('the floor of Old Quarry: the street, the slant, the quarry road and the mine', () => {
+test('the floor of Old Quarry: two streets and the camp joined by two slants down', () => {
   quarry();
   assert.ok(onFloor(500, 450));
   assert.ok(!onFloor(500, 300), 'the houses are not floor');
-  assert.ok(onFloor(3000, 358 + (3000 - L2.SLANT[0]) * L2.SLANT[2] + 80), 'on the slant');
-  assert.ok(onFloor(3900, 1300), 'down the quarry road');
-  assert.ok(!onFloor(3300, 1300), 'not into the canyon wall');
-  assert.ok(onFloor(5000, L2.MINE_Y + 80), 'in the tunnel');
+  assert.ok(onFloor(2600, topY(2600) + 80), 'on the first slant');
+  assert.ok(onFloor(3700, L2.Y_B + 80), 'on the lower street');
+  assert.ok(onFloor(4800, topY(4800) + 80), 'on the second slant');
+  assert.ok(onFloor(7000, L2.Y_C + 80), 'in the tunnel');
+  assert.ok(!onFloor(3700, L2.Y_A + 80), 'the lower street is lower');
   // off the floor: pulled back onto it
-  const o = floorClamp({ x: 3300, y: 1300 });
+  const o = floorClamp({ x: 3700, y: 300 });
   assert.ok(onFloor(o.x, o.y));
-  assert.ok(Math.abs(o.x - L2.QUARRY[0]) < 2);
   // the floor pieces join up: walking the camera path stays on the floor
   for (let d = 0; d < px(WAVES2[WAVES2.length - 1].s); d += 40) {
     const c = pathAt(d);
     assert.ok(onFloor(c.x, c.y), `the road at ${d} px (${c.x}, ${c.y})`);
   }
-  assert.equal(FLOOR.length, 6);
+  assert.equal(FLOOR.length, 5);
 });
 
-test('the camera follows the road down: right, down the slant, straight down, right again', () => {
+test('fights are only on the flat, never on a slant', () => {
+  for (const w of WAVES2) {
+    const c = pathAt(px(w.s), PATH);
+    // the player's half of the screen is on level ground
+    for (const x of [c.x - 150, c.x, c.x + 150])
+      assert.ok(
+        [L2.Y_A, L2.Y_B, L2.Y_C].includes(topY(x)),
+        `a fight at s=${w.s} stands on a slant (x ${Math.round(x)})`,
+      );
+  }
+  // no part of the road goes straight down the screen
+  for (let i = 1; i < PATH.length; i++) assert.ok(PATH[i][0] > PATH[i - 1][0]);
+});
+
+test('Old Quarry is about 30% longer than the Bone Road', () => {
+  const l1 = WAVES[WAVES.length - 1].x,
+    l2 = px(WAVES2[WAVES2.length - 1].s),
+    k = l2 / l1;
+  assert.ok(k > 1.22 && k < 1.4, `${l2} px against ${l1} px: ${k.toFixed(2)}`);
+});
+
+test('the camera follows the road: right, down a slant, right, down again, right', () => {
   quarry();
-  const at = (d) => {
-    const c = pathAt(d);
+  const at = (s) => {
+    const c = pathAt(px(s));
     return [c.cx, c.cy];
   };
   const [x0, y0] = at(0),
-    [x1, y1] = at(px(1.5)),
-    [x2, y2] = at(px(3.5)),
-    [x3, y3] = at(px(6.5));
-  assert.ok(x1 > x0 && y1 > y0, 'down the slant: right and down');
-  assert.ok(Math.abs(x2 - at(px(3))[0]) < 1 && y2 > y1, 'the quarry road: straight down');
-  assert.ok(x3 > x2 && y3 > y2, 'the mine shaft: right and down');
+    [x1, y1] = at(1.5),
+    [x2, y2] = at(2.5),
+    [x3, y3] = at(3.5),
+    [x4, y4] = at(4.5);
+  assert.ok(x1 > x0 && y1 > y0, 'down the first slant');
+  assert.ok(x2 > x1 && y2 > y1);
+  assert.ok(x3 > x2 && y3 > y2, 'down the second slant');
+  assert.ok(x4 > x3 && Math.abs(y4 - at(4)[1]) < 1, 'level in the mine');
 });
 
-test('walking the quarry road down the screen reaches the fight there', () => {
-  quarry(px(2.6));
-  G.waveI = WAVES2.findIndex((w) => w.s === 3);
-  keys.d = true;
-  step(12, () => (P.inv = 1));
+test('walking down the slant reaches the fight on the lower street', () => {
+  quarry(px(1.2));
+  G.waveI = WAVES2.findIndex((w) => w.s > 2);
+  keys.r = true;
+  step(14, () => (P.inv = 1));
   assert.ok(G.wave, 'the fight has started');
-  assert.ok(Math.abs(G.camS - px(3)) < 1e-6);
-  assert.ok(G.camY > 700, 'the camera came down');
+  assert.ok(Math.abs(G.camS - px(WAVES2[G.waveI].s)) < 1e-6);
+  assert.ok(G.camY > 200, 'the camera came down');
 });
 
-test('enemies come from off the screen where the road goes on, or out of the ground', () => {
-  // on the street: from the side
+test('enemies come from off the screen at the sides', () => {
   quarry(px(0.6));
   const a = spawn('miner', 1);
   assert.ok(a.x > G.cam + 900, 'from the right');
-  // down the quarry road there is no floor off the side: from below
-  quarry(px(3.2));
-  const b = spawn('miner', 1);
-  assert.ok(onFloor(b.x, b.y));
-  assert.ok(b.y > G.camY + 540 || b.state === 'rise', `from below or the ground (${b.y})`);
+  const b = spawn('miner', -1);
+  assert.ok(b.x < G.cam, 'from the left');
+  assert.ok(onFloor(a.x, a.y) && onFloor(b.x, b.y));
 });
 
 test('a red barrel: a blow lights its fuse, then it blows up and hurts everyone near it', () => {
@@ -245,10 +265,10 @@ test('the lizard hops back from a blow it sees coming, then lunges', () => {
   for (let i = 0; i < 60 && e.state === 'lzwind'; i++) updEnemy(e, DT, { n: 0 });
   assert.equal(e.state, 'lzlunge');
   assert.equal(LIZARD.lwind > 0.3, true);
-  // a medium enemy: a plain hit does not stop the lunge
+  // a light enemy: any hit stops the lunge
   hurtEnemy(e, 1, 1, false, 'punch');
-  assert.equal(e.state, 'lzlunge');
-  assert.equal(TYPES.lizard.weight, 'medium');
+  assert.equal(e.state, 'hurt');
+  assert.equal(TYPES.lizard.weight, undefined);
 });
 
 test('the power armour shrugs off blows, only crushing ones knock it back', () => {
