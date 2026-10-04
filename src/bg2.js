@@ -291,16 +291,16 @@ function tower(g, x, y) {
 
 // [kind, sign, width, height of the false front, body colour, trim colour]
 const HOUSES = [
-  ['store', 'GENERAL STORE', 300, 220, '#7d5a3c', '#e6d3a6'],
-  ['saloon', 'SALOON', 330, 250, '#8a3f2c', '#f0d89a'],
-  ['sheriff', 'SHERIFF', 230, 190, '#6b5240', '#e9e0c4'],
-  ['bank', 'BANK', 260, 230, '#8d6d4c', '#f3e6c0'],
-  ['hotel', 'HOTEL', 320, 270, '#5d6a72', '#e2d6b4'],
-  ['undertaker', 'UNDERTAKER', 250, 200, '#3d3640', '#c8c0a8'],
-  ['assay', 'ASSAY OFFICE', 260, 200, '#7a6448', '#eadcb6'],
-  ['smith', 'BLACKSMITH', 260, 180, '#5a4232', '#d8c49a'],
-  ['barber', 'BARBER', 200, 180, '#6f4d50', '#f2e2c0'],
-  ['mineoffice', 'MINING CO.', 260, 210, '#6a4a32', '#ead6a0'],
+  ['store', 'GENERAL STORE', 300, 250, '#7d5a3c', '#e6d3a6'],
+  ['saloon', 'SALOON', 330, 275, '#8a3f2c', '#f0d89a'],
+  ['sheriff', 'SHERIFF', 230, 225, '#6b5240', '#e9e0c4'],
+  ['bank', 'BANK', 260, 255, '#8d6d4c', '#f3e6c0'],
+  ['hotel', 'HOTEL', 320, 290, '#5d6a72', '#e2d6b4'],
+  ['undertaker', 'UNDERTAKER', 250, 230, '#3d3640', '#c8c0a8'],
+  ['assay', 'ASSAY OFFICE', 260, 230, '#7a6448', '#eadcb6'],
+  ['smith', 'BLACKSMITH', 260, 225, '#5a4232', '#d8c49a'],
+  ['barber', 'BARBER', 200, 225, '#6f4d50', '#f2e2c0'],
+  ['mineoffice', 'MINING CO.', 260, 250, '#6a4a32', '#ead6a0'],
 ];
 function house(spec, seed) {
   const [kind, , w, h, body, trim] = spec;
@@ -372,10 +372,16 @@ function house(spec, seed) {
     g.strokeStyle = OL;
     g.lineWidth = 3;
     g.stroke();
+    // The porch roof (see porch()) hides the facade from ROOF px above its foot down: the sign
+    // and the upper windows share the band above it, under the false front's top.
+    const ROOF = 132,
+      band0 = top + (kind === 'saloon' || kind === 'hotel' ? 44 : 30),
+      band1 = bot - ROOF,
+      upper = band1 - band0 >= 34 + 8 + 38;
     // the sign board: no lettering, a painted picture of the trade
     const sw = 64,
       sx = x0 + (w - sw) / 2,
-      sy = top + 40;
+      sy = upper ? band0 : band0 + (band1 - band0 - 34) / 2;
     g.fillStyle = '#2a1c16';
     g.fillRect(sx - 3, sy - 3, sw + 6, 40);
     g.fillStyle = trim;
@@ -404,8 +410,18 @@ function house(spec, seed) {
         g.fill();
       }
     };
-    const up = bot - 150;
-    if (h > 200) for (let x = x0 + 30; x < x0 + w - 60; x += 76) win(x, up - 10, 40, 46);
+    if (upper) {
+      // a row of upper windows under the sign, the middle one left out where the sign hangs
+      const wy = sy + 42,
+        wh = Math.min(46, band1 - wy - 6),
+        n = Math.floor((w - 40) / 76),
+        x1 = x0 + (w - (n * 76 - 36)) / 2;
+      for (let i = 0; i < n; i++) {
+        const x = x1 + i * 76;
+        if (x + 40 > sx - 6 && x < sx + sw + 6 && wy < sy + 40) continue;
+        win(x, wy, 40, wh);
+      }
+    }
     // the door (batwings for the saloon)
     const dx = x0 + w / 2 - 24,
       dy = bot - 88;
@@ -433,9 +449,7 @@ function house(spec, seed) {
     for (const wx of [x0 + 22, x0 + w - 92]) if (w > 220) win(wx, bot - 84, 70, 52);
     // a detail of its own
     g.fillStyle = trim;
-    if (kind === 'sheriff') {
-      star(g, x0 + w - 36, top + 56, 15, '#e8c35a');
-    } else if (kind === 'undertaker') {
+    if (kind === 'undertaker') {
       // a coffin leaning by the door
       g.fillStyle = '#4b2e22';
       g.beginPath();
@@ -483,8 +497,8 @@ function house(spec, seed) {
     // wanted posters
     if (r() < 0.7)
       for (let i = 0; i < 1 + ((r() * 2) | 0); i++) {
-        const px = x0 + 20 + r() * (w - 60),
-          py = bot - 140 + r() * 30;
+        const px = r() < 0.5 ? x0 + 8 + r() * 10 : x0 + w - 34 - r() * 10,
+          py = bot - 100 + r() * 12;
         g.fillStyle = '#e9dcb8';
         g.fillRect(px, py, 22, 28);
         g.fillStyle = '#5a4030';
@@ -582,11 +596,27 @@ function sign(g, kind, x, y) {
       }
       break;
     default:
-      // a barrel and a sack
-      g.fillRect(-16, -8, 14, 18);
+      // a barrel with hoops and a tied sack
       g.beginPath();
-      g.ellipse(9, 4, 9, 9, 0, 0, TAU);
+      g.moveTo(-20, -10);
+      g.quadraticCurveTo(-24, 1, -20, 12);
+      g.lineTo(-4, 12);
+      g.quadraticCurveTo(0, 1, -4, -10);
+      g.closePath();
       g.fill();
+      g.strokeStyle = '#e6d3a6';
+      g.lineWidth = 2;
+      line([-21, -4], [-3, -4]);
+      line([-21, 6], [-3, 6]);
+      g.strokeStyle = ink;
+      g.beginPath();
+      g.moveTo(4, 12);
+      g.quadraticCurveTo(2, -2, 9, -6);
+      g.lineTo(15, -6);
+      g.quadraticCurveTo(22, -2, 20, 12);
+      g.closePath();
+      g.fill();
+      line([7, -10], [12, -6], [17, -10]);
   }
   g.restore();
 }
