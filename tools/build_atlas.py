@@ -30,6 +30,9 @@ CENTER_ANCHORED = {"fx"}                  # projectiles are anchored by their ce
 # from the game moving the player instead.
 BODY_ALIGNED = {"punch1", "punch2"}
 BODY_BAND = (45, 130)   # rows of the body used for the match, in game px above the ground
+# Jump: the frames sit on the bottom of the row, so the apex frame (2), with its legs tucked
+# up, would drop the head below the frames around it. It is lifted by this many game px.
+JUMP_LIFT = {2: 28}
 
 
 def runs(mask):
@@ -99,6 +102,9 @@ def main():
                 ax, ay = (xs.min() + xs.max()) / 2, y1 - y0
             items.append([name, x0, y0, x1, y1, ax, ay])
 
+    jumps = [it for it in items if it[0] == "jump"]
+    for i, lift in JUMP_LIFT.items():
+        jumps[i][6] += lift / SCALE
     idle = next(it for it in items if it[0] == "idle")
     for it in items:
         if it[0] in BODY_ALIGNED:
