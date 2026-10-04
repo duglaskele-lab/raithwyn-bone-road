@@ -4,6 +4,8 @@ import { FAT, HOG, JUGGLE, MAXR, RW, TYPES } from '../src/config.js';
 import { G, P } from '../src/state.js';
 import { addRage, canJuggle, hadoLevel, hitPlayer, hurtEnemy } from '../src/combat.js';
 import { spawn, updEnemy } from '../src/enemies.js';
+import { keys, pressed } from '../src/input.js';
+import { update } from '../src/world.js';
 import { freshGame } from './helpers.js';
 
 beforeEach(freshGame);
@@ -123,6 +125,45 @@ test('the fatso goes down only to two heavy blows within 3 seconds', () => {
   hurtEnemy(f, 1, 1, true, 'punch');
   assert.notEqual(f.state, 'air', '3 s later it counts as a first blow again');
   assert.equal(FAT.window, 3);
+});
+
+test('the third punch with up held launches a light enemy straight up', () => {
+  const e = spawn('grunt', 1, 500, 450);
+  hurtEnemy(e, 1, 1, true, 'punch', true);
+  assert.equal(e.state, 'air');
+  assert.equal(e.vz, JUGGLE.launch);
+  assert.equal(e.vx, JUGGLE.launchCarry, 'barely pushed away');
+  // a launcher on an enemy already in the air throws it up high again, also without pushing it
+  for (let i = 0; i < 20; i++) updEnemy(e, 1 / 60, { n: 0 });
+  hurtEnemy(e, 1, 1, true, 'punch', true);
+  assert.equal(e.vz, JUGGLE.launch, 'the first hit in the air pops it just as high');
+  assert.equal(e.vx, JUGGLE.launchCarry);
+  // without up: the usual knockback
+  const g = spawn('grunt', 1, 500, 450);
+  hurtEnemy(g, 1, 1, true, 'punch');
+  assert.equal(g.vx, 270);
+  // heavy enemies are knocked back as usual
+  const b = spawn('brute', 1, 500, 450);
+  hurtEnemy(b, 1, 1, true, 'punch', true);
+  assert.equal(b.vx, 170);
+});
+
+test('the combo finisher launches when up is held, in a real fight', () => {
+  P.x = 400;
+  P.y = 450;
+  const e = spawn('grunt', 1, 470, 450);
+  Object.assign(e, { state: 'chase', cd: 99 });
+  keys.u = true;
+  P.combo = 2; // the next punch is the third one
+  P.comboT = 1;
+  pressed.atk = true;
+  for (let i = 0; i < 20 && e.state !== 'air'; i++) {
+    update(1 / 60);
+    for (const k in pressed) delete pressed[k];
+  }
+  delete keys.u;
+  assert.equal(e.state, 'air');
+  assert.ok(e.vz > 400 && Math.abs(e.vx) <= JUGGLE.launchCarry, `vz ${e.vz} vx ${e.vx}`);
 });
 
 test('a leaping monkey is swatted out of the air by a plain hit', () => {

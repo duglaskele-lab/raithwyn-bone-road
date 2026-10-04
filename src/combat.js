@@ -15,7 +15,11 @@ export function hadoLevel(rage) {
 export function addRage(n) {
   P.rage = Math.min(MAXR, P.rage + n);
 }
-export function hurtEnemy(e, dmg, dir, knock, src) {
+/**
+ * A hit on an enemy (or a breakable prop): `dir` is the side it is hit towards, `knock` a heavy
+ * blow, `src` what hit it, `launch` a launcher that throws a light enemy up instead of away.
+ */
+export function hurtEnemy(e, dmg, dir, knock, src, launch = false) {
   if (e.isProp) {
     // smashing scenery keeps the style meter from draining between fights
     styleKeep();
@@ -62,7 +66,7 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
   if (F.guard?.(e, knock, src, dir)) return true;
   if (e.state === 'air') {
     // up in the air: a light enemy is juggled, a heavy one just keeps falling
-    if (canJuggle(e)) juggle(e, dir, knock);
+    if (canJuggle(e)) juggle(e, dir, knock, launch);
     return true;
   }
   const busy = e.state === 'windup' || e.state === 'attack' || e.state === 'swind';
@@ -70,8 +74,14 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
     e.state = 'air';
     e.t = 0;
     e.slammed = false;
-    e.vx = dir * (e.T.heavy ? 170 : 270);
-    e.vz = e.T.heavy ? 320 : 430;
+    if (launch && knock && canJuggle(e)) {
+      // the launcher: straight up, ready to be juggled
+      e.vx = dir * JUGGLE.launchCarry;
+      e.vz = JUGGLE.launch;
+    } else {
+      e.vx = dir * (e.T.heavy ? 170 : 270);
+      e.vz = e.T.heavy ? 320 : 430;
+    }
   } else if (e.T.heavy && busy) {
     e.x += dir * 4;
   } else {
@@ -85,14 +95,12 @@ export function hurtEnemy(e, dmg, dir, knock, src) {
 /** Can this enemy be juggled? Light ones can; heavy ones and bosses only if TYPES says so. */
 export const canJuggle = (e) => e.T.juggle ?? !(e.T.heavy || e.T.bigBoss);
 /** A hit in the air pops the enemy up again, a little less with every hit. */
-function juggle(e, dir, knock) {
+function juggle(e, dir, knock, launch) {
   e.juggle = (e.juggle || 0) + 1;
   e.t = 0;
-  e.vz = Math.max(
-    JUGGLE.min,
-    (knock ? JUGGLE.popKnock : JUGGLE.pop) - JUGGLE.decay * (e.juggle - 1),
-  );
-  e.vx = dir * (knock ? JUGGLE.carryKnock : JUGGLE.carry);
+  const up = launch && knock ? JUGGLE.launch : knock ? JUGGLE.popKnock : JUGGLE.pop;
+  e.vz = Math.max(JUGGLE.min, up - JUGGLE.decay * (e.juggle - 1));
+  e.vx = dir * (launch && knock ? JUGGLE.launchCarry : knock ? JUGGLE.carryKnock : JUGGLE.carry);
   styleGain(JUGGLE.style);
 }
 export function killEnemy(e, dir) {
@@ -233,7 +241,8 @@ export function strike(o) {
           : null;
     if (zone) {
       p.hit.add(e);
-      if (hurtEnemy(e, o.dmg * dmgMult() * headBonus(e, zone), p.face, o.knock, src) && !e.isProp) {
+      const dmg = o.dmg * dmgMult() * headBonus(e, zone);
+      if (hurtEnemy(e, dmg, p.face, o.knock, src, o.launch) && !e.isProp) {
         addRage(o.rage);
         styleGain(10);
       }
