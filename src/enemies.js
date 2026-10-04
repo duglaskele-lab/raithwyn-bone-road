@@ -21,9 +21,17 @@ export function spawn(type, side, x, y) {
     placed = x !== undefined;
   if (!placed && level().floor) {
     // Old Quarry: from off the screen where the floor goes on, else out of the ground
+    const F = FOES[type];
+    // some never climb out of the ground: they always walk in from a side
+    if (side === 0 && F.walksIn) side = random() < 0.5 ? -1 : 1;
     const at = side !== 0 && entryPoint(side, random);
-    if (!at) side = 0;
-    [x, y] = at || groundPoint(random);
+    if (!at && F.walksIn) {
+      x = side > 0 ? G.cam + W + 60 : G.cam - 60;
+      y = G.camY + 300 + random() * 200;
+    } else {
+      if (!at) side = 0;
+      [x, y] = at || groundPoint(random);
+    }
   } else if (!placed) {
     if (side === 0) {
       let n = 0;

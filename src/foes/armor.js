@@ -1,9 +1,11 @@
 // The zombie in power armour: an elite of Old Quarry, built twice as finely as the others.
 // A walking tank in gunmetal plates with a glowing reactor on its back and a minigun on its
 // arm. It spins the gun up, then sprays the ground in front of it, close in first and further
-// and further out (the bullets kick up dust where they land). Up close it winds up a punch
-// (half a second) that knocks the player down. Heavy: only crushing blows move it.
-import { ARMOR, OL, TAU, W } from '../config.js';
+// and further out (the bullets kick up dust where they land). Up close it winds up a kick
+// (0.6 s, a red patch on the ground shows where it lands) that knocks the player down. It
+// always walks in from the side of the screen, and falls down dead rather than into bones.
+// Heavy: only crushing blows move it.
+import { ARMOR, CORPSE_T, OL, TAU, W } from '../config.js';
 import { clamp, ease, random, rnd } from '../util.js';
 import { G, P } from '../state.js';
 import { SFX } from '../audio.js';
@@ -64,30 +66,36 @@ function armorPose(e) {
       break;
     }
     case 'windup': {
-      const u = ease(clamp(t / 0.35, 0, 1));
-      o.aB = [0.1 + (-1.2 - 0.1) * u, 0.7 + (0.4 - 0.7) * u];
-      o.lean = 0.08 - 0.15 * u;
-      o.lF = [0.4, 0.05];
-      o.lB = [-0.45, -0.55];
-      if (t > 0.35) o.aB = [-1.2 + Math.sin(t * 60) * 0.04, 0.4];
+      // the kick: the knee comes up and the foot cocks back, the body leans away; it shakes
+      // on the hydraulics just before the blow
+      const u = ease(clamp(t / 0.35, 0, 1)),
+        k = t > 0.35 ? Math.sin(t * 60) * 0.04 : 0;
+      o.lF = [0.18 + (1.25 - 0.18) * u + k, -0.05 + (-0.75 + 0.05) * u];
+      o.lB = [-0.1, -0.15];
+      o.lean = 0.08 - 0.26 * u;
+      o.aB = [0.1 + 0.5 * u, 0.7 + 0.4 * u];
       break;
     }
     case 'attack': {
+      // the foot shoots straight out
       const u = clamp(t / 0.07, 0, 1);
-      o.aB = [-1.2 + 2.75 * u, 0.4 + 1.17 * u];
-      o.lean = -0.07 + 0.35 * u;
-      o.lF = [0.6, 0.15];
-      o.lB = [-0.55, -0.8];
+      o.lF = [1.25 + (1.55 - 1.25) * u, -0.75 + (1.6 + 0.75) * u];
+      o.lB = [-0.2, -0.25];
+      o.lean = -0.18 - 0.1 * u;
+      o.aB = [0.6, 1.1];
       break;
     }
-    case 'recover':
-      o.aB = [1.0, 1.3];
-      o.lean = 0.2;
+    case 'recover': {
+      const u = ease(clamp(t / e.T.rec, 0, 1));
+      o.lF = [1.55 + (0.18 - 1.55) * u, 1.6 + (-0.05 - 1.6) * u];
+      o.lean = -0.28 + 0.36 * u;
       break;
+    }
     case 'hurt':
       o.lean = -0.18;
       o.head = -0.2;
       break;
+    case 'fall':
     case 'air':
       o.rot = -Math.min(1.35, t * 4.5);
       o.hipH = 50;
@@ -95,6 +103,7 @@ function armorPose(e) {
       o.lB = [0.5, -0.1];
       o.aF = [1.6, 2.0];
       break;
+    case 'corpse':
     case 'down':
       o.rot = -1.5;
       o.hipH = 18;
@@ -399,15 +408,43 @@ function minigun(h, a, o) {
   ctx.restore();
 }
 
+/** The kick's warning: a red patch on the ground where it lands, filling up, and a '!'. */
+function kickWarning(e) {
+  const T = e.T,
+    u = clamp(e.t / T.wind, 0, 1),
+    x = e.x - G.cam + e.face * (T.reach * 0.75 * T.scale),
+    rx = T.reach * 0.55 * T.scale,
+    ry = 22;
+  ctx.save();
+  ctx.fillStyle = `rgba(255,60,40,${0.12 + 0.2 * u})`;
+  ctx.beginPath();
+  ctx.ellipse(x, e.y, rx, ry, 0, 0, TAU);
+  ctx.fill();
+  ctx.strokeStyle = u > 0.7 ? '#ff3a3a' : 'rgba(255,140,110,.9)';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(x, e.y, rx * u, ry * u, 0, 0, TAU);
+  ctx.stroke();
+  ctx.fillStyle = '#ff4a5e';
+  ctx.globalAlpha = 0.6 + 0.4 * Math.sin(e.t * 30);
+  ctx.font = '900 28px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('!', e.x - G.cam, e.y - e.z - 225 * T.scale);
+  ctx.restore();
+}
 export function drawArmor(e, aura = true) {
   const T = e.T,
     s = T.scale,
     o = armorPose(e),
     fl = e.flash > 0;
   PAL = palette(fl);
+  if (e.state === 'windup') kickWarning(e);
   o.hot = e.state === 'cool' ? 1 - e.t / ARMOR.cool : e.state === 'fire' ? e.t / ARMOR.fire : 0;
   if (aura) drawAura(e);
   ctx.save();
+  // a dead one fades away where it lies
+  if (e.state === 'corpse') ctx.globalAlpha = clamp((CORPSE_T - e.t) / 0.5, 0, 1);
   ctx.translate(e.x - G.cam, e.y - e.z);
   if (e.state === 'rise') {
     const p = ease(Math.min(1, e.t / 0.85));
@@ -420,7 +457,7 @@ export function drawArmor(e, aura = true) {
   const { hipH, neck, sh, A } = geo(o);
   ctx.translate(0, -hipH + o.bob);
   ctx.rotate(o.rot);
-  // the far leg and arm (punching arm), darker
+  // the far leg and arm, darker
   leg(o.lB, -6, PAL.dk);
   const B = chain(
     [sh[0] - 8, sh[1] + 4],
@@ -658,8 +695,9 @@ export function drawArmor(e, aura = true) {
   // the visor
   ctx.fillStyle = OL;
   ctx.fillRect(2, -12, 22, 10);
-  ctx.fillStyle = fl ? '#fff' : T.eye;
-  ctx.shadowColor = T.eye;
+  const eye = e.state === 'windup' ? '#ff3a2a' : T.eye;
+  ctx.fillStyle = fl ? '#fff' : eye;
+  ctx.shadowColor = eye;
   ctx.shadowBlur = 12;
   ctx.fillRect(4, -10, 18, 5);
   ctx.shadowBlur = 0;
@@ -750,6 +788,8 @@ function bullet(e) {
 
 export default defineFoe('armor', {
   draw: drawArmor,
+  walksIn: true,
+  corpse: true,
   init: { gunCd: [1, 2.5] },
   timers: ['gunCd'],
   spawn(e) {
@@ -781,8 +821,11 @@ export default defineFoe('armor', {
   pose: {},
   on: {
     windup(e) {
-      // the punch: half a second of wind-up
-      e.spinA = (e.spinA + 0.2) % TAU;
+      // the kick's wind-up begins with a hiss of the hydraulics
+      if (e.t < 0.05 && !e.hissed) {
+        e.hissed = true;
+        SFX.hiss();
+      } else if (e.t >= 0.05) e.hissed = false;
     },
   },
   states: {

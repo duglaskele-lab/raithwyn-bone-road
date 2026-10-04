@@ -26,6 +26,8 @@
 //   update(e, dt)            replaces the whole AI (the Bone Dragon)
 //   pose / look              skeletal animation and costume (see anim.js and skeleton.js)
 //   draw(e, aura)            draws it instead of the skeleton rig (a creature of its own)
+//   corpse                   it dies by falling down and lying still, not into bones
+//   walksIn                  it never climbs out of the ground, it comes in from a side
 export const FOES = {},
   STATES = {};
 
