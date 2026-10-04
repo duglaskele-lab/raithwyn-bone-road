@@ -158,7 +158,6 @@ export const TYPES = {
     cd: [1.2, 2],
     knock: 1,
     club: 1,
-    heavy: 1,
     col: '#e3d6b4',
     dk: '#ac9d7a',
     eye: '#ffb020',
@@ -314,105 +313,19 @@ export const TYPES = {
 };
 // The road (a quarter shorter than it was): seven fights, the baron, one more fight and the
 // Bone Dragon. A wave marked `chain` comes on the heels of the one before, at the same spot.
-// Zombies come in crowds and rise from the ground; the other enemies are mixed in so that
-// every fight brings something different.
+// The ordinary fights are rolled anew every run (see WAVEGEN and waves.js): `lvl` from 0 (the
+// start of the road: mostly easy enemies, a strong one now and then) to 1 (the last fight:
+// a crowd of every kind); the boss fights are fixed (`sp`).
 // Seconds between a wave and the one chained to it.
 export const CHAIN_GAP = 0.8;
 export const WAVES = [
-  {
-    x: 225,
-    sp: [
-      ['zombie', 0, 0],
-      ['zombie', 0, 0.6],
-      ['grunt', 1, 1.2],
-      ['zombie', -1, 2],
-      ['zombie', 1, 2.8],
-      ['monkey', 0, 3.8],
-    ],
-  },
-  {
-    x: 860,
-    sp: [
-      ['thrower', 1, 0],
-      ['zombie', 0, 0.5],
-      ['zombie', 0, 0.9],
-      ['necro', -1, 2],
-      ['grunt', 1, 2.8],
-      ['zombie', 0, 3.6],
-      ['zombie', -1, 4.4],
-    ],
-  },
-  {
-    x: 1500,
-    sp: [
-      ['biker', 1, 0],
-      ['zombie', 0, 1],
-      ['zombie', 0, 1.3],
-      ['monkey', -1, 2.2],
-      ['fat', 1, 3.5],
-      ['zombie', 0, 4.5],
-      ['thrower', -1, 5.5],
-    ],
-  },
-  {
-    x: 1500,
-    chain: 1,
-    sp: [
-      ['necro', 1, 0],
-      ['brute', -1, 0.8],
-      ['zombie', 0, 1.6],
-      ['zombie', 0, 2],
-      ['zombie', 0, 2.4],
-      ['monkey', 1, 3.4],
-      ['grunt', -1, 4.6],
-    ],
-  },
-  {
-    x: 2300,
-    sp: [
-      ['fat', -1, 0],
-      ['monkey', 1, 0.5],
-      ['monkey', -1, 1],
-      ['zombie', 0, 1.8],
-      ['zombie', 0, 2.2],
-      ['necro', 1, 3.2],
-      ['biker', -1, 4.5],
-      ['zombie', 0, 5.5],
-    ],
-  },
-  {
-    x: 3050,
-    sp: [
-      ['brute', 1, 0],
-      ['thrower', -1, 1],
-      ['zombie', 0, 1.5],
-      ['zombie', 0, 1.9],
-      ['biker', 1, 3],
-      ['grunt', 0, 4],
-      ['samurai', 1, 4.5],
-      ['necro', -1, 5],
-      ['zombie', 0, 6],
-      ['zombie', 0, 6.4],
-    ],
-  },
-  {
-    x: 3050,
-    chain: 1,
-    sp: [
-      ['biker', -1, 0],
-      ['necro', 1, 0.8],
-      ['zombie', 0, 1.4],
-      ['zombie', 0, 1.8],
-      ['zombie', 0, 2.2],
-      ['fat', 1, 3],
-      ['monkey', -1, 3.8],
-      ['brute', 1, 5],
-      ['thrower', -1, 6],
-      ['samurai', 1, 6.5],
-      ['necro', 1, 7],
-      ['zombie', 0, 7.5],
-    ],
-  },
+  { x: 225, lvl: 0 },
+  { x: 860, lvl: 0.15 },
+  { x: 1500, lvl: 0.3 },
+  { x: 1500, chain: 1, lvl: 0.4 },
+  { x: 2300, lvl: 0.55 },
+  { x: 3050, lvl: 0.7 },
+  { x: 3050, chain: 1, lvl: 0.8 },
   {
     x: 4160,
     boss: 1,
@@ -428,24 +341,26 @@ export const WAVES = [
       ['zombie', 0, 1.6],
     ],
   },
-  // past the baron's crypt: a last scuffle with skeletons and zombies
-  {
-    x: 4760,
-    sp: [
-      ['grunt', 1, 0],
-      ['zombie', 0, 0.3],
-      ['zombie', 0, 0.6],
-      ['grunt', -1, 1.2],
-      ['thrower', 1, 2],
-      ['zombie', 0, 2.5],
-      ['zombie', 0, 3],
-      ['brute', -1, 4],
-      ['samurai', 1, 4.5],
-    ],
-  },
+  // past the baron's crypt: the last and biggest fight before the dragon
+  { x: 4760, lvl: 1 },
   // the Bone Dragon
   { x: 5360, boss: 1, sp: [['dragon', 0, 1]] },
 ];
+// How an ordinary fight is rolled. Each value given as [start, end] runs from the first fight
+// (lvl 0) to the last (lvl 1).
+export const WAVEGEN = {
+  count: [6, 12], // enemies in the fight (give or take one)
+  hard: [0.06, 0.36], // share of strong ones
+  mid: [0.14, 0.3], // share of tricky ones
+  maxHard: [1, 5], // at most this many strong ones
+  gap: [0.9, 0.45], // seconds between two arrivals (sooner later on)
+  // who may come, and how often relative to the others of the same group
+  pools: {
+    easy: { grunt: 3, zombie: 4, monkey: 1.4 },
+    mid: { thrower: 1, necro: 1, biker: 0.8 },
+    hard: { brute: 1, fat: 1, samurai: 1.2 },
+  },
+};
 
 // Seconds per frame of the sprint: 15% slower than the old 0.065 so the feet match the speed.
 export const RUN_FRAME = 0.065 / 0.85;

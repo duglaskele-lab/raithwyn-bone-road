@@ -11,6 +11,7 @@ import { DRAGON, dragonZone, plasmaBlast, updShocks } from './dragon.js';
 import { dmgMult, styleGain, updStyle } from './style.js';
 import { updPlayer } from './player.js';
 import { spawn, updEnemy } from './enemies.js';
+import { waveSpawns } from './waves.js';
 
 // How full the screen is: zombies come in crowds and count as half an enemy each.
 const crowd = () => G.enemies.reduce((n, e) => n + (e.T.crowd || 1), 0);
@@ -29,7 +30,7 @@ export function updWaves(dt) {
       if (WAVES[G.waveI]?.chain) {
         // the next wave is already on its way: no walk, a short breath and it starts here
         G.goT = 0;
-        G.wave = { sp: WAVES[G.waveI].sp.map((s) => s.slice()), t: -CHAIN_GAP };
+        G.wave = { sp: waveSpawns(G.waveI), t: -CHAIN_GAP };
       } else if (G.waveI >= WAVES.length) {
         P.state = 'win';
         P.t = 0;
@@ -45,7 +46,7 @@ export function updWaves(dt) {
     G.cam += (tg - G.cam) * Math.min(1, dt * 7);
     if (G.cam >= lim - 1.5) {
       G.cam = lim;
-      G.wave = { sp: WAVES[G.waveI].sp.map((s) => s.slice()), t: 0 };
+      G.wave = { sp: waveSpawns(G.waveI), t: 0 };
       G.goT = 0;
     }
   }

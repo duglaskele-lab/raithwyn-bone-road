@@ -1,6 +1,7 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { TYPES, WAVES, ZOMBIE } from '../src/config.js';
+import { waveSpawns } from '../src/waves.js';
 import { G, P } from '../src/state.js';
 import { keys, pressed } from '../src/input.js';
 import { hurtEnemy } from '../src/combat.js';
@@ -33,8 +34,12 @@ test('zombies are slow, weak and come in crowds', () => {
   for (const [id, t] of Object.entries(TYPES))
     if (!['zombie', 'fat', 'brute', 'dragon'].includes(id)) assert.ok(z.speed < t.speed, id);
   assert.ok(z.hp <= 24);
-  const n = WAVES.flatMap((w) => w.sp).filter((s) => s[0] === 'zombie').length;
-  assert.ok(n >= 20, `${n} zombies on the level`);
+  // over a few rolled roads: plenty of zombies
+  let n = 0;
+  for (let r = 0; r < 5; r++)
+    for (let i = 0; i < WAVES.length; i++)
+      n += waveSpawns(i).filter((s) => s[0] === 'zombie').length;
+  assert.ok(n / 5 >= 18, `${n / 5} zombies on the level`);
 });
 
 test('a zombie grabs the player and holds her still for a moment', () => {

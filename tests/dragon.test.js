@@ -29,14 +29,13 @@ function dragonAt(px, py, extra = {}) {
 }
 
 test('the level ends with the Bone Dragon, after one more fight and a couple of hearts', () => {
-  const baron = WAVES.findIndex((w) => w.sp[0][0] === 'boss');
+  const baron = WAVES.findIndex((w) => w.sp?.[0][0] === 'boss');
   assert.deepEqual(
     WAVES.at(-1).sp.map((s) => s[0]),
     ['dragon'],
   );
   assert.equal(baron, WAVES.length - 3);
-  const fight = WAVES.at(-2).sp.map((s) => s[0]);
-  assert.ok(fight.includes('grunt') && fight.includes('zombie'));
+  assert.equal(WAVES.at(-2).lvl, 1, 'the last ordinary fight is the hardest');
   const hearts = G.items.filter((i) => i.kind === 'hp' && i.x > WAVES.at(-2).x);
   assert.equal(hearts.length, 2);
 });
