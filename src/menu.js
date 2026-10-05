@@ -273,7 +273,7 @@ function drawSettings() {
     `${t('menuLang')}:  ◂ ${STR[lang].langName} ▸`,
     `${t('menuSound')}:  ◂ ${G.muted ? t('soundOff') : t('soundOn')} ▸`,
     `${t('menuFps')}:  ◂ ${fps.show ? t('soundOn') : t('soundOff')} ▸`,
-    `${t('menuCap')}:  ◂ ${fps.cap} ▸`,
+    `${t('menuCap')}:  ◂ ${fps.cap || t('capNone')} ▸`,
     t('back'),
   ];
   labels.forEach((s, i) => item(s, SET_BOX[i], G.menu === i));

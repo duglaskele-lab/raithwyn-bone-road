@@ -70,8 +70,8 @@ test('settings switch the language and the sound', () => {
   assert.equal(G.state, 'title');
 });
 
-test('settings: the FPS counter and the frame limit (30 45 60 75 125, 60 by default)', () => {
-  assert.deepEqual(CAPS, [30, 45, 60, 75, 125]);
+test('settings: the FPS counter and the frame limit (30 60 90 none, 60 by default)', () => {
+  assert.deepEqual(CAPS, [30, 60, 90, 0]);
   assert.equal(fps.cap, 60);
   assert.equal(fps.show, false);
   G.state = 'settings';
@@ -80,32 +80,31 @@ test('settings: the FPS counter and the frame limit (30 45 60 75 125, 60 by defa
   step(SET_BOX[2]);
   assert.equal(fps.show, false);
   step(SET_BOX[3]);
-  assert.equal(fps.cap, 75);
+  assert.equal(fps.cap, 90);
   step('r');
-  assert.equal(fps.cap, 125);
+  assert.equal(fps.cap, 0, 'no limit');
   step('r');
   assert.equal(fps.cap, 30, 'round the list');
   step('l');
-  assert.equal(fps.cap, 125);
+  assert.equal(fps.cap, 0);
   step('l');
   step('l');
   assert.equal(fps.cap, 60);
   assert.equal(G.state, 'settings');
 });
 
-test('the frame limit: 45 on a 60 Hz screen draws three frames of four', () => {
-  fps.cap = 45;
-  let drawn = 0;
-  for (let i = 1; i <= 600; i++) if (due(1e6 + i * (1000 / 60))) drawn++;
-  assert.ok(Math.abs(drawn / 10 - 45) <= 1, `${drawn / 10} fps`);
-  fps.cap = 30;
-  drawn = 0;
-  for (let i = 1; i <= 1200; i++) if (due(2e6 + i * (1000 / 120))) drawn++;
-  assert.ok(Math.abs(drawn / 10 - 30) <= 1, `${drawn / 10} fps on 120 Hz`);
-  fps.cap = 125;
-  drawn = 0;
-  for (let i = 1; i <= 600; i++) if (due(3e6 + i * (1000 / 60))) drawn++;
-  assert.equal(drawn, 600, 'a limit over the screen rate draws every frame');
+test('the frame limit: 60 on 144 Hz, 90 on 144 Hz, 30 on 60 Hz, none draws every frame', () => {
+  const rate = (cap, hz, t0) => {
+    fps.cap = cap;
+    let drawn = 0;
+    for (let i = 1; i <= hz * 10; i++) if (due(t0 + i * (1000 / hz))) drawn++;
+    return drawn / 10;
+  };
+  assert.ok(Math.abs(rate(60, 144, 1e6) - 60) <= 1);
+  assert.ok(Math.abs(rate(90, 144, 2e6) - 90) <= 1);
+  assert.ok(Math.abs(rate(30, 60, 3e6) - 30) <= 1);
+  assert.equal(rate(0, 144, 4e6), 144);
+  assert.equal(rate(90, 60, 5e6), 60, 'never more often than the screen');
   fps.cap = 60;
 });
 
