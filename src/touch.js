@@ -5,7 +5,7 @@
 import { H, W } from './config.js';
 import { G } from './state.js';
 import { audioInit } from './audio.js';
-import { keys, pressed, setKey } from './input.js';
+import { keys, pagePoint, pageRect, pressed, setKey, turned } from './input.js';
 
 // The hidden moves on the HUD (game pixels): hold the portrait for the X secret (the road to
 // the final boss), hold the score for the Z + 2 secret (on to Old Quarry).
@@ -15,6 +15,8 @@ export const SECRET_BOXES = {
 };
 // How far a finger has to slide across the dark ball's button to throw the strong one.
 const SWIPE = 40;
+// How far the stick has to lean for a run (0..1): a walk only on the slightest lean.
+const RUN_AT = 0.45;
 // The full-screen button in the HUD (game pixels), next to the pause button.
 const FS_BOX = [416, 12, 36, 36];
 
@@ -41,20 +43,22 @@ export function initTouch(canvas) {
     home = null;
   const R = () => stick.offsetWidth / 2;
   const move = (e) => {
-    const r = stick.getBoundingClientRect();
-    let dx = (e.clientX - r.left - r.width / 2) / R(),
-      dy = (e.clientY - r.top - r.height / 2) / R();
+    const r = pageRect(stick),
+      [px, py] = pagePoint(e);
+    let dx = (px - r.left - r.width / 2) / R(),
+      dy = (py - r.top - r.height / 2) / R();
     const m = Math.hypot(dx, dy);
     if (m > 1) {
       dx /= m;
       dy /= m;
     }
     nub.style.transform = `translate(${dx * R() * 0.6}px,${dy * R() * 0.6}px)`;
-    setKey('l', dx < -0.35);
-    setKey('r', dx > 0.35);
+    setKey('l', dx < -0.2);
+    setKey('r', dx > 0.2);
     setKey('u', dy < -0.4);
     setKey('d', dy > 0.4);
-    keys.run = m > 0.92 && Math.abs(dx) > 0.5;
+    // she runs as soon as the stick leans a little: a walk only on the slightest lean
+    keys.run = m > RUN_AT && Math.abs(dx) > 0.3;
   };
   const release = () => {
     sid = null;
@@ -77,9 +81,10 @@ export function initTouch(canvas) {
     if (float) {
       // the stick jumps to the thumb
       home ??= { left: stick.style.left, top: stick.style.top, bottom: stick.style.bottom };
-      const pr = stick.offsetParent.getBoundingClientRect();
-      stick.style.left = `${e.clientX - pr.left - R()}px`;
-      stick.style.top = `${e.clientY - pr.top - R()}px`;
+      const pr = pageRect(stick.offsetParent),
+        [px, py] = pagePoint(e);
+      stick.style.left = `${px - pr.left - R()}px`;
+      stick.style.top = `${py - pr.top - R()}px`;
       stick.style.bottom = 'auto';
     }
     move(e);
@@ -116,7 +121,7 @@ export function initTouch(canvas) {
       // the dark ball: a tap throws the plain one as the finger lifts; a slide sideways throws
       // the strongest the rage pays for, that way (the hidden S S D L / S S A L)
       el.classList.add('on');
-      held.set(e.pointerId, { el, x0: e.clientX, hado: true });
+      held.set(e.pointerId, { el, x0: pagePoint(e)[0], hado: true });
       if (G.state !== 'play') pressed.start = true;
       return;
     }
@@ -127,7 +132,7 @@ export function initTouch(canvas) {
     const h = held.get(e.pointerId);
     if (!h) return;
     if (h.hado) {
-      const dx = e.clientX - h.x0;
+      const dx = pagePoint(e)[0] - h.x0;
       if (!h.done && Math.abs(dx) > SWIPE) {
         h.done = true;
         pressed[dx > 0 ? 'hadoR' : 'hadoL'] = true;
@@ -158,9 +163,10 @@ export function initTouch(canvas) {
   const holds = new Map();
   canvas.addEventListener('pointerdown', (e) => {
     if (G.state !== 'play') return;
-    const r = canvas.getBoundingClientRect(),
-      x = ((e.clientX - r.left) / r.width) * W,
-      y = ((e.clientY - r.top) / r.height) * H;
+    const r = pageRect(canvas),
+      [px, py] = pagePoint(e),
+      x = ((px - r.left) / r.width) * W,
+      y = ((py - r.top) / r.height) * H;
     const ks = inBox(SECRET_BOXES.secret, x, y)
       ? ['secret']
       : inBox(SECRET_BOXES.stage, x, y)
@@ -180,9 +186,10 @@ export function initTouch(canvas) {
   // --- full screen: the button in the HUD, next to pause ------------------------------------
   canvas.addEventListener('pointerdown', (e) => {
     if (!canFullScreen()) return;
-    const r = canvas.getBoundingClientRect(),
-      x = ((e.clientX - r.left) / r.width) * W,
-      y = ((e.clientY - r.top) / r.height) * H;
+    const r = pageRect(canvas),
+      [px, py] = pagePoint(e),
+      x = ((px - r.left) / r.width) * W,
+      y = ((py - r.top) / r.height) * H;
     if (inBox(FS_BOX, x, y)) goFullScreen();
   });
 }
@@ -197,6 +204,20 @@ async function goFullScreen() {
   } catch {
     // not allowed: no matter
   }
+}
+/** A phone held upright: turn the page a quarter so the game is always shown sideways (a web
+ *  page cannot lock the screen's rotation). Returns true when that changed. */
+export function turnPage() {
+  const want = innerHeight > innerWidth,
+    b = document.body,
+    changed = turned() !== want;
+  // turned first, then sized: an upright page wider than the screen would make the phone zoom out
+  if (changed) b.classList.toggle('turned', want);
+  // the turned page is as wide as the screen is tall (in pixels: on phones 100vh is more than
+  // what shows under the address bar)
+  b.style.width = want ? `${innerHeight}px` : '';
+  b.style.height = want ? `${innerWidth}px` : '';
+  return changed;
 }
 /** Called every frame: the stick zone only takes touches in a fight. */
 export function syncTouch() {
