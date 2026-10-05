@@ -3,6 +3,7 @@ import {
   BONE_COST,
   D,
   HADO,
+  IDLE_FRAME,
   RAGE,
   GB,
   GT,
@@ -19,6 +20,7 @@ import { G, P } from './state.js';
 import { keys, pressed } from './input.js';
 import { SFX } from './audio.js';
 import { dust, motes } from './fx.js';
+import { FR } from './atlas-frames.js';
 import { floorClamp, viewClamp } from './level.js';
 import { hadoLevel, strike, superNova } from './combat.js';
 
@@ -101,7 +103,7 @@ export function updPlayer(dt) {
       }
       p.an =
         ns === 'idle'
-          ? ['idle', 0]
+          ? ['idle', Math.floor(p.t / IDLE_FRAME) % FR.idle.length]
           : ns === 'walk'
             ? ['walk', Math.floor(p.t / 0.085) % 8]
             : ['run', Math.floor(p.t / RUN_FRAME) % 6];

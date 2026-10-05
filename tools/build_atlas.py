@@ -22,6 +22,9 @@ ROW_NAMES = ["idle", "jump", "run", "walk", "hurt", "laugh", "punch1", "punch2",
              "hado", "fx", "orb", "ko", "throw", "back"]
 SCALE = 0.5          # the sheet is drawn at twice the in-game size
 ATLAS_WIDTH = 1180
+# Rows drawn in their own strip instead of the sheet (the sheet's row is then only a reference):
+# the idle breathing loop, 12 frames side by side.
+STRIPS = {"idle": ROOT / "assets/source/idle.png"}
 HEAD_ANCHORED = {"jump", "run", "walk"}   # feet leave the ground, so anchor by the head
 CENTER_ANCHORED = {"fx"}                  # projectiles are anchored by their centre
 # Punches: the feet step around between frames, so anchoring by the feet makes the body
@@ -51,7 +54,7 @@ def runs(mask):
 
 def placed(opaque, item, width=1200, height=520):
     """The frame's mask on a canvas with its anchor at the bottom centre."""
-    _, x0, y0, x1, y1, ax, ay = item
+    _, x0, y0, x1, y1, ax, ay, _ = item
     canvas = np.zeros((height, width), bool)
     left, top = width // 2 - int(round(ax)), height - int(round(ay))
     canvas[top:top + y1 - y0, left:left + x1 - x0] = opaque[y0:y1, x0:x1]
@@ -72,6 +75,32 @@ def body_shift(opaque, idle, item):
     return max(range(-120, 121), key=overlap)
 
 
+def cut(opaque, name, y0, y1, src):
+    """The frames of one row: [name, x0, y0, x1, y1, anchorX, anchorY, source image]."""
+    items = []
+    cols = []
+    for c in runs(opaque[y0:y1].any(0)):
+        if cols and c[0] - cols[-1][1] < 6:   # glue stray pixels to the previous frame
+            cols[-1][1] = c[1]
+        else:
+            cols.append(c)
+    for x0, x1 in cols:
+        sub = opaque[y0:y1, x0:x1]
+        ys = np.where(sub.any(1))[0]
+        top, bottom = ys[0], ys[-1] + 1
+        if name in CENTER_ANCHORED:
+            ax, ay = (x1 - x0) / 2, (y1 - y0) / 2
+        elif name in HEAD_ANCHORED:
+            band = sub[top:top + int((bottom - top) * 0.22)]
+            ax = np.median(np.where(band)[1]) - 18
+            ay = bottom if name == "jump" else y1 - y0
+        else:
+            xs = np.where(sub[int((y1 - y0) * 0.9):])[1]   # feet
+            ax, ay = (xs.min() + xs.max()) / 2, y1 - y0
+        items.append([name, x0, y0, x1, y1, ax, ay, src])
+    return items
+
+
 def main():
     im = Image.open(SHEET).convert("RGBA")
     opaque = np.array(im)[..., 3] > 10
@@ -81,26 +110,7 @@ def main():
 
     items = []
     for name, (y0, y1) in zip(ROW_NAMES, rows):
-        cols = []
-        for c in runs(opaque[y0:y1].any(0)):
-            if cols and c[0] - cols[-1][1] < 6:   # glue stray pixels to the previous frame
-                cols[-1][1] = c[1]
-            else:
-                cols.append(c)
-        for x0, x1 in cols:
-            sub = opaque[y0:y1, x0:x1]
-            ys = np.where(sub.any(1))[0]
-            top, bottom = ys[0], ys[-1] + 1
-            if name in CENTER_ANCHORED:
-                ax, ay = (x1 - x0) / 2, (y1 - y0) / 2
-            elif name in HEAD_ANCHORED:
-                band = sub[top:top + int((bottom - top) * 0.22)]
-                ax = np.median(np.where(band)[1]) - 18
-                ay = bottom if name == "jump" else y1 - y0
-            else:
-                xs = np.where(sub[int((y1 - y0) * 0.9):])[1]   # feet
-                ax, ay = (xs.min() + xs.max()) / 2, y1 - y0
-            items.append([name, x0, y0, x1, y1, ax, ay])
+        items += cut(opaque, name, y0, y1, im)
 
     jumps = [it for it in items if it[0] == "jump"]
     for i, lift in JUMP_LIFT.items():
@@ -109,11 +119,19 @@ def main():
     for it in items:
         if it[0] in BODY_ALIGNED:
             it[5] -= body_shift(opaque, idle, it)
+    # rows from their own strips replace the sheet's (kept above as the punches' reference)
+    for name, path in STRIPS.items():
+        strip = Image.open(path).convert("RGBA")
+        sop = np.array(strip)[..., 3] > 10
+        (y0, y1), = runs(sop.any(1))
+        at = next(i for i, it in enumerate(items) if it[0] == name)
+        items = [it for it in items if it[0] != name]
+        items[at:at] = cut(sop, name, y0, y1, strip)
     items = [tuple(it) for it in items]
 
     x = y = row_h = 0
     places = []
-    for _, x0, y0, x1, y1, _, _ in items:
+    for _, x0, y0, x1, y1, _, _, _ in items:
         w = int(np.ceil((x1 - x0) * SCALE)) + 2
         h = int(np.ceil((y1 - y0) * SCALE)) + 2
         if x + w > ATLAS_WIDTH:
@@ -124,8 +142,8 @@ def main():
 
     atlas = Image.new("RGBA", (ATLAS_WIDTH, y + row_h), (0, 0, 0, 0))
     frames = {}
-    for (name, x0, y0, x1, y1, ax, ay), (px, py, w, h) in zip(items, places):
-        crop = im.crop((x0, y0, x1, y1)).convert("RGBa").resize((w - 2, h - 2), Image.BOX)
+    for (name, x0, y0, x1, y1, ax, ay, src), (px, py, w, h) in zip(items, places):
+        crop = src.crop((x0, y0, x1, y1)).convert("RGBa").resize((w - 2, h - 2), Image.BOX)
         atlas.paste(crop.convert("RGBA"), (px + 1, py + 1))
         frames.setdefault(name, []).append(
             [px + 1, py + 1, w - 2, h - 2, round(float(ax) * SCALE, 1), round(float(ay) * SCALE, 1)])
