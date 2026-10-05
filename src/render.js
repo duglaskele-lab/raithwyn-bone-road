@@ -21,6 +21,7 @@ import { G, P } from './state.js';
 import { atlas, ctx, portraits, ready, rr, setCtx, sprite, txt } from './gfx.js';
 import { foeName, t } from './i18n.js';
 import { touch } from './input.js';
+import { canFullScreen } from './touch.js';
 import { RANKS, STYLE_STEP, dmgMult, scoreMult, styleRank } from './style.js';
 import { drawBG, drawFog, drawVignette } from './background.js';
 import { drawBG2, drawFront2 } from './bg2.js';
@@ -518,6 +519,24 @@ function canvasLayer(name, w, h) {
 }
 function outlined(draw, e) {
   if (!FOES[e.type]?.unstoppable?.(e) || typeof document === 'undefined') return draw;
+  // a light picture (G.lowFx): no layers, a blinking red tint instead of the ring
+  if (G.lowFx)
+    return (e) => {
+      draw(e);
+      if (Math.floor(G.time * 12) % 2) return;
+      ctx.fillStyle = 'rgba(255,40,40,.3)';
+      ctx.beginPath();
+      ctx.ellipse(
+        e.x - G.cam,
+        e.y - e.z - 90 * e.T.scale,
+        60 * e.T.scale,
+        110 * e.T.scale,
+        0,
+        0,
+        TAU,
+      );
+      ctx.fill();
+    };
   return (e) => {
     const main = ctx,
       w = main.canvas.width,
@@ -920,6 +939,28 @@ export function drawHUD() {
     ctx.fillStyle = '#ece5cb';
     ctx.fillRect(bx + 11, by + 9, 5, bh - 18);
     ctx.fillRect(bx + bw - 16, by + 9, 5, bh - 18);
+    // and next to it, full screen (where the browser allows it)
+    if (canFullScreen()) {
+      const [fx, fy, fw, fh] = FS_BTN;
+      ctx.fillStyle = 'rgba(16,14,24,.7)';
+      rr(fx, fy, fw, fh, 8);
+      ctx.fill();
+      ctx.stroke();
+      ctx.strokeStyle = '#ece5cb';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      for (const [cx, cy, dx, dy] of [
+        [fx + 9, fy + 9, 1, 1],
+        [fx + fw - 9, fy + 9, -1, 1],
+        [fx + 9, fy + fh - 9, 1, -1],
+        [fx + fw - 9, fy + fh - 9, -1, -1],
+      ]) {
+        ctx.moveTo(cx, cy + dy * 7);
+        ctx.lineTo(cx, cy);
+        ctx.lineTo(cx + dx * 7, cy);
+      }
+      ctx.stroke();
+    }
   }
   // foe bar
   if (G.lastFoe && G.lastFoeT > 0 && !G.lastFoe.T.bigBoss) {
@@ -1009,7 +1050,8 @@ export function overlay(a) {
   ctx.fillStyle = `rgba(12,10,20,${a})`;
   ctx.fillRect(0, 0, W, H);
 }
-export const PAUSE_BTN = [372, 12, 36, 36];
+export const PAUSE_BTN = [372, 12, 36, 36],
+  FS_BTN = [416, 12, 36, 36];
 const RANK_COL = ['#8fa5b8', '#7dffb0', '#5cc8ff', '#ff6ad5', '#ffd23f'];
 // Style rank on the left under the lives: the letter, the meter to the next rank, the bonus.
 function drawStyle() {

@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Raithwyn: Bone Road</title>
+<meta name="theme-color" content="#1b2a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icons/icon-192.png">
+<link rel="apple-touch-icon" href="assets/icons/icon-192.png">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -12,12 +19,14 @@
 <!-- Filled in by src/main.js in the chosen language. -->
 <div id="help"></div>
 <div id="pad">
+  <div id="zone"></div>
   <div id="stick"><i></i></div>
   <div id="btns">
     <button data-a="super">Super</button><button data-a="hado">Hado</button>
     <button data-a="bone">Bone</button><button data-a="jump">Jump</button><button data-a="atk">Hit</button>
   </div>
 </div>
+<div id="rot"></div>
 <script type="module" src="src/main.js"></script>
 </body>
 </html>

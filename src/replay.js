@@ -29,6 +29,8 @@ export const BUTTONS = [
   'secret',
   'lvlZ',
   'lvl2',
+  'hadoL',
+  'hadoR',
 ];
 
 let rec = null, // the run being recorded, or the last one
