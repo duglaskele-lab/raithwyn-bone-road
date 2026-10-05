@@ -11,7 +11,7 @@
 //   retreat - a combo: when the player is close, it leaps back to the far side of the arena
 //            and at once charges the beam from there
 //   sky    - phase two only: it rises and hovers and, turning its head, sweeps three white
-//            beams from its jaws across the whole arena one after another (along its top edge,
+//            beams from its jaws across the whole arena all at once, slowly (along its top edge,
 //            its middle and its bottom edge; the gaps between are safe), each leaving a burning
 //            trail on the ground for a while; then it drops onto a random spot and sends out
 //            the leap's shockwave
@@ -40,14 +40,14 @@ export const DRAGON = {
   retreat: { crouch: 0.3, air: 0.75, rec: 0, h: 190, cd: 11, near: 280, first: 6 },
   // the hovering triple beam (phase two): rise, charge, fire, hang on, drop onto a random spot.
   // The beams lie along depths GT + edge, the middle and GB - edge, each band deep each way.
-  // Firing, each beam sweeps from under the dragon across the arena in `sweep` seconds, a short
-  // `gap` between them; where it passes the ground burns for `trail` seconds.
+  // Firing, the three beams sweep together from under the dragon across the arena in `sweep`
+  // seconds (40% slower than the 0.75 s one beam used to take); where they pass the ground
+  // burns for `trail` seconds.
   sky: {
     rise: 0.9,
     charge: 1.0,
-    sweep: 0.75,
-    gap: 0.15,
-    fire: 2.7, // 3 × (sweep + gap)
+    sweep: 1.25,
+    fire: 1.25, // = sweep
     trail: 1.4,
     hit: 30, // how close (along the line) the beam's spot must pass to hurt
     rec: 0.3,
@@ -91,6 +91,9 @@ export const DRAGON = {
   // the shockwave of the leap: a ring on the ground that runs across the arena
   shock: { speed: 460, band: 22, depth: 0.32, clear: 34, dmg: 14 },
   rage: 1.3, // in the second phase it moves and attacks this much faster
+  // ...but only half of that bonus when the second phase starts, growing to all of it over
+  // this many seconds
+  rageRamp: 20,
   laserGrow: 2.4, // and its laser starts as wide as ever but widens to this much while it fires
   push: { light: 70, heavy: 170 }, // knockback speed from the player's hits
   death: { roar: 0.9, fall: 0.7 }, // a last roar, then it collapses and breaks apart
@@ -400,7 +403,15 @@ export function dragonInterrupt(e, knock, src) {
   SFX.dragonHurt();
   return true;
 }
+/** How much faster it is now: in the second phase half the bonus at first, all of it after
+ *  rageRamp seconds (a dragon put straight into the second phase has all of it). */
+export function rageMult(e) {
+  if (!e.phase2) return 1;
+  const u = Math.min(1, (e.p2T ?? DRAGON.rageRamp) / DRAGON.rageRamp);
+  return 1 + (DRAGON.rage - 1) * (0.5 + 0.5 * u);
+}
 export function updDragon(e, dt) {
+  if (e.phase2 && e.p2T !== undefined) e.p2T += dt;
   // the player's hits push it back a little
   if (e.kbv && !e.air && e.state !== 'dying') {
     e.x += e.kbv * dt;
@@ -408,7 +419,7 @@ export function updDragon(e, dt) {
     if (Math.abs(e.kbv) < 5) e.kbv = 0;
   }
   // in the second phase everything it does runs faster
-  step(e, e.phase2 && e.state !== 'dying' ? dt * DRAGON.rage : dt);
+  step(e, e.phase2 && e.state !== 'dying' ? dt * rageMult(e) : dt);
 }
 /** Its health is gone: a last roar, then it collapses (see the 'dying' state). */
 export function dragonDie(e) {
@@ -611,6 +622,7 @@ function step(e, dt) {
         e.t = 0;
         e.leapCd = 1.5;
         e.skyCd = C.sky.first;
+        e.p2T = 0; // the speed bonus starts at half
         G.flash = 0.3;
         SFX.dragonRoar();
         break;
@@ -874,30 +886,22 @@ function sky(e, dt) {
     }
   } else if (ph === 'fire') {
     e.z = S.h;
-    const ft = e.t - S.rise - S.charge,
-      k = Math.min(2, Math.floor(ft / (S.sweep + S.gap))),
-      v = (ft - k * (S.sweep + S.gap)) / S.sweep,
-      y = skyLines()[k];
-    if (v > 1) {
-      e.beam = null; // between two beams
-      return;
-    }
-    // the spot where the beam meets the ground runs from under it across the arena
-    const x0 = e.x + e.face * 80,
-      x1 = e.face > 0 ? G.cam + W + 30 : G.cam - 30,
-      x = lerp(x0, x1, v);
-    if (e.beam?.k !== k) SFX.laser();
-    e.beam = { k, x, y };
-    e.aim = aimLocal(e, x, y);
-    e.trail.push({ x, y, t: 0 });
-    G.shake = Math.max(G.shake, 3);
-    if (!e.hitDone && P.z < 160 && Math.abs(P.y - y) < S.band && Math.abs(P.x - x) < S.hit)
-      if (hitPlayer(S.dmg, e.face, true)) e.hitDone = true;
-    if (random() < 0.9)
+    // the spots where the beams meet the ground run together from under it across the arena
+    const x = lerp(e.x + e.face * 80, e.face > 0 ? G.cam + W + 30 : G.cam - 30, u);
+    if (!e.beams) SFX.laser();
+    e.beams = skyLines().map((y) => ({ x, y }));
+    e.aim = aimLocal(e, x, skyLines()[1]);
+    for (const b of e.beams) e.trail.push({ x, y: b.y, t: 0 });
+    G.shake = Math.max(G.shake, 4);
+    if (!e.hitDone && P.z < 160 && Math.abs(P.x - x) < S.hit)
+      if (e.beams.some((b) => Math.abs(P.y - b.y) < S.band))
+        if (hitPlayer(S.dmg, e.face, true)) e.hitDone = true;
+    if (random() < 0.95) {
+      const b = e.beams[Math.floor(random() * 3)];
       G.parts.push({
         k: 'glow',
-        x: x + rnd(-10, 10),
-        y: y - rnd(0, 20),
+        x: b.x + rnd(-10, 10),
+        y: b.y - rnd(0, 20),
         vx: rnd(-160, 160),
         vy: rnd(-220, -60),
         g: 500,
@@ -906,9 +910,10 @@ function sky(e, dt) {
         s: rnd(2, 4),
         col: '#ffffff',
       });
+    }
   } else if (ph === 'rec') {
     e.z = S.h;
-    e.beam = null;
+    e.beams = null;
     if (!e.dropSet) {
       // pick where it comes down: anywhere in the arena
       e.dropSet = true;
@@ -1227,27 +1232,23 @@ function drawSkyBeams(e) {
     core.addColorStop(1, 'rgba(176,92,255,0)');
     ctx.fillStyle = core;
     ctx.fillRect(hx - 60, my - 60, 120, 120);
-  } else if (ph === 'fire' && e.beam) {
-    const bx = e.beam.x - G.cam,
-      by = e.beam.y,
-      w = S.band * 0.9 + Math.sin(G.time * 70) * 2;
-    for (const [ww, c] of [
-      [w * 1.6, 'rgba(176,92,255,.3)'],
-      [w * 0.95, 'rgba(215,190,255,.55)'],
-      [w * 0.45, 'rgba(255,255,255,.95)'],
-    ]) {
-      ctx.strokeStyle = c;
-      ctx.lineCap = 'round';
-      ctx.lineWidth = Math.max(1, ww);
-      ctx.beginPath();
-      ctx.moveTo(hx, my);
-      ctx.lineTo(bx, by);
-      ctx.stroke();
-    }
-    for (const [x, y, r] of [
-      [hx, my, 40],
-      [bx, by, 46],
-    ]) {
+  } else if (ph === 'fire' && e.beams) {
+    const w = S.band * 0.8 + Math.sin(G.time * 70) * 2;
+    for (const b of e.beams)
+      for (const [ww, c] of [
+        [w * 1.6, 'rgba(176,92,255,.3)'],
+        [w * 0.95, 'rgba(215,190,255,.55)'],
+        [w * 0.45, 'rgba(255,255,255,.95)'],
+      ]) {
+        ctx.strokeStyle = c;
+        ctx.lineCap = 'round';
+        ctx.lineWidth = Math.max(1, ww);
+        ctx.beginPath();
+        ctx.moveTo(hx, my);
+        ctx.lineTo(b.x - G.cam, b.y);
+        ctx.stroke();
+      }
+    for (const [x, y, r] of [[hx, my, 46], ...e.beams.map((b) => [b.x - G.cam, b.y, 40])]) {
       const fl = ctx.createRadialGradient(x, y, 2, x, y, r);
       fl.addColorStop(0, 'rgba(255,255,255,.95)');
       fl.addColorStop(1, 'rgba(176,92,255,0)');

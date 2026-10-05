@@ -441,7 +441,7 @@ test('the power armour never climbs out of the ground, and telegraphs its kick',
   P.x = 500;
   P.y = 450;
   const k = spawn('armor', 1, 590, 450);
-  Object.assign(k, { state: 'windup', t: 0, face: -1, gunCd: 99 });
+  Object.assign(k, { state: 'windup', t: 0, face: -1, gunCd: 99, rolled: true }); // a kick, not a dodge
   step(TYPES.armor.wind - 0.05);
   assert.equal(P.hp, 100, 'nothing yet: time to get away');
   step(0.2);
@@ -496,4 +496,42 @@ test('the power armour leaps onto a marked spot: the player or, half the time, e
   }
   assert.ok(onPlayer > N * 0.25 && onPlayer < N * 0.75, `${onPlayer}/${N} on the player`);
   assert.ok(hurt >= onPlayer, 'landing on her hurts');
+});
+
+test('up close a quarter of its kicks become a jump away, on the jets of its pack', () => {
+  assert.equal(ARMOR.jump.dodge, 0.25);
+  assert.ok(ARMOR.jump.rx >= 131 && ARMOR.jump.ry >= 52, 'a quarter wider landing area');
+  let dodged = 0;
+  const N = 60;
+  for (let k = 0; k < N; k++) {
+    freshGame();
+    quarry();
+    seedRandom(500 + k);
+    P.x = 500;
+    P.y = 450;
+    P.inv = 99;
+    const e = spawn('armor', 1, 580, 450);
+    Object.assign(e, { state: 'chase', t: 0, face: -1, gunCd: 99, jumpCd: 99, cd: 0 });
+    for (let i = 0; i < 10 && !['windup', 'jcrouch'].includes(e.state); i++) step(DT);
+    step(DT * 3); // the wind-up's first frames: kick or jump
+    if (e.state === 'jcrouch') {
+      dodged++;
+      assert.ok(Math.abs(e.jx - P.x) > 100, 'away from the player');
+      if (dodged === 1) {
+        G.parts = [];
+        step(ARMOR.jump.crouch + ARMOR.jump.air / 2);
+        assert.equal(e.state, 'jump');
+        assert.ok(e.z > 50, 'up in the air');
+        assert.ok(
+          G.parts.filter((p) => p.k === 'glow' && p.vy > 100).length > 10,
+          'flame out of the jets',
+        );
+        assert.ok(
+          G.parts.some((p) => p.k === 'smoke'),
+          'and smoke',
+        );
+      }
+    } else assert.equal(e.state, 'windup');
+  }
+  assert.ok(dodged > N * 0.1 && dodged < N * 0.45, `${dodged}/${N} kicks became a jump`);
 });
