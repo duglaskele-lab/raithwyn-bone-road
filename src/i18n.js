@@ -75,7 +75,6 @@ export const STR = {
     },
     stage1: 'Stage 1',
     stage2: 'Stage 2',
-    rotateHint: 'Turn the phone sideways for a bigger picture',
     subtitle2: 'Old Quarry',
     welcome: 'WELCOME TO',
     stageClear: 'Stage clear',
@@ -124,7 +123,7 @@ export const STR = {
       record: ['Record video', 'F9'],
       replay: ['Replay: watch / save', 'F7 / F8'],
     },
-    pad: { hado: 'Hado', bone: 'Bone', jump: 'Jump', atk: 'Hit', super: 'Super' },
+    pad: { hado: 'Magic', bone: 'Bone', jump: 'Jump', atk: 'Hit', super: 'Super' },
     foe: {
       grunt: 'Skeleton',
       thrower: 'Bone Thrower',
@@ -215,7 +214,6 @@ export const STR = {
     },
     stage1: 'Стадия 1',
     stage2: 'Стадия 2',
-    rotateHint: 'Поверните телефон — картинка будет крупнее',
     subtitle2: 'Old Quarry',
     welcome: 'ДОБРО ПОЖАЛОВАТЬ В',
     stageClear: 'Стадия пройдена',
@@ -264,7 +262,7 @@ export const STR = {
       record: ['Запись видео', 'F9'],
       replay: ['Повтор: смотреть / сохранить', 'F7 / F8'],
     },
-    pad: { hado: 'Хаду', bone: 'Кость', jump: 'Прыг', atk: 'Удар', super: 'Супер' },
+    pad: { hado: 'Магия', bone: 'Кость', jump: 'Прыг', atk: 'Удар', super: 'Супер' },
     foe: {
       grunt: 'Скелет',
       thrower: 'Костемёт',

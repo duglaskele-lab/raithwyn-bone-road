@@ -2,7 +2,7 @@ import { H, PURPLE, W } from './config.js';
 import { G, P, reset } from './state.js';
 import { atlas, ctx, cv, initGfx, loadPortraits, txt } from './gfx.js';
 import { initInput, keys, pressed, touch } from './input.js';
-import { initTouch, syncTouch } from './touch.js';
+import { initTouch, syncTouch, turnPage } from './touch.js';
 import { initBackground } from './background.js';
 import { spawn } from './enemies.js';
 import { PAUSE_BTN, drawHUD, drawWorld, overlay } from './render.js';
@@ -30,6 +30,7 @@ import { STR, lang, onLang, setLang, t } from './i18n.js';
 // the screen shake is only a look: it does not touch the game's seeded chance
 const shakeBy = (a) => (Math.random() * 2 - 1) * a;
 function fit() {
+  if (touch) turnPage();
   const st = document.getElementById('stage'),
     m = touch ? 8 : 20,
     aw = st.clientWidth - m,
@@ -63,7 +64,6 @@ function applyLang() {
   }
   for (const btn of document.querySelectorAll('#btns button'))
     btn.textContent = S.pad[btn.dataset.a];
-  document.getElementById('rot').textContent = S.rotateHint;
 }
 function frame(dt) {
   if (touch) syncTouch();

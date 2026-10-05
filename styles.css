@@ -10,6 +10,7 @@
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 html,body{height:100%;margin:0}
+html{overflow:hidden}
 body{background:var(--page);color:var(--ink);display:flex;flex-direction:column;align-items:center;overflow:hidden;
   font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-user-select:none;user-select:none}
 #stage{flex:1 1 auto;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;padding:10px}
@@ -25,9 +26,10 @@ kbd{font:inherit;font-size:12px;padding:1px 6px;border:1px solid var(--key-line)
   font:900 13px "Arial Black","Segoe UI Black",Impact,Roboto,system-ui,sans-serif;color:#fff;pointer-events:none}
 #rec.on{display:block;background:rgba(200,20,40,.85)}
 #rec.msg{display:block;background:rgba(40,36,52,.9)}
-#pad,#rot{display:none}
-/* Phones and tablets: the stick on the left, the buttons on the right, over the picture when
-   the phone lies sideways and under it when it stands up. */
+/* Phones and tablets: the stick on the left, the buttons on the right, over the picture. The
+   game is always shown sideways: a phone held upright gets the page turned a quarter (a web
+   page cannot lock the screen's rotation; see turnPage in src/touch.js). */
+body.turned{position:fixed;top:0;left:100vw;transform-origin:top left;transform:rotate(90deg)}
 @media (pointer:coarse){
   #help{display:none}
   #stage{padding:4px}
@@ -41,23 +43,17 @@ kbd{font:inherit;font-size:12px;padding:1px 6px;border:1px solid var(--key-line)
     background:rgba(230,226,207,.6)}
   #stick.on{background:rgba(20,30,34,.45);border-color:rgba(230,226,207,.7)}
   #stick.on i{background:rgba(230,226,207,.9)}
+  /* two big buttons below (Hit, Jump), three smaller ones over them (Super, Bone, Magic) */
   #btns{position:absolute;right:calc(10px + env(safe-area-inset-right,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px));
-    width:min(56vmin,240px);height:min(40vmin,170px);pointer-events:auto;touch-action:none}
-  #btns button{position:absolute;width:29%;aspect-ratio:1;height:auto;border-radius:50%;border:2px solid rgba(230,226,207,.5);
-    background:rgba(20,30,34,.35);color:#e6e2cf;font:900 11px "Arial Black","Segoe UI Black",Impact,Roboto,"Helvetica Neue",system-ui,sans-serif;
-    touch-action:none;padding:0}
+    width:min(56vmin,240px);height:min(42vmin,180px);pointer-events:auto;touch-action:none}
+  #btns button{position:absolute;aspect-ratio:1;height:auto;border-radius:50%;border:2px solid rgba(230,226,207,.5);
+    background:rgba(20,30,34,.35);color:#e6e2cf;font:900 10px "Arial Black","Segoe UI Black",Impact,Roboto,"Helvetica Neue",system-ui,sans-serif;
+    touch-action:none;padding:0;width:28%;top:0}
   #btns button.on{background:rgba(176,92,255,.7)}
-  #btns [data-a=atk]{right:31%;bottom:0;width:34%;font-size:13px}
-  #btns [data-a=jump]{right:0;bottom:16%}
-  #btns [data-a=bone]{right:66%;bottom:14%}
-  #btns [data-a=hado]{right:46%;bottom:53%;border-color:#b05cff}
-  #btns [data-a=super]{right:9%;bottom:60%;width:25%;font-size:10px;border-color:#f0dcff}
-}
-/* standing up: the picture on top, the controls in the space under it */
-@media (pointer:coarse) and (orientation:portrait){
-  #stage{flex:0 0 auto;align-items:flex-start}
-  #zone{top:45%;width:50%}
-  #stick{width:min(34vw,160px);height:min(34vw,160px);bottom:calc(36px + env(safe-area-inset-bottom,0px))}
-  #btns{width:min(54vw,250px);height:min(40vw,180px);bottom:calc(24px + env(safe-area-inset-bottom,0px))}
-  #rot{display:block;text-align:center;font-size:13px;color:var(--muted);padding:6px 16px}
+  #btns [data-a=super]{left:0;border-color:#f0dcff}
+  #btns [data-a=bone]{left:36%}
+  #btns [data-a=hado]{right:0;border-color:#b05cff}
+  #btns [data-a=atk],#btns [data-a=jump]{top:auto;bottom:0;width:44%;font-size:14px}
+  #btns [data-a=atk]{left:2%}
+  #btns [data-a=jump]{right:2%}
 }

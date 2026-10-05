@@ -35,6 +35,21 @@ export const MAP = {
   F7: 'watch',
   F8: 'saverun',
 };
+// A phone held upright shows the game turned on its side (the page is rotated a quarter turn
+// with CSS, see styles.css): pointer positions and element boxes then have to be turned back.
+/** Is the page turned? */
+export const turned = () =>
+  typeof document !== 'undefined' && document.body.classList.contains('turned');
+/** A pointer's position on the page as it is laid out (before the turn). */
+export const pagePoint = (e) =>
+  turned() ? [e.clientY, innerWidth - e.clientX] : [e.clientX, e.clientY];
+/** An element's box on the page as it is laid out (before the turn). */
+export function pageRect(el) {
+  const r = el.getBoundingClientRect();
+  return turned()
+    ? { left: r.top, top: innerWidth - r.right, width: r.height, height: r.width }
+    : r;
+}
 export function setKey(a, v) {
   if (v && !keys[a]) {
     pressed[a] = true;
@@ -69,8 +84,9 @@ export function initInput(canvas) {
   canvas.addEventListener('pointerdown', (e) => {
     canvas.focus();
     audioInit();
-    const r = canvas.getBoundingClientRect();
-    pressed.tap = [((e.clientX - r.left) / r.width) * W, ((e.clientY - r.top) / r.height) * H];
+    const r = pageRect(canvas),
+      [px, py] = pagePoint(e);
+    pressed.tap = [((px - r.left) / r.width) * W, ((py - r.top) / r.height) * H];
     pressed.start = true;
   });
   document.addEventListener('visibilitychange', () => {
