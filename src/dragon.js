@@ -13,8 +13,8 @@
 //   sky    - phase two only: it rises and hovers and, turning its head, sweeps three white
 //            beams from its jaws across the whole arena all at once, slowly (along its top edge,
 //            its middle and its bottom edge; the gaps between are safe), each leaving a burning
-//            trail on the ground for a while; then it drops onto a random spot and sends out
-//            the leap's shockwave
+//            trail on the ground for a while; then it drops straight down and sends out the
+//            leap's shockwave
 // A heavy hit (a knockdown blow, a dark ball, the super) during the wind-up of the bite, the
 // claw, the kick, the plasma or the pounce staggers it; then it shrugs off interrupts for a few seconds. The laser
 // and the leap cannot be stopped at all.
@@ -38,7 +38,7 @@ export const DRAGON = {
   laser: { wind: 1.3, fire: 1.1, fire2: 1.5, rec: 0.5, dmg: 22, band: 40, dy: 110, cd: 5 },
   // the leap back before a beam: to the far side of the arena from a player this near
   retreat: { crouch: 0.3, air: 0.75, rec: 0, h: 190, cd: 11, near: 280, first: 6 },
-  // the hovering triple beam (phase two): rise, charge, fire, hang on, drop onto a random spot.
+  // the hovering triple beam (phase two): rise, charge, fire, hang on, drop straight down.
   // The beams lie along depths GT + edge, the middle and GB - edge, each band deep each way.
   // Firing, the three beams sweep together from under the dragon across the arena in `sweep`
   // seconds (40% slower than the 0.75 s one beam used to take); where they pass the ground
@@ -168,11 +168,13 @@ export function dragonHead(e) {
     x = 150;
     jaw = 0.35;
   } else if (e.state === 'sky' && e.aim) {
-    // hovering: the head held out and turned down at where its beam is going
-    x = 165;
-    y = -205;
+    // hovering: the head turned down at where its beams are going, even back under itself
+    // (then the neck bends back over the shoulder)
+    rot = clamp(Math.atan2(e.aim[1] + 205, e.aim[0] - 165), -0.3, Math.PI - 0.2);
+    const back = clamp((rot - Math.PI / 2) / (Math.PI / 2), 0, 1);
+    x = 165 - 95 * back;
+    y = -205 - 35 * back;
     jaw = 0.5;
-    rot = clamp(Math.atan2(e.aim[1] - y, e.aim[0] - x), -0.3, 1.25);
   } else if (e.state === 'plasma') {
     // head thrown back while the plasma gathers, then a jerk forward with every ball
     const Q = DRAGON.plasma,
@@ -844,10 +846,14 @@ const aimLocal = (e, wx, wy) => [(wx - e.x) * e.face, wy - e.y + e.z];
 export function skyMouth(e) {
   const h = dragonHead(e),
     r = h.rot || 0,
-    lx = h.x + Math.cos(r) * 46 - Math.sin(r) * 10,
-    ly = h.y + Math.sin(r) * 46 + Math.cos(r) * 10;
+    up = r > Math.PI / 2 ? -1 : 1, // the skull is flipped when it looks back
+    lx = h.x + Math.cos(r) * 46 - Math.sin(r) * 10 * up,
+    ly = h.y + Math.sin(r) * 46 + Math.cos(r) * 10 * up;
   return [e.x + e.face * lx, e.y - e.z + ly];
 }
+/** The sky beams sweep from the edge of the arena behind the dragon to the far edge: no spot of
+ *  the line is spared, not even under it. */
+const skyEdges = (e) => (e.face > 0 ? [G.cam - 30, G.cam + W + 30] : [G.cam + W + 30, G.cam - 30]);
 /** The depths of the three sky beams: the top edge of the arena, its middle, its bottom edge. */
 export const skyLines = () => {
   const S = DRAGON.sky;
@@ -863,8 +869,8 @@ export function skyPhase(e) {
   }
   return ['done', 1];
 }
-// The hovering triple beam: up over the side of the arena, three beams across it, then down
-// onto a random spot with the leap's quake and shockwave.
+// The hovering triple beam: up over the side of the arena, three beams across it from edge to
+// edge, then straight down with the leap's quake and shockwave.
 function sky(e, dt) {
   const S = DRAGON.sky,
     [ph, u] = skyPhase(e);
@@ -877,7 +883,7 @@ function sky(e, dt) {
   } else if (ph === 'charge') {
     e.z = S.h + Math.sin(e.anim * 3) * 6;
     // the jaws gather the light, turned at where the first beam will start
-    e.aim = aimLocal(e, e.x + e.face * 80, skyLines()[0]);
+    e.aim = aimLocal(e, skyEdges(e)[0], skyLines()[1]);
     const [mx, my] = skyMouth(e);
     heartSparks(mx, my, dt, u);
     if (!e.charged) {
@@ -887,7 +893,8 @@ function sky(e, dt) {
   } else if (ph === 'fire') {
     e.z = S.h;
     // the spots where the beams meet the ground run together from under it across the arena
-    const x = lerp(e.x + e.face * 80, e.face > 0 ? G.cam + W + 30 : G.cam - 30, u);
+    const [x0, x1] = skyEdges(e),
+      x = lerp(x0, x1, u);
     if (!e.beams) SFX.laser();
     e.beams = skyLines().map((y) => ({ x, y }));
     e.aim = aimLocal(e, x, skyLines()[1]);
@@ -914,20 +921,18 @@ function sky(e, dt) {
   } else if (ph === 'rec') {
     e.z = S.h;
     e.beams = null;
+    e.aim = null;
     if (!e.dropSet) {
-      // pick where it comes down: anywhere in the arena
+      // it comes straight down where it hovers
       e.dropSet = true;
-      e.lx0 = e.x;
-      e.ly0 = e.y;
-      e.lx = G.cam + rnd(180, W - 180);
-      e.ly = rnd(GT + 20, GB - 10);
+      e.lx0 = e.lx = e.x;
+      e.ly0 = e.ly = e.y;
     }
   } else if (ph === 'fall') {
     const p = u * u;
     e.x = lerp(e.lx0, e.lx, ease(u));
     e.y = lerp(e.ly0, e.ly, ease(u));
     e.z = S.h * (1 - p);
-    e.face = P.x >= e.x ? 1 : -1;
   } else {
     e.z = 0;
     if (!e.landed) land(e, DRAGON.leap);
@@ -1048,6 +1053,7 @@ function skull(h, col, dk, eye, fl) {
   ctx.save();
   ctx.translate(x, y);
   if (rot) ctx.rotate(rot);
+  if (rot > Math.PI / 2) ctx.scale(1, -1); // turned back over the shoulder: crown still up
   ctx.lineJoin = 'round';
   ctx.strokeStyle = OL;
   ctx.lineWidth = 2.6;
