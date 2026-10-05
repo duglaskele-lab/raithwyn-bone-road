@@ -68,6 +68,13 @@ export function updPlayer(dt) {
   // the last direction presses, for the hidden dark ball motion (see HADO)
   for (const a of ['u', 'd', 'l', 'r'])
     if (pressed[a]) p.seq = [...p.seq, { a, t: G.time }].slice(-3);
+  // a slide across the dark ball's button on a touch screen: the hidden move, that way
+  if (pressed.hadoR || pressed.hadoL) {
+    p.buf = 'hado';
+    p.bufT = 0.2;
+    p.bufDir = pressed.hadoR ? 1 : -1;
+    p.seq = [];
+  }
   for (const a of ['atk', 'jump', 'bone', 'hado', 'super'])
     if (pressed[a]) {
       p.buf = a;

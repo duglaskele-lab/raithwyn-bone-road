@@ -131,3 +131,19 @@ test('a chained wave starts right where the last one ended, with no walk in betw
   step(CHAIN_GAP + 0.1);
   assert.ok(G.enemies.length > 0, 'and its first enemy is out');
 });
+
+test('a slide across the dark ball button (touch) throws the strongest ball that way', () => {
+  for (const [k, face] of [
+    ['hadoR', 1],
+    ['hadoL', -1],
+  ]) {
+    freshGame();
+    P.rage = 300;
+    P.face = -face;
+    pressed[k] = true;
+    step(1);
+    assert.equal(P.hl, 3);
+    assert.equal(P.face, face);
+    assert.equal(P.rage, 0);
+  }
+});

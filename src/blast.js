@@ -5,6 +5,7 @@ import { rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
 import { breakProp, hitPlayer, hurtEnemy } from './combat.js';
+import { buzz } from './touch.js';
 
 /** Is (x, y) inside the blast's ellipse on the floor? */
 const within = (cx, cy, x, y, r) => ((x - cx) / r) ** 2 + ((y - cy) / (r * 0.42)) ** 2 < 1;
@@ -13,6 +14,7 @@ const within = (cx, cy, x, y, r) => ((x - cx) / r) ** 2 + ((y - cy) / (r * 0.42)
 export function explode(x, y, k = 'barrel') {
   const B = BLAST[k];
   SFX.boom();
+  buzz(90);
   G.shake = Math.max(G.shake, 16);
   G.freeze = Math.max(G.freeze, 0.06);
   G.parts.push({ k: 'boom', x, y, t: 0, life: 0.55, s: B.r });

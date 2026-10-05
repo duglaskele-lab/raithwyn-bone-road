@@ -18,6 +18,7 @@ import { SFX } from './audio.js';
 import { motes, shatter, spark } from './fx.js';
 import { spawn } from './enemies.js';
 import { explode } from './blast.js';
+import { buzz } from './touch.js';
 import { DRAGON, dragonZone, headPoint } from './dragon.js';
 import { FOES } from './foes/index.js';
 import { dmgMult, scoreMult, styleBreak, styleGain, styleKeep } from './style.js';
@@ -310,6 +311,7 @@ export function strike(o) {
       if (hurtEnemy(e, dmg, p.face, o.knock, src, o.launch) && !e.isProp) {
         addRage(o.rage);
         styleGain(10);
+        buzz(o.knock ? 22 : 10);
       }
     }
   }
@@ -328,6 +330,7 @@ export function hitPlayer(dmg, dir, knock) {
   p.hp = Math.max(0, p.hp - dmg);
   styleBreak();
   addRage(RAGE.hurt);
+  buzz(knock ? 70 : 35);
   G.freeze = Math.max(G.freeze, 0.07);
   G.shake = Math.max(G.shake, knock ? 10 : 5);
   spark(p.x, p.y - p.z - 105, '#ff4a5e', knock);

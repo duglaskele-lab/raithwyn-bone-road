@@ -25,21 +25,39 @@ kbd{font:inherit;font-size:12px;padding:1px 6px;border:1px solid var(--key-line)
   font:900 13px "Arial Black","Segoe UI Black",Impact,Roboto,system-ui,sans-serif;color:#fff;pointer-events:none}
 #rec.on{display:block;background:rgba(200,20,40,.85)}
 #rec.msg{display:block;background:rgba(40,36,52,.9)}
+#pad,#rot{display:none}
+/* Phones and tablets: the stick on the left, the buttons on the right, over the picture when
+   the phone lies sideways and under it when it stands up. */
 @media (pointer:coarse){
   #help{display:none}
-  #stage{align-items:flex-start}
-  #pad{display:block;position:fixed;left:0;right:0;bottom:0;height:0;z-index:5;
-    padding-bottom:env(safe-area-inset-bottom,0px)}
-  #stick{position:absolute;left:18px;bottom:calc(18px + env(safe-area-inset-bottom,0px));width:132px;height:132px;border-radius:50%;
-    background:rgba(20,30,34,.45);border:2px solid rgba(230,226,207,.5);touch-action:none}
-  #stick i{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px;border-radius:50%;background:rgba(230,226,207,.8)}
-  #btns{position:absolute;right:12px;bottom:calc(14px + env(safe-area-inset-bottom,0px));width:214px;height:150px}
-  #btns button{position:absolute;width:62px;height:62px;border-radius:50%;border:2px solid rgba(230,226,207,.6);
-    background:rgba(20,30,34,.55);color:#e6e2cf;font:900 10px "Arial Black","Segoe UI Black",Impact,Roboto,"Helvetica Neue",system-ui,sans-serif;touch-action:none;padding:0}
-  #btns button.on{background:rgba(176,92,255,.75)}
-  #btns [data-a=atk]{right:70px;bottom:0;width:72px;height:72px;font-size:13px}
-  #btns [data-a=jump]{right:0;bottom:28px}
-  #btns [data-a=bone]{right:146px;bottom:26px}
-  #btns [data-a=hado]{right:104px;bottom:84px;border-color:#b05cff}
-  #btns [data-a=super]{right:22px;bottom:100px;width:56px;height:56px;font-size:11px;border-color:#f0dcff}
+  #stage{padding:4px}
+  #pad{display:block;position:fixed;inset:0;z-index:5;pointer-events:none}
+  #zone{position:absolute;left:0;top:22%;width:46%;bottom:0;touch-action:none}
+  #zone.live{pointer-events:auto}
+  #stick{position:absolute;left:calc(14px + env(safe-area-inset-left,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));
+    width:min(34vmin,150px);height:min(34vmin,150px);border-radius:50%;pointer-events:auto;
+    background:rgba(20,30,34,.32);border:2px solid rgba(230,226,207,.4);touch-action:none}
+  #stick i{position:absolute;left:50%;top:50%;width:42%;height:42%;transform:none;translate:-50% -50%;border-radius:50%;
+    background:rgba(230,226,207,.6)}
+  #stick.on{background:rgba(20,30,34,.45);border-color:rgba(230,226,207,.7)}
+  #stick.on i{background:rgba(230,226,207,.9)}
+  #btns{position:absolute;right:calc(10px + env(safe-area-inset-right,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px));
+    width:min(56vmin,240px);height:min(40vmin,170px);pointer-events:auto;touch-action:none}
+  #btns button{position:absolute;width:29%;aspect-ratio:1;height:auto;border-radius:50%;border:2px solid rgba(230,226,207,.5);
+    background:rgba(20,30,34,.35);color:#e6e2cf;font:900 11px "Arial Black","Segoe UI Black",Impact,Roboto,"Helvetica Neue",system-ui,sans-serif;
+    touch-action:none;padding:0}
+  #btns button.on{background:rgba(176,92,255,.7)}
+  #btns [data-a=atk]{right:31%;bottom:0;width:34%;font-size:13px}
+  #btns [data-a=jump]{right:0;bottom:16%}
+  #btns [data-a=bone]{right:66%;bottom:14%}
+  #btns [data-a=hado]{right:46%;bottom:53%;border-color:#b05cff}
+  #btns [data-a=super]{right:9%;bottom:60%;width:25%;font-size:10px;border-color:#f0dcff}
+}
+/* standing up: the picture on top, the controls in the space under it */
+@media (pointer:coarse) and (orientation:portrait){
+  #stage{flex:0 0 auto;align-items:flex-start}
+  #zone{top:45%;width:50%}
+  #stick{width:min(34vw,160px);height:min(34vw,160px);bottom:calc(36px + env(safe-area-inset-bottom,0px))}
+  #btns{width:min(54vw,250px);height:min(40vw,180px);bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+  #rot{display:block;text-align:center;font-size:13px;color:var(--muted);padding:6px 16px}
 }

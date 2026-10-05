@@ -2,6 +2,7 @@ import { H, PURPLE, W } from './config.js';
 import { G, P, reset } from './state.js';
 import { atlas, ctx, cv, initGfx, loadPortraits, txt } from './gfx.js';
 import { initInput, keys, pressed, touch } from './input.js';
+import { initTouch, syncTouch } from './touch.js';
 import { initBackground } from './background.js';
 import { spawn } from './enemies.js';
 import { PAUSE_BTN, drawHUD, drawWorld, overlay } from './render.js';
@@ -30,13 +31,16 @@ import { STR, lang, onLang, setLang, t } from './i18n.js';
 const shakeBy = (a) => (Math.random() * 2 - 1) * a;
 function fit() {
   const st = document.getElementById('stage'),
-    aw = st.clientWidth - 20,
-    ah = st.clientHeight - 20;
+    m = touch ? 8 : 20,
+    aw = st.clientWidth - m,
+    ah = st.clientHeight - m;
   let w = Math.max(200, Math.min(aw, (ah * 16) / 9, 1440)),
     h = (w * 9) / 16;
   cv.style.width = w + 'px';
   cv.style.height = h + 'px';
-  G.K = Math.max(1, Math.min(2.5, (w * (window.devicePixelRatio || 1)) / W));
+  // phones: a sharp picture, but not more pixels than they can fill in time (see lowFx)
+  const kMax = G.lowFx ? 1 : touch ? 2 : 2.5;
+  G.K = Math.max(1, Math.min(kMax, (w * (window.devicePixelRatio || 1)) / W));
   cv.width = Math.round(W * G.K);
   cv.height = Math.round(H * G.K);
 }
@@ -59,8 +63,10 @@ function applyLang() {
   }
   for (const btn of document.querySelectorAll('#btns button'))
     btn.textContent = S.pad[btn.dataset.a];
+  document.getElementById('rot').textContent = S.rotateHint;
 }
 function frame(dt) {
+  if (touch) syncTouch();
   // (dt is replaced by the recorded one while a replay plays)
   ctx.setTransform(G.K, 0, 0, G.K, 0, 0);
   ctx.imageSmoothingEnabled = true;
@@ -211,10 +217,30 @@ function dropReplay(e) {
     })
     .catch(() => (G.note = { key: 'replayBad', t: 3 }));
 }
+// A device that cannot keep up (frames slower than SLOW for a couple of seconds of a fight)
+// gets a lighter picture: fewer pixels, no glow blur, plain outlines. Only the look changes.
+const SLOW = 1 / 42;
+let slowT = 0,
+  slowN = 0;
+function watchSpeed(real) {
+  if (G.lowFx || G.state !== 'play' || real <= 0 || real > 1) return;
+  slowT += real;
+  slowN++;
+  if (slowT < 2.5) return;
+  if (slowT / slowN > SLOW) lighten();
+  slowT = slowN = 0;
+}
+function lighten() {
+  G.lowFx = true;
+  // blur is the dearest thing a canvas draws: from now on it is simply not drawn
+  Object.defineProperty(ctx, 'shadowBlur', { get: () => 0, set: () => {}, configurable: true });
+  fit();
+}
 let last = 0;
 function loop(ts) {
   // whole milliseconds: a recorded run then repeats the same time steps and folds up small
   const dt = Math.round(Math.min(34, ts - last || 0)) / 1000;
+  watchSpeed((ts - last) / 1000);
   last = ts;
   try {
     frame(dt);
@@ -227,6 +253,7 @@ function boot() {
   initGfx(document.getElementById('game'));
   initBackground();
   initInput(cv);
+  initTouch(cv);
   loadPortraits(PORTRAITS, window.__PORTRAITS__);
   applyLang();
   onLang(applyLang);
