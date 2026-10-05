@@ -545,11 +545,9 @@ export const WAVEGEN = {
 
 // Seconds per frame of the sprint: 15% slower than the old 0.065 so the feet match the speed.
 export const RUN_FRAME = 0.065 / 0.85;
-// The idle loop (breathing, the tail swaying), as in the video it was taken from: 28 poses,
-// each held for this many 1/24 s (2.25 s in all).
-export const IDLE_HOLD = [
-  1, 2, 1, 2, 1, 1, 3, 3, 1, 2, 1, 1, 3, 1, 3, 4, 4, 4, 3, 1, 3, 1, 1, 2, 1, 1, 2, 1,
-];
+// The idle loop (breathing, the tail swaying) from the video it was taken from: 11 poses spread
+// evenly over its 2.25 s, each held for this many 1/24 s.
+export const IDLE_HOLD = [5, 5, 5, 5, 5, 4, 5, 5, 5, 5, 5];
 // Player animation timelines: seconds per frame of each attack.
 export const D = {
   atk1: [0.03, 0.05, 0.09, 0.06, 0.05],

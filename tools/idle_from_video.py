@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Makes the idle row of the character sheet from a video of the idle loop.
 
-    python3 tools/idle_from_video.py assets/source/idle.mp4 60 114
+    python3 tools/idle_from_video.py assets/source/idle.mp4 60 114 [POSES]
 
 FIRST..LAST (video frames from 0, LAST not included) must be one loop: LAST looks like FIRST.
 The video is the one the idle was drawn from: the standing figure in the left 420 px, on a
 grey checkerboard. The script cuts the checkerboard away (from the edges inwards, so the
 white shirt stays), puts back the tail's tip where the video's edge cuts it off, lines every frame up on the boots, scales the figure to the sheet's 356 px,
-keeps each different pose once and prints how long each is held (IDLE_HOLD in config.js);
+keeps each different pose once (or POSES of them, evenly spread) and prints how long each is held (IDLE_HOLD in config.js);
 then it puts the poses into the first row of assets/source/character_sheet.png.
 Needs ffmpeg, pillow and numpy; run 
 > raithwyn-bone-road@0.3.0 atlas
@@ -22,6 +22,7 @@ from collections import deque
 
 ROOT = Path(__file__).resolve().parent.parent
 VIDEO, A, B = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
+POSES = int(sys.argv[4]) if len(sys.argv) > 4 else 0   # 0: every different pose
 TMP = tempfile.mkdtemp()
 subprocess.run(["ffmpeg", "-v", "error", "-i", VIDEO, f"{TMP}/f%03d.png"], check=True)
 def flood(mask, seeds):
@@ -113,6 +114,12 @@ for k in range(1,len(frames)):
     if np.abs(frames[k][2]-frames[k-1][2]).mean()>0.3: uniq.append(k); hold.append(1)
     else: hold[-1]+=1
 print('unique',len(uniq),'holds',hold, 'total', sum(hold))
+# or just POSES of them, evenly spread over the loop (each then held about as long)
+if POSES:
+    n = len(frames)
+    uniq = [round(k * n / POSES) for k in range(POSES)]
+    hold = [b - a for a, b in zip(uniq, uniq[1:] + [n])]
+    print('poses', uniq, 'holds', hold)
 out=[]
 for k in uniq:
     im,al,_=frames[k]; dx,dy=shifts[k]
@@ -132,7 +139,9 @@ W0, H0 = sheet.size
 a = np.array(out[0])[..., 3] > 10
 bot = np.where(a.any(1))[0].max() + 1
 cell = out[0].width + 16
-new = Image.new("RGBA", (max(W0, 16 + cell * len(out)), H0))
+rest = np.array(sheet)[373:, :, 3] > 10                # the rows below: how wide they need it
+W = max(np.where(rest.any(0))[0].max() + 17, 16 + cell * len(out))
+new = Image.new("RGBA", (W, H0))
 new.paste(sheet.crop((0, 373, W0, H0)), (0, 373))
 for n, f in enumerate(out):
     new.alpha_composite(f, (16 + n * cell, 372 - bot))
