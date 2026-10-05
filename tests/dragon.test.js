@@ -269,7 +269,7 @@ test("the player's hits push the dragon back a little", () => {
   assert.ok(d.x - x2 > light, 'a heavy hit pushes further');
 });
 
-test('second phase: 30% faster, and a laser that burns 50% longer, widening to three times its width', () => {
+test('second phase: 30% faster, and a laser that burns 50% longer, widening to 2.4 times its width', () => {
   const a = dragonAt(400, 450, { cd: 99 }),
     b = dragonAt(400, 450, { cd: 99, phase2: true });
   for (const d of [a, b]) Object.assign(d, { state: 'claw', t: 0 });
@@ -284,15 +284,18 @@ test('second phase: 30% faster, and a laser that burns 50% longer, widening to t
   b.t = L.wind + L.fire;
   assert.ok(laserBand(b) < L.band * 3, 'still widening where the first phase beam would end');
   b.t = L.wind + laserFire(b);
-  assert.equal(laserBand(b), L.band * 3, 'three times as wide by the end');
+  assert.ok(
+    Math.abs(laserBand(b) - L.band * 2.4) < 1e-9,
+    '2.4 times as wide by the end: 20% less than 3',
+  );
   Object.assign(a, { state: 'laser', t: L.wind + L.fire });
   assert.equal(laserBand(a), L.band, 'the first phase beam keeps its width');
   for (const [phase2, dy, hit] of [
     [false, 50, false],
     [true, 50, true],
     [true, 75, true],
-    [true, 110, true],
-    [true, 130, false],
+    [true, 90, true],
+    [true, 110, false], // the widest it gets is 96 px each way now (it was 120)
   ]) {
     freshGame();
     const d = dragonAt(60, 450, { phase2 });
@@ -456,4 +459,32 @@ test('after the sky beams it drops onto a random spot with the shockwave', () =>
     assert.equal(d.state, 'walk');
   }
   assert.ok(seen.size > 1, 'not always the same spot');
+});
+
+test('the sky beams come from the turning head, sweep across one by one and leave a trail', () => {
+  const S = DRAGON.sky;
+  const d = dragonAt(400, 450 + 100, { phase2: true });
+  P.x = 2000; // out of the way
+  Object.assign(d, { state: 'sky', t: 0, skyX0: 770, skyY0: 441, skyX: 770, skyY: 441 });
+  const xs = [[], [], []],
+    rots = new Set();
+  let maxTrail = 0;
+  for (let i = 0; i < (S.rise + S.charge + S.fire) / DRAGON.rage / DT; i++) {
+    run(d, DT);
+    if (d.beam) xs[d.beam.k].push(d.beam.x);
+    rots.add(Math.round(dragonHead(d).rot * 10));
+    maxTrail = Math.max(maxTrail, d.trail.length);
+  }
+  for (const [k, list] of xs.entries()) {
+    assert.ok(list.length > 10, `beam ${k} fired`);
+    assert.ok(
+      list.every((x, i) => i === 0 || (x - list[i - 1]) * d.face >= 0),
+      `beam ${k} moves one way only`,
+    );
+    assert.ok(Math.abs(list.at(-1) - list[0]) > 600, `beam ${k} crosses the arena`);
+  }
+  assert.ok(rots.size > 3, 'the head turns as it aims');
+  assert.ok(maxTrail > 30, 'the ground burns where the beams pass');
+  run(d, S.trail + 2);
+  assert.equal(d.trail.length, 0, 'and the trail fades');
 });
