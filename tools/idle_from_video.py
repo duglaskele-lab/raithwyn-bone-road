@@ -6,7 +6,7 @@
 FIRST..LAST (video frames from 0, LAST not included) must be one loop: LAST looks like FIRST.
 The video is the one the idle was drawn from: the standing figure in the left 420 px, on a
 grey checkerboard. The script cuts the checkerboard away (from the edges inwards, so the
-white shirt stays), lines every frame up on the boots, scales the figure to the sheet's 356 px,
+white shirt stays), puts back the tail's tip where the video's edge cuts it off, lines every frame up on the boots, scales the figure to the sheet's 356 px,
 keeps each different pose once and prints how long each is held (IDLE_HOLD in config.js);
 then it puts the poses into the first row of assets/source/character_sheet.png.
 Needs ffmpeg, pillow and numpy; run 
@@ -55,7 +55,36 @@ def matte(i):
     alpha=fg.astype(np.float32); edge=fg&nb
     alpha[edge]=np.clip((235-lum[edge])/(235-70),0,1)
     return im.astype(np.float32), alpha, lum
-frames=[matte(i) for i in range(A,B)]
+# The video cuts the tail's tip off at its left edge when the tail swings out. Room is made on
+# the left and the tip is put back: the tip of TIP_FRAME (the tail out as far as it goes
+# uncut), as many columns of it as it takes to be as tall as the cut, stretched to the cut.
+PAD, TIP_FRAME, TAIL = 24, 82, slice(440, 860)   # TAIL: the rows the tail is in
+def padded(f):
+    im, al, lum = f
+    return (np.pad(im, ((0, 0), (PAD, 0), (0, 0))), np.pad(al, ((0, 0), (PAD, 0))),
+            np.pad(lum, ((0, 0), (PAD, 0)), constant_values=255))
+tpl_im, tpl_al, _ = padded(matte(TIP_FRAME))
+t_rows = np.arange(tpl_al.shape[0])[TAIL]
+tip = np.where((tpl_al[TAIL] > 0.5).any(0))[0].min()
+def span(al, x):
+    r = t_rows[al[TAIL, x] > 0.5]
+    return (r.min(), r.max()) if len(r) else None
+def mend_tail(f):
+    im, al, lum = f
+    cut = span(al, PAD)
+    if not cut or cut[1] - cut[0] < 8:
+        return f
+    ca, cb = cut
+    n = next((t for t in range(1, PAD) if (s := span(tpl_al, tip + t)) and s[1] - s[0] >= cb - ca), PAD - 1)
+    ta, tb = span(tpl_al, tip + n)
+    for j in range(n):                       # template column tip+j -> PAD-n+j
+        for yd in range(ca - 40, cb + 41):
+            y = int(round(ta + (yd - ca) * (tb - ta) / max(1, cb - ca)))
+            if 0 <= y < al.shape[0] and tpl_al[y, tip + j] > 0:
+                im[yd, PAD - n + j] = tpl_im[y, tip + j]
+                al[yd, PAD - n + j] = tpl_al[y, tip + j]
+    return im, al, lum
+frames = [mend_tail(padded(matte(i))) for i in range(A, B)]
 # where the boots are: correlate the lowest 70 rows with the first frame's, sub-pixel
 def boots(f):
     im,al,lum=f; ys=np.where(al.max(1)>0.5)[0]; bot=ys.max()+1
@@ -63,15 +92,15 @@ def boots(f):
 ref,rbot=boots(frames[0])
 def shift_of(f):
     g,bot=boots(f)
-    R=ref[rbot-70:rbot, 60:330]; best=None
+    R=ref[rbot-70:rbot, 60+PAD:330+PAD]; best=None
     for dy in range(-3,4):
         for dx in range(-6,7):
-            C=g[rbot-70-dy:rbot-dy, 60-dx:330-dx]
+            C=g[rbot-70-dy:rbot-dy, 60+PAD-dx:330+PAD-dx]
             e=((C-R)**2).sum()
             if best is None or e<best[0]: best=(e,dx,dy)
     _,dx,dy=best
     def err(ddx,ddy):
-        C=g[rbot-70-ddy:rbot-ddy, 60-ddx:330-ddx]; return ((C-R)**2).sum()
+        C=g[rbot-70-ddy:rbot-ddy, 60+PAD-ddx:330+PAD-ddx]; return ((C-R)**2).sum()
     l,c,r=err(dx-1,dy),err(dx,dy),err(dx+1,dy); fx=dx+(0.5*(l-r)/(l-2*c+r) if l-2*c+r else 0)
     u,c,d=err(dx,dy-1),c,err(dx,dy+1); fy=dy+(0.5*(u-d)/(u-2*c+d) if u-2*c+d else 0)
     return fx,fy
