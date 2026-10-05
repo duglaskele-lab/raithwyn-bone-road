@@ -122,7 +122,8 @@ def main():
     # (the idle feet did). Widening a crop by a pixel only adds empty space.
     for it in items:
         name, x0, y0, x1, y1, ax, ay, src = it
-        X, Y = int(round(x0 + ax)), int(round(y0 + ay))
+        # halves always up (round() takes them to the even side: every other frame a pixel off)
+        X, Y = int(np.floor(x0 + ax + 0.5)), int(np.floor(y0 + ay + 0.5))
         x0 -= (X - x0) % 2
         y0 -= (Y - y0) % 2
         x1 += (x1 - x0) % 2

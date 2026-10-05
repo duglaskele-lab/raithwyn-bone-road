@@ -147,3 +147,23 @@ test('a slide across the dark ball button (touch) throws the strongest ball that
     assert.equal(P.rage, 0);
   }
 });
+
+test('the idle loop: one atlas frame per held pose, the poses in order and round again', async () => {
+  const { FR } = await import('../src/atlas-frames.js');
+  const { IDLE_HOLD } = await import('../src/config.js');
+  const { idlePose } = await import('../src/player.js');
+  assert.equal(FR.idle.length, IDLE_HOLD.length);
+  const total = IDLE_HOLD.reduce((n, h) => n + h, 0);
+  let last = -1,
+    seen = 0;
+  for (let k = 0; k < total; k++) {
+    const i = idlePose((k + 0.5) / 24);
+    if (i !== last) {
+      assert.equal(i, last + 1, 'poses in order');
+      seen++;
+    }
+    last = i;
+  }
+  assert.equal(seen, IDLE_HOLD.length);
+  assert.equal(idlePose(total / 24 + 0.01), 0, 'round again');
+});

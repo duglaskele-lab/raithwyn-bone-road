@@ -3,7 +3,7 @@ import {
   BONE_COST,
   D,
   HADO,
-  IDLE_FRAME,
+  IDLE_HOLD,
   RAGE,
   GB,
   GT,
@@ -20,10 +20,16 @@ import { G, P } from './state.js';
 import { keys, pressed } from './input.js';
 import { SFX } from './audio.js';
 import { dust, motes } from './fx.js';
-import { FR } from './atlas-frames.js';
 import { floorClamp, viewClamp } from './level.js';
 import { hadoLevel, strike, superNova } from './combat.js';
 
+// The idle pose at time t: the poses are held for IDLE_HOLD[i] 24ths of a second each.
+const IDLE_T = IDLE_HOLD.reduce((n, h) => n + h, 0);
+export function idlePose(t) {
+  let k = Math.floor(t * 24) % IDLE_T;
+  for (let i = 0; i < IDLE_HOLD.length; i++) if ((k -= IDLE_HOLD[i]) < 0) return i;
+  return 0;
+}
 export function toIdle() {
   P.state = 'idle';
   P.t = 0;
@@ -103,7 +109,7 @@ export function updPlayer(dt) {
       }
       p.an =
         ns === 'idle'
-          ? ['idle', Math.floor(p.t / IDLE_FRAME) % FR.idle.length]
+          ? ['idle', idlePose(p.t)]
           : ns === 'walk'
             ? ['walk', Math.floor(p.t / 0.085) % 8]
             : ['run', Math.floor(p.t / RUN_FRAME) % 6];
