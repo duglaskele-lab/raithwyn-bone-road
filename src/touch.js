@@ -6,6 +6,7 @@ import { H, W } from './config.js';
 import { G } from './state.js';
 import { audioInit } from './audio.js';
 import { keys, pagePoint, pageRect, pressed, setKey, turned } from './input.js';
+import { replaying } from './replay.js';
 
 // The hidden moves on the HUD (game pixels): hold the portrait for the X secret (the road to
 // the final boss), hold the score for the Z + 2 secret (on to Old Quarry).
@@ -29,6 +30,9 @@ export function buzz(ms) {
     // not allowed here: no matter
   }
 }
+
+// Lets go of everything the fingers hold (set by initTouch): the controls are being hidden.
+let letGo = () => {};
 
 const inBox = ([x, y, w, h], px, py) => px >= x && px <= x + w && py >= y && py <= y + h;
 
@@ -105,7 +109,6 @@ export function initTouch(canvas) {
   const down = (el) => {
     el.classList.add('on');
     setKey(el.dataset.a, true);
-    if (G.state !== 'play') pressed.start = true;
   };
   const up = (el) => {
     el.classList.remove('on');
@@ -122,7 +125,6 @@ export function initTouch(canvas) {
       // the strongest the rage pays for, that way (the hidden S S D L / S S A L)
       el.classList.add('on');
       held.set(e.pointerId, { el, x0: pagePoint(e)[0], hado: true });
-      if (G.state !== 'play') pressed.start = true;
       return;
     }
     down(el);
@@ -158,6 +160,12 @@ export function initTouch(canvas) {
   };
   btns.addEventListener('pointerup', lift);
   btns.addEventListener('pointercancel', lift);
+  letGo = () => {
+    if (sid !== null) release();
+    for (const h of held.values()) h.el.classList.remove('on');
+    for (const h of held.values()) if (!h.hado) setKey(h.el.dataset.a, false);
+    held.clear();
+  };
 
   // --- the secrets: hold the portrait or the score ------------------------------------------
   const holds = new Map();
@@ -219,9 +227,16 @@ export function turnPage() {
   b.style.height = want ? `${innerWidth}px` : '';
   return changed;
 }
-/** Called every frame: the stick zone only takes touches in a fight. */
+/** Called every frame: the stick and the buttons are only there in a fight (the menus, the
+ *  pause and the end of a run are tapped on the picture itself, and a replay plays alone). */
 export function syncTouch() {
-  const zone = document.getElementById('zone'),
-    playing = G.state === 'play';
+  const pad = document.getElementById('pad'),
+    zone = document.getElementById('zone'),
+    playing = G.state === 'play',
+    shown = playing && !replaying() && !G.replayDone;
+  if (pad.classList.contains('off') === shown) {
+    pad.classList.toggle('off', !shown);
+    if (!shown) letGo();
+  }
   if (zone.classList.contains('live') !== playing) zone.classList.toggle('live', playing);
 }

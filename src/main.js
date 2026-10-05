@@ -6,7 +6,15 @@ import { initTouch, syncTouch, turnPage } from './touch.js';
 import { initBackground } from './background.js';
 import { spawn } from './enemies.js';
 import { PAUSE_BTN, drawHUD, drawWorld, overlay } from './render.js';
-import { MENU_STATES, drawMenu, drawPause, menuStep, pauseStep } from './menu.js';
+import {
+  MENU_STATES,
+  drawEndItems,
+  drawMenu,
+  drawPause,
+  endBoxes,
+  menuStep,
+  pauseStep,
+} from './menu.js';
 import { PORTRAITS } from './characters.js';
 import { update } from './world.js';
 import { startLevel } from './level.js';
@@ -28,6 +36,9 @@ import { STR, lang, onLang, setLang, t } from './i18n.js';
 // Entry point: wires the DOM to the game modules and runs the frame loop.
 
 // the screen shake is only a look: it does not touch the game's seeded chance
+// where the two items to tap at the end of a run go (touch screens)
+const END_Y = { over: 348, win: 304 };
+const inBox = (b, p) => p[0] >= b[0] && p[0] <= b[0] + b[2] && p[1] >= b[1] && p[1] <= b[1] + b[3];
 const shakeBy = (a) => (Math.random() * 2 - 1) * a;
 function fit() {
   if (touch) turnPage();
@@ -121,13 +132,19 @@ function frame(dt) {
       update(dt);
     } else if (G.state === 'over' || G.state === 'win') {
       G.endT += dt;
+      // the Bone Road won: on a touch screen a tap anywhere goes on (as Hit does)
+      if (touch && pressed.tap && G.state === 'win' && G.level === 1) pressed.atk = true;
       recordFrame(dt);
       update(dt);
+      // on a touch screen the buttons are hidden here: the two items are tapped instead
+      const ends = touch && pressed.tap && endBoxes(G.state === 'over' ? END_Y.over : END_Y.win),
+        tapped = (i) => ends && inBox(ends[i], pressed.tap);
       if (replaying());
+      else if (G.state === 'play'); // update() has just gone on to the next stage
       else if (G.state === 'win' && G.level === 1); // the next stage follows (see world.js)
-      else if (G.endT > 1.5 && (pressed.start || pressed.atk))
+      else if (G.endT > 1.5 && (tapped(0) || (!touch && pressed.start) || pressed.atk))
         newRun(undefined, G.state === 'over' ? G.level : 1); // a lost stage is tried again
-      else if (G.endT > 1.5 && pressed.pause) toTitle();
+      else if (G.endT > 1.5 && (pressed.pause || tapped(1))) toTitle();
     }
     ctx.fillStyle = '#0c1218';
     ctx.fillRect(0, 0, W, H);
@@ -145,8 +162,8 @@ function frame(dt) {
       overlay(Math.min(0.66, G.endT * 0.5));
       txt(t('overTitle'), W / 2, 250, 50, '#ff4a5e', 'center', 8);
       txt(t('score') + P.score, W / 2, 292, 22, '#ece5cb', 'center', 4);
-      if (G.endT > 1.5)
-        txt(touch ? t('restartTouch') : t('restartKey'), W / 2, 340, 20, '#f0cf4f', 'center', 4);
+      if (G.endT > 1.5 && touch && !replaying()) drawEndItems(t('retryItem'), END_Y.over);
+      else if (G.endT > 1.5 && !touch) txt(t('restartKey'), W / 2, 340, 20, '#f0cf4f', 'center', 4);
       if (G.endT > 1.5 && !touch) txt(t('toMenuKey'), W / 2, 372, 15, '#9bb0ac', 'center', 3);
       if (G.endT > 1.5 && !touch && !replaying())
         txt(t('replayHint'), W / 2, 398, 14, '#9bb0ac', 'center', 3);
@@ -167,8 +184,8 @@ function frame(dt) {
       txt(t('winTitle'), W / 2, 200, 58, '#f0e9ff', 'center', 8);
       ctx.restore();
       txt(t('score') + P.score, W / 2, 244, 24, '#f0cf4f', 'center', 5);
-      if (G.endT > 2.4)
-        txt(touch ? t('againTouch') : t('againKey'), W / 2, 290, 20, '#ece5cb', 'center', 4);
+      if (G.endT > 2.4 && touch && !replaying()) drawEndItems(t('againItem'), END_Y.win);
+      else if (G.endT > 2.4 && !touch) txt(t('againKey'), W / 2, 290, 20, '#ece5cb', 'center', 4);
       if (G.endT > 2.4 && !touch) txt(t('toMenuKey'), W / 2, 322, 15, '#9bb0ac', 'center', 3);
       if (G.endT > 2.4 && !touch && !replaying())
         txt(t('replayHint'), W / 2, 348, 14, '#9bb0ac', 'center', 3);

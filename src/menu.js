@@ -30,6 +30,8 @@ export const SLOT_BOX = Array.from({ length: SLOTS }, (_, i) => [
   SLOT,
 ]);
 export const PLAY_BOX = [GX, 372, 250, 52];
+/** The end of a run on a touch screen: two items to tap, "again" and "main menu", from y. */
+export const endBoxes = (y) => [box(W / 2, y, 300), box(W / 2, y + 54, 300)];
 export const BACK_BOX = [GX + 268, 372, 240, 52];
 const PANEL = [570, 84, 356, 420];
 
@@ -125,6 +127,12 @@ export function pauseStep() {
     reset();
     go('title');
   }
+}
+/** Draws the two items at the end of a run (touch screens), the first one lit. */
+export function drawEndItems(again, y) {
+  const b = endBoxes(y);
+  item(again, b[0], true);
+  item(t('toMainMenu'), b[1], false);
 }
 export function drawPause() {
   overlay(0.62);
