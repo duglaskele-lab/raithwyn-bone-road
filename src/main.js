@@ -32,6 +32,7 @@ import {
   stopReplay,
 } from './replay.js';
 import { STR, lang, onLang, setLang, t } from './i18n.js';
+import { countFrame, due, fps } from './fps.js';
 
 // Entry point: wires the DOM to the game modules and runs the frame loop.
 
@@ -198,6 +199,8 @@ function frame(dt) {
     txt(t(G.note.key), W / 2, 40, 16, '#ff8f9d', 'center', 4);
     if (G.note.t <= 0) G.note = null;
   }
+  // the frame counter (the settings), between the HUD's buttons and the score
+  if (fps.show) txt(`${fps.now} FPS`, 470, 36, 15, '#9fe08a', 'left', 3);
   for (const k in pressed) delete pressed[k];
 }
 function toTitle() {
@@ -237,6 +240,8 @@ function dropReplay(e) {
 // A device that cannot keep up (frames slower than SLOW for a couple of seconds of a fight)
 // gets a lighter picture: fewer pixels, no glow blur, plain outlines. Only the look changes.
 const SLOW = 1 / 42;
+// under a low limit the frames are slow on purpose: only slower than the limit counts
+const slowAt = () => Math.max(SLOW, 1.25 / fps.cap);
 let slowT = 0,
   slowN = 0;
 function watchSpeed(real) {
@@ -244,7 +249,7 @@ function watchSpeed(real) {
   slowT += real;
   slowN++;
   if (slowT < 2.5) return;
-  if (slowT / slowN > SLOW) lighten();
+  if (slowT / slowN > slowAt()) lighten();
   slowT = slowN = 0;
 }
 function lighten() {
@@ -255,16 +260,19 @@ function lighten() {
 }
 let last = 0;
 function loop(ts) {
+  requestAnimationFrame(loop);
+  // the frame limit (the settings): not this time
+  if (!due(ts)) return;
   // whole milliseconds: a recorded run then repeats the same time steps and folds up small
   const dt = Math.round(Math.min(34, ts - last || 0)) / 1000;
   watchSpeed((ts - last) / 1000);
   last = ts;
+  countFrame(ts);
   try {
     frame(dt);
   } catch (err) {
     console.error(err);
   }
-  requestAnimationFrame(loop);
 }
 function boot() {
   initGfx(document.getElementById('game'));
@@ -298,4 +306,5 @@ window.__game = {
   startReplay,
   newRun,
   startLevel,
+  fps,
 };

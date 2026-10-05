@@ -13,6 +13,7 @@ import {
   menuStep,
 } from '../src/menu.js';
 import { LANGS, STR, lang, setLang } from '../src/i18n.js';
+import { CAPS, due, fps } from '../src/fps.js';
 import { freshGame } from './helpers.js';
 
 beforeEach(() => {
@@ -63,8 +64,49 @@ test('settings switch the language and the sound', () => {
   step('start');
   assert.equal(G.muted, true);
   step('d');
+  step('d');
+  step('d');
   step('start');
   assert.equal(G.state, 'title');
+});
+
+test('settings: the FPS counter and the frame limit (30 45 60 75 125, 60 by default)', () => {
+  assert.deepEqual(CAPS, [30, 45, 60, 75, 125]);
+  assert.equal(fps.cap, 60);
+  assert.equal(fps.show, false);
+  G.state = 'settings';
+  step(SET_BOX[2]);
+  assert.equal(fps.show, true);
+  step(SET_BOX[2]);
+  assert.equal(fps.show, false);
+  step(SET_BOX[3]);
+  assert.equal(fps.cap, 75);
+  step('r');
+  assert.equal(fps.cap, 125);
+  step('r');
+  assert.equal(fps.cap, 30, 'round the list');
+  step('l');
+  assert.equal(fps.cap, 125);
+  step('l');
+  step('l');
+  assert.equal(fps.cap, 60);
+  assert.equal(G.state, 'settings');
+});
+
+test('the frame limit: 45 on a 60 Hz screen draws three frames of four', () => {
+  fps.cap = 45;
+  let drawn = 0;
+  for (let i = 1; i <= 600; i++) if (due(1e6 + i * (1000 / 60))) drawn++;
+  assert.ok(Math.abs(drawn / 10 - 45) <= 1, `${drawn / 10} fps`);
+  fps.cap = 30;
+  drawn = 0;
+  for (let i = 1; i <= 1200; i++) if (due(2e6 + i * (1000 / 120))) drawn++;
+  assert.ok(Math.abs(drawn / 10 - 30) <= 1, `${drawn / 10} fps on 120 Hz`);
+  fps.cap = 125;
+  drawn = 0;
+  for (let i = 1; i <= 600; i++) if (due(3e6 + i * (1000 / 60))) drawn++;
+  assert.equal(drawn, 600, 'a limit over the screen rate draws every frame');
+  fps.cap = 60;
 });
 
 test('the roster: four fighters, four locked slots, only Raithwyn playable', () => {
