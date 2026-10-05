@@ -19,6 +19,8 @@ import subprocess, tempfile
 from pathlib import Path
 from PIL import Image; import numpy as np, sys
 from collections import deque
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from defringe import defringe   # the pale edge left by the light background
 
 ROOT = Path(__file__).resolve().parent.parent
 VIDEO, A, B = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
@@ -131,7 +133,7 @@ for k in uniq:
     a=np.array(P).astype(np.float32); al2=a[...,3:4]/255
     rgb=np.where(al2>0, a[...,:3]/np.maximum(al2,1e-6), 0)
     a[...,:3]=rgb.clip(0,255); a[...,3]=np.where(a[...,3]<8,0,a[...,3])
-    out.append(Image.fromarray(a.astype(np.uint8),'RGBA'))
+    out.append(Image.fromarray(defringe(a.astype(np.uint8)),'RGBA'))
 print("IDLE_HOLD =", hold)
 # into the sheet's first row (rows 16..372), one pose after another
 sheet = Image.open(ROOT / "assets/source/character_sheet.png").convert("RGBA")
