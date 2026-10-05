@@ -154,7 +154,7 @@ test('Esc pauses the fight; the pause menu resumes, opens settings, returns to t
   pauseStep();
   assert.equal(G.state, 'settings');
   delete pressed.tap;
-  pressed.tap = [SET_BOX[2][0] + 10, SET_BOX[2][1] + 10];
+  pressed.tap = [SET_BOX.at(-1)[0] + 10, SET_BOX.at(-1)[1] + 10];
   menuStep(DT);
   assert.equal(G.state, 'pause', 'Back from settings returns to the pause menu');
   delete pressed.tap;

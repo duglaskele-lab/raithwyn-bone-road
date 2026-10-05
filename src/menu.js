@@ -10,6 +10,7 @@ import { STR, lang, nextLang, t } from './i18n.js';
 import { ctx, portraits, ready, rr, sprite, txt, wrapTxt } from './gfx.js';
 import { drawHUD, drawWorld, overlay } from './render.js';
 import { newRun } from './replay.js';
+import { fps, stepCap, toggleFps } from './fps.js';
 
 // ---- layout (game pixels); the hit boxes double as touch and mouse targets ----
 const box = (cx, y, w, h = 44) => [cx - w / 2, y - h / 2 - 8, w, h];
@@ -17,8 +18,8 @@ export const MAIN_ITEMS = ['start', 'settings', 'exit'];
 export const MAIN_BOX = MAIN_ITEMS.map((_, i) => box(600, 296 + i * 56, 300));
 export const PAUSE_ITEMS = ['resume', 'settings', 'menu'];
 export const PAUSE_BOX = PAUSE_ITEMS.map((_, i) => box(W / 2, 262 + i * 54, 340));
-export const SET_ITEMS = ['lang', 'sound', 'back'];
-export const SET_BOX = SET_ITEMS.map((_, i) => box(W / 2, 162 + i * 52, 420));
+export const SET_ITEMS = ['lang', 'sound', 'fps', 'cap', 'back'];
+export const SET_BOX = SET_ITEMS.map((_, i) => box(W / 2, 134 + i * 42, 420));
 const SLOT = 118,
   GAP = 12,
   GX = 36,
@@ -82,13 +83,16 @@ function settingsStep() {
   const i = hit(SET_BOX);
   if (i >= 0) G.menu = i;
   else if (pressed.tap) return;
-  if (pressed.u) G.menu = (G.menu + 2) % 3;
-  if (pressed.d) G.menu = (G.menu + 1) % 3;
+  const N = SET_ITEMS.length;
+  if (pressed.u) G.menu = (G.menu + N - 1) % N;
+  if (pressed.d) G.menu = (G.menu + 1) % N;
   const change = i >= 0 || pressed.start || pressed.atk || pressed.l || pressed.r;
   if (!change) return;
   const item = SET_ITEMS[G.menu];
   if (item === 'lang') nextLang();
   else if (item === 'sound') G.muted = !G.muted;
+  else if (item === 'fps') toggleFps();
+  else if (item === 'cap') stepCap(pressed.l ? -1 : 1);
   else if (i >= 0 || pressed.start || pressed.atk) leaveSettings();
 }
 function selectStep() {
@@ -264,31 +268,37 @@ function drawSettings() {
     drawHUD();
     overlay(0.8);
   } else backdrop(0.72);
-  txt(t('settings'), W / 2, 96, 40, '#ece5cb', 'center', 7);
+  txt(t('settings'), W / 2, 72, 38, '#ece5cb', 'center', 7);
   const labels = [
     `${t('menuLang')}:  ◂ ${STR[lang].langName} ▸`,
     `${t('menuSound')}:  ◂ ${G.muted ? t('soundOff') : t('soundOn')} ▸`,
+    `${t('menuFps')}:  ◂ ${fps.show ? t('soundOn') : t('soundOff')} ▸`,
+    `${t('menuCap')}:  ◂ ${fps.cap} ▸`,
     t('back'),
   ];
   labels.forEach((s, i) => item(s, SET_BOX[i], G.menu === i));
-  const px = 170,
-    py = 300,
-    pw = 620,
-    ph = 196;
+  const help = Object.values(STR[lang].help),
+    rows = Math.ceil(help.length / 2),
+    px = 120,
+    py = 322,
+    pw = 720,
+    ph = 52 + rows * 21;
   ctx.fillStyle = 'rgba(16,14,24,.8)';
   rr(px, py, pw, ph, 10);
   ctx.fill();
   ctx.strokeStyle = 'rgba(236,229,203,.4)';
   ctx.lineWidth = 2;
   ctx.stroke();
-  txt(t('controls'), px + pw / 2, py + 30, 18, '#d2a8ff', 'center', 4);
-  Object.values(STR[lang].help).forEach(([name, keys], i) => {
-    const x = px + 26 + (i < 5 ? 0 : 300),
-      y = py + 62 + (i % 5) * 27;
+  txt(t('controls'), px + pw / 2, py + 26, 18, '#d2a8ff', 'center', 4);
+  // two columns, as many rows as it takes
+  help.forEach(([name, keys], i) => {
+    const col = i < rows ? 0 : 1,
+      x = px + 26 + col * 350,
+      y = py + 50 + (i % rows) * 21;
     txt(name, x, y, 14, '#9bb0ac', 'left', 3);
-    txt(keys, x + 120, y, 14, '#ece5cb', 'left', 3);
+    txt(keys, x + (col ? 170 : 140), y, 14, '#ece5cb', 'left', 3);
   });
-  txt(t('settingsHint'), W / 2, 522, 13, '#9bb0ac', 'center', 3);
+  txt(t('settingsHint'), W / 2, 526, 13, '#9bb0ac', 'center', 3);
 }
 function frame(b, col, width) {
   rr(b[0], b[1], b[2], b[3], 10);
