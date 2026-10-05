@@ -87,7 +87,10 @@ test('a blow up close does not break the stance: it answers with the cut', () =>
 });
 
 test('it settles into the stance before it can cut', () => {
-  assert.ok(Math.abs(SAMURAI.settle - 0.5 * 1.3) < 1e-9, '30% slower than the old 0.5 s');
+  assert.ok(
+    Math.abs(SAMURAI.settle - 0.5 * 1.3 * 1.3) < 1e-9,
+    'twice 30% slower than the old 0.5 s',
+  );
   const e = samuraiAt(800, 800 - SAMURAI.range - 10);
   run(e, DT);
   assert.equal(e.state, 'stance');

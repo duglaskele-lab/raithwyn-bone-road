@@ -1052,7 +1052,7 @@ export function overlay(a) {
 }
 export const PAUSE_BTN = [372, 12, 36, 36],
   FS_BTN = [416, 12, 36, 36];
-const RANK_COL = ['#8fa5b8', '#7dffb0', '#5cc8ff', '#ff6ad5', '#ffd23f'];
+const RANK_COL = ['#8fa5b8', '#7dffb0', '#5cc8ff', '#ff6ad5', '#ffd23f', '#ff9a3c', '#ff4a5e'];
 // Style rank on the left under the lives: the letter, the meter to the next rank, the bonus.
 function drawStyle() {
   const r = styleRank();
@@ -1065,11 +1065,13 @@ function drawStyle() {
   ctx.save();
   ctx.translate(x + 22, y);
   ctx.scale(pop, pop);
-  if (r === RANKS.length) {
+  if (r >= 5) {
+    // S and above glow
     ctx.shadowColor = col;
     ctx.shadowBlur = 16 + 6 * Math.sin(G.time * 10);
   }
-  txt(RANKS[r - 1], 0, 0, 46, col, 'center', 7);
+  const name = RANKS[r - 1];
+  txt(name, 0, 0, [46, 36, 28][name.length - 1], col, 'center', 7);
   ctx.restore();
   const into = r === RANKS.length ? 1 : (P.sty % STYLE_STEP) / STYLE_STEP;
   bar(x + 56, y - 26, 120, 8, into, 0, col, 3);

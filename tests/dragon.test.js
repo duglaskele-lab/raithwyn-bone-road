@@ -5,10 +5,19 @@ import { G, P } from '../src/state.js';
 import { pressed } from '../src/input.js';
 import { hurtEnemy, strike } from '../src/combat.js';
 import { spawn, updEnemy } from '../src/enemies.js';
-import { DRAGON, dragonHead, dragonZone, laserBand, laserFire, updShocks } from '../src/dragon.js';
+import {
+  DRAGON,
+  dragonHead,
+  dragonZone,
+  laserBand,
+  laserFire,
+  skyLines,
+  updShocks,
+} from '../src/dragon.js';
+import { GB, GT, W } from '../src/config.js';
 import { update } from '../src/world.js';
 import { DT, allFinite, freshGame } from './helpers.js';
-import { setRandom } from '../src/util.js';
+import { random, setRandom } from '../src/util.js';
 
 beforeEach(freshGame);
 
@@ -364,4 +373,87 @@ test('the dragon fight has its own music, faster in the second phase', async () 
     THEMES.dragon.play(n, 0);
     THEMES.dragon2.play(n, 0);
   }
+});
+
+test('the beam charges 0.3 s longer, white sparks flying out of the heart', () => {
+  assert.equal(DRAGON.laser.wind, 1.3);
+  const d = dragonAt(60, 450);
+  Object.assign(d, { state: 'laser', t: 0, laserY: 450 });
+  G.parts = [];
+  run(d, 0.8);
+  const hx = d.x + d.face * 25,
+    hy = d.laserY - 108,
+    out = G.parts.filter(
+      (p) => p.col === '#ffffff' && (p.x - hx) * p.vx + (p.y - hy) * (p.vy + 40) > 0,
+    );
+  assert.ok(out.length > 10, `${out.length} sparks flying out`);
+  assert.equal(d.state, 'laser', 'still charging');
+});
+
+test('combo: close to the player it leaps to the far side and fires the beam from there', () => {
+  const d = dragonAt(650, 450, {
+    retreatCd: 0,
+    plasmaCd: 9,
+    pounceCd: 9,
+    leapCd: 9,
+    last: 'claw',
+  });
+  run(d, DT);
+  assert.equal(d.state, 'retreat');
+  const R = DRAGON.retreat;
+  run(d, R.crouch + R.air + DT);
+  assert.equal(d.state, 'laser', 'charges the beam on landing');
+  assert.ok(Math.abs(P.x - d.x) > 400, `far from the player: ${Math.abs(P.x - d.x)}`);
+  assert.equal(d.face, P.x > d.x ? 1 : -1, 'facing the player');
+  P.y = d.laserY;
+  run(d, DRAGON.laser.wind + DRAGON.laser.fire);
+  assert.ok(P.hp < 100, 'and the beam hits a player who stays in line');
+});
+
+test('second phase: it hovers and fires three beams across the arena; the gaps are safe', () => {
+  const S = DRAGON.sky,
+    lines = skyLines();
+  assert.deepEqual(lines, [GT + S.edge, (GT + GB) / 2, GB - S.edge]);
+  const gaps = [(lines[0] + lines[1]) / 2, (lines[1] + lines[2]) / 2];
+  for (const [y, hurt] of [
+    [lines[0], true],
+    [lines[1], true],
+    [lines[2], true],
+    [gaps[0], false],
+    [gaps[1], false],
+  ]) {
+    freshGame();
+    const d = dragonAt(400, 450 + 100, { phase2: true, skyCd: 0, plasmaCd: 9, pounceCd: 9 });
+    Object.assign(d, { leapCd: 9, retreatCd: 9, laserCd: 9, last: 'claw' });
+    run(d, DT);
+    assert.equal(d.state, 'sky');
+    P.y = y;
+    P.x = 300;
+    run(d, (S.rise + S.charge) / DRAGON.rage - 0.05);
+    assert.ok(d.z > S.h * 0.9, 'up in the air');
+    assert.equal(dragonZone(d, d.x - 50, d.x + 50, d.y), null, 'out of reach up there');
+    assert.equal(P.hp, 100, 'nothing hurts yet');
+    run(d, S.fire / DRAGON.rage + 0.1);
+    assert.equal(P.hp < 100, hurt, `at depth ${y}`);
+  }
+});
+
+test('after the sky beams it drops onto a random spot with the shockwave', () => {
+  const seen = new Set();
+  for (let k = 0; k < 3; k++) {
+    freshGame();
+    for (let i = 0; i < k * 5; i++) random(); // a different roll each time
+    const d = dragonAt(400, 450, { phase2: true });
+    Object.assign(d, { state: 'sky', t: 0, skyX0: 600, skyY0: 450, skyX: 770, skyY: 441 });
+    P.x = 100;
+    const S = DRAGON.sky;
+    run(d, (S.rise + S.charge + S.fire + S.rec + S.fall + 0.05) / DRAGON.rage);
+    assert.equal(d.z, 0, 'down on the ground');
+    assert.equal(G.shocks.length, 1, 'a shockwave from where it lands');
+    assert.ok(d.x > G.cam + 150 && d.x < G.cam + W - 150 && d.y >= GT && d.y <= GB);
+    seen.add(Math.round(d.x));
+    run(d, 1.5);
+    assert.equal(d.state, 'walk');
+  }
+  assert.ok(seen.size > 1, 'not always the same spot');
 });

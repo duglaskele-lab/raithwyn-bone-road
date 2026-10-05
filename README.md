@@ -118,9 +118,10 @@ fingers do turns into the same presses as the keyboard's, so replays are shared.
 ## Style
 
 While the heroine keeps hitting enemies without taking damage, her style rank rises: D → C → B →
-A → S. Each rank gives +50% score and +5% damage, rank S another +10% damage on top. Stop
+A → S → SS → SSS. Each rank adds +50% score and +5% damage, so SSS gives +350% score and +35%
+damage. Stop
 hitting, and after 3.5 seconds the bar drains fast; taking damage drops it by two ranks (S to B,
-B to D). Hitting scenery gives no style points but keeps the bar from draining between fights.
+B to D, SSS to S). Hitting scenery gives no style points but keeps the bar from draining between fights.
 The rank and the bar are shown on the left under the lives, from rank D up.
 
 ## Replays
@@ -202,7 +203,7 @@ so it is harder to dodge.
 headband and a katana. From afar it takes a ready stance (its eyes light up and leave a glowing
 trail) and walks slowly towards the heroine. It only takes the stance after 3 seconds on screen
 (never from beyond the edge of the screen), no more often than every 1.8–3.4 seconds, and sinks
-into it smoothly over 0.65 seconds, during which it does not cut yet. Out of the stance it kicks
+into it slowly over 0.85 seconds, during which it does not cut yet. Out of the stance it kicks
 up close, and further away (up to 175 px) swings its sword flat: half a second drawing the blade
 back at shoulder height, then a flat cut in front of it at full arm's length (12 damage, no
 knockdown); any hit from the heroine interrupts this cut. Come too close and it cuts in a wide
@@ -215,21 +216,27 @@ skeletons and zombies, two hearts lie on the road, and beyond them waits a draco
 the screen in size. It is unhurried, but closes in on a distant heroine with a leaping pounce.
 The Dragon picks an attack that will reach the heroine and never uses the same one twice in a
 row: a bite (the lowered head then takes ×1.5 damage for a while), a claw swipe, the pounce, a
-wide white beam from its bone heart across the whole arena (a pulse builds up in the heart
-first; dodge up or down), plasma — at a distant heroine it spits three plasma balls that fly in
+wide white beam from its bone heart across the whole arena (the heart charges for 1.3 seconds,
+a pulse building up and white sparks flying out of it; dodge up or down), plasma — at a distant heroine it spits three plasma balls that fly in
 an arc (one at her, two to the sides) and burst where they land — and, in the second phase
 (below half health), a jump that strikes the landing area and sends a shock wave across the
 whole arena that has to be jumped over. In the second phase the Dragon moves and attacks 30%
 faster, and its beam starts as wide as in the first phase but, while it burns (half as long
-again in the second phase), widens to three times its width by the end. If the heroine stands
+again in the second phase), widens to three times its width by the end. It also combines attacks: when the heroine is close, it may leap back to the far side of
+the arena and charge the beam from there at once (as wide and as long as the beam of its current
+phase). In the second phase it can also rise and hover over the side of the arena, its heart
+charging while red lines on the ground mark where the beams will fall, then fire three white
+beams across the whole arena — along its top edge, its middle and its bottom edge (between the
+middle and an edge it is safe). Hovering, it is out of reach. Then it drops onto a random spot
+of the arena with the quake and the shockwave of its leap. If the heroine stands
 close behind the Dragon, it sometimes (no more than once in 7 seconds) kicks her with a hind
 leg instead of turning round. The heroine's hits push the Dragon back a little. The beaten
 Dragon does not crumble into bones: it roars one last time, sinks to the ground and falls apart —
 skull, ribs, wings, tail, legs. The Dragon's fight has its own music: heavy and grotesque, faster
 in the second phase, with funeral bells and an organ playing Dies irae. A strong hit (the
 finisher, the flying kick, the dark ball, the super attack) during the wind-up of a bite, claw
-or pounce stuns the Dragon, after which it cannot be interrupted for 4 seconds; the beam and the
-jump are never interrupted. Acid drips from its jaws.
+or pounce stuns the Dragon, after which it cannot be interrupted for 4 seconds; the beam, the
+jumps and the hovering beams are never interrupted. Acid drips from its jaws.
 
 **Video recording.** `F9` starts recording the game — only the game's picture and sound, without
 the cursor or windows; `F9` again stops it and the browser downloads a
@@ -330,8 +337,11 @@ breaks wooden barrels and a moment later sets off red ones nearby.
   time (1.2 s), tilting the barrel down, and fires for 2.6 s: bullets leave the muzzle and hit
   the ground (dust and tracers show where), first at its feet, then further and further away as
   the barrel rises; every third bullet in a row knocks the heroine down. Up close it kicks: for
-  0.6 s it raises its knee, the visor turns red, a "!" lights up above it, and a red spot on the
-  ground shows where the kick will land (it knocks down). The reactor gauge on its back shows its
+  0.6 s it raises its knee, the visor turns red and a "!" lights up above it (it knocks down).
+  Now and then, at a distance, it crouches and leaps: a red area with a crosshair on the ground
+  shows where it will land and what it will hit, filling up as it falls; half the time the spot
+  is not the heroine's but a random one nearby. Landing hurts and knocks down everyone in the
+  area. The reactor gauge on its back shows its
   health (green, yellow, red). Only a crushing hit moves it. No more than two in one wave.
 - **Radioactive Slime** (miniboss, in the mine's flooded hall) — drops from the ceiling. Rolls
   across the hall and bounces off the edge once, jumps (not always at the heroine) and strikes an
@@ -422,11 +432,13 @@ What is checked:
 - `extras.test.js` — music themes, style from scenery, the secret combo.
 - `dragon.test.js` — the end of the stage, the Dragon's unstoppable attacks, choosing an attack
   that reaches, the bite and the ×1.5 head, the beam and dodging it, the widening second-phase
-  beam, the hind-leg kick, plasma balls, the second-phase jump, the win.
+  beam, the hind-leg kick, plasma balls, the second-phase jump, the longer beam charge with sparks, the
+  leap back and beam combo, the hovering triple beam and its safe gaps, the drop with a shockwave,
+  the win.
 - `boss.test.js` — the fight's opening zombies, the unstoppable summon, the second phase and the
   breath, big gravestones, the acid ball after a hit.
 - `zombie.test.js` — the grab, flying and thrown heads, zombie crowds.
-- `style.test.js` — style ranks and bonuses, scenery, the acid puddle, the pause menu.
+- `style.test.js` — style ranks D…SSS and their bonuses, scenery, the acid puddle, the pause menu.
 - `menu.test.js` — main menu, settings (FPS counter and limit), fighter select (only Raithwyn is
   playable).
 - `features.test.js` — translations, key layout, bone cost, super attack, the unstoppable end of
@@ -434,7 +446,7 @@ What is checked:
 - `level2.test.js` — Old Quarry: the `Z`+`2` secret, the transition after the first stage, the
   floor and the camera path (two slants), fights only on the flat, about 30% longer than the
   first stage, where enemies come from, barrels and blasts, the Miner, Dynamite, the Lizard, the
-  Power Armor and its gun, no more than two armors per wave, the Slime and its zombies, the
+  Power Armor, its gun and its jump onto a marked spot, no more than two armors per wave, the Slime and its zombies, the
   final fight.
 - `waves.test.js` — random fights: few enemies and rarely strong ones at first, crowds of every
   kind at the end, difficulty rising along the road, a replay giving the same enemies.

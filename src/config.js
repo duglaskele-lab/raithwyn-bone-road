@@ -106,7 +106,7 @@ export const SAMURAI = {
   lunge: 260, // it steps through the cut
   daze: 2, // seconds a hit from afar leaves it dazed
   seen: 3, // it only takes the stance after this long on screen
-  settle: 0.65, // seconds to settle into the stance (it cannot cut until it has)
+  settle: 0.845, // seconds to settle into the stance, slow (it cannot cut until it has)
   // a plain sword cut out of the stance: the blade drawn back for half a second, then a
   // flat sweep in front with a long reach; a short recovery
   swing: { wind: 0.5, strike: 0.12, rec: 0.45, min: 55, reach: 175, dy: 26, dmg: 12 },
@@ -158,6 +158,21 @@ export const ARMOR = {
   cool: 0.9,
   gunCd: [2.5, 4.5],
   aimSpeed: 70,
+  // the jump: it crouches, leaps and comes down on a spot marked on the ground, hurting
+  // everyone in the marked area; half the time the spot is not the player's but a random one
+  jump: {
+    crouch: 0.55,
+    air: 0.95,
+    rec: 0.7,
+    h: 150,
+    rx: 105,
+    ry: 42,
+    dmg: 20,
+    cd: [6, 10],
+    min: 150,
+    max: 560,
+    first: [3, 6],
+  },
 };
 // The slime: its roll (wind-up, speed, how long), its jump (wind-up, flight, landing blast
 // radius and damage), its spit (wind-up; at most `minions` of its spawn about at once).

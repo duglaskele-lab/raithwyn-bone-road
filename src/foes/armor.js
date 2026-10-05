@@ -2,8 +2,10 @@
 // A walking tank in gunmetal plates with a glowing reactor on its back and a minigun on its
 // arm. It spins the gun up, then sprays the ground in front of it, close in first and further
 // and further out (the bullets kick up dust where they land). Up close it winds up a kick
-// (0.6 s, a red patch on the ground shows where it lands) that knocks the player down. It
-// always walks in from the side of the screen, and falls down dead rather than into bones.
+// (0.6 s: the visor reddens and a '!' lights up) that knocks the player down. Now and then it
+// leaps and comes down on a spot marked on the ground (half the time not the player's),
+// hurting whoever is in the marked area. It always walks in from the side of the screen, and
+// falls down dead rather than into bones.
 // Heavy: only crushing blows move it.
 import { ARMOR, CORPSE_T, OL, TAU, W } from '../config.js';
 import { clamp, ease, random, rnd } from '../util.js';
@@ -15,6 +17,7 @@ import { ctx } from '../gfx.js';
 import { drawAura } from '../skeleton.js';
 import { defineFoe } from './registry.js';
 import { faceP, go } from './kit.js';
+import { floorClamp, groundPoint } from '../level.js';
 import { chain, seg } from './lizard.js';
 
 const THIGH = 44,
@@ -125,6 +128,32 @@ function armorPose(e) {
       o.aF = [2.5, 2.8];
       o.aB = [2.3, 2.7];
       break;
+    case 'jcrouch': {
+      // down on its haunches, the arms swung back
+      const u = ease(clamp(t / ARMOR.jump.crouch, 0, 1));
+      o.hipH = 88 - 24 * u;
+      o.lean = 0.08 + 0.22 * u;
+      o.lF = [0.18 + 0.5 * u, -0.05 - 1.0 * u];
+      o.lB = [-0.2 + 0.3 * u, -0.3 - 0.8 * u];
+      o.aB = [0.1 - 0.6 * u, 0.7];
+      break;
+    }
+    case 'jump':
+      // legs tucked under, the gun held out
+      o.lF = [0.7, -1.1];
+      o.lB = [0.1, -1.2];
+      o.lean = 0.12;
+      o.aF = [1.0, 1.5];
+      o.aB = [0.6, 1.0];
+      break;
+    case 'jland': {
+      const u = ease(clamp(t / ARMOR.jump.rec, 0, 1));
+      o.hipH = 60 + 28 * u;
+      o.lF = [0.7 - 0.5 * u, -1.1 + 1.05 * u];
+      o.lB = [-0.2, -1.0 + 0.7 * u];
+      o.lean = 0.3 - 0.22 * u;
+      break;
+    }
   }
   // the gun: aimed at where its bullets land. As it spins up it tips down to the ground just
   // in front, and fires from there, lifting as the stream walks out.
@@ -412,29 +441,41 @@ function minigun(h, a, o) {
   ctx.restore();
 }
 
-/** The kick's warning: a red patch on the ground where it lands, filling up, and a '!'. */
+/** The kick's warning: a '!' over its head (the visor reddens too). */
 function kickWarning(e) {
-  const T = e.T,
-    u = clamp(e.t / T.wind, 0, 1),
-    x = e.x - G.cam + e.face * (T.reach * 0.75 * T.scale),
-    rx = T.reach * 0.55 * T.scale,
-    ry = 22;
+  const T = e.T;
   ctx.save();
-  ctx.fillStyle = `rgba(255,60,40,${0.12 + 0.2 * u})`;
-  ctx.beginPath();
-  ctx.ellipse(x, e.y, rx, ry, 0, 0, TAU);
-  ctx.fill();
-  ctx.strokeStyle = u > 0.7 ? '#ff3a3a' : 'rgba(255,140,110,.9)';
-  ctx.lineWidth = 2.5;
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.ellipse(x, e.y, rx * u, ry * u, 0, 0, TAU);
-  ctx.stroke();
   ctx.fillStyle = '#ff4a5e';
   ctx.globalAlpha = 0.6 + 0.4 * Math.sin(e.t * 30);
   ctx.font = '900 28px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('!', e.x - G.cam, e.y - e.z - 225 * T.scale);
+  ctx.restore();
+}
+/** Where the jump comes down: a red area on the ground with a crosshair, filling up as it
+ *  falls. Drawn from the crouch until it lands. */
+function jumpMark(e) {
+  const J = ARMOR.jump,
+    u = clamp(e.state === 'jcrouch' ? 0 : e.t / J.air, 0, 1),
+    x = e.jx - G.cam,
+    y = e.jy;
+  ctx.save();
+  ctx.fillStyle = `rgba(255,60,40,${0.14 + 0.22 * u})`;
+  ctx.beginPath();
+  ctx.ellipse(x, y, J.rx, J.ry, 0, 0, TAU);
+  ctx.fill();
+  ctx.strokeStyle = u > 0.7 ? '#ff3a3a' : 'rgba(255,140,110,.9)';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(x, y, J.rx * u, J.ry * u, 0, 0, TAU);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x - 16, y);
+  ctx.lineTo(x + 16, y);
+  ctx.moveTo(x, y - 7);
+  ctx.lineTo(x, y + 7);
+  ctx.stroke();
   ctx.restore();
 }
 export function drawArmor(e, aura = true) {
@@ -444,6 +485,7 @@ export function drawArmor(e, aura = true) {
     fl = e.flash > 0;
   PAL = palette(fl);
   if (e.state === 'windup') kickWarning(e);
+  if (e.state === 'jcrouch' || e.state === 'jump') jumpMark(e);
   o.hot = e.state === 'cool' ? 1 - e.t / ARMOR.cool : e.state === 'fire' ? e.t / ARMOR.fire : 0;
   if (aura) drawAura(e);
   ctx.save();
@@ -792,8 +834,8 @@ export default defineFoe('armor', {
   draw: drawArmor,
   walksIn: true,
   corpse: true,
-  init: { gunCd: [1, 2.5] },
-  timers: ['gunCd'],
+  init: { gunCd: [1, 2.5], jumpCd: ARMOR.jump.first },
+  timers: ['gunCd', 'jumpCd'],
   spawn(e) {
     e.w = 34;
     e.spinA = 0;
@@ -801,6 +843,23 @@ export default defineFoe('armor', {
   engageCap: Infinity,
   stand: 70,
   moves: [
+    {
+      // now and then, at a fair distance: the jump (half the time onto a random spot)
+      when: (e, s) =>
+        e.jumpCd <= 0 &&
+        !s.pdown &&
+        s.adx > ARMOR.jump.min &&
+        s.adx < ARMOR.jump.max &&
+        e.x > G.cam + 60 &&
+        e.x < G.cam + W - 60,
+      go(e) {
+        const [x, y] = random() < 0.5 ? [P.x, P.y] : groundPoint(random),
+          to = floorClamp({ x: clamp(x, G.cam + 90, G.cam + W - 90), y });
+        faceP(e);
+        go(e, 'jcrouch', 0, { engage: false, jx: to.x, jy: to.y });
+        SFX.hiss();
+      },
+    },
     {
       // in range and roughly lined up: spin the gun up
       when: (e, s) =>
@@ -819,7 +878,7 @@ export default defineFoe('armor', {
     },
   ],
   // its own attacks go on through any hit (a heavy enemy is never interrupted)
-  attacks: ['spin', 'fire', 'cool'],
+  attacks: ['spin', 'fire', 'cool', 'jcrouch', 'jump', 'jland'],
   pose: {},
   on: {
     windup(e) {
@@ -831,6 +890,44 @@ export default defineFoe('armor', {
     },
   },
   states: {
+    jcrouch(e) {
+      if (e.t > ARMOR.jump.crouch) {
+        go(e, 'jump', 0, { x0: e.x, y0: e.y });
+        e.face = e.jx >= e.x ? 1 : -1;
+        SFX.jump();
+      }
+    },
+    jump(e) {
+      const J = ARMOR.jump,
+        u = Math.min(1, e.t / J.air);
+      e.x = e.x0 + (e.jx - e.x0) * u;
+      e.y = e.y0 + (e.jy - e.y0) * u;
+      e.z = 4 * J.h * u * (1 - u);
+      if (u < 1) return;
+      // down: a quake and a blow to everyone in the marked area
+      e.z = 0;
+      G.shake = Math.max(G.shake, 14);
+      SFX.heavy();
+      SFX.thud();
+      dust(e.x, e.y, 14);
+      G.parts.push({
+        k: 'gring',
+        x: e.x,
+        y: e.y,
+        t: 0,
+        life: 0.45,
+        s: J.rx * 1.15,
+        col: '#ffb27a',
+      });
+      const ex = (P.x - e.x) / J.rx,
+        ey = (P.y - e.y) / J.ry;
+      if (ex * ex + ey * ey < 1 && P.z < 40) hitPlayer(J.dmg, P.x >= e.x ? 1 : -1, true);
+      go(e, 'jland');
+    },
+    jland(e) {
+      if (e.t > ARMOR.jump.rec)
+        go(e, 'chase', 0, { jumpCd: rnd(ARMOR.jump.cd[0], ARMOR.jump.cd[1]) });
+    },
     spin(e, dt) {
       e.spinA = (e.spinA + dt * 40 * Math.min(1, e.t / ARMOR.spin)) % TAU;
       if (random() < 0.3) dust(e.x - e.face * 10, e.y, 1);
