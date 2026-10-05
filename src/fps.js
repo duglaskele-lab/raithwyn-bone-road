@@ -1,8 +1,8 @@
 // Frames per second: the counter shown in a corner (if chosen in the settings) and the limit
 // on how often the game draws (60 by default). Both are remembered in localStorage.
 const KEY = 'raithwyn.fps';
-/** The limits to choose from, frames per second. */
-export const CAPS = [30, 45, 60, 75, 125];
+/** The limits to choose from, frames per second (0: no limit, as often as the screen). */
+export const CAPS = [30, 60, 90, 0];
 export const fps = { show: false, cap: 60, now: 0 };
 
 try {
@@ -30,11 +30,12 @@ export function stepCap(dir = 1) {
 }
 
 // The pacing: the screen calls back at its own rate (60, 90, 120, 144 times a second); a frame
-// is only drawn once its turn under the limit has come. The turns keep their own clock, so 45
-// on a 60 Hz screen draws three frames of every four, not every second one.
+// is only drawn once its turn under the limit has come. The turns keep their own clock, so 90
+// on a 144 Hz screen is 90, not 72.
 let next = 0;
 /** Should a frame be drawn at `ts` (ms)? */
 export function due(ts) {
+  if (!fps.cap) return true;
   const step = 1000 / fps.cap;
   // a millisecond and a half of slack: the screen's ticks are not exactly even
   if (ts < next - 1.5) return false;

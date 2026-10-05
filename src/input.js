@@ -32,6 +32,7 @@ export const MAP = {
   Escape: 'pause',
   KeyM: 'mute',
   F9: 'record',
+  F3: 'fps',
   F7: 'watch',
   F8: 'saverun',
 };

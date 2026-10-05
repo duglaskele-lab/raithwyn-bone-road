@@ -32,7 +32,7 @@ import {
   stopReplay,
 } from './replay.js';
 import { STR, lang, onLang, setLang, t } from './i18n.js';
-import { countFrame, due, fps } from './fps.js';
+import { countFrame, due, fps, toggleFps } from './fps.js';
 
 // Entry point: wires the DOM to the game modules and runs the frame loop.
 
@@ -86,6 +86,7 @@ function frame(dt) {
     G.muted = !G.muted;
   }
   if (pressed.record) toggleRecording(cv);
+  if (pressed.fps) toggleFps();
   if (pressed.saverun && lastRun()) saveRun();
   let started = false;
   // F7: watch the last run again (not in the middle of one)
@@ -241,7 +242,7 @@ function dropReplay(e) {
 // gets a lighter picture: fewer pixels, no glow blur, plain outlines. Only the look changes.
 const SLOW = 1 / 42;
 // under a low limit the frames are slow on purpose: only slower than the limit counts
-const slowAt = () => Math.max(SLOW, 1.25 / fps.cap);
+const slowAt = () => (fps.cap ? Math.max(SLOW, 1.25 / fps.cap) : SLOW);
 let slowT = 0,
   slowN = 0;
 function watchSpeed(real) {
