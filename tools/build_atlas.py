@@ -116,13 +116,25 @@ def main():
     for it in items:
         if it[0] in BODY_ALIGNED:
             it[5] -= body_shift(opaque, idle, it)
+    # Every frame is halved on the same grid: the anchor on a whole sheet pixel, an even
+    # number of pixels from the crop's edge, and an even crop. Otherwise frames with an odd
+    # offset are resampled half a pixel apart and the figure jitters from frame to frame
+    # (the idle feet did). Widening a crop by a pixel only adds empty space.
+    for it in items:
+        name, x0, y0, x1, y1, ax, ay, src = it
+        X, Y = int(round(x0 + ax)), int(round(y0 + ay))
+        x0 -= (X - x0) % 2
+        y0 -= (Y - y0) % 2
+        x1 += (x1 - x0) % 2
+        y1 += (y1 - y0) % 2
+        it[1:7] = [x0, y0, x1, y1, X - x0, Y - y0]
     items = [tuple(it) for it in items]
 
     x = y = row_h = 0
     places = []
     for _, x0, y0, x1, y1, _, _, _ in items:
-        w = int(np.ceil((x1 - x0) * SCALE)) + 2
-        h = int(np.ceil((y1 - y0) * SCALE)) + 2
+        w = (x1 - x0) // 2 + 2
+        h = (y1 - y0) // 2 + 2
         if x + w > ATLAS_WIDTH:
             x, y, row_h = 0, y + row_h, 0
         places.append((x, y, w, h))
