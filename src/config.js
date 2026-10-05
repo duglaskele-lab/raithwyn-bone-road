@@ -545,6 +545,8 @@ export const WAVEGEN = {
 
 // Seconds per frame of the sprint: 15% slower than the old 0.065 so the feet match the speed.
 export const RUN_FRAME = 0.065 / 0.85;
+// The idle loop (breathing, the tail swaying): seconds per frame, 12 frames.
+export const IDLE_FRAME = 0.1;
 // Player animation timelines: seconds per frame of each attack.
 export const D = {
   atk1: [0.03, 0.05, 0.09, 0.06, 0.05],
