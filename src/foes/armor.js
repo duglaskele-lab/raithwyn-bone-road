@@ -3,8 +3,9 @@
 // arm. It spins the gun up, then sprays the ground in front of it, close in first and further
 // and further out (the bullets kick up dust where they land). Up close it winds up a kick
 // (0.6 s: the visor reddens and a '!' lights up) that knocks the player down. Now and then it
-// leaps and comes down on a spot marked on the ground (half the time not the player's),
-// hurting whoever is in the marked area. It always walks in from the side of the screen, and
+// leaps on the jets of its pack and comes down on a spot marked on the ground (half the time
+// not the player's), hurting whoever is in the marked area; up close, a quarter of its kicks
+// become such a jump away instead. It always walks in from the side of the screen, and
 // falls down dead rather than into bones.
 // Heavy: only crushing blows move it.
 import { ARMOR, CORPSE_T, OL, TAU, W } from '../config.js';
@@ -452,6 +453,59 @@ function kickWarning(e) {
   ctx.fillText('!', e.x - G.cam, e.y - e.z - 225 * T.scale);
   ctx.restore();
 }
+/** The bottom of the pack on its back, where the jets come out (world x, screen y). */
+const nozzle = (e) => [e.x - e.face * 40 * e.T.scale, e.y - e.z - 100 * e.T.scale];
+/** The jets of the pack while it flies: a flame cone below the pack. */
+function drawJets(e) {
+  const [x0, y0] = nozzle(e),
+    x = x0 - G.cam,
+    len = 46 + 10 * Math.sin(G.time * 50),
+    g = ctx.createLinearGradient(x, y0, x, y0 + len);
+  g.addColorStop(0, 'rgba(255,255,230,.95)');
+  g.addColorStop(0.35, 'rgba(255,190,70,.85)');
+  g.addColorStop(1, 'rgba(255,90,30,0)');
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(x - 11, y0);
+  ctx.lineTo(x + 11, y0);
+  ctx.lineTo(x + 3, y0 + len);
+  ctx.lineTo(x - 3, y0 + len);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+/** Sparks and smoke out of the jets, trailing behind it in the air. */
+function jetTrail(e, dt) {
+  const [x, y] = nozzle(e);
+  for (let i = 0; i < dt * 60; i++) {
+    G.parts.push({
+      k: 'glow',
+      x: x + rnd(-6, 6),
+      y: y + rnd(0, 12),
+      vx: rnd(-40, 40),
+      vy: rnd(160, 320),
+      g: 0,
+      t: 0,
+      life: rnd(0.15, 0.3),
+      s: rnd(3, 6),
+      col: random() < 0.5 ? '#ffcf5a' : '#ff7a2a',
+    });
+    if (random() < 0.5)
+      G.parts.push({
+        k: 'smoke',
+        x: x + rnd(-6, 6),
+        y: y + rnd(10, 30),
+        vx: rnd(-20, 20),
+        vy: rnd(-30, 10),
+        g: 0,
+        t: 0,
+        life: rnd(0.6, 1),
+        s: rnd(8, 14),
+      });
+  }
+}
 /** Where the jump comes down: a red area on the ground with a crosshair, filling up as it
  *  falls. Drawn from the crouch until it lands. */
 function jumpMark(e) {
@@ -486,6 +540,7 @@ export function drawArmor(e, aura = true) {
   PAL = palette(fl);
   if (e.state === 'windup') kickWarning(e);
   if (e.state === 'jcrouch' || e.state === 'jump') jumpMark(e);
+  if (e.state === 'jump') drawJets(e);
   o.hot = e.state === 'cool' ? 1 - e.t / ARMOR.cool : e.state === 'fire' ? e.t / ARMOR.fire : 0;
   if (aura) drawAura(e);
   ctx.save();
@@ -830,6 +885,14 @@ function bullet(e) {
   }
 }
 
+/** Crouches for a jump that will come down at (x, y) (kept on screen and on the floor). */
+function jumpTo(e, x, y) {
+  const to = floorClamp({ x: clamp(x, G.cam + 90, G.cam + W - 90), y });
+  faceP(e);
+  go(e, 'jcrouch', 0, { engage: false, jx: to.x, jy: to.y });
+  SFX.hiss();
+}
+
 export default defineFoe('armor', {
   draw: drawArmor,
   walksIn: true,
@@ -853,11 +916,7 @@ export default defineFoe('armor', {
         e.x > G.cam + 60 &&
         e.x < G.cam + W - 60,
       go(e) {
-        const [x, y] = random() < 0.5 ? [P.x, P.y] : groundPoint(random),
-          to = floorClamp({ x: clamp(x, G.cam + 90, G.cam + W - 90), y });
-        faceP(e);
-        go(e, 'jcrouch', 0, { engage: false, jx: to.x, jy: to.y });
-        SFX.hiss();
+        jumpTo(e, ...(random() < 0.5 ? [P.x, P.y] : groundPoint(random)));
       },
     },
     {
@@ -882,6 +941,14 @@ export default defineFoe('armor', {
   pose: {},
   on: {
     windup(e) {
+      // up close, a quarter of the kicks become a jump away to somewhere else
+      if (e.t < 0.05 && !e.rolled) {
+        e.rolled = true;
+        if (random() < ARMOR.jump.dodge) {
+          jumpTo(e, ...groundPoint(random));
+          return;
+        }
+      } else if (e.t >= 0.05) e.rolled = false;
       // the kick's wind-up begins with a hiss of the hydraulics
       if (e.t < 0.05 && !e.hissed) {
         e.hissed = true;
@@ -895,11 +962,16 @@ export default defineFoe('armor', {
         go(e, 'jump', 0, { x0: e.x, y0: e.y });
         e.face = e.jx >= e.x ? 1 : -1;
         SFX.jump();
+        // the jets fire: a burst of flame and dust at its feet
+        G.shake = Math.max(G.shake, 5);
+        dust(e.x, e.y, 8);
+        SFX.hiss();
       }
     },
-    jump(e) {
+    jump(e, dt) {
       const J = ARMOR.jump,
         u = Math.min(1, e.t / J.air);
+      if (u < 1) jetTrail(e, dt);
       e.x = e.x0 + (e.jx - e.x0) * u;
       e.y = e.y0 + (e.jy - e.y0) * u;
       e.z = 4 * J.h * u * (1 - u);

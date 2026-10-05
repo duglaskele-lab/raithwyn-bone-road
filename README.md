@@ -220,13 +220,13 @@ wide white beam from its bone heart across the whole arena (the heart charges fo
 a pulse building up and white sparks flying out of it; dodge up or down), plasma — at a distant heroine it spits three plasma balls that fly in
 an arc (one at her, two to the sides) and burst where they land — and, in the second phase
 (below half health), a jump that strikes the landing area and sends a shock wave across the
-whole arena that has to be jumped over. In the second phase the Dragon moves and attacks 30%
-faster, and its beam starts as wide as in the first phase but, while it burns (half as long
+whole arena that has to be jumped over. In the second phase the Dragon moves and attacks faster: at first only 15% faster, growing over
+20 seconds to 30% faster, and its beam starts as wide as in the first phase but, while it burns (half as long
 again in the second phase), widens to 2.4 times its width by the end. It also combines attacks: when the heroine is close, it may leap back to the far side of
 the arena and charge the beam from there at once (as wide and as long as the beam of its current
 phase). In the second phase it can also rise and hover over the side of the arena, light gathering in
-its jaws, then fire three white beams from its mouth one after another, turning its head to
-sweep each one across the whole arena — along its top edge, its middle and its bottom edge
+its jaws, then fire three white beams from its mouth all at once, turning its head to sweep them slowly
+(over 1.25 s) across the whole arena — along its top edge, its middle and its bottom edge
 (between the middle and an edge it is safe). Where a beam passes, the ground burns for a while. Hovering, it is out of reach. Then it drops onto a random spot
 of the arena with the quake and the shockwave of its leap. If the heroine stands
 close behind the Dragon, it sometimes (no more than once in 7 seconds) kicks her with a hind
@@ -338,10 +338,11 @@ breaks wooden barrels and a moment later sets off red ones nearby.
   the ground (dust and tracers show where), first at its feet, then further and further away as
   the barrel rises; every third bullet in a row knocks the heroine down. Up close it kicks: for
   0.6 s it raises its knee, the visor turns red and a "!" lights up above it (it knocks down).
-  Now and then, at a distance, it crouches and leaps: a red area with a crosshair on the ground
+  Now and then, at a distance, it crouches and leaps on the jets of its pack (flame and smoke
+  trail behind it): a red area with a crosshair on the ground
   shows where it will land and what it will hit, filling up as it falls; half the time the spot
-  is not the heroine's but a random one nearby. Landing hurts and knocks down everyone in the
-  area. The reactor gauge on its back shows its
+  is not the heroine's but a random one nearby. Landing hurts and knocks down everyone in the area. Up close, a quarter of its kicks become
+  such a jump away to another spot instead. The reactor gauge on its back shows its
   health (green, yellow, red). Only a crushing hit moves it. No more than two in one wave.
 - **Radioactive Slime** (miniboss, in the mine's flooded hall) — drops from the ceiling. Rolls
   across the hall and bounces off the edge once, jumps (not always at the heroine) and strikes an

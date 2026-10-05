@@ -165,13 +165,15 @@ export const ARMOR = {
     air: 0.95,
     rec: 0.7,
     h: 150,
-    rx: 105,
-    ry: 42,
+    rx: 131, // a quarter wider than the first 105 x 42
+    ry: 53,
     dmg: 20,
     cd: [6, 10],
     min: 150,
     max: 560,
     first: [3, 6],
+    // close up, a quarter of its kicks become a jump away to somewhere else instead
+    dodge: 0.25,
   },
 };
 // The slime: its roll (wind-up, speed, how long), its jump (wind-up, flight, landing blast
