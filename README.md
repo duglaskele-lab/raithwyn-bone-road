@@ -222,12 +222,12 @@ an arc (one at her, two to the sides) and burst where they land — and, in the 
 (below half health), a jump that strikes the landing area and sends a shock wave across the
 whole arena that has to be jumped over. In the second phase the Dragon moves and attacks 30%
 faster, and its beam starts as wide as in the first phase but, while it burns (half as long
-again in the second phase), widens to three times its width by the end. It also combines attacks: when the heroine is close, it may leap back to the far side of
+again in the second phase), widens to 2.4 times its width by the end. It also combines attacks: when the heroine is close, it may leap back to the far side of
 the arena and charge the beam from there at once (as wide and as long as the beam of its current
-phase). In the second phase it can also rise and hover over the side of the arena, its heart
-charging while red lines on the ground mark where the beams will fall, then fire three white
-beams across the whole arena — along its top edge, its middle and its bottom edge (between the
-middle and an edge it is safe). Hovering, it is out of reach. Then it drops onto a random spot
+phase). In the second phase it can also rise and hover over the side of the arena, light gathering in
+its jaws, then fire three white beams from its mouth one after another, turning its head to
+sweep each one across the whole arena — along its top edge, its middle and its bottom edge
+(between the middle and an edge it is safe). Where a beam passes, the ground burns for a while. Hovering, it is out of reach. Then it drops onto a random spot
 of the arena with the quake and the shockwave of its leap. If the heroine stands
 close behind the Dragon, it sometimes (no more than once in 7 seconds) kicks her with a hind
 leg instead of turning round. The heroine's hits push the Dragon back a little. The beaten
@@ -433,7 +433,7 @@ What is checked:
 - `dragon.test.js` — the end of the stage, the Dragon's unstoppable attacks, choosing an attack
   that reaches, the bite and the ×1.5 head, the beam and dodging it, the widening second-phase
   beam, the hind-leg kick, plasma balls, the second-phase jump, the longer beam charge with sparks, the
-  leap back and beam combo, the hovering triple beam and its safe gaps, the drop with a shockwave,
+  leap back and beam combo, the hovering triple beam (from the turning head, sweeping, with a burning trail) and its safe gaps, the drop with a shockwave,
   the win.
 - `boss.test.js` — the fight's opening zombies, the unstoppable summon, the second phase and the
   breath, big gravestones, the acid ball after a hit.
