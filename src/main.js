@@ -3,6 +3,7 @@ import { G, P, reset } from './state.js';
 import { atlas, ctx, cv, initGfx, loadPortraits, txt } from './gfx.js';
 import { initInput, keys, pressed, touch } from './input.js';
 import { initTouch, syncTouch, turnPage } from './touch.js';
+import { audioAwake, audioState } from './audio.js';
 import { initBackground } from './background.js';
 import { spawn } from './enemies.js';
 import { PAUSE_BTN, drawHUD, drawWorld, overlay } from './render.js';
@@ -284,6 +285,8 @@ function boot() {
   applyLang();
   onLang(applyLang);
   addEventListener('resize', fit);
+  // the window minimised or another tab in front: no sound until it is back
+  document.addEventListener('visibilitychange', () => audioAwake(!document.hidden));
   addEventListener('dragover', (e) => e.preventDefault());
   addEventListener('drop', dropReplay);
   fit();
@@ -308,4 +311,5 @@ window.__game = {
   newRun,
   startLevel,
   fps,
+  audioState,
 };
