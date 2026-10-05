@@ -35,18 +35,30 @@ export function audioStream() {
   }
   return REC.stream;
 }
+// A hidden page (the window minimised, another tab in front) is silent: the whole sound, the
+// music and the effects alike, is put on hold and goes on where it stopped when the page is back.
+let asleep = false;
 export function audioInit() {
   if (AC) {
-    if (AC.state === 'suspended') AC.resume();
+    if (AC.state === 'suspended' && !asleep) AC.resume()?.catch?.(() => {});
     return;
   }
   try {
     attach(new (window.AudioContext || window.webkitAudioContext)());
     music();
+    if (asleep) AC.suspend()?.catch?.(() => {});
   } catch (e) {
     AC = null;
   }
 }
+/** The page is shown (true) or hidden (false). */
+export function audioAwake(awake) {
+  asleep = !awake;
+  if (!AC || AC.state === 'closed') return;
+  (awake ? AC.resume() : AC.suspend())?.catch?.(() => {});
+}
+/** The state of the sound: 'none' before the first touch, else the context's (for tests). */
+export const audioState = () => AC?.state ?? 'none';
 export function tone(type, f0, f1, dur, vol, delay = 0, lp = 0) {
   if (!AC || G.muted) return;
   const t = AC.currentTime + delay,

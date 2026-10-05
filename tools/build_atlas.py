@@ -22,9 +22,6 @@ ROW_NAMES = ["idle", "jump", "run", "walk", "hurt", "laugh", "punch1", "punch2",
              "hado", "fx", "orb", "ko", "throw", "back"]
 SCALE = 0.5          # the sheet is drawn at twice the in-game size
 ATLAS_WIDTH = 1180
-# Rows drawn in their own strip instead of the sheet (the sheet's row is then only a reference):
-# the idle breathing loop, 12 frames side by side.
-STRIPS = {"idle": ROOT / "assets/source/idle.png"}
 HEAD_ANCHORED = {"jump", "run", "walk"}   # feet leave the ground, so anchor by the head
 CENTER_ANCHORED = {"fx"}                  # projectiles are anchored by their centre
 # Punches: the feet step around between frames, so anchoring by the feet makes the body
@@ -119,14 +116,6 @@ def main():
     for it in items:
         if it[0] in BODY_ALIGNED:
             it[5] -= body_shift(opaque, idle, it)
-    # rows from their own strips replace the sheet's (kept above as the punches' reference)
-    for name, path in STRIPS.items():
-        strip = Image.open(path).convert("RGBA")
-        sop = np.array(strip)[..., 3] > 10
-        (y0, y1), = runs(sop.any(1))
-        at = next(i for i, it in enumerate(items) if it[0] == name)
-        items = [it for it in items if it[0] != name]
-        items[at:at] = cut(sop, name, y0, y1, strip)
     items = [tuple(it) for it in items]
 
     x = y = row_h = 0
