@@ -1,470 +1,484 @@
-# Ai RAGE: Raithwyn — Костяной тракт
+# Ai RAGE: Raithwyn — Bone Road
 
-Прототип битемапа в духе Streets of Rage. Лиса Raithwyn владеет тёмной магией и идёт
-по ночному кладбищу через стычки со скелетами, зомби и некромантами к склепу Могильного
-барона, а за ним — к логову Костяного дракона.
+A beat 'em up prototype in the spirit of Streets of Rage. Raithwyn, a fox who wields dark magic,
+fights her way across a graveyard at night through skeletons, zombies and necromancers to the
+crypt of the Grave Baron, and beyond it to the lair of the Bone Dragon.
 
-Игра на английском и русском: при первом запуске она всегда на английском, язык меняется в
-настройках и запоминается в браузере.
+**Play:** https://duglaskele-lab.github.io/raithwyn-bone-road/ · single-file version:
+[`/single.html`](https://duglaskele-lab.github.io/raithwyn-bone-road/single.html) (save it with
+`Ctrl+S` and it runs from disk, offline).
 
-После заставки открывается главное меню: «Начать игру», «Настройки», «Выход». Перед боем —
-выбор бойца: четыре портрета (Raithwyn, Lucy, Tiger man, Gumdong) и четыре закрытых слота.
-У каждого бойца описание и характеристики; пока играть можно только за Raithwyn, остальных
-можно посмотреть.
+The game is in English and Russian: it always starts in English, the language is changed in the
+settings and remembered by the browser.
 
-Игра написана на чистом JavaScript и Canvas 2D, без движка и без зависимостей в рантайме.
-Скелеты, фон, эффекты и звук создаются кодом; из картинок есть только лист спрайтов героини.
+After the splash screen comes the main menu: Start game, Settings, Exit. Before the fight there
+is the fighter select: four portraits (Raithwyn, Lucy, Tiger man, Gumdong) and four locked slots.
+Every fighter has a description and stats; so far only Raithwyn is playable, the others can be
+looked at.
 
-## Запуск
+The game is written in plain JavaScript and Canvas 2D, with no engine and no runtime
+dependencies. Skeletons, backgrounds, effects and sound are made in code; the only pictures are
+the heroine's sprite sheet and the portraits.
 
-Нужен Node.js 20 или новее.
+## Running
+
+Node.js 20 or newer is needed.
 
 ```bash
 npm install
 npm run dev        # http://localhost:8080
 ```
 
-Открыть `index.html` двойным щелчком не получится: браузеры не загружают ES-модули с диска.
-Для этого есть сборка в один файл:
+Opening `index.html` with a double click does not work: browsers do not load ES modules from
+disk. For that there is a single-file build:
 
 ```bash
-npm run build      # dist/raithwyn.html — открывается с диска, работает офлайн
+npm run build      # dist/raithwyn.html — opens from disk, works offline
 ```
 
-## Управление
+## Controls
 
-| Действие | Клавиши |
+| Action | Keys |
 | --- | --- |
-| Ходить | `W` `A` `S` `D` или стрелки |
-| Бег | `Shift` или двойное нажатие влево/вправо |
-| Удар (серия из трёх, в прыжке — удар в полёте) | `J` |
-| Подброс: третий удар серии с зажатой «вверх» подкидывает врага для жонглирования | `W` + `J` |
-| Прыжок | `Пробел` |
-| Бросок кости (стоит 15 ярости — 5% полосы) | `K` |
-| Тёмный шар (уровень I) | `L` |
-| Суперудар: удерживать 1 с при полной ярости, бьёт всех на экране | зажать `I` |
-| Меню паузы (продолжить, настройки, главное меню) / звук | `Esc` или `P` / `M` |
-| Запись видео: начать / остановить и скачать файл | `F9` |
-| Счётчик FPS: показать / скрыть | `F3` |
-| Повтор последнего забега: смотреть / сохранить в файл | `F7` / `F8` |
+| Move | `W` `A` `S` `D` or arrows |
+| Run | `Shift` or double tap left/right |
+| Punch (a three-hit chain; in the air, a flying kick) | `J` |
+| Launcher: the third hit of the chain with "up" held throws the enemy up for juggling | `W` + `J` |
+| Jump | `Space` |
+| Throw a bone (costs 15 rage, 5% of the bar) | `K` |
+| Dark ball (level I) | `L` |
+| Super attack: hold for 1 s with a full rage bar, hits everyone on screen | hold `I` |
+| Pause menu (resume, settings, main menu) / sound | `Esc` or `P` / `M` |
+| Record video: start / stop and download the file | `F9` |
+| FPS counter: show / hide | `F3` |
+| Replay of the last run: watch / save to a file | `F7` / `F8` |
 
-В меню: `W`/`S` — выбор пункта, `Enter` — принять, `Esc` — назад. В настройках `A`/`D`
-переключают язык, звук, счётчик FPS и ограничение FPS. После поражения или победы `Esc`
-возвращает в главное меню.
+In the menus: `W`/`S` choose, `Enter` accepts, `Esc` goes back. In the settings `A`/`D` change
+the language, the sound, the FPS counter and the FPS limit. After a defeat or a win `Esc` returns
+to the main menu.
 
-Когда окно с игрой свёрнуто или открыта другая вкладка, звук и музыка стоят на паузе (бой тоже
-ставится на паузу); вернулись — музыка продолжается с того же места.
+While the game's window is minimised or another tab is in front, sound and music are paused (and
+so is the fight); come back and the music goes on from where it stopped.
 
-**FPS.** Работает одинаково на ПК и на телефоне. В настройках: «Показывать FPS» (счётчик вверху
-экрана, по умолчанию выключен; на ПК его также включает и выключает `F3`) и «Ограничение FPS» —
-30, 60, 90 или «нет», по умолчанию 60. Игра не рисует чаще экрана: на мониторе 60 Гц пределы 90
-и «нет» дают те же 60, на 144 Гц «нет» даёт 144. Оба выбора запоминаются в браузере
-(`src/fps.js`). Скорость самой игры от FPS не зависит: всё считается по прошедшему времени.
+**FPS.** Works the same on PC and on phones. In the settings: Show FPS (a counter at the top of
+the screen, off by default; on PC `F3` also turns it on and off) and FPS limit: 30, 60, 90 or
+none, 60 by default. The game never draws more often than the screen does: on a 60 Hz monitor
+90 and none give the same 60, on 144 Hz none gives 144. Both choices are remembered by the
+browser (`src/fps.js`). The game's speed does not depend on FPS: everything runs on elapsed
+time.
 
-**Ярость.** Шкала — 300, три равных порога по 100. Ярость дают удары серии (+5,25 за первые два,
-+8,25 за добивающий, за каждого задетого врага), удар в прыжке (+6), попадание костью (+3),
-полученный удар (+6) и подобранная ярость (+75); после потери жизни остаётся не меньше 60.
+**Rage.** The bar holds 300, in three equal steps of 100. Rage comes from chain hits (+5.25 for
+each of the first two, +8.25 for the finisher, per enemy hit), the flying kick (+6), a bone that
+hits (+3), taking a hit (+6) and rage pickups (+75); after losing a life at least 60 is left.
 
-| Трата | Цена | Урон |
+| Spend | Cost | Damage |
 | --- | --- | --- |
-| Кость | 15 | 7 |
-| Тёмный шар I — нажатие `L` | 100 | 50 |
-| Тёмный шар II — скрытая комбинация (см. ниже) | 200 | 110 |
-| Тёмный шар III — скрытая комбинация (см. ниже) | 300 | 180 |
-| Суперудар — зажать `I` на 1 с при полной шкале | 300 | 150 каждому на экране |
+| Bone | 15 | 7 |
+| Dark ball I — press `L` | 100 | 50 |
+| Dark ball II — hidden combo (see below) | 200 | 110 |
+| Dark ball III — hidden combo (see below) | 300 | 180 |
+| Super attack — hold `I` for 1 s with a full bar | 300 | 150 to everyone on screen |
 
-Нажатие `L` всегда бросает шар уровня I. Приём для опытных — скрытая комбинация: `S` `S` `D` `L`
-бросает шар вправо, `S` `S` `A` `L` — влево (не дольше 0,8 с от первого `S`). Она бросает самый
-сильный шар, на который хватает ярости: III при полной шкале, II при двух шкалах. Комбинация
-ничем не подсвечивается. Чем выше уровень, тем больше урона на единицу ярости и тем шире шар,
-так что копить выгодно. У суперудара ярость тратится только в момент удара:
-если героиню ударят во время подготовки или клавишу отпустят раньше, ярость останется.
+`L` always throws a level I ball. The expert move is a hidden combo: `S` `S` `D` `L` throws the
+ball to the right, `S` `S` `A` `L` to the left (within 0.8 s of the first `S`). It throws the
+strongest ball the rage pays for: III with a full bar, II with two steps. Nothing on screen
+hints at the combo. The higher the level, the more damage per point of rage and the wider the
+ball, so saving up pays. The super attack only spends its rage when it strikes: if Raithwyn is
+hit while gathering it, or the key is let go too early, the rage stays.
 
-На сенсорных экранах появляются стик и кнопки.
+## Phones and tablets
 
-## Телефон и планшет
+The game is the same on a computer and on a phone: on a touch screen a stick and buttons appear
+by themselves, and the hints say "tap" instead of naming keys (`src/touch.js`). Everything the
+fingers do turns into the same presses as the keyboard's, so replays are shared.
 
-Игра одна и та же на компьютере и на телефоне: на сенсорном экране сами появляются стик и
-кнопки, а подсказки говорят «коснитесь» вместо клавиш (`src/touch.js`). Всё, что делают
-пальцы, превращается в те же нажатия, что и с клавиатуры, поэтому повторы общие.
+- **Always sideways.** A web page cannot stop a phone from rotating the screen, so when the
+  phone is held upright the game turns the page a quarter turn itself: the picture and the
+  buttons always lie sideways, over the picture.
+- **Buttons only in a fight.** The stick and the buttons only show during a stage. In the menus,
+  the pause and at the end of a run they are hidden: items are chosen by tapping the picture
+  itself. After a defeat or a win there are Try again / Play again and Main menu; after the
+  first stage a tap anywhere goes on.
+- **Floating stick:** it appears wherever the thumb touches the left part of the screen. A
+  slight lean walks, a lean of about half way already runs (she nearly always runs). Quick
+  down-down-forward flicks of the stick + Magic also give the hidden ball.
+- **Buttons:** two big ones at the bottom — Hit and Jump — and three smaller ones above them —
+  Super (hold), Bone and Magic (the dark ball). A finger can slide from one button to the next
+  without lifting. **Swipe across Magic to the left or right** for the strongest dark ball that
+  way (like `S S A L` / `S S D L`); a plain tap throws the ordinary ball.
+- **Secrets:** hold the heroine's portrait for 3 s to go to the final boss (like `X`); hold the
+  score for 2 s on the first screen to go to the second stage (like `Z` + `2`).
+- **Full screen:** a button next to pause (Android; on iPhone use Share → Add to Home Screen and
+  the game opens without the address bar). There is a `manifest.webmanifest` and an icon, so the
+  game can be installed on the home screen like an app.
+- **Vibration** (Android) on hits, on taking a hit and from explosions.
+- **Slow devices:** if a couple of seconds of fighting run below ~42 frames per second, the
+  picture lightens itself: fewer pixels, no blurred glow, a plain red outline.
 
-- **Всегда горизонтально.** Веб-страница не может запретить телефону поворачивать экран, поэтому
-  если телефон держат вертикально, игра сама поворачивает страницу на четверть оборота: картинка
-  и кнопки всегда лежат горизонтально, поверх картинки.
-- **Кнопки только в бою.** Стик и кнопки появляются только на уровне. В меню, на паузе и в
-  конце забега их нет: пункты выбирают касанием прямо по картинке. После поражения или победы
-  — «Ещё раз» / «Сыграть ещё» и «Главное меню»; после первой стадии касание экрана ведёт дальше.
-- **Стик плавающий:** где большой палец коснулся левой части экрана, там он и появляется.
-  Чуть наклонить — шаг, наклонить почти на половину — уже бег (почти всегда героиня бегает).
-  Мелкие рывки стиком вниз-вниз-вперёд + «Magic» тоже дают скрытый шар.
-- **Кнопки:** снизу две большие — «Hit» (удар) и «Jump» (прыжок), над ними три поменьше —
-  «Super» (суперудар, удерживать), «Bone» (кость) и «Magic» (тёмный шар). Палец можно вести с
-  одной кнопки на другую, не отрывая. **Провести пальцем по «Magic» влево или вправо** — самый
-  сильный тёмный шар в ту сторону (как `S S A L` / `S S D L`); простое касание — обычный шар.
-- **Секреты:** удерживать портрет героини 3 с — к финальному боссу (как `X`); удерживать счёт
-  2 с на первом экране — на вторую стадию (как `Z` + `2`).
-- **На весь экран:** кнопка рядом с паузой (Android; на iPhone — «Поделиться → На экран
-  Домой», игра откроется без адресной строки). Есть `manifest.webmanifest` и иконка, так что
-  игру можно поставить на рабочий стол как приложение.
-- **Вибрация** (Android) при попадании, при полученном ударе и от взрывов.
-- **Слабое устройство:** если пару секунд боя кадры идут медленнее ~42 в секунду, картинка сама
-  облегчается — меньше пикселей, без размытого свечения, простой красный контур.
+## Style
 
-## Стиль
+While the heroine keeps hitting enemies without taking damage, her style rank rises: D → C → B →
+A → S. Each rank gives +50% score and +5% damage, rank S another +10% damage on top. Stop
+hitting, and after 3.5 seconds the bar drains fast; taking damage drops it by two ranks (S to B,
+B to D). Hitting scenery gives no style points but keeps the bar from draining between fights.
+The rank and the bar are shown on the left under the lives, from rank D up.
 
-Пока героиня бьёт врагов и сама не получает урона, растёт ранг стиля: D → C → B → A → S.
-Каждый ранг даёт +50% к очкам и +5% к урону, ранг S — ещё +10% урона сверху. Если перестать
-бить, через 3,5 секунды шкала быстро тает; полученный урон сбрасывает её на два ранга (с S
-до B, с B до D). Удары по
-декорациям не дают очков стиля, но не дают шкале таять между стычками. Ранг и шкала
-видны слева под жизнями, начиная с ранга D.
+## Replays
 
-## Повторы
+Every run is recorded by itself. `F7` on the defeat, win or pause screen or in the main menu
+plays the last run from the very start, exactly as it went. `F8` saves it to a
+`raithwyn-replay-<date>.json` file (a few kilobytes). Drop the file on the game's page and the
+replay starts. `Esc` stops watching. A replay is tied to the game's version: after balance
+changes old files may drift from what happened.
 
-Каждый забег записывается сам. `F7` на экране поражения, победы, паузы или в главном меню
-показывает последний забег с самого начала, в точности как он прошёл. `F8` сохраняет его в
-файл `raithwyn-replay-<дата>.json` (несколько килобайт). Файл можно перетащить на страницу с
-игрой, и повтор начнётся. `Esc` останавливает просмотр. Повтор привязан к версии игры: после
-изменений в балансе старые файлы могут разойтись с тем, что было.
+How it works: all the randomness of the simulation comes from one seeded generator (`random()`
+in `src/util.js`), and from the outside the simulation only gets the time step (in whole
+milliseconds) and the buttons. A run is the seed plus, for each frame, the step and the pressed
+buttons (`src/replay.js`). Screen shake and synth noise take their randomness elsewhere and do
+not affect the game.
 
-Как это устроено: вся случайность в симуляции идёт из одного генератора с зерном (`random()`
-в `src/util.js`), а снаружи симуляция получает только шаг времени (в целых миллисекундах) и
-кнопки. Забег — это зерно плюс по каждому кадру шаг и нажатые кнопки (`src/replay.js`).
-Тряска экрана и шумы синтезатора берут случайность отдельно и на игру не влияют.
+## Readability and juggling
 
-## Читаемость и жонглирование
+An enemy doing an attack that cannot be interrupted has a red outline: the last third of
+Fatso's jump, the Baron's charge and acid breath, the Samurai's katana strike, the Dragon's beam
+and jump, and the Dragon's attacks for a while after it has been stunned.
 
-Враг, который выполняет атаку, которую нельзя прервать, обведён красным контуром: последняя
-треть прыжка Пузана, рывок и кислотное дыхание барона, удар катаной самурая, луч и прыжок
-дракона, а также атаки дракона, пока после оглушения он не прерывается.
+The third hit of the chain with "up" (`W`) held is a launcher: a light enemy flies up almost
+vertically instead of sideways, ready to be finished in the air. Without "up" the third hit
+knocks back as before. A light enemy in the air can be juggled: every hit in the air throws it
+up again, a little lower each time, and gives style points.
 
-Третий удар серии с зажатой клавишей «вверх» (`W`) — подброс: лёгкий враг взлетает почти
-вертикально, а не отлетает в сторону, и его удобно добивать в воздухе. Без «вверх» третий удар
-отбрасывает, как раньше. Лёгкого врага, подброшенного в воздух, можно жонглировать: каждый удар в воздухе снова
-подбрасывает его, чуть ниже с каждым ударом, и даёт очки стиля.
+**Enemy weight classes** (`weight` in `TYPES`, rules in `WEIGHT` in `src/config.js`):
 
-**Весовые классы врагов** (`weight` в `TYPES`, правила — `WEIGHT` в `src/config.js`):
-
-| Класс | Кто | Как реагирует на удары |
+| Class | Who | How it takes hits |
 | --- | --- | --- |
-| лёгкие (по умолчанию) | скелет, метатель, Костолом, рокер, мартышка, некромант, зомби, самурай, зомби-шахтёр, зомби с динамитом, ящер-мутант | любой удар сбивает атаку, тяжёлый удар отбрасывает, легко подбрасываются и жонглируются |
-| средние | Пузан | обычные удары атаку не сбивают, тяжёлый удар сбивает (он вздрагивает); чтобы отбросить или подбросить, нужно два тяжёлых удара за 3 секунды или один сокрушительный; в воздухе жонглируется как лёгкий |
-| тяжёлые | зомби в силовой броне | атаки не сбиваются; отбросить можно только сокрушительным ударом, в воздухе не жонглируются |
-| боссы | барон, дракон, радиоактивная жижа | свои правила (в их файлах в `src/foes`); атаки жижи сбиваются по правилам средних врагов |
+| light (default) | Skeleton, Bone Thrower, Bonebreaker, Rocker, Bone Monkey, Necromancer, Zombie, Skeleton Samurai, Zombie Miner, Dynamite Zombie, Mutant Lizard | any hit interrupts its attack, a heavy hit knocks it back, easy to launch and juggle |
+| medium | Fatso | ordinary hits do not interrupt its attack, a heavy hit does (it flinches); knocking back or launching takes two heavy hits within 3 seconds or one crushing hit; juggles like a light enemy in the air |
+| heavy | Power Armor Zombie | its attacks are not interrupted; only a crushing hit knocks it back; not juggled in the air |
+| bosses | Grave Baron, Bone Dragon, Radioactive Slime | their own rules (in their files in `src/foes`); the Slime's attacks are interrupted by the medium rules |
 
-Тяжёлый удар — добивающий удар серии, удар в прыжке, тёмный шар, суперудар. Сокрушительный удар — тёмный
-шар уровня II или III и суперудар.
+A heavy hit is the chain's finisher, the flying kick, the dark ball or the super attack. A
+crushing hit is a level II or III dark ball or the super attack.
 
-## Уровень
+## Stage 1: Bone Road
 
-Обычные стычки каждый забег составляются заново случайным образом (`WAVEGEN` в
-`src/config.js`, `src/waves.js`). У каждой стычки есть сложность `lvl` от 0 до 1:
+Ordinary fights are put together anew at random every run (`WAVEGEN` in `src/config.js`,
+`src/waves.js`). Each fight has a difficulty `lvl` from 0 to 1:
 
-| Стычка | Врагов | Сильных (Костолом, Пузан, самурай) | Хитрых (метатель, некромант, рокер) |
+| Fight | Enemies | Strong (Bonebreaker, Fatso, Samurai) | Tricky (Thrower, Necromancer, Rocker) |
 | --- | --- | --- | --- |
-| первая (0) | ~6 | ~0,3, не больше одного | ~0,9 |
-| середина (0,55) | ~9 | ~2, хотя бы один | ~2 |
-| последняя перед драконом (1) | ~12 | ~4 | ~4 |
+| first (0) | ~6 | ~0.3, at most one | ~0.9 |
+| middle (0.55) | ~9 | ~2, at least one | ~2 |
+| last before the Dragon (1) | ~12 | ~4 | ~4 |
 
-Остальные — скелеты, зомби (вылезают из земли и идут парами) и мартышки. Бой с бароном и
-бой с драконом остаются неизменными. Случайность берётся из того же генератора с зерном,
-поэтому в повторе забега враги те же.
+The rest are skeletons, zombies (they climb out of the ground and come in pairs) and bone
+monkeys. The Baron's fight and the Dragon's fight stay fixed. The randomness comes from the same
+seeded generator, so a replay of a run has the same enemies.
 
-Дорога на четверть короче прежней, а в двух местах следующая волна выходит сразу за
-предыдущей, без прохода между ними. Бег Raithwyn анимирован на 15% медленнее, чтобы ноги не
-мелькали быстрее, чем она движется.
+The road is a quarter shorter than it used to be, and in two places the next wave comes right
+after the one before, with no walk in between. Raithwyn's run is animated 15% slower so that her
+legs do not move faster than she does.
 
-Вдоль дороги стоят скамейки, а по всей дороге — каменные кресты и большие надгробия; всё это
-можно разбить, изредка из скамеек и крестов выпадает ярость. Некромант бросает шары кислоты по навесной траектории: на
-месте падения остаётся лужа, которая несколько секунд понемногу отнимает здоровье.
+Benches stand along the road, and stone crosses and big gravestones all over it; all of them
+can be broken, and benches and crosses now and then drop rage. The Necromancer lobs balls of acid
+in an arc: where one lands it leaves a puddle that eats a little health for a few seconds.
 
-Зомби медленные и слабые, но приходят толпами (на экране их может быть вдвое больше, чем
-других врагов). Зомби хватает героиню и на секунду обездвиживает её — частые нажатия кнопок
-помогают вырваться быстрее. От удара у зомби может отлететь голова, но он продолжит драться;
-изредка зомби сам отрывает голову и бросает её.
+Zombies are slow and weak but come in crowds (there can be twice as many of them on screen as
+other enemies). A zombie grabs the heroine and holds her still for a second — mashing buttons
+breaks free faster. A hit can knock a zombie's head off, and it keeps fighting; now and then a
+zombie tears off its own head and throws it.
 
-На экране выбора бойца играет отдельная, напряжённая музыка.
+The fighter select has its own tense music.
 
-Большие надгробия разбиваются с трёх ударов; из разбитого может вылезти зомби (25%) или
-скелет (25%). Шар некроманта, попав в героиню, не исчезает и всё равно оставляет лужу.
+Big gravestones break in three hits; a zombie (25%) or a skeleton (25%) may climb out of a
+broken one. A Necromancer's ball that hits the heroine does not vanish and still leaves a
+puddle.
 
-Каждый второй рокер едет на длинном чоппере из чёрного железа и костей: шипастые колёса,
-огонь из труб, рогатый череп вместо фары и таран из костяных шипов. Он бьёт по всей своей
-длине, поэтому увернуться от него труднее.
+Every second Rocker rides a long chopper of black iron and bone: spiked wheels, fire from the
+pipes, a horned skull for a headlight and a ram of bone spikes. It hits along its whole length,
+so it is harder to dodge.
 
-**Скелет-самурай** — элитный враг средней силы: белые хакама, открытый торс с рёбрами, красная
-повязка и катана. Издалека он встаёт в стойку готовности (глаза загораются и оставляют
-светящийся след) и медленно идёт к героине. В стойку он встаёт только после 3 секунд на
-экране (из-за края экрана — никогда), не чаще раза в 1,8–3,4 секунды, и 0,65 секунды плавно
-опускается в неё — в это время он ещё не рубит. Вне стойки, вблизи он бьёт ногой, а дальше
-(до 175 px) — горизонтальным ударом меча: полсекунды отводит клинок назад на уровне плеча,
-затем режет плашмя перед собой на всю длину руки (12 урона, без сбивания с ног); этот удар
-прерывается любым ударом героини. Подойдёшь слишком близко — он молниеносно рубит
-по широкой дуге перед собой. Удар вблизи стойку не сбивает, а только вызывает этот удар. Если
-атаковать его издалека (кость, тёмный шар, суперудар), стойка сбивается, и он оглушён на
-2 секунды. Без стойки он бьёт ногой.
+**The Skeleton Samurai** is a medium-strength elite: white hakama, a bare ribcage, a red
+headband and a katana. From afar it takes a ready stance (its eyes light up and leave a glowing
+trail) and walks slowly towards the heroine. It only takes the stance after 3 seconds on screen
+(never from beyond the edge of the screen), no more often than every 1.8–3.4 seconds, and sinks
+into it smoothly over 0.65 seconds, during which it does not cut yet. Out of the stance it kicks
+up close, and further away (up to 175 px) swings its sword flat: half a second drawing the blade
+back at shoulder height, then a flat cut in front of it at full arm's length (12 damage, no
+knockdown); any hit from the heroine interrupts this cut. Come too close and it cuts in a wide
+arc in front of it like lightning. A hit up close does not break the stance, it only provokes
+that cut. Attacked from a distance (a bone, the dark ball, the super attack), it loses the
+stance and is stunned for 2 seconds. Out of the stance it kicks.
 
-**Костяной дракон** — финальный босс. За склепом барона ждёт ещё одна стычка со скелетами и
-зомби, на дороге лежат два сердца, а дальше — дракон-лич размером в четверть экрана. Он
-неспешный, но к далёкой героине сближается прыжком-наскоком. Дракон выбирает атаку, которая
-достанет героиню, и не повторяет одну и ту же дважды подряд: укус (опущенная голова потом
-какое-то время получает ×1,5 урона), удар лапой, наскок, широкий белый луч из костяного сердца
-через всю арену (перед ним в сердце нарастает импульс; уходят вверх или вниз), плазма — на
-далёкую героиню он выплёвывает три шара плазмы, которые летят дугой (один в неё, два по бокам)
-и взрываются там, где падают, — и, во второй фазе
-(меньше половины здоровья), прыжок с ударом по области приземления, после которого по всей арене
-расходится ударная волна — через неё нужно перепрыгнуть. Во второй фазе дракон двигается и
-атакует на 30% быстрее, а луч начинается той же ширины, что и в первой фазе, но пока он
-бьёт (во второй фазе он горит в полтора раза дольше), расширяется и к концу становится втрое
-шире. Если героиня стоит близко позади
-дракона, он иногда (не чаще раза в 7 секунд) бьёт её задней лапой вместо того, чтобы
-развернуться. Удары героини понемногу
-отталкивают дракона. Побеждённый дракон не рассыпается на кости: он в последний раз ревёт,
-оседает на землю и разваливается на части — череп, рёбра, крылья, хвост, лапы. У боя с
-драконом своя музыка: тяжёлая и гротескная, во второй фазе — быстрее, с погребальными
-колоколами и органом, играющим Dies irae. Сильный удар (добивающий,
-в прыжке, тёмный шар, суперудар) во время замаха укуса, лапы или наскока оглушает дракона, после
-чего 4 секунды он не прерывается; луч и прыжок не прерываются никогда. Из пасти капает кислота.
+**The Bone Dragon** is the final boss. Past the Baron's crypt there is one more fight with
+skeletons and zombies, two hearts lie on the road, and beyond them waits a dracolich a quarter of
+the screen in size. It is unhurried, but closes in on a distant heroine with a leaping pounce.
+The Dragon picks an attack that will reach the heroine and never uses the same one twice in a
+row: a bite (the lowered head then takes ×1.5 damage for a while), a claw swipe, the pounce, a
+wide white beam from its bone heart across the whole arena (a pulse builds up in the heart
+first; dodge up or down), plasma — at a distant heroine it spits three plasma balls that fly in
+an arc (one at her, two to the sides) and burst where they land — and, in the second phase
+(below half health), a jump that strikes the landing area and sends a shock wave across the
+whole arena that has to be jumped over. In the second phase the Dragon moves and attacks 30%
+faster, and its beam starts as wide as in the first phase but, while it burns (half as long
+again in the second phase), widens to three times its width by the end. If the heroine stands
+close behind the Dragon, it sometimes (no more than once in 7 seconds) kicks her with a hind
+leg instead of turning round. The heroine's hits push the Dragon back a little. The beaten
+Dragon does not crumble into bones: it roars one last time, sinks to the ground and falls apart —
+skull, ribs, wings, tail, legs. The Dragon's fight has its own music: heavy and grotesque, faster
+in the second phase, with funeral bells and an organ playing Dies irae. A strong hit (the
+finisher, the flying kick, the dark ball, the super attack) during the wind-up of a bite, claw
+or pounce stuns the Dragon, after which it cannot be interrupted for 4 seconds; the beam and the
+jump are never interrupted. Acid drips from its jaws.
 
-**Запись видео.** `F9` начинает запись игры — только картинки и звука игры, без курсора и
-окон; повторное `F9` останавливает её, и браузер скачивает файл `raithwyn-<дата-время>.webm`
-(в Safari — `.mp4`). Красная метка «REC» с таймером в углу страницы в видео не попадает.
+**Video recording.** `F9` starts recording the game — only the game's picture and sound, without
+the cursor or windows; `F9` again stops it and the browser downloads a
+`raithwyn-<date-time>.webm` file (`.mp4` in Safari). The red REC badge with a timer in the
+corner of the page does not get into the video.
 
-**Секрет.** В самом начале уровня, до первой стычки, зажмите `X` на 3 секунды — героиня
-перенесётся прямо к финальному боссу.
+**Secret.** At the very start of the stage, before the first fight, hold `X` for 3 seconds and
+the heroine is taken straight to the final boss.
 
-**Музыка.** На уровне и в бою с драконом играют песни автора — «Vault of Trash VI»
-(`assets/music/main.mp3` и `boss.mp3`, точки цикла — в `SONGS` в `src/songs.js`, время по
-исходным файлам):
+**Music.** The stage and the Dragon's fight play the author's songs from "Vault of Trash VI"
+(`assets/music/main.mp3` and `boss.mp3`; the loop points are in `SONGS` in `src/songs.js`, times
+are of the original files):
 
-- тема уровня начинается с 1,35 с, доигрывает до 2:52,3 и с лёгким перекрёстным затуханием
-  (0,3 с) возвращается на 0:16,5 — длина цикла ровно 92 такта;
-- тема босса играет со вступления, затем повторяет 0:21,0–1:52,7 (54 такта); во второй фазе
-  дракона на ближайшей сильной доле переходит на 1:52,7 и повторяет 1:54,4–3:07,6 (43 такта);
-  когда дракон рассыпается, на следующем такте звучит концовка песни — и доигрывает на экране
-  победы.
+- the stage theme starts at 1.35 s, plays to 2:52.3 and, with a light crossfade (0.3 s), goes
+  back to 0:16.5 — the loop is exactly 92 bars long;
+- the boss theme plays from its intro, then repeats 0:21.0–1:52.7 (54 bars); in the Dragon's
+  second phase it moves on the next strong beat to 1:52.7 and repeats 1:54.4–3:07.6 (43 bars);
+  when the Dragon falls apart, the song's ending plays from the next bar and finishes on the win
+  screen.
 
-Точки подобраны по сетке долей (~141 BPM) рядом с указанными автором таймкодами. На паузе песня
-звучит тише, при поражении затухает. Пока песни загружаются (или если файл не загрузился),
-играют синтезированные темы: «Ночь на Костяном тракте» на уровне и тема дракона. На главном
-меню — тема кладбища, на выборе бойца — напряжённая тема; вестерн тоже сохранён. Все синтезированные
-темы лежат в `THEMES` в `src/audio.js`; функция `attach()` позволяет отрендерить любую из них
-в файл через `OfflineAudioContext`. На сайте песни после первого захода сохраняются в хранилище кэша браузера (Cache Storage,
-`cachedFetch` в `src/songs.js`) и больше не скачиваются; при замене песни нужно поднять версию
-`MUSIC_CACHE`, тогда старые копии удаляются. В однофайловую сборку песни встроены (поэтому она весит
-около 12 МБ).
+The points are fitted to the beat grid (~141 BPM) near the timecodes the author gave. In the
+pause the song plays quieter, and on a defeat it fades out. While the songs load (or if a file
+fails to load), synthesised themes play: "Night on the Bone Road" in the stage and the Dragon's
+theme. The main menu has the graveyard theme, the fighter select a tense theme; the western
+theme is kept too. All synthesised themes are in `THEMES` in `src/audio.js`; `attach()` can render
+any of them to a file through an `OfflineAudioContext`. On the website the songs are kept in the
+browser's Cache Storage after the first visit (`cachedFetch` in `src/songs.js`) and are not
+downloaded again; when a song is replaced, raise `MUSIC_CACHE` and the old copies are deleted.
+The single-file build has the songs built in (which is why it weighs about 12 MB).
 
-**Могильный барон.** Бой начинается с семи зомби, вылезающих из земли. Призыв миньонов,
-рывок и рёв прервать нельзя. Когда у барона остаётся меньше половины здоровья, начинается
-вторая фаза: после рёва у него появляется кислотное дыхание. 0,7 секунды подготовки, которую
-нельзя прервать: барон запрокидывает голову, из пасти капает кислота (на земле зона не
-отмечена). Затем он выплёвывает струю зелёной кислоты: капли летят дугой и падают на землю
-перед ним, примерно на треть экрана, и жгут там, куда падают. После дыхания остаются четыре
-лужи.
+**The Grave Baron.** The fight starts with seven zombies climbing out of the ground. Summoning
+minions, the charge and the roar cannot be interrupted. When the Baron is below half health the
+second phase begins: after a roar he gains an acid breath. 0.7 seconds of wind-up that cannot be
+interrupted: the Baron throws his head back and acid drips from his mouth (the area is not
+marked on the ground). Then he spits a stream of green acid: the drops fly in an arc and fall in
+front of him across about a third of the screen, burning where they land. The breath leaves four
+puddles behind.
 
-## Уровень 2: Old Quarry
+## Stage 2: Old Quarry
 
-Шахтёрский городок дикого запада на закате и шахты под ним. После победы над драконом
-появляется надпись «Стадия пройдена», и через несколько секунд (или сразу по `J`) игра
-переходит на вторую стадию; здоровье, жизни, ярость и очки сохраняются. Если героиня проиграла на
-второй стадии, «сыграть ещё раз» начинает заново вторую стадию (и повтор `F7` тоже).
+A Wild West mining town at sunset and the mines beneath it. After the Dragon is beaten, "Stage
+clear" appears, and a few seconds later (or at once with `J`) the game moves on to the second
+stage; health, lives, rage and score carry over. If the heroine loses on the second stage, play
+again restarts the second stage (and so does the `F7` replay).
 
-**Не только направо** (как в Teenage Mutant Ninja Turtles III: The Manhattan Project). Пол
-уровня — набор многоугольников, а камера едет по пути (`FLOOR` и `PATH` в `src/level2.js`,
-`src/level.js`): главная улица идёт направо, потом улица спускается по диагонали к нижней
-улице, та снова идёт направо, второй спуск по диагонали ведёт к лагерю шахтёров у скалы, а
-дальше — вход в шахту и её тоннель до зала финальной схватки. Схватки только на ровных
-участках (на экране боя склона нет), спуски проходятся без боя. Стрелка «Вперёд» показывает,
-куда идёт дорога. Вторая стадия примерно на 30% длиннее первой, а в каждой стычке на четверть
-меньше врагов (в начале — всего несколько).
+**Not only to the right** (as in Teenage Mutant Ninja Turtles III: The Manhattan Project). The
+stage's floor is a set of polygons and the camera runs along a path (`FLOOR` and `PATH` in
+`src/level2.js`, `src/level.js`): Main Street runs to the right, then the street goes down a
+slant to the lower street, which runs right again, and a second slant leads down to the miners'
+camp under the cliff, then the mine's entrance and its tunnel to the hall of the final fight.
+Fights only happen on the flat (no slope on a fight's screen); the slants are walked without a
+fight. The GO arrow shows where the road goes. The second stage is about 30% longer than the
+first, and each fight has a quarter fewer enemies (only a few at first).
 
-**Оформление** (`src/bg2.js`). В начале, слева у дороги (дорогу она не перекрывает), стоит
-простая деревянная вывеска на двух столбах с бычьим черепом и фонарём: «Добро пожаловать в
-OLD QUARRY». На домах нет надписей — на вывесках
-нарисовано, что там: бутылка у салуна, звезда у шерифа, монеты у банка, кровать у гостиницы,
-гроб у гробовщика, весы, подкова, ножницы, кирки. За домами — закатное небо со столовыми
-горами, кактусами, ветряком и водонапорной башней. Второй спуск выводит из города мимо забора,
-водонапорной башни и штабеля брёвен в лагерь у скалы из красного песчаника: копёр с крутящимся
-колесом и тросом, подъёмный домик с дымящей трубой, ящики, а в скале — тяжёлый деревянный портал
-шахты со скрещёнными кирками, фонарями и рельсами в темноту. Дорога у входа плавно переходит в
-тёмный пол тоннеля, а свет постепенно гаснет: в шахте светло только вокруг героини и у фонарей
-на крепи. В зале со слаймом светится зелёное озеро, в последнем зале — сломанная буровая
-установка и красные аварийные лампы.
+**Scenery** (`src/bg2.js`). At the start, on the left by the road (it does not cover the road),
+stands a simple wooden sign on two posts with a bull's skull and a lantern: "Welcome to OLD
+QUARRY". The houses have no lettering — their signs show what is inside: a bottle at the saloon,
+a star at the sheriff's, coins at the bank, a bed at the hotel, a coffin at the undertaker's,
+scales, a horseshoe, scissors, pickaxes. Behind the houses is a sunset sky with mesas, cacti, a
+windmill and a water tower. The second slant leads out of town past a fence, a water tower and a
+stack of logs to the camp under a red sandstone cliff: a headframe with a turning wheel and
+cable, a hoist house with a smoking chimney, crates, and in the cliff the mine's heavy timber
+portal with crossed pickaxes, lanterns and rails into the dark. At the entrance the road blends
+into the tunnel's dark floor and the light fades: inside the mine it is only light around the
+heroine and at the lanterns on the props. The Slime's hall has a glowing green lake, the last
+hall a broken drilling rig and red emergency lights.
 
-**Бочки.** Деревянные бочки разбиваются с двух ударов, в некоторых есть сердце или ярость.
-Красные бочки с надписью TNT взрываются (`BLAST` в `src/config.js`, `src/blast.js`): удар
-поджигает фитиль, и через 0,9 с бочка взрывается — есть время отбежать; кость, тёмный шар или
-суперудар взрывают её сразу. Взрыв в большом радиусе бьёт всех: врагов и героиню (если она
-рядом), разбивает деревянные бочки и через мгновение подрывает соседние красные.
+**Barrels.** Wooden barrels break in two hits, and some hold a heart or rage. Red TNT barrels
+blow up (`BLAST` in `src/config.js`, `src/blast.js`): a hit lights the fuse, and 0.9 s later the
+barrel explodes — there is time to run; a bone, the dark ball or the super attack sets it off at
+once. The blast hits everyone in a large radius, enemies and the heroine (if she is close),
+breaks wooden barrels and a moment later sets off red ones nearby.
 
-**Враги Old Quarry** (числа — в `TYPES`, `MINER`, `DYNAMITE`, `LIZARD`, `ARMOR`, `SLIME`):
+**Old Quarry's enemies** (numbers are in `TYPES`, `MINER`, `DYNAMITE`, `LIZARD`, `ARMOR`,
+`SLIME`):
 
-- **Зомби-шахтёр** — основной враг: каска с фонарём, клетчатая рубаха с подтяжками, кирка. Бьёт
-  киркой сверху. Изредка поднимает кирку над головой (0,7 с подготовки) и бежит по прямой —
-  попадание сбивает с ног.
-- **Зомби** из первой стадии — второй основной лёгкий враг.
-- **Зомби с динамитом** — хитрый: в ковбойской шляпе, с патронташем шашек и шашкой в руке (без
-  кирки). Держится на расстоянии, поджигает шашку (фитиль горит 3 секунды), долго замахивается и
-  бросает её дугой; достаёт шашку не часто (раз в 3–5 секунд). Шашка лежит на земле и взрывается, задевая
-  и героиню, и врагов. Если ударить или убить его, пока он держит зажжённую шашку, она падает
-  ему под ноги и взрывается там.
-- **Ящер-мутант** — лёгкий враг (любой удар сбивает его атаку), похожий на когтя смерти из Fallout: горбатый, рогатый, с
-  длинными когтями и светящимися радиоактивными пятнами. Быстро бегает, видит удар героини и
-  отпрыгивает назад (в начале прыжка неуязвим), а приземлившись, бросается вперёд выпадом,
-  который сбивает с ног. Вблизи бьёт когтями. Он не скелет: погибнув, не рассыпается на кости,
-  а падает на землю и лежит, пока не исчезнет. Тела не считаются врагами: как только живых не
-  осталось, стычка окончена и можно идти дальше.
-- **Зомби в силовой броне** — элитный тяжёлый враг с вдвое более проработанной моделью (чуть крупнее
-  обычного врага):
-  пластины с заклёпками, гидравлика на ногах, светящийся реактор на спине, треснувший визор, за
-  которым видно мёртвое лицо, антенна и пулемёт на руке с лентой. Из земли не вылезает — всегда
-  приходит с края экрана; погибнув, падает на землю, а не рассыпается на кости. Долго раскручивает пулемёт
-  (1,2 с), наклоняя ствол к земле, и стреляет 2,6 с: пули вылетают из дула и бьют в землю (пыль
-  и трассеры показывают, куда), сначала у его ног, потом всё дальше — ствол поднимается вслед; каждая третья пуля подряд сбивает с ног. Вблизи бьёт
-  ногой: 0,6 с поднимает колено, визор краснеет, над ним загорается «!», а красное пятно на земле
-  показывает, куда придётся пинок (сбивает с ног). Шкала реактора на спине показывает его здоровье (зелёная, жёлтая,
-  красная). Сдвинуть его можно только сокрушительным ударом. В одной волне их
-  не больше двух.
-- **Радиоактивная жижа** (минибосс, в затопленном зале шахты) — падает с потолка. Катится
-  через зал и один раз отскакивает от края, прыгает (не всегда в героиню) и при приземлении
-  бьёт по области (луж не оставляет), выплёвывает зомби: они летят снарядом, а приземлившись,
-  встают и дерутся (не больше четырёх сразу). Её атаки сбиваются по правилам среднего врага;
-  вместо полёта она отъезжает назад.
+- **Zombie Miner** — the main enemy: a helmet with a lamp, a checked shirt with braces, a
+  pickaxe. Strikes down with the pickaxe. Now and then raises the pickaxe over its head (0.7 s
+  of wind-up) and charges in a straight line — a hit knocks the heroine down.
+- **Zombies** from the first stage are the second main light enemy.
+- **Dynamite Zombie** — tricky: a cowboy hat, a bandolier of sticks and a stick in hand (no
+  pickaxe). Keeps its distance, lights a stick (the fuse burns 3 seconds), winds up for a long
+  time and throws it in an arc; it does not reach for a stick often (every 3–5 seconds). The stick
+  lies on the ground and explodes, hurting both the heroine and enemies. Hit or kill it while it
+  holds a lit stick and the stick drops at its feet and blows up there.
+- **Mutant Lizard** — a light enemy (any hit interrupts its attack), like a Fallout deathclaw:
+  hunched, horned, with long claws and glowing radioactive spots. Runs fast, sees the heroine's
+  hits coming and leaps back (invulnerable at the start of the leap), and on landing lunges
+  forward with a strike that knocks her down. Up close it claws. It is not a skeleton: killed, it
+  does not crumble into bones but falls to the ground and lies there until it fades. Bodies do
+  not count as enemies: as soon as no living ones are left, the fight is over and the way is
+  open.
+- **Power Armor Zombie** — a heavy elite enemy with a model twice as detailed (a little bigger
+  than an ordinary enemy): riveted plates, hydraulics on the legs, a glowing reactor on the back,
+  a cracked visor showing a dead face behind it, an antenna and an arm-mounted machine gun with
+  an ammo belt. It never climbs out of the ground — it always comes from the edge of the screen;
+  killed, it falls to the ground instead of crumbling into bones. It spins up the gun for a long
+  time (1.2 s), tilting the barrel down, and fires for 2.6 s: bullets leave the muzzle and hit
+  the ground (dust and tracers show where), first at its feet, then further and further away as
+  the barrel rises; every third bullet in a row knocks the heroine down. Up close it kicks: for
+  0.6 s it raises its knee, the visor turns red, a "!" lights up above it, and a red spot on the
+  ground shows where the kick will land (it knocks down). The reactor gauge on its back shows its
+  health (green, yellow, red). Only a crushing hit moves it. No more than two in one wave.
+- **Radioactive Slime** (miniboss, in the mine's flooded hall) — drops from the ceiling. Rolls
+  across the hall and bounces off the edge once, jumps (not always at the heroine) and strikes an
+  area on landing (it leaves no puddles), spits out zombies: they fly like projectiles and, once
+  landed, get up and fight (no more than four at once). Its attacks are interrupted by the medium
+  rules; instead of flying off it slides back.
 
-**Финал** — вместо финального босса: схватка с двумя зомби в силовой броне. Когда они теряют
-половину здоровья, к бою присоединяется отряд зомби-шахтёров и два зомби с динамитом.
+**The finale** — instead of a final boss: a fight with two Power Armor Zombies. When they have
+lost half their health, a gang of Zombie Miners and two Dynamite Zombies join in.
 
-**Секрет.** На первом экране первой стадии, до первой стычки, зажмите вместе `Z` и `2` на
-2 секунды — героиня сразу перенесётся ко входу в Old Quarry.
+**Secret.** On the first screen of the first stage, before the first fight, hold `Z` and `2`
+together for 2 seconds and the heroine goes straight to the entrance of Old Quarry.
 
-**Музыка.** На второй стадии пока играют синтезированные темы в духе вестернов (`THEMES` в
-`src/audio.js`): «Old Quarry» (ля минор, 136 BPM, андалузская каденция, галоп баса, свист,
-труба, тремоло гитары, колокола, хор и щелчок кнута) — при прохождении, и «Showdown in the
-Deep» (ре минор, 156 BPM, фанфары трубы, гонящий бас, колокола и хор) — в бою со слаймом и в
-финале.
+**Music.** For now the second stage plays synthesised western themes (`THEMES` in
+`src/audio.js`): "Old Quarry" (A minor, 136 BPM, Andalusian cadence, galloping bass, whistle,
+trumpet, tremolo guitar, bells, choir and a whip crack) while walking, and "Showdown in the Deep"
+(D minor, 156 BPM, trumpet fanfares, driving bass, bells and choir) in the Slime's fight and the
+finale.
 
-## Структура
+## Layout
 
 ```
-index.html, styles.css    страница и раскладка (включая сенсорные кнопки)
-assets/atlas.png          атлас спрайтов героини
-assets/source/            исходный лист спрайтов и портреты в полном размере
-assets/portraits/         портреты бойцов 320×320 для игры
-assets/music/             песни уровня и босса (mp3)
+index.html, styles.css    the page and its layout (touch buttons included)
+assets/atlas.png          the heroine's sprite atlas
+assets/source/            the source sprite sheet, the idle video and full-size portraits
+assets/portraits/         320×320 fighter portraits for the game
+assets/music/             the stage and boss songs (mp3)
 src/
-  config.js               все числа баланса: враги, волны, пороги ярости
-  i18n.js                 тексты на английском и русском, выбор языка
-  menu.js                 главное меню, настройки, выбор бойца
-  fps.js                  счётчик FPS и ограничение частоты кадров
-  characters.js           список бойцов и их характеристики
-  style.js                ранг стиля и его бонусы
-  dragon.js               Костяной дракон: поведение, зоны попадания, отрисовка
-  level.js                стадии: пол, камера по пути, откуда приходят враги, переход
-  level2.js               Old Quarry: пол, путь камеры, волны, бочки
-  bg2.js                  процедурный фон Old Quarry
-  blast.js                взрывы бочек и динамита
-  state.js                общее состояние мира (G), игрок (P), reset()
-  util.js                 мелкие чистые функции
-  input.js                клавиатура и сенсорное управление
-  audio.js                синтез звуков и музыки
-  songs.js                песни: части, циклы, переходы на такте
-  combat.js               правила урона, ярость, иммунитет босса
-  player.js               автомат состояний героини
-  enemies.js              появление врагов и запуск их ИИ (общее для всех)
-  foes/                   враги как данные: один файл на врага (см. «Новый враг»)
-    registry.js           реестр врагов и что можно описать в враге
-    kit.js                инструменты: зрение, ходьба, хитбоксы, навесной бросок
-    common.js             общие состояния: подъём, погоня, замах, удар, падение...
-    bikes.js              мотоцикл, чоппер и цепь рокера
-  anim.js                 скелетная анимация как данные: позы, клипы, общие клипы
-  replay.js               запись забега и его повтор
-  world.js                один шаг симуляции и сценарий волн
-  waves.js                случайные стычки по сложности
-  skeleton.js             векторный риг скелета: поза из данных и отрисовка костей
-  background.js           процедурный фон
-  fx.js                   частицы и обломки
-  render.js               отрисовка мира, HUD и титульного экрана
-  gfx.js                  канвас, атлас, общие функции рисования
-  atlas-frames.js         координаты кадров (генерируется)
-  main.js                 точка входа и игровой цикл
-tests/                    тесты (node:test)
-tools/                    dev-сервер, сборка, сборщик атласа
+  config.js               every balance number: enemies, waves, rage steps
+  i18n.js                 English and Russian texts, the language choice
+  menu.js                 main menu, settings, fighter select
+  fps.js                  FPS counter and frame limit
+  characters.js           the fighters and their stats
+  style.js                style rank and its bonuses
+  dragon.js               the Bone Dragon: behaviour, hit zones, drawing
+  level.js                stages: floor, camera path, where enemies come from, transition
+  level2.js               Old Quarry: floor, camera path, waves, barrels
+  bg2.js                  Old Quarry's procedural backdrop
+  blast.js                barrel and dynamite explosions
+  state.js                shared world state (G), the player (P), reset()
+  util.js                 small pure functions
+  input.js                keyboard and pointer input
+  touch.js                touch controls: stick, buttons, gestures
+  audio.js                synthesised sound and music
+  songs.js                songs: parts, loops, changes on the bar
+  combat.js               damage rules, rage, boss immunity
+  player.js               the heroine's state machine
+  enemies.js              spawning enemies and running their AI (shared by all)
+  foes/                   enemies as data: one file per enemy (see "A new enemy")
+    registry.js           the enemy registry and what an enemy can describe
+    kit.js                tools: sight, walking, hitboxes, lobbed throws
+    common.js             shared states: rising, chasing, wind-up, strike, falling...
+    bikes.js              the Rocker's motorbike, chopper and chain
+  anim.js                 skeletal animation as data: poses, clips, shared clips
+  replay.js               recording a run and replaying it
+  world.js                one simulation step and the wave script
+  waves.js                random fights by difficulty
+  skeleton.js             the skeleton's vector rig: a pose from data and drawing the bones
+  background.js           procedural backdrop
+  fx.js                   particles and debris
+  render.js               drawing the world, the HUD and the title screen
+  gfx.js                  canvas, atlas, shared drawing helpers
+  atlas-frames.js         frame coordinates (generated)
+  main.js                 entry point and game loop
+tests/                    tests (node:test)
+tools/                    dev server, build, atlas and sprite tools
 ```
 
-Логика (`config`, `state`, `combat`, `player`, `enemies`, `foes`, `world`, позы в `skeleton`) не
-обращается к DOM, поэтому целиком запускается в Node: тесты прогоняют настоящую симуляцию
-без браузера.
+The logic (`config`, `state`, `combat`, `player`, `enemies`, `foes`, `world`, the poses in
+`skeleton`) never touches the DOM, so all of it runs in Node: the tests run the real simulation
+without a browser.
 
-## Тесты
+## Tests
 
 ```bash
 npm test
 ```
 
-Что проверяется:
+What is checked:
 
-- `config.test.js` — волны ссылаются только на существующих врагов, идут слева направо,
-  уровень заканчивается боссом, пороги ярости согласованы.
-- `combat.test.js` — уровни тёмного шара, сбивание рокера с мотоцикла, чоппер бьёт по всей
-  длине, жонглирование лёгких врагов и падение тяжёлых, иммунитет барона после
-  двух прерванных атак, урон по игроку.
-- `world.test.js` — симуляция: первая стычка запускается, каждый тип врага дерётся 20 секунд
-  без ошибок, удар в прыжке, и весь уровень проходится до победы.
-- `extras.test.js` — музыкальные темы, стиль от декораций, секретная комбинация.
-- `dragon.test.js` — конец уровня, неостановимые атаки дракона, выбор достижимой атаки,
-  укус и голова ×1,5, луч и уклонение, расширяющийся луч второй фазы, удар задней лапой, шары плазмы,
-  прыжок во второй фазе, победа.
-- `boss.test.js` — начало боя с зомби, неостановимый призыв, вторая фаза и дыхание,
-  большие надгробия, шар кислоты после попадания.
-- `zombie.test.js` — захват, отлетающая и брошенная голова, толпы зомби.
-- `style.test.js` — ранги стиля и бонусы, декорации, лужа кислоты, меню паузы.
-- `menu.test.js` — главное меню, настройки, выбор бойца (играть можно только за Raithwyn).
-- `features.test.js` — переводы, раскладка клавиш, цена кости, суперудар, неостановимый
-  конец замаха Пузана, некромант.
-- `level2.test.js` — Old Quarry: секрет `Z`+`2`, переход после первой стадии, пол и камера
-  по пути (два спуска), бои только на ровном, длина на ~30% больше первой стадии, откуда приходят враги, бочки и взрывы, шахтёр, динамит, ящер,
-  силовая броня и пулемёт, не больше двух броней в волне, жижа и её зомби, финальная схватка.
-- `waves.test.js` — случайные стычки: в начале мало врагов и редко сильные, в конце толпы
-  всех видов, сложность растёт по дороге, повтор даёт тех же врагов.
-- `samurai.test.js` — стойка и подкрадывание, удар по дуге, оглушение атакой издалека,
-  ответный удар вблизи, удар ногой, 3 секунды на экране до стойки, повторная стойка.
-- `replay.test.js` — одинаковое зерно и кнопки дают одинаковый забег; записанный забег (и он
-  же из файла) повторяется в точности.
-- `skeleton.test.js` — у каждого врага в каждом состоянии есть корректная поза.
-- `util.test.js` — вспомогательные функции.
+- `config.test.js` — waves only refer to existing enemies and run left to right, the stage ends
+  with a boss, the rage steps agree.
+- `combat.test.js` — dark ball levels, knocking the Rocker off his bike, the chopper hitting
+  along its whole length, juggling light enemies and heavy ones falling, the Baron's immunity
+  after two interrupted attacks, damage to the player.
+- `world.test.js` — the simulation: the first fight starts, each enemy type fights for 20 seconds
+  without errors, the flying kick, the whole stage played through to a win, the idle loop.
+- `extras.test.js` — music themes, style from scenery, the secret combo.
+- `dragon.test.js` — the end of the stage, the Dragon's unstoppable attacks, choosing an attack
+  that reaches, the bite and the ×1.5 head, the beam and dodging it, the widening second-phase
+  beam, the hind-leg kick, plasma balls, the second-phase jump, the win.
+- `boss.test.js` — the fight's opening zombies, the unstoppable summon, the second phase and the
+  breath, big gravestones, the acid ball after a hit.
+- `zombie.test.js` — the grab, flying and thrown heads, zombie crowds.
+- `style.test.js` — style ranks and bonuses, scenery, the acid puddle, the pause menu.
+- `menu.test.js` — main menu, settings (FPS counter and limit), fighter select (only Raithwyn is
+  playable).
+- `features.test.js` — translations, key layout, bone cost, super attack, the unstoppable end of
+  Fatso's wind-up, the Necromancer.
+- `level2.test.js` — Old Quarry: the `Z`+`2` secret, the transition after the first stage, the
+  floor and the camera path (two slants), fights only on the flat, about 30% longer than the
+  first stage, where enemies come from, barrels and blasts, the Miner, Dynamite, the Lizard, the
+  Power Armor and its gun, no more than two armors per wave, the Slime and its zombies, the
+  final fight.
+- `waves.test.js` — random fights: few enemies and rarely strong ones at first, crowds of every
+  kind at the end, difficulty rising along the road, a replay giving the same enemies.
+- `samurai.test.js` — the stance and creeping up, the arc cut, the stun from a distant attack,
+  the close-range counter, the kick, 3 seconds on screen before the stance, taking the stance
+  again.
+- `replay.test.js` — the same seed and buttons give the same run; a recorded run (and the same
+  run from a file) replays exactly.
+- `skeleton.test.js` — every enemy has a valid pose in every state.
+- `util.test.js` — helper functions.
 
-Отрисовка тестами не покрыта, её проверяют глазами в браузере.
+Drawing is not covered by tests; it is checked by eye in a browser.
 
-## Как менять игру
+## Changing the game
 
-**Баланс.** Всё в `src/config.js`. Поля врага: `hp`, `speed`, `dmg`, `reach` (дальность
-ближней атаки) или `keep` (дистанция, которую держит стрелок), `wind`/`act`/`rec` (замах,
-активная фаза и восстановление в секундах), `cd` (пауза между атаками, от и до).
+**Balance.** Everything is in `src/config.js`. Enemy fields: `hp`, `speed`, `dmg`, `reach` (the
+range of the close attack) or `keep` (the distance a ranged enemy keeps), `wind`/`act`/`rec`
+(wind-up, active phase and recovery in seconds), `cd` (pause between attacks, from and to).
 
-**Новая стычка.** Добавить строку в `WAVES`: `x` — где останавливается камера, `lvl` —
-сложность случайной стычки от 0 до 1 (состав, доли и пулы врагов — в `WAVEGEN`). Для
-неизменной стычки вместо `lvl` задаётся `sp` — список `[тип, сторона, задержка]`. Сторона
-`1` — справа, `-1` — слева, `0` — вылезает из земли.
+**A new fight.** Add a line to `WAVES`: `x` — where the camera stops, `lvl` — the difficulty of
+a random fight from 0 to 1 (the make-up, shares and enemy pools are in `WAVEGEN`). For a fixed
+fight give `sp` instead of `lvl` — a list of `[type, side, delay]`. Side `1` is the right, `-1`
+the left, `0` climbs out of the ground.
 
-**Новый враг.** Всё о враге — в одном файле `src/foes/<имя>.js`:
+**A new enemy.** Everything about an enemy is in one file, `src/foes/<name>.js`:
 
-1. Характеристики — в `TYPES` (`src/config.js`), имя — в `foe` обоих языков в `src/i18n.js`.
-2. Файл врага вызывает `defineFoe('<имя>', { ... })` и подключается в `src/foes/index.js`.
-3. Всё, что можно описать, перечислено в начале `src/foes/registry.js`. Главное:
-   - `moves` — что враг делает во время погони: список `{ when, go }`, проверяется по порядку;
-   - `states` — его собственные состояния ИИ (`tick(e, dt, s)`; `s` — где игрок);
-   - `strike`, `connect`, `guard`, `onHit`, `immune`, `unstoppable` — его особые правила
-     удара и получения урона;
-   - `pose` — позы из данных (формат в начале `src/anim.js`): `base`, `walk`, `guard` и
-     `states` с клипами `set` / `tween` / `shake`;
-   - `look` — костюм и оружие по слоям рисунка (`back`, `torso`, `legs`, `head`, `weapon`,
+1. Stats go in `TYPES` (`src/config.js`), the name in `foe` of both languages in `src/i18n.js`.
+2. The enemy's file calls `defineFoe('<name>', { ... })` and is imported in `src/foes/index.js`.
+3. Everything an enemy can describe is listed at the top of `src/foes/registry.js`. The main
+   parts:
+   - `moves` — what the enemy does while chasing: a list of `{ when, go }`, checked in order;
+   - `states` — its own AI states (`tick(e, dt, s)`; `s` is where the player is);
+   - `strike`, `connect`, `guard`, `onHit`, `immune`, `unstoppable` — its own rules for hitting
+     and being hit;
+   - `pose` — poses as data (the format is at the top of `src/anim.js`): `base`, `walk`, `guard`
+     and `states` with `set` / `tween` / `shake` clips;
+   - `look` — costume and weapon by drawing layer (`back`, `torso`, `legs`, `head`, `weapon`,
      `world`, `mount`, `sleeves`).
-4. Общие состояния (погоня, замах, удар, восстановление, падение) уже есть в
-   `src/foes/common.js`: простому врагу хватает строки в `TYPES` и пустого `defineFoe`
-   (так сделан `grunt.js`). Пример побогаче — `samurai.js`.
-5. Новые состояния стоит добавить в список `STATES` в `tests/skeleton.test.js`.
+4. The shared states (chase, wind-up, strike, recover, fall) are already in
+   `src/foes/common.js`: a simple enemy needs only a line in `TYPES` and an empty `defineFoe`
+   (that is how `grunt.js` is made). A richer example is `samurai.js`.
+5. New states should be added to the `STATES` list in `tests/skeleton.test.js`.
 
-Пример маленького врага, который время от времени отпрыгивает назад:
+An example of a small enemy that leaps back now and then:
 
 ```js
 import { defineFoe } from './registry.js';
@@ -485,56 +499,59 @@ export default defineFoe('jumper', {
 });
 ```
 
-**Спрайты.** Отредактировать `assets/source/character_sheet.png` и пересобрать атлас:
+**Sprites.** Edit `assets/source/character_sheet.png` and rebuild the atlas:
 
 ```bash
 pip install pillow numpy
 npm run atlas
 ```
 
-Ряды листа сверху вниз перечислены в `ROW_NAMES` в `tools/build_atlas.py`.
-Стойка (idle) — первый ряд листа: 11 поз дыхания и покачивания хвоста, взятых из видео
-`assets/source/idle.mp4` (цикл — кадры 60–113, 2,25 с). Ряд собирает
-`python3 tools/idle_from_video.py assets/source/idle.mp4 60 114 11` (11 — сколько поз взять,
-равномерно по циклу; без числа — все 28 разных): убирает фон-шахматку, дорисовывает обрезанный
-краем видео кончик хвоста,
-выравнивает кадры по ботинкам, уменьшает до размера листа и печатает, сколько держится каждая
-поза — это `IDLE_HOLD` в `src/config.js` (в 1/24 с, как в видео). По стойке выравниваются удары.
-Светлая каёмка, оставшаяся от светлого фона видео, снимается `python3 tools/defringe.py 16 372`
-(полупрозрачные края перекрашиваются в цвет соседних непрозрачных пикселей; инструмент для видео
-делает это сам). Ряд стойки в листе доработан вручную: пересборка из видео эти правки сотрёт.
+The sheet's rows, top to bottom, are listed in `ROW_NAMES` in `tools/build_atlas.py`. Every
+frame is halved on the same grid around its anchor, so frames do not jitter against each other.
 
-**Портреты.** Положить картинку в `assets/source/portraits/<имя>.webp` и выполнить
-`npm run portraits`: появится уменьшенная копия в `assets/portraits/`. Новый боец
-описывается в `src/characters.js`, его имя и описание — в `chars` в `src/i18n.js`.
+The idle stance is the sheet's first row: 11 poses of breathing and a swaying tail taken from
+the video `assets/source/idle.mp4` (the loop is frames 60–113, 2.25 s). The row is made by
+`python3 tools/idle_from_video.py assets/source/idle.mp4 60 114 11` (11 is how many poses to
+take, evenly over the loop; without it, all 28 different ones): it removes the checkerboard
+background, puts back the tail's tip where the video's edge cuts it off, lines the frames up on
+the boots, scales them to the sheet and prints how long each pose is held — that is `IDLE_HOLD`
+in `src/config.js` (in 1/24 s, as in the video). The punches are aligned to the idle stance. The
+pale fringe left by the video's light background is removed by
+`python3 tools/defringe.py 16 372` (see-through edge pixels take the colour of the solid pixels
+next to them; the video tool does this itself). The idle row in the sheet has been retouched by
+hand: rebuilding it from the video would wipe those edits.
 
-**Отладка.** В консоли браузера доступен объект `__game`:
+**Portraits.** Put a picture in `assets/source/portraits/<name>.webp` and run
+`npm run portraits`: a smaller copy appears in `assets/portraits/`. A new fighter is described in
+`src/characters.js`, its name and description in `chars` in `src/i18n.js`.
+
+**Debugging.** The browser console has a `__game` object:
 
 ```js
-__game.P.rage = 300;                 // полная ярость
-__game.spawn('biker', 1);            // рокер справа
+__game.P.rage = 300;                 // full rage
+__game.spawn('biker', 1);            // a Rocker from the right
 __game.G.enemies.forEach((e) => (e.dead = true));
 ```
 
-**Форматирование.** `npm run format` (Prettier).
+**Formatting.** `npm run format` (Prettier).
 
-## Публикация на GitHub
+## Publishing on GitHub
 
 ```bash
 git init -b main
 git add .
 git commit -m "Raithwyn: beat 'em up prototype"
-git remote add origin https://github.com/<имя>/<репозиторий>.git
+git remote add origin https://github.com/<user>/<repository>.git
 git push -u origin main
 ```
 
-В репозитории уже лежит workflow `.github/workflows/ci.yml`: на каждый push и pull request он
-запускает тесты и сборку, а из ветки `main` выкладывает игру на GitHub Pages. Чтобы это
-заработало, один раз включите в настройках репозитория **Settings → Pages → Source: GitHub
-Actions**. Игра будет доступна по адресу `https://<имя>.github.io/<репозиторий>/`,
-однофайловая версия — там же по пути `/single.html`.
+The repository already has a workflow, `.github/workflows/ci.yml`: on every push and pull
+request it runs the tests and the build, and from the `main` branch it publishes the game on
+GitHub Pages. For that to work, turn on **Settings → Pages → Source: GitHub Actions** once in the
+repository's settings. The game is then at `https://<user>.github.io/<repository>/`, and the
+single-file version at `/single.html` there.
 
-## Лицензия
+## License
 
-Файла лицензии в репозитории нет: её нужно выбрать самостоятельно. Лист спрайтов Raithwyn —
-авторская работа, и условия для него стоит указать отдельно от условий для кода.
+There is no license file in the repository yet: one has to be chosen. Raithwyn's sprite sheet is
+the author's own work, and its terms are worth stating apart from the terms for the code.
