@@ -59,8 +59,9 @@ test('a zombie grabs the player and holds her still for a moment', () => {
 
 test('mashing buttons breaks free sooner', () => {
   grabbingZombie();
-  step(0.4, (i) => i % 4 === 0 && (pressed.atk = true));
-  assert.notEqual(P.state, 'grabbed');
+  step(0.5, (i) => i % 4 === 0 && (pressed.atk = true));
+  assert.notEqual(P.state, 'grabbed', 'free in 0.5 s instead of the full hold');
+  assert.ok(ZOMBIE.hold > 0.5 * 2);
 });
 
 test('hitting a zombie can knock its head off, and it keeps fighting', () => {

@@ -225,8 +225,8 @@ test('the super attack charges in one second; big graves burst into big slabs', 
   assert.ok(G.debris.filter((d) => d.k === 'shard' && d.len >= 18).length >= 9);
 });
 
-test('the dragon has 15% and then another 10% more health', () => {
-  assert.equal(TYPES.dragon.hp, Math.round(900 * 1.15 * 1.1));
+test('the dragon has 15%, then another 10%, then another 7% more health', () => {
+  assert.equal(TYPES.dragon.hp, Math.round(900 * 1.15 * 1.1 * 1.07));
 });
 
 test('the second-phase leap sends a shockwave across the arena; jumping clears it', () => {
@@ -442,24 +442,33 @@ test('second phase: it hovers and fires three beams across the arena; the gaps a
   }
 });
 
-test('after the sky beams it drops onto a random spot with the shockwave', () => {
-  const seen = new Set();
-  for (let k = 0; k < 3; k++) {
+test('after the sky beams it drops straight down with the shockwave', () => {
+  const d = dragonAt(400, 450, { phase2: true });
+  Object.assign(d, { state: 'sky', t: 0, skyX0: 600, skyY0: 450, skyX: 770, skyY: 441 });
+  P.x = 100;
+  const S = DRAGON.sky;
+  run(d, (S.rise + S.charge + S.fire + S.rec) / DRAGON.rage);
+  const [hx, hy] = [d.x, d.y];
+  run(d, (S.fall + 0.05) / DRAGON.rage);
+  assert.equal(d.z, 0, 'down on the ground');
+  assert.ok(Math.abs(d.x - hx) < 1 && Math.abs(d.y - hy) < 1, 'right under where it hovered');
+  assert.equal(G.shocks.length, 1, 'a shockwave from where it lands');
+  run(d, 1.5);
+  assert.equal(d.state, 'walk');
+});
+
+test('the sky beams run from edge to edge: under the dragon is not safe', () => {
+  const S = DRAGON.sky;
+  for (const px of [790, 930]) {
+    // right under it, and behind it at the edge it hovers by
     freshGame();
-    for (let i = 0; i < k * 5; i++) random(); // a different roll each time
     const d = dragonAt(400, 450, { phase2: true });
-    Object.assign(d, { state: 'sky', t: 0, skyX0: 600, skyY0: 450, skyX: 770, skyY: 441 });
-    P.x = 100;
-    const S = DRAGON.sky;
-    run(d, (S.rise + S.charge + S.fire + S.rec + S.fall + 0.05) / DRAGON.rage);
-    assert.equal(d.z, 0, 'down on the ground');
-    assert.equal(G.shocks.length, 1, 'a shockwave from where it lands');
-    assert.ok(d.x > G.cam + 150 && d.x < G.cam + W - 150 && d.y >= GT && d.y <= GB);
-    seen.add(Math.round(d.x));
-    run(d, 1.5);
-    assert.equal(d.state, 'walk');
+    Object.assign(d, { state: 'sky', t: 0, skyX0: 770, skyY0: 441, skyX: 770, skyY: 441 });
+    P.x = px;
+    P.y = skyLines()[1];
+    run(d, (S.rise + S.charge + S.fire) / DRAGON.rage + 0.05);
+    assert.ok(P.hp < 100, `hit at x ${px}`);
   }
-  assert.ok(seen.size > 1, 'not always the same spot');
 });
 
 test('the sky beams come from the turning head, all three at once, slowly, leaving a trail', () => {

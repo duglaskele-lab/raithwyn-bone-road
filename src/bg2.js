@@ -1112,7 +1112,7 @@ function drawArch() {
   ctx.fillText('OLD QUARRY', cx, y0 + 66);
   ctx.font = `900 11px ${FONT}`;
   ctx.fillStyle = '#3a2416';
-  ctx.fillText('★  POP. 312  ★', cx, y0 + 96);
+  ctx.fillText('★  LOST 32120  ★', cx, y0 + 96);
   // a cow skull on top, a lantern on a post
   ctx.save();
   ctx.translate(cx, y0 - 6);

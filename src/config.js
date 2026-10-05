@@ -63,7 +63,7 @@ export const ACID = {
 };
 // Zombies grab the player for a moment, can lose their head to a hit and now and then throw it.
 export const ZOMBIE = {
-  hold: 1.1, // seconds the player is held
+  hold: 1.375, // seconds the player is held (a quarter longer than the first 1.1)
   mash: 0.15, // each button press while held shortens the hold
   headOff: 0.3, // chance that a plain hit knocks the head off (a knockdown hit always does)
   throwRate: 0.12, // chance per second to throw the head when at range
@@ -413,7 +413,7 @@ export const TYPES = {
   // a big mutant lizard: fast, hops back from blows and lunges (see LIZARD); light
   lizard: {
     hp: 130,
-    scale: 1.25,
+    scale: 1, // a fifth smaller than the first 1.25
     speed: 150,
     dmg: 12,
     reach: 86,
@@ -469,7 +469,7 @@ export const TYPES = {
   },
   // the final boss; its behaviour and drawing live in dragon.js
   dragon: {
-    hp: 1139,
+    hp: 1218, // 900, +15%, +10%, +7%
     scale: 1.6,
     speed: 51,
     dmg: 18,

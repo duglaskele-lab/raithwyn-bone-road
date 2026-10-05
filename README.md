@@ -185,7 +185,7 @@ can be broken, and benches and crosses now and then drop rage. The Necromancer l
 in an arc: where one lands it leaves a puddle that eats a little health for a few seconds.
 
 Zombies are slow and weak but come in crowds (there can be twice as many of them on screen as
-other enemies). A zombie grabs the heroine and holds her still for a second — mashing buttons
+other enemies). A zombie grabs the heroine and holds her still for about 1.4 seconds — mashing buttons
 breaks free faster. A hit can knock a zombie's head off, and it keeps fighting; now and then a
 zombie tears off its own head and throws it.
 
@@ -225,10 +225,9 @@ whole arena that has to be jumped over. In the second phase the Dragon moves and
 again in the second phase), widens to 2.4 times its width by the end. It also combines attacks: when the heroine is close, it may leap back to the far side of
 the arena and charge the beam from there at once (as wide and as long as the beam of its current
 phase). In the second phase it can also rise and hover over the side of the arena, light gathering in
-its jaws, then fire three white beams from its mouth all at once, turning its head to sweep them slowly
-(over 1.25 s) across the whole arena — along its top edge, its middle and its bottom edge
-(between the middle and an edge it is safe). Where a beam passes, the ground burns for a while. Hovering, it is out of reach. Then it drops onto a random spot
-of the arena with the quake and the shockwave of its leap. If the heroine stands
+its jaws, then fire three white beams from its mouth all at once, turning its head (back over its shoulder at first) to sweep them slowly (over 1.25 s) across
+the whole arena from edge to edge, under itself too — along its top edge, its middle and its bottom edge
+(between the middle and an edge it is safe). Where a beam passes, the ground burns for a while. Hovering, it is out of reach. Then it drops straight down with the quake and the shockwave of its leap. If the heroine stands
 close behind the Dragon, it sometimes (no more than once in 7 seconds) kicks her with a hind
 leg instead of turning round. The heroine's hits push the Dragon back a little. The beaten
 Dragon does not crumble into bones: it roars one last time, sinks to the ground and falls apart —
@@ -292,8 +291,7 @@ fight. The GO arrow shows where the road goes. The second stage is about 30% lon
 first, and each fight has a quarter fewer enemies (only a few at first).
 
 **Scenery** (`src/bg2.js`). At the start, on the left by the road (it does not cover the road),
-stands a simple wooden sign on two posts with a bull's skull and a lantern: "Welcome to OLD
-QUARRY". The houses have no lettering — their signs show what is inside: a bottle at the saloon,
+stands a simple wooden sign on two posts with a bull's skull and a lantern: "Welcome to OLD QUARRY — LOST 32120". The houses have no lettering — their signs show what is inside: a bottle at the saloon,
 a star at the sheriff's, coins at the bank, a bed at the hotel, a coffin at the undertaker's,
 scales, a horseshoe, scissors, pickaxes. Behind the houses is a sunset sky with mesas, cacti, a
 windmill and a water tower. The second slant leads out of town past a fence, a water tower and a
@@ -322,7 +320,7 @@ breaks wooden barrels and a moment later sets off red ones nearby.
   time and throws it in an arc; it does not reach for a stick often (every 3–5 seconds). The stick
   lies on the ground and explodes, hurting both the heroine and enemies. Hit or kill it while it
   holds a lit stick and the stick drops at its feet and blows up there.
-- **Mutant Lizard** — a light enemy (any hit interrupts its attack), like a Fallout deathclaw:
+- **Mutant Lizard** — a light enemy (any hit interrupts its attack; about player size), like a Fallout deathclaw:
   hunched, horned, with long claws and glowing radioactive spots. Runs fast, sees the heroine's
   hits coming and leaps back (invulnerable at the start of the leap), and on landing lunges
   forward with a strike that knocks her down. Up close it claws. It is not a skeleton: killed, it
