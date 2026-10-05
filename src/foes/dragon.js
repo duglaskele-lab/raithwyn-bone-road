@@ -19,10 +19,9 @@ export default defineFoe('dragon', {
     G.banner = { a: '@dragon', b: 'dragonBanner', t: 0 };
   },
   update: updDragon,
-  // the laser and the leap never stop; after a stagger nothing stops it for a while
+  // the laser, the leaps and the sky beams never stop; after a stagger nothing stops it for a while
   unstoppable: (e) =>
-    e.state === 'laser' ||
-    e.state === 'leap' ||
+    ['laser', 'leap', 'retreat', 'sky'].includes(e.state) ||
     (e.armor > 0 && ['bite', 'claw', 'kick', 'plasma', 'pounce'].includes(e.state)),
   immune: (e) => e.state === 'intro' || e.state === 'dying',
   // only a heavy blow during some wind-ups staggers the dragon (see dragonInterrupt)

@@ -29,7 +29,7 @@ import {
   startLevel,
 } from '../src/level.js';
 import { FLOOR, L2, PATH, WAVEGEN2, WAVES2, topY } from '../src/level2.js';
-import { setRandom } from '../src/util.js';
+import { seedRandom, setRandom } from '../src/util.js';
 import { DT, freshGame } from './helpers.js';
 
 beforeEach(freshGame);
@@ -460,4 +460,40 @@ test('the bodies of the dead do not hold up the walk on: only live enemies count
   assert.equal(G.wave, null, 'but the fight is over');
   assert.equal(G.waveI, 1);
   assert.ok(G.goT > 0, 'GO');
+});
+
+test('the power armour leaps onto a marked spot: the player or, half the time, elsewhere', () => {
+  const J = ARMOR.jump;
+  let onPlayer = 0,
+    hurt = 0;
+  const N = 20;
+  for (let k = 0; k < N; k++) {
+    freshGame();
+    quarry();
+    seedRandom(1000 + k);
+    P.x = 400;
+    P.y = 450;
+    P.inv = 0;
+    const e = spawn('armor', 1, 700, 450);
+    Object.assign(e, { state: 'chase', t: 0, face: -1, gunCd: 99, jumpCd: 0 });
+    step(DT * 2);
+    assert.equal(e.state, 'jcrouch', 'it crouches for the jump');
+    assert.ok(Number.isFinite(e.jx) && Number.isFinite(e.jy), 'the landing spot is marked');
+    const [jx, jy] = [e.jx, e.jy];
+    if (Math.hypot(jx - P.x, jy - P.y) < 5) onPlayer++;
+    step(J.crouch + J.air);
+    assert.equal(e.state, 'jland');
+    assert.ok(Math.abs(e.x - jx) < 1 && Math.abs(e.y - jy) < 1, 'lands on the mark');
+    const ex = (P.x - jx) / J.rx,
+      ey = (P.y - jy) / J.ry;
+    if (P.hp < 100) {
+      hurt++;
+      assert.ok(ex * ex + ey * ey < 1, 'only inside the marked area');
+    }
+    step(J.rec + 0.1);
+    assert.equal(e.state, 'chase');
+    assert.ok(e.jumpCd >= J.cd[0] - 1, 'then a while before the next');
+  }
+  assert.ok(onPlayer > N * 0.25 && onPlayer < N * 0.75, `${onPlayer}/${N} on the player`);
+  assert.ok(hurt >= onPlayer, 'landing on her hurts');
 });

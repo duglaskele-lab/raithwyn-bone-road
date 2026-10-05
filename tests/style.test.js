@@ -28,22 +28,16 @@ const step = (seconds, each) => {
   }
 };
 
-test('style ranks D C B A S with +50% score and +5% damage each, S +10% more', () => {
-  assert.deepEqual(RANKS, ['D', 'C', 'B', 'A', 'S']);
-  const expect = [
-    [0, 1, 1],
-    [1, 1.5, 1.05],
-    [2, 2, 1.1],
-    [3, 2.5, 1.15],
-    [4, 3, 1.2],
-    [5, 3.5, 1.35],
-  ];
-  for (const [r, score, dmg] of expect) {
+test('style ranks D … SSS, each +50% score and +5% damage', () => {
+  assert.deepEqual(RANKS, ['D', 'C', 'B', 'A', 'S', 'SS', 'SSS']);
+  for (let r = 0; r <= 7; r++) {
     P.sty = r * STYLE_STEP + 1;
     assert.equal(styleRank(), r);
-    assert.equal(scoreMult(), score);
-    assert.ok(Math.abs(dmgMult() - dmg) < 1e-9, `rank ${r}: ${dmgMult()}`);
+    assert.equal(scoreMult(), 1 + 0.5 * r);
+    assert.ok(Math.abs(dmgMult() - (1 + 0.05 * r)) < 1e-9, `rank ${r}: ${dmgMult()}`);
   }
+  styleGain(10000);
+  assert.equal(styleRank(), 7, 'SSS is the top');
 });
 
 test('landing hits raises the rank, and the bonus applies to damage and score', () => {

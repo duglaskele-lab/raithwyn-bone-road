@@ -8,6 +8,11 @@
 //   leap   - phase two only: jumps onto the player and hits everything where it lands
 //   plasma - at long range: three balls of plasma spat in arcs that blow up where they land
 //   kick   - now and then, when the player stands close behind it: a kick of a hind leg
+//   retreat - a combo: when the player is close, it leaps back to the far side of the arena
+//            and at once charges the beam from there
+//   sky    - phase two only: it rises and hovers, fires three white beams across the whole
+//            arena (along its top edge, its middle and its bottom edge; the gaps between are
+//            safe), then drops onto a random spot and sends out the leap's shockwave
 // A heavy hit (a knockdown blow, a dark ball, the super) during the wind-up of the bite, the
 // claw, the kick, the plasma or the pounce staggers it; then it shrugs off interrupts for a few seconds. The laser
 // and the leap cannot be stopped at all.
@@ -27,7 +32,25 @@ export const DRAGON = {
   bite: { wind: 0.6, strike: 0.22, down: 1.3, up: 0.5, dmg: 18, min: 110, max: 320, dy: 50 },
   claw: { wind: 0.5, swipe: 0.2, rec: 0.55, dmg: 14, min: 20, max: 240, dy: 60 },
   // fire2: in the second phase the beam burns this much longer (and widens more slowly)
-  laser: { wind: 1.0, fire: 1.1, fire2: 1.5, rec: 0.5, dmg: 22, band: 40, dy: 110, cd: 5 },
+  // wind: the heart charges for this long, white sparks flying out of it
+  laser: { wind: 1.3, fire: 1.1, fire2: 1.5, rec: 0.5, dmg: 22, band: 40, dy: 110, cd: 5 },
+  // the leap back before a beam: to the far side of the arena from a player this near
+  retreat: { crouch: 0.3, air: 0.75, rec: 0, h: 190, cd: 11, near: 280, first: 6 },
+  // the hovering triple beam (phase two): rise, charge, fire, hang on, drop onto a random spot.
+  // The beams lie along depths GT + edge, the middle and GB - edge, each band deep each way.
+  sky: {
+    rise: 0.9,
+    charge: 1.4,
+    fire: 1.0,
+    rec: 0.3,
+    fall: 0.7,
+    h: 130,
+    band: 20,
+    edge: 15,
+    dmg: 20,
+    cd: 13,
+    first: 3,
+  },
   // three plasma balls spat one after another in arcs at a player far away; each one blows up
   // where it lands (rx, ry: the blast)
   plasma: {
@@ -181,6 +204,9 @@ function choose(e) {
   if (f >= C.bite.min && f <= C.bite.max && ady < C.bite.dy) can.push('bite');
   if (f > 90 && ady < C.laser.dy && e.laserCd <= 0) can.push('laser');
   if (e.phase2 && e.leapCd <= 0 && (f > 260 || f < -40 || ady > 70)) can.push('leap');
+  if (e.laserCd <= 0 && e.retreatCd <= 0 && Math.abs(P.x - e.x) < C.retreat.near)
+    can.push('retreat');
+  if (e.phase2 && e.skyCd <= 0) can.push('sky');
   if (e.pounceCd <= 0 && Math.abs(f) > C.pounce.min && ady < 120) can.push('pounce');
   if ((e.plasmaCd ?? 0) <= 0 && f > C.plasma.min) can.push('plasma');
   const fresh = can.filter((a) => a !== e.last);
@@ -199,12 +225,22 @@ function start(e, a) {
     SFX.dragonCharge();
   }
   if (a === 'leap') e.leapCd = DRAGON.leap.cd;
+  if (a === 'retreat') e.retreatCd = DRAGON.retreat.cd;
+  if (a === 'sky') {
+    e.skyCd = DRAGON.sky.cd;
+    e.skyX0 = e.x;
+    e.skyY0 = e.y;
+    // it hovers over the side of the arena it is nearer to
+    e.skyX = e.x < G.cam + W / 2 ? G.cam + 190 : G.cam + W - 190;
+    e.skyY = (GT + GB) / 2;
+  }
   if (a === 'pounce') e.pounceCd = DRAGON.pounce.cd;
   if (a === 'plasma') {
     e.plasmaCd = DRAGON.plasma.cd;
     e.spat = 0;
     SFX.plasmaWind();
-  } else if (a !== 'laser') SFX.dragonWind();
+  } else if (a === 'sky') growl(0.6, 120, 70, 0.18);
+  else if (a !== 'laser') SFX.dragonWind();
 }
 function finish(e) {
   e.state = 'walk';
@@ -224,10 +260,12 @@ function jump(e, J) {
     e.lx0 = e.x;
     e.ly0 = e.y;
     const dir = P.x >= e.x ? 1 : -1,
-      tx = J === DRAGON.pounce ? P.x - dir * J.gap : P.x;
+      // the retreat: to the far side of the arena from the player
+      away = P.x > G.cam + W / 2 ? G.cam + 170 : G.cam + W - 170,
+      tx = J === DRAGON.pounce ? P.x - dir * J.gap : J === DRAGON.retreat ? away : P.x;
     e.lx = clamp(tx, G.cam + 160, G.cam + W - 160);
     e.ly = clamp(P.y, GT + 20, GB - 10);
-    e.face = dir;
+    e.face = J === DRAGON.retreat ? (e.lx > e.x ? 1 : -1) : dir;
     SFX.jump();
     growl(0.5, 130, 80, 0.16);
   }
@@ -239,25 +277,38 @@ function jump(e, J) {
     return;
   }
   e.z = 0;
-  if (!e.landed) {
-    e.landed = true;
-    G.shake = J === DRAGON.leap ? 18 : 11;
-    SFX.heavy();
+  if (J === DRAGON.retreat) {
+    // down on the far side: face the player and charge the beam straight away
+    G.shake = Math.max(G.shake, 8);
     SFX.thud();
-    dust(e.x, e.y, J === DRAGON.leap ? 18 : 10);
-    G.parts.push({ k: 'gring', x: e.x, y: e.y, t: 0, life: 0.5, s: J.rx * 1.2, col: '#e6dfc8' });
-    const ex = (P.x - e.x) / J.rx,
-      ey = (P.y - e.y) / J.ry;
-    if (ex * ex + ey * ey < 1 && P.z < 40) hitPlayer(J.dmg, P.x >= e.x ? 1 : -1, true);
-    if (J === DRAGON.leap) {
-      // the second-phase leap also sends a shockwave across the whole arena: jump over it
-      G.shocks.push({ x: e.x, y: e.y, r: J.rx, hit: false });
-      SFX.quake();
-    }
+    dust(e.x, e.y, 10);
+    e.air = e.landed = false;
+    e.face = P.x >= e.x ? 1 : -1;
+    start(e, 'laser');
+    return;
   }
+  if (!e.landed) land(e, J);
   if (e.t > J.crouch + J.air + J.rec) {
     e.air = e.landed = false;
     finish(e);
+  }
+}
+/** Down from a leap (or a pounce, or the drop after the sky beams): a quake that hurts whoever
+ *  is under it; the leap and the drop also send a shockwave across the arena. */
+function land(e, J) {
+  e.landed = true;
+  G.shake = J === DRAGON.leap ? 18 : 11;
+  SFX.heavy();
+  SFX.thud();
+  dust(e.x, e.y, J === DRAGON.leap ? 18 : 10);
+  G.parts.push({ k: 'gring', x: e.x, y: e.y, t: 0, life: 0.5, s: J.rx * 1.2, col: '#e6dfc8' });
+  const ex = (P.x - e.x) / J.rx,
+    ey = (P.y - e.y) / J.ry;
+  if (ex * ex + ey * ey < 1 && P.z < 40) hitPlayer(J.dmg, P.x >= e.x ? 1 : -1, true);
+  if (J === DRAGON.leap) {
+    // the second-phase leap also sends a shockwave across the whole arena: jump over it
+    G.shocks.push({ x: e.x, y: e.y, r: J.rx, hit: false });
+    SFX.quake();
   }
 }
 /** World point of the mouth: x, depth y, height above the ground. */
@@ -477,11 +528,12 @@ export function drawDragonPart(d) {
 }
 /** A hit pushes the dragon back; a heavy hit further. */
 export function dragonPush(e, dir, heavy) {
-  if (e.state === 'intro' || e.state === 'dying' || e.air) return;
+  if (e.state === 'intro' || e.state === 'dying' || e.state === 'sky' || e.air) return;
   e.kbv = (e.kbv || 0) + dir * (heavy ? DRAGON.push.heavy : DRAGON.push.light);
 }
 // Wings beat slowly at rest and hard when it roars, jumps or dies.
-const wingsWide = (e) => ['roar', 'leap', 'pounce', 'intro', 'dying'].includes(e.state) || e.air;
+const wingsWide = (e) =>
+  ['roar', 'leap', 'pounce', 'retreat', 'sky', 'intro', 'dying'].includes(e.state) || e.air;
 function step(e, dt) {
   const C = DRAGON;
   e.t += dt;
@@ -491,6 +543,8 @@ function step(e, dt) {
   e.cd -= dt;
   e.laserCd -= dt;
   e.leapCd -= dt;
+  e.retreatCd = (e.retreatCd ?? DRAGON.retreat.first) - dt;
+  e.skyCd = (e.skyCd ?? Infinity) - dt;
   e.pounceCd = (e.pounceCd ?? 0) - dt;
   e.kickCd = (e.kickCd ?? 0) - dt;
   e.plasmaCd = (e.plasmaCd ?? 0) - dt;
@@ -539,6 +593,7 @@ function step(e, dt) {
         e.state = 'roar';
         e.t = 0;
         e.leapCd = 1.5;
+        e.skyCd = C.sky.first;
         G.flash = 0.3;
         SFX.dragonRoar();
         break;
@@ -655,6 +710,7 @@ function step(e, dt) {
         fire = laserFire(e),
         hx = e.x + e.face * 25,
         hy = e.laserY - e.z - 108;
+      if (e.t < L.wind) heartSparks(hx, hy, dt, e.t / L.wind);
       if (e.t < L.wind && random() < 0.3 + e.t) {
         // sparks drawn into the heart as it charges
         const a = rnd(0, TAU),
@@ -706,7 +762,11 @@ function step(e, dt) {
     }
     case 'leap':
     case 'pounce':
-      jump(e, e.state === 'leap' ? C.leap : C.pounce);
+    case 'retreat':
+      jump(e, C[e.state]);
+      break;
+    case 'sky':
+      sky(e, dt);
       break;
     case 'stagger':
       if (e.t > C.stagger) finish(e);
@@ -723,9 +783,112 @@ function step(e, dt) {
       break;
     }
   }
-  if (e.state !== 'leap' && e.state !== 'pounce') {
+  if (!['leap', 'pounce', 'retreat', 'sky'].includes(e.state)) {
     e.x = clamp(e.x, G.cam + 150, G.cam + W - 150);
     e.y = clamp(e.y, GT + 20, GB - 10);
+  }
+}
+
+/** White sparks flying out of the heart while a beam charges (more of them as it fills). */
+function heartSparks(hx, hy, dt, u) {
+  const n = dt * (25 + 60 * u);
+  for (let i = 0; i < n || (i === 0 && random() < n); i++) {
+    const a = rnd(0, TAU),
+      v = rnd(140, 320);
+    G.parts.push({
+      k: 'glow',
+      x: hx + Math.cos(a) * 8,
+      y: hy + Math.sin(a) * 8,
+      vx: Math.cos(a) * v,
+      vy: Math.sin(a) * v - 40,
+      g: 260,
+      t: 0,
+      life: rnd(0.25, 0.45),
+      s: rnd(2, 3.5),
+      col: '#ffffff',
+    });
+  }
+}
+/** The depths of the three sky beams: the top edge of the arena, its middle, its bottom edge. */
+export const skyLines = () => {
+  const S = DRAGON.sky;
+  return [GT + S.edge, (GT + GB) / 2, GB - S.edge];
+};
+/** Where the sky attack is: 'rise', 'charge', 'fire', 'rec' or 'fall', and how far into it. */
+export function skyPhase(e) {
+  const S = DRAGON.sky;
+  let t = e.t;
+  for (const k of ['rise', 'charge', 'fire', 'rec', 'fall']) {
+    if (t < S[k]) return [k, t / S[k]];
+    t -= S[k];
+  }
+  return ['done', 1];
+}
+// The hovering triple beam: up over the side of the arena, three beams across it, then down
+// onto a random spot with the leap's quake and shockwave.
+function sky(e, dt) {
+  const S = DRAGON.sky,
+    [ph, u] = skyPhase(e);
+  if (ph === 'rise') {
+    const p = ease(u);
+    e.x = lerp(e.skyX0, e.skyX, p);
+    e.y = lerp(e.skyY0, e.skyY, p);
+    e.z = S.h * p;
+    e.face = e.x < G.cam + W / 2 ? 1 : -1;
+  } else if (ph === 'charge') {
+    e.z = S.h + Math.sin(e.anim * 3) * 6;
+    heartSparks(e.x + e.face * 25, e.y - e.z - 108, dt, u);
+    if (!e.charged) {
+      e.charged = true;
+      SFX.dragonCharge();
+    }
+  } else if (ph === 'fire') {
+    e.z = S.h;
+    if (!e.fired) {
+      e.fired = true;
+      SFX.laser();
+    }
+    G.shake = Math.max(G.shake, 4);
+    if (!e.hitDone && P.z < 160 && skyLines().some((y) => Math.abs(P.y - y) < S.band))
+      if (hitPlayer(S.dmg, P.x >= e.x ? 1 : -1, true)) e.hitDone = true;
+    if (random() < 0.9) {
+      const y = skyLines()[Math.floor(random() * 3)];
+      G.parts.push({
+        k: 'glow',
+        x: G.cam + rnd(0, W),
+        y: y - 50 + rnd(-10, 10),
+        vx: rnd(-200, 200),
+        vy: rnd(-120, 60),
+        g: 0,
+        t: 0,
+        life: rnd(0.15, 0.3),
+        s: rnd(2, 4),
+        col: '#ffffff',
+      });
+    }
+  } else if (ph === 'rec') {
+    e.z = S.h;
+    if (!e.dropSet) {
+      // pick where it comes down: anywhere in the arena
+      e.dropSet = true;
+      e.lx0 = e.x;
+      e.ly0 = e.y;
+      e.lx = G.cam + rnd(180, W - 180);
+      e.ly = rnd(GT + 20, GB - 10);
+    }
+  } else if (ph === 'fall') {
+    const p = u * u;
+    e.x = lerp(e.lx0, e.lx, ease(u));
+    e.y = lerp(e.ly0, e.ly, ease(u));
+    e.z = S.h * (1 - p);
+    e.face = P.x >= e.x ? 1 : -1;
+  } else {
+    e.z = 0;
+    if (!e.landed) land(e, DRAGON.leap);
+    if (e.t > S.rise + S.charge + S.fire + S.rec + S.fall + DRAGON.leap.rec) {
+      e.landed = e.fired = e.charged = e.dropSet = false;
+      finish(e);
+    }
   }
 }
 
@@ -993,8 +1156,79 @@ export function laserBand(e) {
   const u = clamp((e.t - L.wind) / laserFire(e), 0, 1);
   return L.band * (1 + (DRAGON.laserGrow - 1) * u);
 }
+/** The sky beams on the ground: thin lines that flicker faster while it charges (where the
+ *  beams will fall), then the light of the beams themselves. */
+function drawSkyGround(e) {
+  const S = DRAGON.sky,
+    [ph, u] = skyPhase(e);
+  if (ph === 'charge') {
+    const on = Math.sin(G.time * lerp(10, 40, u)) > -0.2;
+    if (!on) return;
+    ctx.fillStyle = `rgba(255,236,236,${0.25 + 0.45 * u})`;
+    for (const y of skyLines()) ctx.fillRect(0, y - 1.5, W, 3);
+    ctx.fillStyle = `rgba(255,80,90,${0.12 + 0.18 * u})`;
+    for (const y of skyLines()) ctx.fillRect(0, y - S.band, W, S.band * 2);
+  } else if (ph === 'fire') {
+    for (const y of skyLines()) {
+      const g = ctx.createLinearGradient(0, y - S.band * 1.6, 0, y + S.band * 1.6);
+      g.addColorStop(0, 'rgba(230,210,255,0)');
+      g.addColorStop(0.5, 'rgba(245,235,255,.45)');
+      g.addColorStop(1, 'rgba(230,210,255,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, y - S.band * 1.6, W, S.band * 3.2);
+    }
+  }
+}
+/** The three sky beams: rays from the heart to each line, and the beams across the arena. */
+function drawSkyBeams(e) {
+  const S = DRAGON.sky,
+    [ph, u] = skyPhase(e),
+    hx = e.x - G.cam + e.face * 25,
+    hy = e.y - e.z - 108;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  if (ph === 'charge') {
+    const core = ctx.createRadialGradient(hx, hy, 1, hx, hy, 18 + 46 * u);
+    core.addColorStop(0, `rgba(255,255,255,${0.4 + 0.6 * u})`);
+    core.addColorStop(1, 'rgba(176,92,255,0)');
+    ctx.fillStyle = core;
+    ctx.fillRect(hx - 70, hy - 70, 140, 140);
+  } else if (ph === 'fire') {
+    const k = Math.min(1, u * 8) * Math.min(1, (1 - u) * 6),
+      w = S.band * 1.1 * k + Math.sin(G.time * 70) * 3;
+    for (const y of skyLines()) {
+      const by = y - 16; // the beam runs low, just over its line on the ground
+      for (const [ww, c] of [
+        [w * 1.5, 'rgba(176,92,255,.3)'],
+        [w * 0.95, 'rgba(215,190,255,.55)'],
+        [w * 0.45, 'rgba(255,255,255,.95)'],
+      ]) {
+        ctx.strokeStyle = c;
+        ctx.lineCap = 'round';
+        ctx.lineWidth = Math.max(1, ww);
+        ctx.beginPath();
+        ctx.moveTo(-40, by);
+        ctx.lineTo(W + 40, by);
+        ctx.stroke();
+        // and the ray down from the heart to it
+        ctx.lineWidth = Math.max(1, ww * 0.45);
+        ctx.beginPath();
+        ctx.moveTo(hx, hy);
+        ctx.lineTo(hx + e.face * 60, by);
+        ctx.stroke();
+      }
+    }
+    const fl = ctx.createRadialGradient(hx, hy, 2, hx, hy, 80);
+    fl.addColorStop(0, 'rgba(255,255,255,.95)');
+    fl.addColorStop(1, 'rgba(176,92,255,0)');
+    ctx.fillStyle = fl;
+    ctx.fillRect(hx - 80, hy - 80, 160, 160);
+  }
+  ctx.restore();
+}
 /** Light thrown on the ground by the firing beam. */
 export function drawDragonGround(e) {
+  if (e.state === 'sky') return drawSkyGround(e);
   const L = DRAGON.laser;
   if (e.state !== 'laser' || e.t < L.wind || e.t > L.wind + laserFire(e)) return;
   const x0 = e.x - G.cam + e.face * 20,
@@ -1009,6 +1243,7 @@ export function drawDragonGround(e) {
 }
 /** The charge and the beam, drawn over everything. */
 export function drawDragonBeam(e) {
+  if (e.state === 'sky') return drawSkyBeams(e);
   const L = DRAGON.laser;
   if (e.state === 'plasma') {
     // plasma gathering in the jaws
@@ -1187,7 +1422,12 @@ export function drawDragon(e) {
   ctx.beginPath();
   ctx.ellipse(rc[0], rc[1], 74, 46, 0, 0, TAU);
   ctx.fill();
-  const charge = e.state === 'laser' ? Math.min(1, e.t / C.laser.wind) : 0,
+  const charge =
+      e.state === 'laser'
+        ? Math.min(1, e.t / C.laser.wind)
+        : e.state === 'sky'
+          ? Math.min(1, e.t / (C.sky.rise + C.sky.charge))
+          : 0,
     beat = 0.55 + 0.45 * Math.abs(Math.sin(e.anim * 3)),
     glow = Math.max(beat * 0.6, charge);
   ctx.save();
