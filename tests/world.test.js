@@ -319,3 +319,23 @@ test('Lucy throws a spinning grenade on L: an arc, little hops, and a wide blast
   G.props = props;
   P.who = 'raithwyn';
 });
+
+test('holding J: the fighter keeps punching on its own, whole chains, and stops when it is let go', () => {
+  G.enemies = [];
+  P.state = 'idle';
+  keys.atk = true;
+  pressed.atk = true;
+  update(DT);
+  delete pressed.atk;
+  const states = [];
+  for (let t = 0; t < 1.6; t += DT) {
+    update(DT);
+    if (states.at(-1) !== P.state) states.push(P.state);
+  }
+  const starts = states.filter((s) => s.startsWith('atk')).length;
+  assert.ok(starts >= 4, `punch after punch with no new press (${states.join(' ')})`);
+  assert.ok(states.includes('atk2'), 'the chain reaches its finisher');
+  keys.atk = false;
+  for (let t = 0; t < 0.6; t += DT) update(DT);
+  assert.ok(!P.state.startsWith('atk'), 'let go: it stops');
+});

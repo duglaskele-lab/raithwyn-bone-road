@@ -8,7 +8,7 @@ The video is the one the idle was drawn from: the standing figure in the left 42
 grey checkerboard. The script cuts the checkerboard away (from the edges inwards, so the
 white shirt stays), puts back the tail's tip where the video's edge cuts it off, lines every frame up on the boots, scales the figure to the sheet's 356 px,
 keeps each different pose once (or POSES of them, evenly spread) and prints how long each is held (IDLE_HOLD in config.js);
-then it puts the poses into the first row of assets/source/character_sheet.png.
+then it puts the poses into the first row of assets/source/raithwyn_sheet.png.
 Needs ffmpeg, pillow and numpy; run 
 > raithwyn-bone-road@0.3.0 atlas
 > python3 tools/build_atlas.py
@@ -136,7 +136,7 @@ for k in uniq:
     out.append(Image.fromarray(defringe(a.astype(np.uint8)),'RGBA'))
 print("IDLE_HOLD =", hold)
 # into the sheet's first row (rows 16..372), one pose after another
-sheet = Image.open(ROOT / "assets/source/character_sheet.png").convert("RGBA")
+sheet = Image.open(ROOT / "assets/source/raithwyn_sheet.png").convert("RGBA")
 W0, H0 = sheet.size
 a = np.array(out[0])[..., 3] > 10
 bot = np.where(a.any(1))[0].max() + 1
@@ -147,4 +147,4 @@ new = Image.new("RGBA", (W, H0))
 new.paste(sheet.crop((0, 373, W0, H0)), (0, 373))
 for n, f in enumerate(out):
     new.alpha_composite(f, (16 + n * cell, 372 - bot))
-new.save(ROOT / "assets/source/character_sheet.png", optimize=True)
+new.save(ROOT / "assets/source/raithwyn_sheet.png", optimize=True)
