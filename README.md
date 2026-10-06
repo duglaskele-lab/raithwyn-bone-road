@@ -23,7 +23,11 @@ aiming and firing in turn. Her `L` is a grenade instead of the dark ball: 100 ra
 an arc, spinning, lands, makes two little hops and blows up about 400 px ahead (it never leaves
 the screen: at the edge it bounces back): 70 damage to every enemy in a
 wide blast (250 px), it breaks barrels and sets red ones off, and it spares her (`GRENADE` and
-`BLAST.grenade` in `src/config.js`)); the others can be looked at. The fighter
+`BLAST.grenade` in `src/config.js`). She has 10% less health than Raithwyn (90, `MAX_HP`), but
+luck: a blow that would finish her has a 10% chance, plus 5% for each style rank (45% at SSS),
+to leave her on 10% of her health instead; she goes down, gets up, and a blue neon sign above her
+says "you feel lucky!" (`LUCK`). If she loses a stage anyway, she has her own line to say about
+it); the others can be looked at. The fighter
 chosen goes into the run's replay.
 
 The game is written in plain JavaScript and Canvas 2D, with no engine and no runtime

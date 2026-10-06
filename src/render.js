@@ -4,6 +4,7 @@ import {
   DECOR,
   FONT,
   H,
+  LUCK,
   MAXR,
   OL,
   PURPLE,
@@ -900,8 +901,41 @@ export function drawWorld() {
   ctx.restore();
   if (G.level === 2) drawFront2();
 }
+/** Lucy's luck held: a blue neon sign above her that flickers on, then fades. */
+function drawLucky(p) {
+  const left = p.lucky,
+    on = LUCK.sign - left;
+  if (!(left > 0)) return;
+  // flickering on like a neon tube, then steady, then fading out
+  if (on < 0.3 && Math.floor(on * 30) % 3 === 1) return;
+  const a = Math.min(1, left / 0.4),
+    x = clamp(p.x - G.cam, 130, W - 130),
+    y = p.y - G.camY - p.z - 222 - Math.min(on, 0.4) * 20;
+  const label = 'you feel lucky!';
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.font = `900 24px ${FONT}`;
+  const w = ctx.measureText(label).width + 34,
+    h = 42;
+  rr(x - w / 2, y - h / 2, w, h, 10);
+  ctx.fillStyle = 'rgba(6,16,40,.6)';
+  ctx.fill();
+  ctx.shadowColor = '#2fa8ff';
+  ctx.shadowBlur = 18;
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = '#5fd0ff';
+  ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#a8ecff';
+  ctx.fillText(label, x, y + 1);
+  ctx.shadowBlur = 6;
+  ctx.fillText(label, x, y + 1);
+  ctx.restore();
+}
 export function drawHUD() {
   const p = P;
+  drawLucky(p);
   // portrait
   ctx.fillStyle = '#2a1b3d';
   rr(18, 14, 62, 62, 8);
@@ -921,7 +955,7 @@ export function drawHUD() {
   ctx.strokeStyle = '#ece5cb';
   ctx.stroke();
   txt(STR[lang].chars[who]?.name ?? 'Raithwyn', 92, 32, 17, '#ece5cb', 'left', 4);
-  bar(90, 40, 250, 15, p.hp / 100, p.hpLag / 100, '#f0cf4f');
+  bar(90, 40, 250, 15, p.hp / p.maxHp, p.hpLag / p.maxHp, '#f0cf4f');
   const lv = hadoLevel(p.rage),
     pul = 0.75 + 0.25 * Math.sin(G.time * 10);
   if (lv === 3) {

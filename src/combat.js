@@ -3,6 +3,7 @@ import {
   BLAST,
   DECOR,
   JUGGLE,
+  LUCK,
   MAXR,
   RAGE,
   RL,
@@ -21,7 +22,7 @@ import { explode } from './blast.js';
 import { buzz } from './touch.js';
 import { DRAGON, dragonZone, headPoint } from './dragon.js';
 import { FOES } from './foes/index.js';
-import { dmgMult, scoreMult, styleBreak, styleGain, styleKeep } from './style.js';
+import { dmgMult, scoreMult, styleBreak, styleGain, styleKeep, styleRank } from './style.js';
 
 export function hadoLevel(rage) {
   return rage >= RL[2] ? 3 : rage >= RL[1] ? 2 : rage >= RL[0] ? 1 : 0;
@@ -328,6 +329,14 @@ export function hitPlayer(dmg, dir, knock) {
   if (p.inv > 0 || G.state !== 'play' || ['ko', 'down', 'getup', 'dead', 'win'].includes(p.state))
     return false;
   p.hp = Math.max(0, p.hp - dmg);
+  // Lucy's luck: the blow that would finish her may not; she still goes down
+  const lucky =
+    p.hp <= 0 && p.who === 'lucy' && random() < LUCK.chance + LUCK.perRank * styleRank();
+  if (lucky) {
+    p.hp = Math.round(p.maxHp * LUCK.hp);
+    p.lucky = LUCK.sign;
+    SFX.rank();
+  }
   styleBreak();
   addRage(RAGE.hurt);
   buzz(knock ? 70 : 35);
@@ -338,7 +347,7 @@ export function hitPlayer(dmg, dir, knock) {
   p.buf = null;
   p.puller = null;
   p.grabber = null;
-  if (p.hp <= 0 || knock || p.z > 0 || p.state === 'jump') {
+  if (p.hp <= 0 || lucky || knock || p.z > 0 || p.state === 'jump') {
     p.state = 'ko';
     p.t = 0;
     p.vx = dir * 240;
