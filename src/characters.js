@@ -12,6 +12,7 @@ export const CHARS = [
   {
     id: 'lucy',
     img: 'lucy',
+    playable: true, // for testing: her own sprites, Raithwyn's moves for now
     col: '#f0b429',
     stats: { hp: 'weak', dmg: 'high', spd: 'high', mag: 'none' },
   },

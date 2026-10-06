@@ -108,12 +108,12 @@ test('the frame limit: 60 on 144 Hz, 90 on 144 Hz, 30 on 60 Hz, none draws every
   fps.cap = 60;
 });
 
-test('the roster: four fighters, four locked slots, only Raithwyn playable', () => {
+test('the roster: four fighters, four locked slots, Raithwyn and Lucy playable', () => {
   assert.equal(CHARS.length, 4);
   assert.equal(SLOTS, 8);
   assert.deepEqual(
     CHARS.filter((c) => c.playable).map((c) => c.id),
-    ['raithwyn'],
+    ['raithwyn', 'lucy'],
   );
   for (const c of CHARS) {
     for (const k of STATS) assert.ok(c.stats[k] in LEVEL, `${c.id}.${k}`);
@@ -124,7 +124,7 @@ test('the roster: four fighters, four locked slots, only Raithwyn playable', () 
 test('other fighters can be viewed but not played', () => {
   G.state = 'select';
   G.sel = 0;
-  for (const slot of [1, 2, 3, 4, 7]) {
+  for (const slot of [2, 3, 4, 7]) {
     step(SLOT_BOX[slot]);
     assert.equal(G.sel, slot);
     step(PLAY_BOX);
@@ -154,4 +154,29 @@ test('a second tap on Raithwyn starts the fight, Back returns to the menu', () =
 
 test('the laugh never shows its last frame', () => {
   for (let t = 0; t < 20; t += 0.01) assert.notEqual(laughFrame(t), 3, `menu at ${t}`);
+});
+
+test('Lucy can be chosen: the run is hers, and so is its replay', async () => {
+  const { P } = await import('../src/state.js');
+  const { lastRun, startReplay } = await import('../src/replay.js');
+  const { fighterFrame } = await import('../src/gfx.js');
+  const { FR } = await import('../src/lucy-frames.js');
+  G.state = 'select';
+  G.sel = 0;
+  step(SLOT_BOX[1]);
+  step(PLAY_BOX);
+  assert.equal(G.state, 'play');
+  assert.equal(P.who, 'lucy');
+  P.x += 1;
+  const run = lastRun() ?? { seed: 1, level: 1, who: 'lucy', frames: [[1, 0.016, 0, 0, 0]] };
+  assert.equal(run.who, 'lucy');
+  P.who = 'raithwyn';
+  startReplay(run);
+  assert.equal(P.who, 'lucy', 'the replay plays her');
+  // her sprites: her own standing frame and jabs; what she lacks yet shows her standing
+  assert.equal(fighterFrame('lucy', 'punch1', 2)[1], FR.punch1[2]);
+  assert.equal(fighterFrame('lucy', 'run', 3)[1], FR.idle[0]);
+  assert.equal(fighterFrame('lucy', 'idle', 7)[1], FR.idle[0]);
+  assert.ok(FR.punch1.length === 5 && FR.punch2.length === 5);
+  G.fighter = 'raithwyn';
 });

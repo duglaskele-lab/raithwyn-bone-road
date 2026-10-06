@@ -47,8 +47,10 @@ const go = (state, menu = 0) => {
 
 function startFight() {
   const c = CHARS[G.sel];
-  if (c && c.playable) newRun();
-  else {
+  if (c && c.playable) {
+    G.fighter = c.id;
+    newRun();
+  } else {
     SFX.deny();
     G.msgT = 1.8;
   }

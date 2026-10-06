@@ -4,6 +4,7 @@ import { mulberry } from './util.js';
 // All mutable game state lives here so every module (and every test) sees the same world.
 export const G = {
   state: 'title',
+  fighter: 'raithwyn', // who the next run is played as (the character select sets it)
   menu: 0,
   sel: 0,
   msgT: 0,
