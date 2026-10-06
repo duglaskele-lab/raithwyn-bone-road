@@ -164,6 +164,8 @@ function frame(dt) {
     if (G.state === 'over') {
       overlay(Math.min(0.66, G.endT * 0.5));
       txt(t('overTitle'), W / 2, 250, 50, '#ff4a5e', 'center', 8);
+      // Lucy does not take it lying down
+      if (P.who === 'lucy') txt(t('lucyLose'), W / 2, 196, 17, '#a8ecff', 'center', 4);
       txt(t('score') + P.score, W / 2, 292, 22, '#ece5cb', 'center', 4);
       if (G.endT > 1.5 && touch && !replaying()) drawEndItems(t('retryItem'), END_Y.over);
       else if (G.endT > 1.5 && !touch) txt(t('restartKey'), W / 2, 340, 20, '#f0cf4f', 'center', 4);

@@ -565,7 +565,7 @@ export function update(dt) {
       it.dead = true;
       SFX.pick();
       if (it.kind === 'hp') {
-        P.hp = Math.min(100, P.hp + 35);
+        P.hp = Math.min(P.maxHp, P.hp + 35);
         floatTxt(it.x, it.y - 120, t('plusHp'), '#ff8f9d');
       } else {
         addRage(RAGE.pickup);

@@ -586,6 +586,12 @@ export const IDLE_HOLD = [5, 5, 5, 5, 5, 4, 5, 5, 5, 5, 5];
 // Each fighter's idle (poses held so many 1/24 s), walk and run (seconds a frame, frames).
 // Lucy's idle is 11 poses over the 2.6 s loop of her video.
 // Lucy's pistol shot (K): a bullet that flies very fast; each shot costs `cost` rage.
+// Each fighter's health: Lucy has 10% less.
+export const MAX_HP = { raithwyn: 100, lucy: 90 };
+// Lucy's luck: a blow that would finish her has `chance` (plus `perRank` for each style rank,
+// D to SSS) not to: she goes down and gets up with `hp` of her health, under a neon sign that
+// says so for `sign` seconds.
+export const LUCK = { chance: 0.1, perRank: 0.05, hp: 0.1, sign: 2.4 };
 export const BULLET = { speed: 2400, dmg: 7, life: 0.45, x: 58, z: 136, cost: 10 };
 export const FIGHTER_ANIM = {
   raithwyn: { idle: IDLE_HOLD, walk: [0.085, 8], run: [RUN_FRAME, 6] },

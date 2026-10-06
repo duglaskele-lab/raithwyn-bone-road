@@ -339,3 +339,40 @@ test('holding J: the fighter keeps punching on its own, whole chains, and stops 
   for (let t = 0; t < 0.6; t += DT) update(DT);
   assert.ok(!P.state.startsWith('atk'), 'let go: it stops');
 });
+
+test('Lucy: 10% less health, and her luck: a finishing blow may leave her on 10%, more so at higher style ranks', async () => {
+  const { LUCK, MAX_HP } = await import('../src/config.js');
+  const { newRun } = await import('../src/replay.js');
+  const { hitPlayer } = await import('../src/combat.js');
+  newRun(5, 1, 'lucy');
+  assert.equal(P.maxHp, 90);
+  assert.equal(P.hp, 90);
+  assert.equal(MAX_HP.raithwyn, 100);
+  // how often a finishing blow is shrugged off, at a style rank (0 = none, 7 = SSS)
+  const luck = (rank) => {
+    let saved = 0;
+    for (let i = 0; i < 600; i++) {
+      Object.assign(P, { state: 'idle', inv: 0, z: 0, hp: 5, lucky: 0, sty: rank * 100 + 50 });
+      G.state = 'play';
+      hitPlayer(30, 1, false);
+      if (P.hp > 0) {
+        saved++;
+        assert.equal(P.hp, Math.round(90 * LUCK.hp), 'back on 10% of her health');
+        assert.equal(P.state, 'ko', 'she still goes down');
+        assert.ok(P.lucky > 0, 'the sign lights up');
+      }
+    }
+    return saved / 600;
+  };
+  const low = luck(0),
+    sss = luck(7);
+  assert.ok(Math.abs(low - LUCK.chance) < 0.04, `about 10% with no rank (${low})`);
+  assert.ok(Math.abs(sss - (LUCK.chance + 7 * LUCK.perRank)) < 0.06, `about 45% at SSS (${sss})`);
+  // Raithwyn has no such luck
+  newRun(5, 1, 'raithwyn');
+  assert.equal(P.maxHp, 100);
+  Object.assign(P, { state: 'idle', inv: 0, hp: 5 });
+  G.state = 'play';
+  hitPlayer(30, 1, false);
+  assert.equal(P.hp, 0);
+});

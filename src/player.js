@@ -71,6 +71,7 @@ export function updPlayer(dt) {
   if (p.inv > 0) p.inv -= dt;
   p.comboT -= dt;
   p.boneCd -= dt;
+  if (p.lucky > 0) p.lucky -= dt;
   p.bufT -= dt;
   p.hpLag += (p.hp - p.hpLag) * Math.min(1, dt * 3);
   const mx = (keys.r ? 1 : 0) - (keys.l ? 1 : 0),
@@ -457,7 +458,7 @@ export function updPlayer(dt) {
         if (p.hp <= 0) {
           if (p.lives > 0) {
             p.lives--;
-            p.hp = 100;
+            p.hp = p.maxHp;
             p.rage = Math.max(p.rage, RAGE.revive);
             p.rev = 1;
             p.state = 'getup';

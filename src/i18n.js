@@ -92,6 +92,8 @@ export const STR = {
     overTitle: 'The road claimed you',
     score: 'Score: ',
     retryItem: 'Try again',
+    // Lucy's own words under a lost stage
+    lucyLose: "Nah, that is some weird unfortunate universe that will never happen, let's retry",
     restartKey: 'Enter to try again',
     winTitle: 'The road is clear',
     againItem: 'Play again',
@@ -235,6 +237,8 @@ export const STR = {
     overTitle: 'Тракт забрал тебя',
     score: 'Очки: ',
     retryItem: 'Ещё раз',
+    lucyLose:
+      'Не, это какая-то странная невезучая вселенная, такого никогда не будет. Давай ещё раз',
     restartKey: 'Enter — начать заново',
     winTitle: 'Тракт очищен',
     againItem: 'Сыграть ещё',
