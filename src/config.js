@@ -216,8 +216,21 @@ export const BLAST = {
   grenade: { r: 250, dmgP: 0, dmgE: 70, chain: 0.14 },
 };
 // Lucy's grenade (L): costs `cost` rage; it leaves her hand `x` ahead and `z` up, flies in an
-// arc (`vx`, `vz` up, `g` down), spinning `spin` turns a second, and blows up where it lands.
-export const GRENADE = { cost: 100, x: 70, z: 150, vx: 520, vz: 520, g: 1500, spin: 2.5 };
+// arc (`vx`, `vz` up, `g` down), spinning `spin` turns a second; on the ground it bounces
+// `bounces` times, each time keeping `bounce` of its speed up and `roll` of its speed ahead, and
+// then blows up. It never leaves the screen: at its edge it bounces back.
+export const GRENADE = {
+  cost: 100,
+  x: 70,
+  z: 150,
+  vx: 300,
+  vz: 520,
+  g: 1500,
+  spin: 2.5,
+  bounces: 2,
+  bounce: 0.35,
+  roll: 0.5,
+};
 
 // Enemy archetypes. Every numeric field is tuned by hand; see README for what each one means.
 export const TYPES = {

@@ -483,7 +483,7 @@ export function drawProj(q) {
   }
   if (q.k === 'bullet') {
     // a streak of light along its path
-    const d = Math.sign(q.vx),
+    const d = Math.sign(q.vx) || q.d,
       g = ctx.createLinearGradient(x - d * 70, y, x, y);
     g.addColorStop(0, 'rgba(255,220,120,0)');
     g.addColorStop(1, 'rgba(255,250,220,1)');

@@ -1,6 +1,6 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { CHAIN_GAP, HADO, RAGE, RL, TYPES, WAVES } from '../src/config.js';
+import { CHAIN_GAP, HADO, RAGE, RL, TYPES, W, WAVES } from '../src/config.js';
 import { G, P } from '../src/state.js';
 import { keys, pressed } from '../src/input.js';
 import { spawn } from '../src/enemies.js';
@@ -196,10 +196,16 @@ test('Lucy fires her pistol on K: a very fast bullet from the muzzle that hits t
   assert.ok(Math.abs(shot.vx) >= 2000, 'very fast');
   assert.equal(G.projs.filter((q) => q.k === 'bone').length, 0, 'no bone');
   assert.ok(Math.abs(shot.x - (P.x + BULLET.x)) < 60, 'from the muzzle');
+  let seen = null;
   for (let i = 0; i < 0.35 / DT && e.hp === hp; i++) {
     update(DT);
+    seen = G.projs.find((q) => q.k === 'bullet');
   }
   assert.ok(e.hp < hp, 'it reached an enemy 600 px away in a blink');
+  assert.ok(
+    seen && Math.abs(seen.x - e.x) < 1,
+    'it goes out in the middle of the enemy, not before',
+  );
   G.props = props;
   P.who = 'raithwyn';
 });
@@ -240,53 +246,76 @@ test('Lucy has her own frames for taking a hit and being knocked down', async ()
   assert.equal(FR.ko.length, 6);
 });
 
-test('Lucy throws a spinning grenade on L: an arc, and a wide blast where it lands that spares her', async () => {
+test('Lucy throws a spinning grenade on L: an arc, little hops, and a wide blast that spares her', async () => {
   const { FR } = await import('../src/lucy-frames.js');
   const { BLAST, GRENADE } = await import('../src/config.js');
   assert.equal(FR.jump.length, 5, 'her jump: crouch, rising, top, falling, landing');
   assert.equal(FR.grenade.length, 5, 'her throw');
   assert.equal(FR.nade.length, 1, 'the grenade');
-  P.who = 'lucy';
-  P.rage = 150;
-  P.x = 300;
-  P.y = 450;
-  P.face = 1;
-  P.hp = 100;
   const props = G.props;
   G.props = [];
-  pressed.hado = true;
-  update(DT);
-  delete pressed.hado;
-  assert.equal(P.state, 'nade');
-  assert.equal(P.rage, 150 - GRENADE.cost);
-  let q = null;
-  for (let t = 0; t < 0.5 && !q; t += DT) {
+  const throwIt = (x) => {
+    for (let t = 0; t < 0.2; t += DT) update(DT); // the last blast's freeze wears off
+    P.who = 'lucy';
+    P.state = 'idle';
+    P.rage = 150;
+    P.x = x;
+    P.y = 450;
+    P.face = 1;
+    P.hp = 100;
+    pressed.hado = true;
     update(DT);
-    q = G.projs.find((o) => o.k === 'nade');
-  }
-  assert.ok(q, 'it leaves her hand');
-  // where it will land: an enemy there, and one a good way off but inside the blast
-  const tFly = (GRENADE.vz + Math.sqrt(GRENADE.vz ** 2 + 2 * GRENADE.g * q.z)) / GRENADE.g;
-  const land = q.x + q.vx * tFly;
-  assert.ok(land - P.x > 350, `it flies far (${Math.round(land - P.x)})`);
-  const a = spawn('fat', 1, land, 450),
-    b = spawn('fat', 1, land + BLAST.grenade.r * 0.8, 450);
+    delete pressed.hado;
+    assert.equal(P.state, 'nade');
+    assert.equal(P.rage, 150 - GRENADE.cost);
+    let q = null;
+    for (let t = 0; t < 0.5 && !q; t += DT) {
+      update(DT);
+      q = G.projs.find((o) => o.k === 'nade');
+    }
+    assert.ok(q, 'it leaves her hand');
+    const track = [];
+    let rot0 = q.rot,
+      turned = 0;
+    while (q.life > 0) {
+      update(DT);
+      track.push({ x: q.x, z: q.z });
+      turned = Math.abs(q.rot - rot0);
+    }
+    return { track, turned };
+  };
+  // out in the open: an arc, then two little hops, then the blast
+  const { track, turned } = throwIt(G.cam + 150);
+  const end = track.at(-1).x,
+    top = Math.max(...track.map((p) => p.z));
+  assert.ok(top > GRENADE.z + 50, 'it rises in an arc');
+  assert.ok(turned > Math.PI * 2, 'it spins as it flies');
+  let hops = 0;
+  for (let i = 1; i < track.length; i++) if (track[i - 1].z === 0 && track[i].z > 0) hops++;
+  assert.equal(hops, GRENADE.bounces, 'little hops before it goes off');
+  const reach = end - (G.cam + 150);
+  assert.ok(
+    reach > 330 && reach < 480,
+    `about three quarters as far as before (${Math.round(reach)})`,
+  );
+  // the blast: hard and wide, and not on her
+  const a = spawn('fat', 1, end, 450),
+    b = spawn('fat', 1, end + BLAST.grenade.r * 0.8, 450);
   a.state = b.state = 'chase';
   const ha = a.hp,
     hb = b.hp;
-  let top = 0,
-    turned = 0,
-    rot0 = q.rot;
-  while (q.life > 0) {
-    update(DT);
-    top = Math.max(top, q.z);
-    turned = Math.abs(q.rot - rot0);
-  }
-  assert.ok(top > GRENADE.z + 50, 'it rises in an arc');
-  assert.ok(turned > Math.PI * 2, 'it spins as it flies');
+  P.x = G.cam + 150;
+  throwIt(G.cam + 150);
   assert.ok(a.hp < ha && b.hp < hb, 'the blast reaches both');
   assert.ok(ha - a.hp >= 50, 'and hits hard');
   assert.equal(P.hp, 100, 'she is not hurt by her own grenade');
+  G.enemies = [];
+  // thrown at the screen's edge: it stays on screen
+  const edge = throwIt(G.cam + W - 120).track;
+  assert.ok(
+    edge.every((p) => p.x <= G.cam + W - 20 + 1e-6),
+    'it never leaves the screen',
+  );
   G.props = props;
   P.who = 'raithwyn';
 });

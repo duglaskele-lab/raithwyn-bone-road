@@ -19,7 +19,7 @@ import { clamp, random, rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
 import { keys, pressed } from './input.js';
-import { floatTxt, motes } from './fx.js';
+import { dust, floatTxt, motes } from './fx.js';
 import { t } from './i18n.js';
 import { acidBite, addRage, headBonus, hitPlayer, hurtEnemy } from './combat.js';
 import { DRAGON, dragonZone, plasmaBlast, updShocks } from './dragon.js';
@@ -229,45 +229,50 @@ export function update(dt) {
           col: '#f3eeda',
           life: 1.2,
         });
-    } else if (q.k === 'bullet') {
-      // Lucy's bullet: the first thing in its way takes it
-      for (const e of G.enemies.concat(G.props)) {
-        if (e.dead) continue;
-        const zone = e.T?.dragon
-          ? dragonZone(e, q.x - 20, q.x + 20, q.y, 22)
-          : Math.abs(e.x - q.x) < e.w + 20 && Math.abs(e.y - q.y) < 22 && e.z < 120
-            ? 'body'
-            : null;
-        if (zone) {
-          if (
-            hurtEnemy(
-              e,
-              BULLET.dmg * dmgMult() * headBonus(e, zone),
-              Math.sign(q.vx),
-              false,
-              'bone',
-            )
-          ) {
-            if (!e.isProp) {
-              addRage(RAGE.bone);
-              styleGain(8);
-            }
-            q.life = 0;
-            for (let k = 0; k < 6; k++)
-              G.parts.push({
-                k: 'dot',
-                x: q.x,
-                y: q.y - q.z,
-                vx: -Math.sign(q.vx) * rnd(40, 200),
-                vy: rnd(-160, 60),
-                g: 500,
-                t: 0,
-                life: 0.25,
-                s: 3,
-                col: '#ffe9a0',
-              });
-            break;
+    } else if (q.k === 'bullet' && !q.spent) {
+      // Lucy's bullet: the first thing in its way takes it, as the bullet reaches its middle
+      // (it went from `from` to q.x this frame; an enemy right up against her counts too)
+      const s = Math.sign(q.vx),
+        from = q.x - q.vx * dt;
+      const targets = G.enemies
+        .concat(G.props)
+        .filter((e) => !e.dead)
+        .map((e) => {
+          if (e.T?.dragon) return [e, dragonZone(e, q.x - 20, q.x + 20, q.y, 22), q.x];
+          const ahead = (e.x - from) * s,
+            hit = Math.abs(e.y - q.y) < 22 && e.z < 120 && (q.x - e.x) * s >= 0 && ahead >= -e.w;
+          return [e, hit ? 'body' : null, e.x];
+        })
+        .filter(([, zone]) => zone)
+        .sort((a, b) => (a[2] - b[2]) * s);
+      for (const [e, zone, at] of targets) {
+        if (
+          hurtEnemy(e, BULLET.dmg * dmgMult() * headBonus(e, zone), Math.sign(q.vx), false, 'bone')
+        ) {
+          if (!e.isProp) {
+            addRage(RAGE.bone);
+            styleGain(8);
           }
+          // it stops in the enemy's middle and is drawn there for one last frame
+          q.x = at;
+          q.d = s;
+          q.vx = 0;
+          q.spent = 1;
+          q.life = Math.min(q.life, dt * 0.5);
+          for (let k = 0; k < 6; k++)
+            G.parts.push({
+              k: 'dot',
+              x: q.x,
+              y: q.y - q.z,
+              vx: -s * rnd(40, 200),
+              vy: rnd(-160, 60),
+              g: 500,
+              t: 0,
+              life: 0.25,
+              s: 3,
+              col: '#ffe9a0',
+            });
+          break;
         }
       }
     } else if (q.k === 'hado') {
@@ -368,9 +373,25 @@ export function update(dt) {
       q.vz -= GRENADE.g * dt;
       q.z += q.vz * dt;
       q.rot += dt * GRENADE.spin * Math.PI * 2 * Math.sign(q.vx || 1);
+      // the screen's edges: it bounces back off them
+      const lo = G.cam + 20,
+        hi = G.cam + W - 20;
+      if (q.x < lo || q.x > hi) {
+        q.x = clamp(q.x, lo, hi);
+        q.vx = -q.vx * 0.5;
+      }
+      floorClamp(q);
       if (q.z <= 0) {
-        q.life = 0;
-        explode(q.x, q.y, 'grenade');
+        q.z = 0;
+        if ((q.hops = (q.hops ?? 0) + 1) > GRENADE.bounces) {
+          q.life = 0;
+          explode(q.x, q.y, 'grenade');
+        } else {
+          // a little hop along the ground
+          q.vz = -q.vz * GRENADE.bounce;
+          q.vx *= GRENADE.roll;
+          dust(q.x, q.y, 1);
+        }
       }
     } else if (q.k === 'tnt') {
       // a lit stick of dynamite: it flies, bounces, lies there and blows up
