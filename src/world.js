@@ -1,6 +1,7 @@
 // One simulation step: player, enemies, projectiles, pickups, debris, wave script.
 import {
   BULLET,
+  GRENADE,
   ACID,
   CHAIN_GAP,
   DYNAMITE,
@@ -361,6 +362,15 @@ export function update(dt) {
       if (q.z <= 0) {
         q.life = 0;
         plasmaBlast(q);
+      }
+    } else if (q.k === 'nade') {
+      // Lucy's grenade: an arc, spinning, and a blast where it lands
+      q.vz -= GRENADE.g * dt;
+      q.z += q.vz * dt;
+      q.rot += dt * GRENADE.spin * Math.PI * 2 * Math.sign(q.vx || 1);
+      if (q.z <= 0) {
+        q.life = 0;
+        explode(q.x, q.y, 'grenade');
       }
     } else if (q.k === 'tnt') {
       // a lit stick of dynamite: it flies, bounces, lies there and blows up

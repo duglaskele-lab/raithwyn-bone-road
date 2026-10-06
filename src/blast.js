@@ -10,7 +10,7 @@ import { buzz } from './touch.js';
 /** Is (x, y) inside the blast's ellipse on the floor? */
 const within = (cx, cy, x, y, r) => ((x - cx) / r) ** 2 + ((y - cy) / (r * 0.42)) ** 2 < 1;
 
-/** A blast at (x, y) on the floor, of the kind `k` in BLAST ('barrel' or 'dynamite'). */
+/** A blast at (x, y) on the floor, of the kind `k` in BLAST ('barrel', 'dynamite', 'grenade'). */
 export function explode(x, y, k = 'barrel') {
   const B = BLAST[k];
   SFX.boom();
@@ -48,7 +48,8 @@ export function explode(x, y, k = 'barrel') {
       s: rnd(18, 34),
     });
   // the player: knocked down, unless already out of reach in the air
-  if (within(x, y, P.x, P.y, B.r) && P.z < 140) hitPlayer(B.dmgP, P.x >= x ? 1 : -1, true);
+  if (B.dmgP && within(x, y, P.x, P.y, B.r) && P.z < 140)
+    hitPlayer(B.dmgP, P.x >= x ? 1 : -1, true);
   for (const e of G.enemies)
     if (!e.dead && within(x, y, e.x, e.y, B.r))
       hurtEnemy(e, B.dmgE, e.x >= x ? 1 : -1, true, 'blast');
