@@ -203,3 +203,39 @@ test('Lucy fires her pistol on K: a very fast bullet from the muzzle that hits t
   G.props = props;
   P.who = 'raithwyn';
 });
+
+test('Lucy keeps firing while K is held, aiming and firing in turn, each shot paid for', async () => {
+  const { BONE_COST } = await import('../src/config.js');
+  P.who = 'lucy';
+  P.rage = 100;
+  G.enemies = [];
+  const props = G.props;
+  G.props = [];
+  keys.bone = true;
+  pressed.bone = true;
+  update(DT);
+  delete pressed.bone;
+  const seen = new Set();
+  let shots = 0;
+  for (let t = 0; t < 1.2; t += DT) {
+    const n = G.projs.length;
+    update(DT);
+    shots += G.projs.filter((q) => q.k === 'bullet').length > 0 && G.projs.length > n ? 1 : 0;
+    assert.equal(P.state, 'throw', 'the pistol stays up');
+    if (t > 0.4) seen.add(P.an[1]);
+  }
+  assert.ok(shots >= 4, `several shots in a row (${shots})`);
+  assert.deepEqual([...seen].sort(), [2, 3], 'aiming and firing frames in turn');
+  assert.equal(P.rage, 100 - BONE_COST * shots, 'every shot costs rage');
+  keys.bone = false;
+  for (let t = 0; t < 0.4; t += DT) update(DT);
+  assert.notEqual(P.state, 'throw', 'let go: she puts it away');
+  G.props = props;
+  P.who = 'raithwyn';
+});
+
+test('Lucy has her own frames for taking a hit and being knocked down', async () => {
+  const { FR } = await import('../src/lucy-frames.js');
+  assert.equal(FR.hurt.length, 2);
+  assert.equal(FR.ko.length, 6);
+});
