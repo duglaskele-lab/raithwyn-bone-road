@@ -167,3 +167,39 @@ test('the idle loop: one atlas frame per held pose, the poses in order and round
   assert.equal(seen, IDLE_HOLD.length);
   assert.equal(idlePose(total / 24 + 0.01), 0, 'round again');
 });
+
+test('Lucy fires her pistol on K: a very fast bullet from the muzzle that hits the first enemy', async () => {
+  const { BULLET, D, BONE_COST } = await import('../src/config.js');
+  const { FR } = await import('../src/lucy-frames.js');
+  assert.equal(FR.throw.length, 4, 'side on, drawing, aiming, firing');
+  P.who = 'lucy';
+  P.rage = 100;
+  P.x = 300;
+  P.y = 450;
+  const props = G.props;
+  G.props = []; // nothing breakable in the line of fire
+  const e = spawn('fat', 1, 900, 450);
+  e.state = 'chase';
+  const hp = e.hp;
+  pressed.bone = true;
+  update(DT);
+  for (const k in pressed) delete pressed[k];
+  assert.equal(P.state, 'throw');
+  assert.equal(P.rage, 100 - BONE_COST);
+  const fire = D.gun.slice(0, 3).reduce((a, b) => a + b, 0);
+  let shot = null;
+  for (let t = 0; t < fire + 0.1 && !shot; t += DT) {
+    update(DT);
+    shot = G.projs.find((q) => q.k === 'bullet');
+  }
+  assert.ok(shot, 'a bullet');
+  assert.ok(Math.abs(shot.vx) >= 2000, 'very fast');
+  assert.equal(G.projs.filter((q) => q.k === 'bone').length, 0, 'no bone');
+  assert.ok(Math.abs(shot.x - (P.x + BULLET.x)) < 60, 'from the muzzle');
+  for (let i = 0; i < 0.35 / DT && e.hp === hp; i++) {
+    update(DT);
+  }
+  assert.ok(e.hp < hp, 'it reached an enemy 600 px away in a blink');
+  G.props = props;
+  P.who = 'raithwyn';
+});

@@ -3,7 +3,8 @@
 
     python3 tools/lucy_sheet.py      # then: npm run atlas
 
-The sources are in assets/source/lucy/: standing.png (one frame) and the videos idle.mp4,
+The sources are in assets/source/lucy/: standing.png (one frame), shoot.png (four panels:
+side on, drawing the pistol, aiming, firing) and the videos idle.mp4,
 walk.mp4, run.mp4 and strike_1.mp4 (she raises her guard and jabs again and again); each
 video is shot from a fixed camera with her in place. Every picture is cut out of its white
 background (from the edges inwards, keeping only the figure, so the watermark goes too) and
@@ -40,7 +41,11 @@ ANIMS = {
     "punch1": ("strike_1.mp4", [34, 36, 38, 40, 43]),
     "punch2": ("strike_1.mp4", [58, 60, 62, 64, 67]),
 }
-ROWS = ["stand", "idle", "walk", "run", "punch1", "punch2"]
+ROWS = ["stand", "idle", "walk", "run", "punch1", "punch2", "throw"]
+# the pistol shot (the game's "throw" slot, K): the four panels of shoot.png, left to right
+PANELS = [(0, 347), (353, 767), (772, 1205), (1210, 1680)]
+# rows whose frames come from separate pictures: each frame its own window and anchor
+APART = {"stand", "throw"}
 
 
 def flood(mask, seeds):
@@ -121,6 +126,34 @@ def video_frames(path):
     return lambda i: Image.open(f"{tmp}/f{i:03d}.png")
 
 
+def mend_tail(f, tpl, pad):
+    """Puts back the tip of the tail where the picture's left edge cut it off: the tip of `tpl`
+    (the same drawing, its tail whole), as many columns of it as it takes to be as tall as the
+    cut, stretched to the cut. Both have `pad` empty columns added on the left."""
+    a, t = f[..., 3] > 128, tpl[..., 3] > 128
+    h = f.shape[0]
+    low = slice(h // 3, h)  # the tail hangs in the lower two thirds
+
+    def span(m, x):
+        r = np.where(m[low, x])[0] + h // 3
+        return (r.min(), r.max()) if len(r) else None
+
+    cut = span(a, pad)
+    if not cut or cut[1] - cut[0] < 6:
+        return f
+    tip = np.where(t[low].any(0))[0].min()
+    ca, cb = cut
+    n = next((k for k in range(1, pad) if (s := span(t, tip + k)) and s[1] - s[0] >= cb - ca), pad - 1)
+    ta, tb = span(t, tip + n)
+    out = f.copy()
+    for j in range(n):
+        for yd in range(max(0, ca - 60), min(h, cb + 61)):
+            y = int(round(ta + (yd - ca) * (tb - ta) / max(1, cb - ca)))
+            if 0 <= y < h and tpl[y, tip + j, 3] > 0:
+                out[yd, pad - n + j] = tpl[y, tip + j]
+    return out
+
+
 def boots_x(f):
     """The middle of her boots: the lowest tenth of the figure."""
     ys = np.where(f[..., 3].any(1))[0]
@@ -142,26 +175,47 @@ def main():
     s = TALL / height(cut(vid("idle.mp4")(1)))
     for name, (video, picks) in ANIMS.items():
         rows[name] = [scaled(cut(vid(video)(i)), s) for i in picks]
+    # the shot: four panels of one drawing, one scale (from the first, where she stands upright);
+    # the panels' left edges cut the tail off in the last two, so its tip is put back
+    sheet_img = Image.open(SRC / "shoot.png").convert("RGB")
+    pad = 160
+    panels = []
+    for x0, x1 in PANELS:
+        p = cut(sheet_img.crop((x0, 0, x1, sheet_img.height)))
+        panels.append(np.pad(p, ((0, 0), (pad, 0), (0, 0))))
+    panels = [panels[0]] + [mend_tail(p, panels[0], pad) for p in panels[1:]]
+    sp = TALL / height(panels[0])
+    rows["throw"] = [scaled(p, sp) for p in panels]
     # every animation: one window round all its frames, its anchor the boots' average middle
     sheet_rows, table = [], {}
     for name in ROWS:
         fr = rows[name]
+        if name in APART:
+            # separate pictures: each cropped to itself, anchored by its own boots
+            cs, axs = [], []
+            for f in fr:
+                ys, xs = np.where(f[..., 3] > 10)
+                cs.append(f[ys.min() : ys.max() + 1, xs.min() : xs.max() + 1])
+                axs.append(boots_x(f) - xs.min())
+            sheet_rows.append((name, cs, axs))
+            continue
         al = np.stack([f[..., 3] > 10 for f in fr]).any(0)
         ys, xs = np.where(al)
         y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
         ax = float(np.mean([boots_x(f) for f in fr])) - x0
-        sheet_rows.append((name, [f[y0:y1, x0:x1] for f in fr], ax))
+        sheet_rows.append((name, [f[y0:y1, x0:x1] for f in fr], [ax] * len(fr)))
     W = 16 + max(sum(f.shape[1] + 16 for f in r) for _, r, _ in sheet_rows)
-    H = 16 + sum(r[0].shape[0] + 16 for _, r, _ in sheet_rows)
+    H = 16 + sum(max(f.shape[0] for f in r) + 16 for _, r, _ in sheet_rows)
     sheet = Image.new("RGBA", (W, H))
     y = 16
-    for name, r, ax in sheet_rows:
+    for name, r, axs in sheet_rows:
         x = 16
-        h = r[0].shape[0]
+        h = max(f.shape[0] for f in r)
         table[name] = []
-        for f in r:
-            sheet.alpha_composite(Image.fromarray(f, "RGBA"), (x, y))
-            table[name].append([x, y, x + f.shape[1], y + h, round(ax, 1), h])
+        for f, ax in zip(r, axs):
+            # boots on the row's bottom line
+            sheet.alpha_composite(Image.fromarray(f, "RGBA"), (x, y + h - f.shape[0]))
+            table[name].append([x, y, x + f.shape[1], y + h, round(float(ax), 1), h])
             x += f.shape[1] + 16
         y += h + 16
     sheet.save(ROOT / "assets/source/lucy_sheet.png", optimize=True)

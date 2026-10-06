@@ -1,5 +1,6 @@
 // One simulation step: player, enemies, projectiles, pickups, debris, wave script.
 import {
+  BULLET,
   ACID,
   CHAIN_GAP,
   DYNAMITE,
@@ -227,6 +228,47 @@ export function update(dt) {
           col: '#f3eeda',
           life: 1.2,
         });
+    } else if (q.k === 'bullet') {
+      // Lucy's bullet: the first thing in its way takes it
+      for (const e of G.enemies.concat(G.props)) {
+        if (e.dead) continue;
+        const zone = e.T?.dragon
+          ? dragonZone(e, q.x - 20, q.x + 20, q.y, 22)
+          : Math.abs(e.x - q.x) < e.w + 20 && Math.abs(e.y - q.y) < 22 && e.z < 120
+            ? 'body'
+            : null;
+        if (zone) {
+          if (
+            hurtEnemy(
+              e,
+              BULLET.dmg * dmgMult() * headBonus(e, zone),
+              Math.sign(q.vx),
+              false,
+              'bone',
+            )
+          ) {
+            if (!e.isProp) {
+              addRage(RAGE.bone);
+              styleGain(8);
+            }
+            q.life = 0;
+            for (let k = 0; k < 6; k++)
+              G.parts.push({
+                k: 'dot',
+                x: q.x,
+                y: q.y - q.z,
+                vx: -Math.sign(q.vx) * rnd(40, 200),
+                vy: rnd(-160, 60),
+                g: 500,
+                t: 0,
+                life: 0.25,
+                s: 3,
+                col: '#ffe9a0',
+              });
+            break;
+          }
+        }
+      }
     } else if (q.k === 'hado') {
       if (random() < 0.9)
         G.parts.push({

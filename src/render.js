@@ -470,6 +470,24 @@ export function drawProj(q) {
     ctx.fill();
     return;
   }
+  if (q.k === 'bullet') {
+    // a streak of light along its path
+    const d = Math.sign(q.vx),
+      g = ctx.createLinearGradient(x - d * 70, y, x, y);
+    g.addColorStop(0, 'rgba(255,220,120,0)');
+    g.addColorStop(1, 'rgba(255,250,220,1)');
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = g;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x - d * 70, y);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
   if (q.k === 'acid') {
     const r = 11 + Math.sin(G.time * 30) * 1.5;
     ctx.save();
@@ -832,7 +850,8 @@ export function drawWorld() {
       );
   for (const it of G.items) shadow(it.x, it.y, it.z, 12);
   for (const q of G.projs)
-    shadow(q.x, q.y, q.z, q.k === 'hado' ? 26 * q.lv : q.k === 'plasma' ? 20 : 10);
+    if (q.k !== 'bullet')
+      shadow(q.x, q.y, q.z, q.k === 'hado' ? 26 * q.lv : q.k === 'plasma' ? 20 : 10);
   if (G.state !== 'title') shadow(P.x, P.y, P.z, 40);
   const list = [];
   for (const d of G.debris) list.push([d.gy - 1, drawDebris, d]);
