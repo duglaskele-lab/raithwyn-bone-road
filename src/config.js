@@ -567,8 +567,8 @@ export const RUN_FRAME = 0.065 / 0.85;
 export const IDLE_HOLD = [5, 5, 5, 5, 5, 4, 5, 5, 5, 5, 5];
 // Each fighter's idle (poses held so many 1/24 s), walk and run (seconds a frame, frames).
 // Lucy's idle is 11 poses over the 2.6 s loop of her video.
-// Lucy's pistol shot: a bullet that flies very fast; it costs what a bone does.
-export const BULLET = { speed: 2400, dmg: 7, life: 0.45, x: 58, z: 136 };
+// Lucy's pistol shot (L): a bullet that flies very fast; each shot costs `cost` rage.
+export const BULLET = { speed: 2400, dmg: 7, life: 0.45, x: 58, z: 136, cost: 10 };
 export const FIGHTER_ANIM = {
   raithwyn: { idle: IDLE_HOLD, walk: [0.085, 8], run: [RUN_FRAME, 6] },
   lucy: { idle: [6, 5, 6, 6, 5, 6, 5, 6, 6, 5, 6], walk: [0.1, 8], run: [0.065, 8] },
@@ -578,7 +578,7 @@ export const D = {
   atk1: [0.03, 0.05, 0.09, 0.06, 0.05],
   atk2: [0.04, 0.07, 0.12, 0.08, 0.07],
   thr: [0.05, 0.08, 0.09, 0.12],
-  // Lucy's pistol (K, in place of the bone): side on, drawing it, aiming, firing
+  // Lucy's pistol (L, in place of the dark ball): side on, drawing it, aiming, firing
   gun: [0.05, 0.08, 0.07, 0.14],
   hado: [0.06, 0.09, 0.08, 0.08, 0.1, 0.1],
 };

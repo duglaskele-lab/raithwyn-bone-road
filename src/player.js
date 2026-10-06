@@ -131,7 +131,11 @@ export function updPlayer(dt) {
         p.airT = null;
         p.airUsed = 0;
       } else if (b === 'atk') startAtk(mx);
-      else if (b === 'bone' && p.boneCd <= 0) {
+      else if (b === 'bone' && p.who === 'lucy') {
+        // Lucy has no bone to throw: her shot is on L
+        p.buf = null;
+        SFX.deny();
+      } else if (b === 'bone' && p.boneCd <= 0) {
         p.buf = null;
         if (p.rage >= BONE_COST) {
           p.rage -= BONE_COST;
@@ -153,6 +157,15 @@ export function updPlayer(dt) {
           p.sup = 0;
           p.sw = 0;
         }
+      } else if (b === 'hado' && p.who === 'lucy') {
+        // Lucy's L: she draws her pistol and fires
+        p.buf = null;
+        if (p.rage >= BULLET.cost) {
+          p.rage -= BULLET.cost;
+          p.state = 'throw';
+          p.t = 0;
+          p.sw = 0;
+        } else SFX.deny();
       } else if (b === 'hado') {
         p.buf = null;
         const most = hadoLevel(p.rage);
@@ -251,10 +264,10 @@ export function updPlayer(dt) {
       // Lucy draws her pistol and fires instead of throwing a bone
       const gun = p.who === 'lucy';
       let i = tl(gun ? D.gun : D.thr, p.t);
-      if (i < 0 && gun && keys.bone) {
-        // K held: she keeps the pistol up and fires again, aiming and firing in turn
-        if (p.rage >= BONE_COST) {
-          p.rage -= BONE_COST;
+      if (i < 0 && gun && keys.hado) {
+        // L held: she keeps the pistol up and fires again, aiming and firing in turn
+        if (p.rage >= BULLET.cost) {
+          p.rage -= BULLET.cost;
           p.t = D.gun[0] + D.gun[1];
           p.sw = 0;
           i = 2;

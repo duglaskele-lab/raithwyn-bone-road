@@ -14,11 +14,12 @@ settings and remembered by the browser.
 After the splash screen comes the main menu: Start game, Settings, Exit. Before the fight there
 is the fighter select: four portraits (Raithwyn, Lucy, Tiger man, Gumdong) and four locked slots.
 Every fighter has a description and stats. Raithwyn and Lucy are playable (Lucy for testing:
-she has her own sprites for standing, idle, walking, running, two jabs, a pistol shot, taking a
-hit and being knocked down, every other animation shows her standing frame, and she plays with Raithwyn's moves for now; on `K` she
-draws her pistol and fires instead of throwing a bone: the same 15 rage, 7 damage, and the bullet
-flies at 2400 px/s and hits the first enemy or barrel in its way, `BULLET` in `src/config.js`;
-with `K` held she keeps firing, aiming and firing in turn, each shot paying 15 rage); the others can be looked at. The fighter
+she has her own sprites for standing, idle, walking, running, jumping, punching, a pistol shot,
+taking a hit and being knocked down, every other animation shows her standing frame, and she
+plays with Raithwyn's moves for now. Her `L` is a pistol instead of the dark ball: each shot
+costs 10 rage and does 7 damage, the bullet flies at 2400 px/s and hits the first enemy or
+barrel in its way (`BULLET` in `src/config.js`), and with `L` held she keeps firing, aiming and
+firing in turn. She has no bone: `K` does nothing for her); the others can be looked at. The fighter
 chosen goes into the run's replay.
 
 The game is written in plain JavaScript and Canvas 2D, with no engine and no runtime
@@ -50,8 +51,8 @@ npm run build      # dist/raithwyn.html — opens from disk, works offline
 | Punch (a three-hit chain; in the air, a flying kick) | `J` |
 | Launcher: the third hit of the chain with "up" held throws the enemy up for juggling | `W` + `J` |
 | Jump | `Space` |
-| Throw a bone; Lucy fires her pistol (costs 15 rage, 5% of the bar) | `K` |
-| Dark ball (level I) | `L` |
+| Throw a bone (costs 15 rage, 5% of the bar; Lucy has none) | `K` |
+| Dark ball (level I); Lucy fires her pistol, held to keep firing (10 rage a shot) | `L` |
 | Super attack: hold for 1 s with a full rage bar, hits everyone on screen | hold `I` |
 | Pause menu (resume, settings, main menu) / sound | `Esc` or `P` / `M` |
 | Record video: start / stop and download the file | `F9` |
@@ -546,12 +547,15 @@ background shut in between her legs or tail are cut out as well), scaled to Rait
 (356 sheet px, ears to boots; one scale for all the videos) and the frames of one animation are
 cut with one window, so they keep their places from the video and do not jitter. Rows: `stand`
 (standing.png), `idle` (11 poses over the 2.6 s loop of idle.mp4), `walk` and `run` (8 frames
-over a 1 s loop of walk.mp4 and run.mp4), `punch1` and `punch2` (two jabs from strike_1.mp4;
-the video frames are in `ANIMS`) and `throw` (the four panels of shoot.png: side on, drawing,
+over a 1 s loop of walk.mp4 and run.mp4; the video frames are in `ANIMS`), `punch1` and `punch2`
+(the four panels of strike_2.png, guard, jab, fist back, cross, as two punches of five frames,
+`PUNCH1` and `PUNCH2`), `jump` (the four figures of jump.png as the five jump frames, `JUMPS`;
+the drawn ground shadows, dust and motion lines are taken off by `strip_marks`), `throw` (the four panels of shoot.png: side on, drawing,
 aiming, firing; her tail is cut off at the picture's left edge in the last two, so its tip is
 grafted on from the first panel, `mend_tail`), `hurt` (the two figures of hit1.png) and `ko`
 (the four of death.png as the six knockdown frames, `KO`; these two pictures are drawn at other
-sizes than standing.png, so `HIT_SIZE` and `DEATH_SIZE` bring her to the same height). The frames and their anchors go to
+sizes than standing.png, so `HIT_SIZE`, `DEATH_SIZE`, `GUARD` and `JUMP_SIZE` bring her to the
+same height). The frames and their anchors go to
 `assets/source/lucy_sheet.json`, and `npm run atlas` builds `assets/lucy.png` and
 `src/lucy-frames.js` from them (`FIGHTERS` in `tools/build_atlas.py`). How fast her idle, walk
 and run play is in `FIGHTER_ANIM` in `src/config.js`. An animation she does not have yet shows

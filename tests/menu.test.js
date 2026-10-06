@@ -177,7 +177,7 @@ test('Lucy can be chosen: the run is hers, and so is its replay', async () => {
   assert.equal(fighterFrame('lucy', 'punch1', 2)[1], FR.punch1[2]);
   assert.equal(fighterFrame('lucy', 'run', 3)[1], FR.run[3]);
   assert.equal(fighterFrame('lucy', 'idle', 7)[1], FR.idle[7]);
-  assert.equal(fighterFrame('lucy', 'jump', 1)[1], FR.stand[0]);
+  assert.equal(fighterFrame('lucy', 'laugh', 1)[1], FR.stand[0]);
   const { FIGHTER_ANIM } = await import('../src/config.js');
   const A = FIGHTER_ANIM.lucy;
   assert.equal(A.idle.length, FR.idle.length);
