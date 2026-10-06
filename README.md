@@ -18,9 +18,10 @@ she has her own sprites for standing, idle, walking, running, jumping, punching,
 a grenade throw, taking a hit and being knocked down, every other animation shows her standing
 frame, and she plays with Raithwyn's moves for now. Her `K` is a pistol instead of the bone:
 each shot costs 10 rage and does 7 damage, the bullet flies at 2400 px/s and hits the first
-enemy or barrel in its way (`BULLET` in `src/config.js`), and with `K` held she keeps firing,
+enemy or barrel in its way, going out in the middle of it (`BULLET` in `src/config.js`), and with `K` held she keeps firing,
 aiming and firing in turn. Her `L` is a grenade instead of the dark ball: 100 rage; it flies in
-an arc about 540 px ahead, spinning, and blows up where it lands: 70 damage to every enemy in a
+an arc, spinning, lands, makes two little hops and blows up about 400 px ahead (it never leaves
+the screen: at the edge it bounces back): 70 damage to every enemy in a
 wide blast (250 px), it breaks barrels and sets red ones off, and it spares her (`GRENADE` and
 `BLAST.grenade` in `src/config.js`)); the others can be looked at. The fighter
 chosen goes into the run's replay.
