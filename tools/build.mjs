@@ -19,6 +19,7 @@ const bundle = await build({
 const js = bundle.outputFiles[0].text.replaceAll('</script', '<\\/script');
 const css = await read('styles.css');
 const atlas = (await readFile(root + 'assets/atlas.png')).toString('base64');
+const lucy = (await readFile(root + 'assets/lucy.png')).toString('base64');
 const portraits = {};
 for (const f of await readdir(root + 'assets/portraits'))
   if (f.endsWith('.webp'))
@@ -40,7 +41,7 @@ const swap = (from, to) => {
 swap('<link rel="stylesheet" href="styles.css">', `<style>\n${css}</style>`);
 swap(
   '<script type="module" src="src/main.js"></script>',
-  `<script>window.__ATLAS__='data:image/png;base64,${atlas}';window.__PORTRAITS__=${JSON.stringify(portraits)};window.__MUSIC__=${JSON.stringify(music)};</script>\n<script>${js}</script>`,
+  `<script>window.__ATLAS__='data:image/png;base64,${atlas}';window.__LUCY__='data:image/png;base64,${lucy}';window.__PORTRAITS__=${JSON.stringify(portraits)};window.__MUSIC__=${JSON.stringify(music)};</script>\n<script>${js}</script>`,
 );
 
 await mkdir(root + 'dist', { recursive: true });

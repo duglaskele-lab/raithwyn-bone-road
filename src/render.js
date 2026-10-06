@@ -19,7 +19,7 @@ import { clamp, ease } from './util.js';
 import { FR } from './atlas-frames.js';
 import { G, P } from './state.js';
 import { atlas, ctx, portraits, ready, rr, setCtx, sprite, txt } from './gfx.js';
-import { foeName, t } from './i18n.js';
+import { STR, foeName, lang, t } from './i18n.js';
 import { touch } from './input.js';
 import { canFullScreen } from './touch.js';
 import { RANKS, STYLE_STEP, dmgMult, scoreMult, styleRank } from './style.js';
@@ -788,7 +788,7 @@ export function drawPlayer() {
     ctx.fillRect(p.x - G.cam - 120, p.y / 0.3 - 120, 240, 240);
     ctx.restore();
   }
-  sprite(p.an[0], p.an[1], p.x - G.cam, p.y - p.z + 2, p.face < 0, 1, a);
+  sprite(p.an[0], p.an[1], p.x - G.cam, p.y - p.z + 2, p.face < 0, 1, a, p.who);
 }
 export function drawWorld() {
   if (G.level === 2) drawBG2();
@@ -879,7 +879,8 @@ export function drawHUD() {
   ctx.save();
   rr(18, 14, 62, 62, 8);
   ctx.clip();
-  if (ready(portraits.raithwyn)) ctx.drawImage(portraits.raithwyn, 18, 14, 62, 62);
+  const who = P.who ?? 'raithwyn';
+  if (ready(portraits[who])) ctx.drawImage(portraits[who], 18, 14, 62, 62);
   else {
     const f = FR.idle[0];
     ctx.drawImage(atlas, f[0] + 14, f[1], 58, 58, 20, 18, 60, 60);
@@ -889,7 +890,7 @@ export function drawHUD() {
   ctx.lineWidth = 3;
   ctx.strokeStyle = '#ece5cb';
   ctx.stroke();
-  txt('Raithwyn', 92, 32, 17, '#ece5cb', 'left', 4);
+  txt(STR[lang].chars[who]?.name ?? 'Raithwyn', 92, 32, 17, '#ece5cb', 'left', 4);
   bar(90, 40, 250, 15, p.hp / 100, p.hpLag / 100, '#f0cf4f');
   const lv = hadoLevel(p.rage),
     pul = 0.75 + 0.25 * Math.sin(G.time * 10);

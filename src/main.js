@@ -1,6 +1,6 @@
 import { H, PURPLE, W } from './config.js';
 import { G, P, reset } from './state.js';
-import { atlas, ctx, cv, initGfx, loadPortraits, txt } from './gfx.js';
+import { atlas, ctx, cv, initGfx, loadPortraits, lucyAtlas, txt } from './gfx.js';
 import { initInput, keys, pressed, touch } from './input.js';
 import { initTouch, syncTouch, turnPage } from './touch.js';
 import { audioAwake, audioState } from './audio.js';
@@ -297,6 +297,7 @@ function boot() {
 // The single-file build injects the atlas as a data URI through window.__ATLAS__.
 atlas.onload = atlas.onerror = boot;
 atlas.src = window.__ATLAS__ || 'assets/atlas.png';
+lucyAtlas.src = window.__LUCY__ || 'assets/lucy.png';
 // Debug hook: poke at the live game from the browser console or from end-to-end tests.
 window.__game = {
   G,

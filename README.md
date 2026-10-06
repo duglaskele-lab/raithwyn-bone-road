@@ -13,8 +13,10 @@ settings and remembered by the browser.
 
 After the splash screen comes the main menu: Start game, Settings, Exit. Before the fight there
 is the fighter select: four portraits (Raithwyn, Lucy, Tiger man, Gumdong) and four locked slots.
-Every fighter has a description and stats; so far only Raithwyn is playable, the others can be
-looked at.
+Every fighter has a description and stats. Raithwyn and Lucy are playable (Lucy for testing:
+she has her own sprites for standing and two jabs, every other animation shows her standing
+frame, and she plays with Raithwyn's moves for now); the others can be looked at. The fighter
+chosen goes into the run's replay.
 
 The game is written in plain JavaScript and Canvas 2D, with no engine and no runtime
 dependencies. Skeletons, backgrounds, effects and sound are made in code; the only pictures are
@@ -365,6 +367,7 @@ finale.
 ```
 index.html, styles.css    the page and its layout (touch buttons included)
 assets/atlas.png          the heroine's sprite atlas
+assets/lucy.png           Lucy's sprite atlas
 assets/source/            the source sprite sheet, the idle video and full-size portraits
 assets/portraits/         320×320 fighter portraits for the game
 assets/music/             the stage and boss songs (mp3)
@@ -404,6 +407,7 @@ src/
   render.js               drawing the world, the HUD and the title screen
   gfx.js                  canvas, atlas, shared drawing helpers
   atlas-frames.js         frame coordinates (generated)
+  lucy-frames.js          Lucy's frame coordinates (generated)
   main.js                 entry point and game loop
 tests/                    tests (node:test)
 tools/                    dev server, build, atlas and sprite tools
@@ -438,7 +442,7 @@ What is checked:
   breath, big gravestones, the acid ball after a hit.
 - `zombie.test.js` — the grab, flying and thrown heads, zombie crowds.
 - `style.test.js` — style ranks D…SSS and their bonuses, scenery, the acid puddle, the pause menu.
-- `menu.test.js` — main menu, settings (FPS counter and limit), fighter select (only Raithwyn is
+- `menu.test.js` — main menu, settings (FPS counter and limit), fighter select (Raithwyn and Lucy are
   playable).
 - `features.test.js` — translations, key layout, bone cost, super attack, the unstoppable end of
   Fatso's wind-up, the Necromancer.
@@ -531,6 +535,15 @@ pale fringe left by the video's light background is removed by
 `python3 tools/defringe.py 16 372` (see-through edge pixels take the colour of the solid pixels
 next to them; the video tool does this itself). The idle row in the sheet has been retouched by
 hand: rebuilding it from the video would wipe those edits.
+
+**Lucy's sprites.** Her sheet is `assets/source/lucy_sheet.png`, made from her pictures and
+videos in `assets/source/lucy/` by `python3 tools/lucy_sheet.py`: each frame is cut out of its
+white background (only the figure is kept, so the video's watermark goes too), scaled to
+Raithwyn's height (356 sheet px, ears to boots) and stood on the row's bottom line. Rows so far:
+`idle` (standing.png), `punch1` and `punch2` (two jabs from strike_1.mp4; the video frames are
+in `PICKS`). `npm run atlas` then builds `assets/lucy.png` and `src/lucy-frames.js`
+(`FIGHTERS` in `tools/build_atlas.py`). An animation she does not have yet shows her standing
+frame (`fighterFrame` in `src/gfx.js`).
 
 **Portraits.** Put a picture in `assets/source/portraits/<name>.webp` and run
 `npm run portraits`: a smaller copy appears in `assets/portraits/`. A new fighter is described in

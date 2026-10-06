@@ -1,10 +1,21 @@
 import { FONT, OL } from './config.js';
 import { FR } from './atlas-frames.js';
+import { FR as FR_LUCY } from './lucy-frames.js';
 
 // Canvas handle, sprite atlas and the small drawing helpers shared by every renderer.
 export let cv = null,
   ctx = null;
 export const atlas = typeof Image !== 'undefined' ? new Image() : {};
+export const lucyAtlas = typeof Image !== 'undefined' ? new Image() : {};
+// Each fighter's sprites: the atlas and its frame table. Lucy has few animations so far; any
+// she lacks shows her standing frame (see fighterFrame).
+const FIGHTERS = { raithwyn: [atlas, FR], lucy: [lucyAtlas, FR_LUCY] };
+/** [atlas, frame] of a fighter's animation frame, falling back to the standing frame. */
+export function fighterFrame(who, name, i) {
+  const [img, fr] = FIGHTERS[who] ?? FIGHTERS.raithwyn,
+    set = fr[name] ?? fr.idle;
+  return [img, set[Math.min(fr[name] ? i : 0, set.length - 1)]];
+}
 export function initGfx(canvas) {
   cv = canvas;
   ctx = canvas.getContext('2d');
@@ -12,13 +23,14 @@ export function initGfx(canvas) {
 export function setCtx(c) {
   ctx = c;
 }
-export function sprite(name, i, x, y, flip, sc = 1, a = 1) {
-  const f = FR[name][i];
+export function sprite(name, i, x, y, flip, sc = 1, a = 1, who = 'raithwyn') {
+  const [img, f] = fighterFrame(who, name, i);
+  if (!img.complete || !img.naturalWidth) return;
   ctx.save();
   ctx.translate(Math.round(x), Math.round(y));
   ctx.scale(flip ? -sc : sc, sc);
   ctx.globalAlpha = a;
-  ctx.drawImage(atlas, f[0], f[1], f[2], f[3], -f[4], -f[5], f[2], f[3]);
+  ctx.drawImage(img, f[0], f[1], f[2], f[3], -f[4], -f[5], f[2], f[3]);
   ctx.restore();
 }
 export function txt(s, x, y, size, col, al = 'left', st) {

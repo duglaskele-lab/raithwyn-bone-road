@@ -32,7 +32,7 @@ jobs:
           cp index.html styles.css manifest.webmanifest _site/
           cp -r assets/icons _site/assets/icons
           cp -r src _site/src
-          cp assets/atlas.png _site/assets/
+          cp assets/atlas.png assets/lucy.png _site/assets/
           cp -r assets/portraits _site/assets/portraits
           cp -r assets/music _site/assets/music
           cp dist/raithwyn.html _site/single.html
