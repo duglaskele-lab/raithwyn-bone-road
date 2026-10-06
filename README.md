@@ -558,7 +558,9 @@ sizes than standing.png, so `HIT_SIZE`, `DEATH_SIZE`, `GUARD` and `JUMP_SIZE` br
 same height). The frames and their anchors go to
 `assets/source/lucy_sheet.json`, and `npm run atlas` builds `assets/lucy.png` and
 `src/lucy-frames.js` from them (`FIGHTERS` in `tools/build_atlas.py`). How fast her idle, walk
-and run play is in `FIGHTER_ANIM` in `src/config.js`. An animation she does not have yet shows
+and run play is in `FIGHTER_ANIM` in `src/config.js`. The sheet's transparency has been retouched by hand
+(stray pixels round the figure): rebuilding it with `tools/lucy_sheet.py` would wipe those edits,
+so after a change by hand only `npm run atlas` is run. An animation she does not have yet shows
 her standing frame (`fighterFrame` in `src/gfx.js`).
 
 **Portraits.** Put a picture in `assets/source/portraits/<name>.webp` and run
