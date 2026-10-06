@@ -5,9 +5,9 @@
 
 The sources are in assets/source/lucy/: standing.png (one frame), shoot.png (four panels:
 side on, drawing the pistol, aiming, firing), hit1.png (two: taking a hit), death.png
-(four: knocked down) and the videos idle.mp4,
-walk.mp4, run.mp4 and strike_1.mp4 (she raises her guard and jabs again and again); each
-video is shot from a fixed camera with her in place. Every picture is cut out of its white
+(four: knocked down), strike_2.png (four: guard, jab, fist back, cross), jump.png (four:
+crouch, rising, tucked, landing) and the videos idle.mp4, walk.mp4 and run.mp4
+(strike_1.mp4, her first jabs, is no longer used); each video is shot from a fixed camera with her in place. Every picture is cut out of its white
 background (from the edges inwards, keeping only the figure, so the watermark goes too) and
 scaled so that she is as tall as Raithwyn (356 sheet px, ears to boots; one scale for all the
 videos). The frames of one animation are all cut with the same window, so they stay lined up
@@ -39,23 +39,31 @@ ANIMS = {
     "idle": ("idle.mp4", loop(58, 120, 11)),  # 62 frames, 2.6 s
     "walk": ("walk.mp4", loop(27, 51, 8)),  # 24 frames, 1 s
     "run": ("run.mp4", loop(77, 101, 8)),  # 24 frames, 1 s
-    "punch1": ("strike_1.mp4", [34, 36, 38, 40, 43]),
-    "punch2": ("strike_1.mp4", [58, 60, 62, 64, 67]),
 }
-ROWS = ["stand", "idle", "walk", "run", "punch1", "punch2", "throw", "hurt", "ko"]
+ROWS = ["stand", "idle", "walk", "run", "punch1", "punch2", "throw", "hurt", "ko", "jump"]
 # the pistol shot (the game's "throw" slot, K): the four panels of shoot.png, left to right
 PANELS = [(0, 347), (353, 767), (772, 1205), (1210, 1680)]
 # rows whose frames come from separate pictures: each frame its own window and anchor
-APART = {"stand", "throw", "hurt", "ko"}
+APART = {"stand", "throw", "hurt", "ko", "punch1", "punch2", "jump"}
 # taking a hit: the two figures of hit1.png (flinching, thrown back); falling: the four of
 # death.png (thrown, diving, landing on her hands, lying) as the game's six knockdown frames
 # (thrown, rising, falling, landing, bouncing, lying). Boxes are (x0, y0, x1, y1).
 HIT = [(0, 0, 425, 871), (426, 0, 833, 871)]
 DEATH = [(0, 0, 460, 465), (460, 0, 976, 465), (0, 465, 470, 868), (470, 465, 976, 868)]
 KO = [0, 0, 1, 2, 2, 3]
+# the punches (J): the four panels of strike_2.png (guard, jab, fist back, cross) as the game's
+# two punches of five frames each; the hit lands on frame 2 of the first, 1-2 of the second
+STRIKE = [(3, 3, 506, 507), (515, 3, 1020, 507), (1029, 3, 1533, 507), (3, 516, 520, 1021)]
+PUNCH1, PUNCH2 = [0, 1, 1, 2, 0], [2, 3, 3, 3, 0]
+# the jump: the four figures of jump.png (crouch, rising, tucked, landing) as the game's five
+# (crouch, rising, top, falling, landing); the landing box stops above the drawn shadow
+JUMP = [(0, 330, 395, 780), (395, 100, 725, 700), (725, 60, 1065, 480), (1070, 430, 1510, 759)]
+JUMPS = [0, 1, 2, 2, 3]
 # These pictures are drawn at other sizes than standing.png: how much bigger she is drawn in
 # standing.png, matched by eye (her head beside her head in standing.png)
-HIT_SIZE, DEATH_SIZE = 1.43, 2.1
+HIT_SIZE, DEATH_SIZE, JUMP_SIZE = 1.43, 2.1, 0.95
+# strike_2.png: her guard stance as tall as her jabs from the video were (a wide stance)
+GUARD = 340
 
 
 def flood(mask, seeds):
@@ -110,6 +118,50 @@ def cut(img):
         if best is None or c.sum() > best.sum():
             best = c
     return np.dstack([a.astype(np.uint8), np.where(best, 255, 0).astype(np.uint8)])
+
+
+def largest(mask):
+    """The biggest connected piece of `mask`."""
+    ys, xs = np.where(mask)
+    best, seen = None, np.zeros_like(mask)
+    for y, x in zip(ys[:: max(1, len(ys) // 400)], xs[:: max(1, len(xs) // 400)]):
+        if seen[y, x]:
+            continue
+        c = flood(mask & ~seen, [(y, x)])
+        seen |= c
+        if best is None or c.sum() > best.sum():
+            best = c
+    return best
+
+
+def strip_marks(rgba):
+    """Without the drawn ground shadow, motion streaks and dust: pale grey pieces touching the
+    background that are flat (much wider than tall, unlike the grey of her shirt), then only
+    the biggest piece left."""
+    a = rgba[..., :3].astype(np.int16)
+    lum, sat = a.mean(2), a.max(2) - a.min(2)
+    fg = rgba[..., 3] > 0
+    grey = fg & (lum > 110) & (sat < 40)
+    h = np.ptp(np.where(fg.any(1))[0]) + 1
+    bgn = ~fg
+    near = np.zeros_like(fg)
+    near[1:] |= bgn[:-1]
+    near[:-1] |= bgn[1:]
+    near[:, 1:] |= bgn[:, :-1]
+    near[:, :-1] |= bgn[:, 1:]
+    seen = np.zeros_like(fg)
+    out = rgba.copy()
+    for y, x in zip(*np.where(grey & near)):
+        if seen[y, x]:
+            continue
+        c = flood(grey & ~seen, [(y, x)])
+        seen |= c
+        ys, xs = np.where(c)
+        if np.ptp(ys) + 1 < h * 0.06 and np.ptp(xs) + 1 > 2 * (np.ptp(ys) + 1):
+            out[c, 3] = 0
+    keep = largest(out[..., 3] > 0)
+    out[~keep, 3] = 0
+    return out
 
 
 def height(rgba):
@@ -203,6 +255,16 @@ def main():
     death = Image.open(SRC / "death.png").convert("RGB")
     falls = [scaled(cut(death.crop(b)), s_st * DEATH_SIZE) for b in DEATH]
     rows["ko"] = [falls[k] for k in KO]
+    # the punches and the jump: drawn pictures, their ground shadows and motion lines taken off
+    strike = Image.open(SRC / "strike_2.png").convert("RGB")
+    hits = [strip_marks(cut(strike.crop(b))) for b in STRIKE]
+    s_hit = GUARD / height(hits[0])
+    hits = [scaled(h, s_hit) for h in hits]
+    rows["punch1"] = [hits[k] for k in PUNCH1]
+    rows["punch2"] = [hits[k] for k in PUNCH2]
+    jump = Image.open(SRC / "jump.png").convert("RGB")
+    jumps = [scaled(strip_marks(cut(jump.crop(b))), s_hit * JUMP_SIZE) for b in JUMP]
+    rows["jump"] = [jumps[k] for k in JUMPS]
     # every animation: one window round all its frames, its anchor the boots' average middle
     sheet_rows, table = [], {}
     for name in ROWS:

@@ -168,8 +168,8 @@ test('the idle loop: one atlas frame per held pose, the poses in order and round
   assert.equal(idlePose(total / 24 + 0.01), 0, 'round again');
 });
 
-test('Lucy fires her pistol on K: a very fast bullet from the muzzle that hits the first enemy', async () => {
-  const { BULLET, D, BONE_COST } = await import('../src/config.js');
+test('Lucy fires her pistol on L: a very fast bullet from the muzzle that hits the first enemy', async () => {
+  const { BULLET, D } = await import('../src/config.js');
   const { FR } = await import('../src/lucy-frames.js');
   assert.equal(FR.throw.length, 4, 'side on, drawing, aiming, firing');
   P.who = 'lucy';
@@ -181,11 +181,11 @@ test('Lucy fires her pistol on K: a very fast bullet from the muzzle that hits t
   const e = spawn('fat', 1, 900, 450);
   e.state = 'chase';
   const hp = e.hp;
-  pressed.bone = true;
+  pressed.hado = true;
   update(DT);
   for (const k in pressed) delete pressed[k];
   assert.equal(P.state, 'throw');
-  assert.equal(P.rage, 100 - BONE_COST);
+  assert.equal(P.rage, 100 - BULLET.cost);
   const fire = D.gun.slice(0, 3).reduce((a, b) => a + b, 0);
   let shot = null;
   for (let t = 0; t < fire + 0.1 && !shot; t += DT) {
@@ -204,17 +204,17 @@ test('Lucy fires her pistol on K: a very fast bullet from the muzzle that hits t
   P.who = 'raithwyn';
 });
 
-test('Lucy keeps firing while K is held, aiming and firing in turn, each shot paid for', async () => {
-  const { BONE_COST } = await import('../src/config.js');
+test('Lucy keeps firing while L is held, aiming and firing in turn, each shot paid for', async () => {
+  const { BULLET } = await import('../src/config.js');
   P.who = 'lucy';
   P.rage = 100;
   G.enemies = [];
   const props = G.props;
   G.props = [];
-  keys.bone = true;
-  pressed.bone = true;
+  keys.hado = true;
+  pressed.hado = true;
   update(DT);
-  delete pressed.bone;
+  delete pressed.hado;
   const seen = new Set();
   let shots = 0;
   for (let t = 0; t < 1.2; t += DT) {
@@ -224,10 +224,10 @@ test('Lucy keeps firing while K is held, aiming and firing in turn, each shot pa
     assert.equal(P.state, 'throw', 'the pistol stays up');
     if (t > 0.4) seen.add(P.an[1]);
   }
-  assert.ok(shots >= 4, `several shots in a row (${shots})`);
+  assert.ok(shots >= 5, `several shots in a row (${shots})`);
   assert.deepEqual([...seen].sort(), [2, 3], 'aiming and firing frames in turn');
-  assert.equal(P.rage, 100 - BONE_COST * shots, 'every shot costs rage');
-  keys.bone = false;
+  assert.equal(P.rage, 100 - BULLET.cost * shots, 'every shot costs rage');
+  keys.hado = false;
   for (let t = 0; t < 0.4; t += DT) update(DT);
   assert.notEqual(P.state, 'throw', 'let go: she puts it away');
   G.props = props;
@@ -238,4 +238,21 @@ test('Lucy has her own frames for taking a hit and being knocked down', async ()
   const { FR } = await import('../src/lucy-frames.js');
   assert.equal(FR.hurt.length, 2);
   assert.equal(FR.ko.length, 6);
+});
+
+test('Lucy has no bone on K, and her own jump and punches', async () => {
+  const { FR } = await import('../src/lucy-frames.js');
+  assert.equal(FR.jump.length, 5, 'crouch, rising, top, falling, landing');
+  assert.equal(FR.punch1.length, 5);
+  assert.equal(FR.punch2.length, 5);
+  P.who = 'lucy';
+  P.rage = 100;
+  pressed.bone = true;
+  update(DT);
+  delete pressed.bone;
+  update(DT);
+  assert.notEqual(P.state, 'throw');
+  assert.equal(P.rage, 100, 'nothing spent');
+  assert.equal(G.projs.length, 0, 'nothing thrown');
+  P.who = 'raithwyn';
 });
