@@ -249,8 +249,17 @@ export function updPlayer(dt) {
     }
     case 'throw': {
       // Lucy draws her pistol and fires instead of throwing a bone
-      const gun = p.who === 'lucy',
-        i = tl(gun ? D.gun : D.thr, p.t);
+      const gun = p.who === 'lucy';
+      let i = tl(gun ? D.gun : D.thr, p.t);
+      if (i < 0 && gun && keys.bone) {
+        // K held: she keeps the pistol up and fires again, aiming and firing in turn
+        if (p.rage >= BONE_COST) {
+          p.rage -= BONE_COST;
+          p.t = D.gun[0] + D.gun[1];
+          p.sw = 0;
+          i = 2;
+        } else SFX.deny();
+      }
       if (i < 0) {
         toIdle();
         break;

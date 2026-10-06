@@ -4,7 +4,8 @@
     python3 tools/lucy_sheet.py      # then: npm run atlas
 
 The sources are in assets/source/lucy/: standing.png (one frame), shoot.png (four panels:
-side on, drawing the pistol, aiming, firing) and the videos idle.mp4,
+side on, drawing the pistol, aiming, firing), hit1.png (two: taking a hit), death.png
+(four: knocked down) and the videos idle.mp4,
 walk.mp4, run.mp4 and strike_1.mp4 (she raises her guard and jabs again and again); each
 video is shot from a fixed camera with her in place. Every picture is cut out of its white
 background (from the edges inwards, keeping only the figure, so the watermark goes too) and
@@ -41,11 +42,20 @@ ANIMS = {
     "punch1": ("strike_1.mp4", [34, 36, 38, 40, 43]),
     "punch2": ("strike_1.mp4", [58, 60, 62, 64, 67]),
 }
-ROWS = ["stand", "idle", "walk", "run", "punch1", "punch2", "throw"]
+ROWS = ["stand", "idle", "walk", "run", "punch1", "punch2", "throw", "hurt", "ko"]
 # the pistol shot (the game's "throw" slot, K): the four panels of shoot.png, left to right
 PANELS = [(0, 347), (353, 767), (772, 1205), (1210, 1680)]
 # rows whose frames come from separate pictures: each frame its own window and anchor
-APART = {"stand", "throw"}
+APART = {"stand", "throw", "hurt", "ko"}
+# taking a hit: the two figures of hit1.png (flinching, thrown back); falling: the four of
+# death.png (thrown, diving, landing on her hands, lying) as the game's six knockdown frames
+# (thrown, rising, falling, landing, bouncing, lying). Boxes are (x0, y0, x1, y1).
+HIT = [(0, 0, 425, 871), (426, 0, 833, 871)]
+DEATH = [(0, 0, 460, 465), (460, 0, 976, 465), (0, 465, 470, 868), (470, 465, 976, 868)]
+KO = [0, 0, 1, 2, 2, 3]
+# These pictures are drawn at other sizes than standing.png: how much bigger she is drawn in
+# standing.png, matched by eye (her head beside her head in standing.png)
+HIT_SIZE, DEATH_SIZE = 1.43, 2.1
 
 
 def flood(mask, seeds):
@@ -186,6 +196,13 @@ def main():
     panels = [panels[0]] + [mend_tail(p, panels[0], pad) for p in panels[1:]]
     sp = TALL / height(panels[0])
     rows["throw"] = [scaled(p, sp) for p in panels]
+    # taking a hit and falling: scaled as standing.png
+    s_st = TALL / height(st)
+    hit = Image.open(SRC / "hit1.png").convert("RGB")
+    rows["hurt"] = [scaled(cut(hit.crop(b)), s_st * HIT_SIZE) for b in HIT]
+    death = Image.open(SRC / "death.png").convert("RGB")
+    falls = [scaled(cut(death.crop(b)), s_st * DEATH_SIZE) for b in DEATH]
+    rows["ko"] = [falls[k] for k in KO]
     # every animation: one window round all its frames, its anchor the boots' average middle
     sheet_rows, table = [], {}
     for name in ROWS:
@@ -196,7 +213,9 @@ def main():
             for f in fr:
                 ys, xs = np.where(f[..., 3] > 10)
                 cs.append(f[ys.min() : ys.max() + 1, xs.min() : xs.max() + 1])
-                axs.append(boots_x(f) - xs.min())
+                # off her feet the anchor is the middle of the figure, so she does not jump
+                mid = xs.mean() if name == "ko" else boots_x(f)
+                axs.append(mid - xs.min())
             sheet_rows.append((name, cs, axs))
             continue
         al = np.stack([f[..., 3] > 10 for f in fr]).any(0)

@@ -14,10 +14,11 @@ settings and remembered by the browser.
 After the splash screen comes the main menu: Start game, Settings, Exit. Before the fight there
 is the fighter select: four portraits (Raithwyn, Lucy, Tiger man, Gumdong) and four locked slots.
 Every fighter has a description and stats. Raithwyn and Lucy are playable (Lucy for testing:
-she has her own sprites for standing, idle, walking, running, two jabs and a pistol shot, every
-other animation shows her standing frame, and she plays with Raithwyn's moves for now; on `K` she
+she has her own sprites for standing, idle, walking, running, two jabs, a pistol shot, taking a
+hit and being knocked down, every other animation shows her standing frame, and she plays with Raithwyn's moves for now; on `K` she
 draws her pistol and fires instead of throwing a bone: the same 15 rage, 7 damage, and the bullet
-flies at 2400 px/s and hits the first enemy or barrel in its way, `BULLET` in `src/config.js`); the others can be looked at. The fighter
+flies at 2400 px/s and hits the first enemy or barrel in its way, `BULLET` in `src/config.js`;
+with `K` held she keeps firing, aiming and firing in turn, each shot paying 15 rage); the others can be looked at. The fighter
 chosen goes into the run's replay.
 
 The game is written in plain JavaScript and Canvas 2D, with no engine and no runtime
@@ -548,7 +549,9 @@ cut with one window, so they keep their places from the video and do not jitter.
 over a 1 s loop of walk.mp4 and run.mp4), `punch1` and `punch2` (two jabs from strike_1.mp4;
 the video frames are in `ANIMS`) and `throw` (the four panels of shoot.png: side on, drawing,
 aiming, firing; her tail is cut off at the picture's left edge in the last two, so its tip is
-grafted on from the first panel, `mend_tail`). The frames and their anchors go to
+grafted on from the first panel, `mend_tail`), `hurt` (the two figures of hit1.png) and `ko`
+(the four of death.png as the six knockdown frames, `KO`; these two pictures are drawn at other
+sizes than standing.png, so `HIT_SIZE` and `DEATH_SIZE` bring her to the same height). The frames and their anchors go to
 `assets/source/lucy_sheet.json`, and `npm run atlas` builds `assets/lucy.png` and
 `src/lucy-frames.js` from them (`FIGHTERS` in `tools/build_atlas.py`). How fast her idle, walk
 and run play is in `FIGHTER_ANIM` in `src/config.js`. An animation she does not have yet shows
