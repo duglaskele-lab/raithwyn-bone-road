@@ -13,6 +13,9 @@ scaled so that she is as tall as Raithwyn (356 sheet px, ears to boots; one scal
 videos). The frames of one animation are all cut with the same window, so they stay lined up
 as in the video; the window's bottom is the ground and its anchor the middle of her boots.
 The frames and their anchors go to assets/source/lucy_sheet.json for the atlas builder.
+
+The sheet in the repository has been retouched by hand since (its transparency): running this
+again wipes those edits, so do it only to add new pictures, and redo the retouching after.
 """
 import subprocess
 import sys
