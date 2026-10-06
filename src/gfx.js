@@ -13,7 +13,7 @@ const FIGHTERS = { raithwyn: [atlas, FR], lucy: [lucyAtlas, FR_LUCY] };
 /** [atlas, frame] of a fighter's animation frame, falling back to the standing frame. */
 export function fighterFrame(who, name, i) {
   const [img, fr] = FIGHTERS[who] ?? FIGHTERS.raithwyn,
-    set = fr[name] ?? fr.idle;
+    set = fr[name] ?? fr.stand ?? fr.idle;
   return [img, set[Math.min(fr[name] ? i : 0, set.length - 1)]];
 }
 export function initGfx(canvas) {

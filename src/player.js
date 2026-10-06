@@ -3,6 +3,7 @@ import {
   BONE_COST,
   D,
   HADO,
+  FIGHTER_ANIM,
   IDLE_HOLD,
   RAGE,
   GB,
@@ -23,11 +24,10 @@ import { dust, motes } from './fx.js';
 import { floorClamp, viewClamp } from './level.js';
 import { hadoLevel, strike, superNova } from './combat.js';
 
-// The idle pose at time t: the poses are held for IDLE_HOLD[i] 24ths of a second each.
-const IDLE_T = IDLE_HOLD.reduce((n, h) => n + h, 0);
-export function idlePose(t) {
-  let k = Math.floor(t * 24) % IDLE_T;
-  for (let i = 0; i < IDLE_HOLD.length; i++) if ((k -= IDLE_HOLD[i]) < 0) return i;
+// The idle pose at time t: the poses are held for hold[i] 24ths of a second each.
+export function idlePose(t, hold = IDLE_HOLD) {
+  let k = Math.floor(t * 24) % hold.reduce((n, h) => n + h, 0);
+  for (let i = 0; i < hold.length; i++) if ((k -= hold[i]) < 0) return i;
   return 0;
 }
 export function toIdle() {
@@ -107,12 +107,13 @@ export function updPlayer(dt) {
         p.state = ns;
         p.t = 0;
       }
+      const A = FIGHTER_ANIM[p.who] ?? FIGHTER_ANIM.raithwyn;
       p.an =
         ns === 'idle'
-          ? ['idle', idlePose(p.t)]
+          ? ['idle', idlePose(p.t, A.idle)]
           : ns === 'walk'
-            ? ['walk', Math.floor(p.t / 0.085) % 8]
-            : ['run', Math.floor(p.t / RUN_FRAME) % 6];
+            ? ['walk', Math.floor(p.t / A.walk[0]) % A.walk[1]]
+            : ['run', Math.floor(p.t / A.run[0]) % A.run[1]];
       if (
         ns === 'run' &&
         Math.floor(p.t / (RUN_FRAME * 3)) !== Math.floor((p.t - dt) / (RUN_FRAME * 3))

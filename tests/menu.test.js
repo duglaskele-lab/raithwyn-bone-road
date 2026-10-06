@@ -173,10 +173,16 @@ test('Lucy can be chosen: the run is hers, and so is its replay', async () => {
   P.who = 'raithwyn';
   startReplay(run);
   assert.equal(P.who, 'lucy', 'the replay plays her');
-  // her sprites: her own standing frame and jabs; what she lacks yet shows her standing
+  // her sprites: standing, idle, walk, run and two jabs; what she lacks yet shows her standing
   assert.equal(fighterFrame('lucy', 'punch1', 2)[1], FR.punch1[2]);
-  assert.equal(fighterFrame('lucy', 'run', 3)[1], FR.idle[0]);
-  assert.equal(fighterFrame('lucy', 'idle', 7)[1], FR.idle[0]);
-  assert.ok(FR.punch1.length === 5 && FR.punch2.length === 5);
+  assert.equal(fighterFrame('lucy', 'run', 3)[1], FR.run[3]);
+  assert.equal(fighterFrame('lucy', 'idle', 7)[1], FR.idle[7]);
+  assert.equal(fighterFrame('lucy', 'hurt', 1)[1], FR.stand[0]);
+  const { FIGHTER_ANIM } = await import('../src/config.js');
+  const A = FIGHTER_ANIM.lucy;
+  assert.equal(A.idle.length, FR.idle.length);
+  assert.equal(A.walk[1], FR.walk.length);
+  assert.equal(A.run[1], FR.run.length);
+  assert.ok(FR.punch1.length === 5 && FR.punch2.length === 5 && FR.stand.length === 1);
   G.fighter = 'raithwyn';
 });
