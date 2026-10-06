@@ -2,6 +2,7 @@
 import {
   BONE_COST,
   BULLET,
+  GRENADE,
   D,
   HADO,
   FIGHTER_ANIM,
@@ -132,9 +133,14 @@ export function updPlayer(dt) {
         p.airUsed = 0;
       } else if (b === 'atk') startAtk(mx);
       else if (b === 'bone' && p.who === 'lucy') {
-        // Lucy has no bone to throw: her shot is on L
+        // Lucy's K: she draws her pistol and fires
         p.buf = null;
-        SFX.deny();
+        if (p.rage >= BULLET.cost) {
+          p.rage -= BULLET.cost;
+          p.state = 'throw';
+          p.t = 0;
+          p.sw = 0;
+        } else SFX.deny();
       } else if (b === 'bone' && p.boneCd <= 0) {
         p.buf = null;
         if (p.rage >= BONE_COST) {
@@ -158,11 +164,11 @@ export function updPlayer(dt) {
           p.sw = 0;
         }
       } else if (b === 'hado' && p.who === 'lucy') {
-        // Lucy's L: she draws her pistol and fires
+        // Lucy's L: she throws a grenade
         p.buf = null;
-        if (p.rage >= BULLET.cost) {
-          p.rage -= BULLET.cost;
-          p.state = 'throw';
+        if (p.rage >= GRENADE.cost) {
+          p.rage -= GRENADE.cost;
+          p.state = 'nade';
           p.t = 0;
           p.sw = 0;
         } else SFX.deny();
@@ -264,8 +270,8 @@ export function updPlayer(dt) {
       // Lucy draws her pistol and fires instead of throwing a bone
       const gun = p.who === 'lucy';
       let i = tl(gun ? D.gun : D.thr, p.t);
-      if (i < 0 && gun && keys.hado) {
-        // L held: she keeps the pistol up and fires again, aiming and firing in turn
+      if (i < 0 && gun && keys.bone) {
+        // K held: she keeps the pistol up and fires again, aiming and firing in turn
         if (p.rage >= BULLET.cost) {
           p.rage -= BULLET.cost;
           p.t = D.gun[0] + D.gun[1];
@@ -302,6 +308,30 @@ export function updPlayer(dt) {
           vx: p.face * 650,
           rot: 0,
           life: 1.05,
+        });
+      }
+      break;
+    }
+    case 'nade': {
+      // Lucy throws a grenade: it leaves her hand as her arm comes forward
+      const i = tl(D.nade, p.t);
+      if (i < 0) {
+        toIdle();
+        break;
+      }
+      p.an = ['grenade', i];
+      if (i >= 2 && !p.sw) {
+        p.sw = 1;
+        SFX.swing();
+        G.projs.push({
+          k: 'nade',
+          x: p.x + p.face * GRENADE.x,
+          y: p.y,
+          z: GRENADE.z,
+          vx: p.face * GRENADE.vx,
+          vz: GRENADE.vz,
+          rot: 0,
+          life: 5,
         });
       }
       break;

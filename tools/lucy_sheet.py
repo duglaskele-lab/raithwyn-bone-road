@@ -14,8 +14,9 @@ videos). The frames of one animation are all cut with the same window, so they s
 as in the video; the window's bottom is the ground and its anchor the middle of her boots.
 The frames and their anchors go to assets/source/lucy_sheet.json for the atlas builder.
 
-The sheet in the repository has been retouched by hand since (its transparency): running this
-again wipes those edits, so do it only to add new pictures, and redo the retouching after.
+The sheet in the repository has been retouched by hand since (its transparency), so this adds
+only the rows the sheet does not have yet, below the others, and leaves those as they are;
+`--all` makes the whole sheet again (and wipes the retouching).
 """
 import subprocess
 import sys
@@ -43,11 +44,23 @@ ANIMS = {
     "walk": ("walk.mp4", loop(27, 51, 8)),  # 24 frames, 1 s
     "run": ("run.mp4", loop(77, 101, 8)),  # 24 frames, 1 s
 }
-ROWS = ["stand", "idle", "walk", "run", "punch1", "punch2", "throw", "hurt", "ko", "jump"]
+ROWS = [
+    "stand", "idle", "walk", "run", "punch1", "punch2", "throw", "hurt", "ko", "jump",
+    "grenade", "nade",
+]
 # the pistol shot (the game's "throw" slot, K): the four panels of shoot.png, left to right
 PANELS = [(0, 347), (353, 767), (772, 1205), (1210, 1680)]
 # rows whose frames come from separate pictures: each frame its own window and anchor
-APART = {"stand", "throw", "hurt", "ko", "punch1", "punch2", "jump"}
+APART = {"stand", "throw", "hurt", "ko", "punch1", "punch2", "jump", "grenade"}
+# the grenade throw (L): the five figures of grenade.png (grenade in hand, arm back, letting go,
+# arm out, follow through) as five frames; `nade` is the grenade itself, as it flies
+NADE_THROW = [
+    (0, 80, 300, 505), (305, 80, 645, 505), (650, 80, 1024, 505), (60, 560, 480, 995),
+    (490, 560, 880, 995),
+]
+NADE_FRAMES = [0, 1, 2, 3, 4]
+NADE = (905, 760, 975, 825)
+NADE_SIZE = 1.6  # a bit bigger than in the picture, to be seen as it spins
 # taking a hit: the two figures of hit1.png (flinching, thrown back); falling: the four of
 # death.png (thrown, diving, landing on her hands, lying) as the game's six knockdown frames
 # (thrown, rising, falling, landing, bouncing, lying). Boxes are (x0, y0, x1, y1).
@@ -227,72 +240,133 @@ def boots_x(f):
     return (xs.min() + xs.max()) / 2
 
 
-def main():
-    import json
+def build_rows():
+    """Every row's frames, built only when asked for (the videos take a while)."""
+    memo = {}
 
-    rows = {}
-    # standing: one picture, its own scale, anchored by its boots
-    st = cut(Image.open(SRC / "standing.png"))
-    rows["stand"] = [scaled(st, TALL / height(st))]
-    # the videos: one scale for all, from her height standing at the start of the idle video
+    def once(key, fn):
+        if key not in memo:
+            memo[key] = fn()
+        return memo[key]
+
+    def stand_cut():
+        return cut(Image.open(SRC / "standing.png"))
+
+    def video_scale():
+        # one scale for all the videos, from her height standing at the start of the idle video
+        return TALL / height(cut(vid("idle.mp4")(1)))
+
     videos = {}
     vid = lambda name: videos.setdefault(name, video_frames(SRC / name))  # noqa: E731
-    s = TALL / height(cut(vid("idle.mp4")(1)))
-    for name, (video, picks) in ANIMS.items():
-        rows[name] = [scaled(cut(vid(video)(i)), s) for i in picks]
-    # the shot: four panels of one drawing, one scale (from the first, where she stands upright);
-    # the panels' left edges cut the tail off in the last two, so its tip is put back
-    sheet_img = Image.open(SRC / "shoot.png").convert("RGB")
-    pad = 160
-    panels = []
-    for x0, x1 in PANELS:
-        p = cut(sheet_img.crop((x0, 0, x1, sheet_img.height)))
-        panels.append(np.pad(p, ((0, 0), (pad, 0), (0, 0))))
-    panels = [panels[0]] + [mend_tail(p, panels[0], pad) for p in panels[1:]]
-    sp = TALL / height(panels[0])
-    rows["throw"] = [scaled(p, sp) for p in panels]
-    # taking a hit and falling: scaled as standing.png
-    s_st = TALL / height(st)
-    hit = Image.open(SRC / "hit1.png").convert("RGB")
-    rows["hurt"] = [scaled(cut(hit.crop(b)), s_st * HIT_SIZE) for b in HIT]
-    death = Image.open(SRC / "death.png").convert("RGB")
-    falls = [scaled(cut(death.crop(b)), s_st * DEATH_SIZE) for b in DEATH]
-    rows["ko"] = [falls[k] for k in KO]
-    # the punches and the jump: drawn pictures, their ground shadows and motion lines taken off
-    strike = Image.open(SRC / "strike_2.png").convert("RGB")
-    hits = [strip_marks(cut(strike.crop(b))) for b in STRIKE]
-    s_hit = GUARD / height(hits[0])
-    hits = [scaled(h, s_hit) for h in hits]
-    rows["punch1"] = [hits[k] for k in PUNCH1]
-    rows["punch2"] = [hits[k] for k in PUNCH2]
-    jump = Image.open(SRC / "jump.png").convert("RGB")
-    jumps = [scaled(strip_marks(cut(jump.crop(b))), s_hit * JUMP_SIZE) for b in JUMP]
-    rows["jump"] = [jumps[k] for k in JUMPS]
-    # every animation: one window round all its frames, its anchor the boots' average middle
-    sheet_rows, table = [], {}
-    for name in ROWS:
-        fr = rows[name]
-        if name in APART:
-            # separate pictures: each cropped to itself, anchored by its own boots
-            cs, axs = [], []
-            for f in fr:
-                ys, xs = np.where(f[..., 3] > 10)
-                cs.append(f[ys.min() : ys.max() + 1, xs.min() : xs.max() + 1])
-                # off her feet the anchor is the middle of the figure, so she does not jump
-                mid = xs.mean() if name == "ko" else boots_x(f)
-                axs.append(mid - xs.min())
-            sheet_rows.append((name, cs, axs))
-            continue
-        al = np.stack([f[..., 3] > 10 for f in fr]).any(0)
-        ys, xs = np.where(al)
-        y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
-        ax = float(np.mean([boots_x(f) for f in fr])) - x0
-        sheet_rows.append((name, [f[y0:y1, x0:x1] for f in fr], [ax] * len(fr)))
-    W = 16 + max(sum(f.shape[1] + 16 for f in r) for _, r, _ in sheet_rows)
-    H = 16 + sum(max(f.shape[0] for f in r) + 16 for _, r, _ in sheet_rows)
+    s_st = lambda: TALL / height(once("stand", stand_cut))  # noqa: E731
+
+    def video_row(name):
+        video, picks = ANIMS[name]
+        s = once("video", video_scale)
+        return [scaled(cut(vid(video)(i)), s) for i in picks]
+
+    def shot():
+        # four panels of one drawing, one scale (from the first, where she stands upright);
+        # the panels' left edges cut the tail off in the last two, so its tip is put back
+        img = Image.open(SRC / "shoot.png").convert("RGB")
+        pad = 160
+        panels = []
+        for x0, x1 in PANELS:
+            p = cut(img.crop((x0, 0, x1, img.height)))
+            panels.append(np.pad(p, ((0, 0), (pad, 0), (0, 0))))
+        panels = [panels[0]] + [mend_tail(p, panels[0], pad) for p in panels[1:]]
+        sp = TALL / height(panels[0])
+        return [scaled(p, sp) for p in panels]
+
+    def falls():
+        death = Image.open(SRC / "death.png").convert("RGB")
+        return [scaled(cut(death.crop(b)), s_st() * DEATH_SIZE) for b in DEATH]
+
+    def strikes():
+        # drawn pictures: their ground shadows and motion lines taken off
+        strike = Image.open(SRC / "strike_2.png").convert("RGB")
+        hits = [strip_marks(cut(strike.crop(b))) for b in STRIKE]
+        memo["s_hit"] = GUARD / height(hits[0])
+        return [scaled(h, memo["s_hit"]) for h in hits]
+
+    def jumps():
+        once("strikes", strikes)
+        jump = Image.open(SRC / "jump.png").convert("RGB")
+        return [scaled(strip_marks(cut(jump.crop(b))), memo["s_hit"] * JUMP_SIZE) for b in JUMP]
+
+    def throws():
+        # the grenade throw: her stance as tall as her guard in strike_2.png; the grenade in
+        # the air is a piece of its own, so cutting the figure leaves it out
+        img = Image.open(SRC / "grenade.png").convert("RGB")
+        figs = [strip_marks(cut(img.crop(b))) for b in NADE_THROW]
+        memo["s_nade"] = GUARD / height(figs[0])
+        return [scaled(f, memo["s_nade"]) for f in figs]
+
+    def nade():
+        once("throws", throws)
+        img = Image.open(SRC / "grenade.png").convert("RGB")
+        return [scaled(cut(img.crop(NADE)), memo["s_nade"] * NADE_SIZE)]
+
+    hit = lambda: Image.open(SRC / "hit1.png").convert("RGB")  # noqa: E731
+    return {
+        "stand": lambda: [scaled(once("stand", stand_cut), s_st())],
+        **{n: (lambda n=n: video_row(n)) for n in ANIMS},
+        "throw": shot,
+        "hurt": lambda: [scaled(cut(hit().crop(b)), s_st() * HIT_SIZE) for b in HIT],
+        "ko": lambda: [once("falls", falls)[k] for k in KO],
+        "punch1": lambda: [once("strikes", strikes)[k] for k in PUNCH1],
+        "punch2": lambda: [once("strikes", strikes)[k] for k in PUNCH2],
+        "jump": lambda: [once("jumps", jumps)[k] for k in JUMPS],
+        "grenade": lambda: [once("throws", throws)[k] for k in NADE_FRAMES],
+        "nade": nade,
+    }
+
+
+def layout(name, fr):
+    """A row's frames cropped, and their anchors' x."""
+    if name == "nade":
+        # the grenade itself: anchored at its middle, so it can spin round it
+        ys, xs = np.where(fr[0][..., 3] > 10)
+        f = fr[0][ys.min() : ys.max() + 1, xs.min() : xs.max() + 1]
+        return [f], [f.shape[1] / 2]
+    if name in APART:
+        # separate pictures: each cropped to itself, anchored by its own boots
+        cs, axs = [], []
+        for f in fr:
+            ys, xs = np.where(f[..., 3] > 10)
+            cs.append(f[ys.min() : ys.max() + 1, xs.min() : xs.max() + 1])
+            # off her feet the anchor is the middle of the figure, so she does not jump
+            mid = xs.mean() if name == "ko" else boots_x(f)
+            axs.append(mid - xs.min())
+        return cs, axs
+    # one window round all its frames, its anchor the boots' average middle
+    al = np.stack([f[..., 3] > 10 for f in fr]).any(0)
+    ys, xs = np.where(al)
+    y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+    ax = float(np.mean([boots_x(f) for f in fr])) - x0
+    return [f[y0:y1, x0:x1] for f in fr], [ax] * len(fr)
+
+
+def main():
+    """Adds the rows the sheet does not have yet below it, leaving the others as they are (they
+    may have been retouched by hand); with --all, makes the whole sheet again."""
+    import json
+
+    sheet_path = ROOT / "assets/source/lucy_sheet.png"
+    json_path = ROOT / "assets/source/lucy_sheet.json"
+    fresh = "--all" in sys.argv or not json_path.exists()
+    table = {} if fresh else json.loads(json_path.read_text())["frames"]
+    old = None if fresh else Image.open(sheet_path).convert("RGBA")
+    builders = build_rows()
+    new = [n for n in ROWS if n not in table]
+    laid = [(n, *layout(n, builders[n]())) for n in new]
+    y = 16 if fresh else old.height
+    W = max([old.width if old else 0] + [16 + sum(f.shape[1] + 16 for f in r) for _, r, _ in laid])
+    H = y + sum(max(f.shape[0] for f in r) + 16 for _, r, _ in laid)
     sheet = Image.new("RGBA", (W, H))
-    y = 16
-    for name, r, axs in sheet_rows:
+    if old:
+        sheet.paste(old, (0, 0))
+    for name, r, axs in laid:
         x = 16
         h = max(f.shape[0] for f in r)
         table[name] = []
@@ -302,11 +376,11 @@ def main():
             table[name].append([x, y, x + f.shape[1], y + h, round(float(ax), 1), h])
             x += f.shape[1] + 16
         y += h + 16
-    sheet.save(ROOT / "assets/source/lucy_sheet.png", optimize=True)
-    (ROOT / "assets/source/lucy_sheet.json").write_text(
-        json.dumps({"rows": ROWS, "frames": table}, indent=1) + "\n"
+    sheet.save(sheet_path, optimize=True)
+    json_path.write_text(
+        json.dumps({"rows": ROWS, "frames": {n: table[n] for n in ROWS}}, indent=1) + "\n"
     )
-    print("lucy_sheet.png", sheet.size, {n: len(rows[n]) for n in ROWS})
+    print("lucy_sheet.png", sheet.size, "added", {n: len(table[n]) for n in new})
 
 
 if __name__ == "__main__":

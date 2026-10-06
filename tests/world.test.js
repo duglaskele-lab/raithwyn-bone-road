@@ -168,7 +168,7 @@ test('the idle loop: one atlas frame per held pose, the poses in order and round
   assert.equal(idlePose(total / 24 + 0.01), 0, 'round again');
 });
 
-test('Lucy fires her pistol on L: a very fast bullet from the muzzle that hits the first enemy', async () => {
+test('Lucy fires her pistol on K: a very fast bullet from the muzzle that hits the first enemy', async () => {
   const { BULLET, D } = await import('../src/config.js');
   const { FR } = await import('../src/lucy-frames.js');
   assert.equal(FR.throw.length, 4, 'side on, drawing, aiming, firing');
@@ -181,7 +181,7 @@ test('Lucy fires her pistol on L: a very fast bullet from the muzzle that hits t
   const e = spawn('fat', 1, 900, 450);
   e.state = 'chase';
   const hp = e.hp;
-  pressed.hado = true;
+  pressed.bone = true;
   update(DT);
   for (const k in pressed) delete pressed[k];
   assert.equal(P.state, 'throw');
@@ -204,17 +204,17 @@ test('Lucy fires her pistol on L: a very fast bullet from the muzzle that hits t
   P.who = 'raithwyn';
 });
 
-test('Lucy keeps firing while L is held, aiming and firing in turn, each shot paid for', async () => {
+test('Lucy keeps firing while K is held, aiming and firing in turn, each shot paid for', async () => {
   const { BULLET } = await import('../src/config.js');
   P.who = 'lucy';
   P.rage = 100;
   G.enemies = [];
   const props = G.props;
   G.props = [];
-  keys.hado = true;
-  pressed.hado = true;
+  keys.bone = true;
+  pressed.bone = true;
   update(DT);
-  delete pressed.hado;
+  delete pressed.bone;
   const seen = new Set();
   let shots = 0;
   for (let t = 0; t < 1.2; t += DT) {
@@ -227,7 +227,7 @@ test('Lucy keeps firing while L is held, aiming and firing in turn, each shot pa
   assert.ok(shots >= 5, `several shots in a row (${shots})`);
   assert.deepEqual([...seen].sort(), [2, 3], 'aiming and firing frames in turn');
   assert.equal(P.rage, 100 - BULLET.cost * shots, 'every shot costs rage');
-  keys.hado = false;
+  keys.bone = false;
   for (let t = 0; t < 0.4; t += DT) update(DT);
   assert.notEqual(P.state, 'throw', 'let go: she puts it away');
   G.props = props;
@@ -240,19 +240,53 @@ test('Lucy has her own frames for taking a hit and being knocked down', async ()
   assert.equal(FR.ko.length, 6);
 });
 
-test('Lucy has no bone on K, and her own jump and punches', async () => {
+test('Lucy throws a spinning grenade on L: an arc, and a wide blast where it lands that spares her', async () => {
   const { FR } = await import('../src/lucy-frames.js');
-  assert.equal(FR.jump.length, 5, 'crouch, rising, top, falling, landing');
-  assert.equal(FR.punch1.length, 5);
-  assert.equal(FR.punch2.length, 5);
+  const { BLAST, GRENADE } = await import('../src/config.js');
+  assert.equal(FR.jump.length, 5, 'her jump: crouch, rising, top, falling, landing');
+  assert.equal(FR.grenade.length, 5, 'her throw');
+  assert.equal(FR.nade.length, 1, 'the grenade');
   P.who = 'lucy';
-  P.rage = 100;
-  pressed.bone = true;
+  P.rage = 150;
+  P.x = 300;
+  P.y = 450;
+  P.face = 1;
+  P.hp = 100;
+  const props = G.props;
+  G.props = [];
+  pressed.hado = true;
   update(DT);
-  delete pressed.bone;
-  update(DT);
-  assert.notEqual(P.state, 'throw');
-  assert.equal(P.rage, 100, 'nothing spent');
-  assert.equal(G.projs.length, 0, 'nothing thrown');
+  delete pressed.hado;
+  assert.equal(P.state, 'nade');
+  assert.equal(P.rage, 150 - GRENADE.cost);
+  let q = null;
+  for (let t = 0; t < 0.5 && !q; t += DT) {
+    update(DT);
+    q = G.projs.find((o) => o.k === 'nade');
+  }
+  assert.ok(q, 'it leaves her hand');
+  // where it will land: an enemy there, and one a good way off but inside the blast
+  const tFly = (GRENADE.vz + Math.sqrt(GRENADE.vz ** 2 + 2 * GRENADE.g * q.z)) / GRENADE.g;
+  const land = q.x + q.vx * tFly;
+  assert.ok(land - P.x > 350, `it flies far (${Math.round(land - P.x)})`);
+  const a = spawn('fat', 1, land, 450),
+    b = spawn('fat', 1, land + BLAST.grenade.r * 0.8, 450);
+  a.state = b.state = 'chase';
+  const ha = a.hp,
+    hb = b.hp;
+  let top = 0,
+    turned = 0,
+    rot0 = q.rot;
+  while (q.life > 0) {
+    update(DT);
+    top = Math.max(top, q.z);
+    turned = Math.abs(q.rot - rot0);
+  }
+  assert.ok(top > GRENADE.z + 50, 'it rises in an arc');
+  assert.ok(turned > Math.PI * 2, 'it spins as it flies');
+  assert.ok(a.hp < ha && b.hp < hb, 'the blast reaches both');
+  assert.ok(ha - a.hp >= 50, 'and hits hard');
+  assert.equal(P.hp, 100, 'she is not hurt by her own grenade');
+  G.props = props;
   P.who = 'raithwyn';
 });

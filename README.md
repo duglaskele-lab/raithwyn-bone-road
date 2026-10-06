@@ -15,11 +15,14 @@ After the splash screen comes the main menu: Start game, Settings, Exit. Before 
 is the fighter select: four portraits (Raithwyn, Lucy, Tiger man, Gumdong) and four locked slots.
 Every fighter has a description and stats. Raithwyn and Lucy are playable (Lucy for testing:
 she has her own sprites for standing, idle, walking, running, jumping, punching, a pistol shot,
-taking a hit and being knocked down, every other animation shows her standing frame, and she
-plays with Raithwyn's moves for now. Her `L` is a pistol instead of the dark ball: each shot
-costs 10 rage and does 7 damage, the bullet flies at 2400 px/s and hits the first enemy or
-barrel in its way (`BULLET` in `src/config.js`), and with `L` held she keeps firing, aiming and
-firing in turn. She has no bone: `K` does nothing for her); the others can be looked at. The fighter
+a grenade throw, taking a hit and being knocked down, every other animation shows her standing
+frame, and she plays with Raithwyn's moves for now. Her `K` is a pistol instead of the bone:
+each shot costs 10 rage and does 7 damage, the bullet flies at 2400 px/s and hits the first
+enemy or barrel in its way (`BULLET` in `src/config.js`), and with `K` held she keeps firing,
+aiming and firing in turn. Her `L` is a grenade instead of the dark ball: 100 rage; it flies in
+an arc about 540 px ahead, spinning, and blows up where it lands: 70 damage to every enemy in a
+wide blast (250 px), it breaks barrels and sets red ones off, and it spares her (`GRENADE` and
+`BLAST.grenade` in `src/config.js`)); the others can be looked at. The fighter
 chosen goes into the run's replay.
 
 The game is written in plain JavaScript and Canvas 2D, with no engine and no runtime
@@ -51,8 +54,8 @@ npm run build      # dist/raithwyn.html — opens from disk, works offline
 | Punch (a three-hit chain; in the air, a flying kick) | `J` |
 | Launcher: the third hit of the chain with "up" held throws the enemy up for juggling | `W` + `J` |
 | Jump | `Space` |
-| Throw a bone (costs 15 rage, 5% of the bar; Lucy has none) | `K` |
-| Dark ball (level I); Lucy fires her pistol, held to keep firing (10 rage a shot) | `L` |
+| Throw a bone (costs 15 rage, 5% of the bar); Lucy fires her pistol, held to keep firing (10 rage a shot) | `K` |
+| Dark ball (level I); Lucy throws a grenade (100 rage) | `L` |
 | Super attack: hold for 1 s with a full rage bar, hits everyone on screen | hold `I` |
 | Pause menu (resume, settings, main menu) / sound | `Esc` or `P` / `M` |
 | Record video: start / stop and download the file | `F9` |
@@ -552,15 +555,18 @@ over a 1 s loop of walk.mp4 and run.mp4; the video frames are in `ANIMS`), `punc
 `PUNCH1` and `PUNCH2`), `jump` (the four figures of jump.png as the five jump frames, `JUMPS`;
 the drawn ground shadows, dust and motion lines are taken off by `strip_marks`), `throw` (the four panels of shoot.png: side on, drawing,
 aiming, firing; her tail is cut off at the picture's left edge in the last two, so its tip is
-grafted on from the first panel, `mend_tail`), `hurt` (the two figures of hit1.png) and `ko`
+grafted on from the first panel, `mend_tail`), `grenade` (the five figures of grenade.png:
+grenade in hand, arm back, letting go, arm out, follow through) and `nade` (the grenade itself,
+taken from the last figure, `NADE`; drawn spinning as it flies), `hurt` (the two figures of hit1.png) and `ko`
 (the four of death.png as the six knockdown frames, `KO`; these two pictures are drawn at other
 sizes than standing.png, so `HIT_SIZE`, `DEATH_SIZE`, `GUARD` and `JUMP_SIZE` bring her to the
 same height). The frames and their anchors go to
 `assets/source/lucy_sheet.json`, and `npm run atlas` builds `assets/lucy.png` and
 `src/lucy-frames.js` from them (`FIGHTERS` in `tools/build_atlas.py`). How fast her idle, walk
 and run play is in `FIGHTER_ANIM` in `src/config.js`. The sheet's transparency has been retouched by hand
-(stray pixels round the figure): rebuilding it with `tools/lucy_sheet.py` would wipe those edits,
-so after a change by hand only `npm run atlas` is run. An animation she does not have yet shows
+(stray pixels round the figure), so `tools/lucy_sheet.py` only adds the rows the sheet does not
+have yet, below the others, and leaves those as they are (`--all` makes the whole sheet again and
+wipes the retouching); after a change by hand only `npm run atlas` is run. An animation she does not have yet shows
 her standing frame (`fighterFrame` in `src/gfx.js`).
 
 **Portraits.** Put a picture in `assets/source/portraits/<name>.webp` and run

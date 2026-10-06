@@ -18,7 +18,7 @@ import {
 import { clamp, ease } from './util.js';
 import { FR } from './atlas-frames.js';
 import { G, P } from './state.js';
-import { atlas, ctx, portraits, ready, rr, setCtx, sprite, txt } from './gfx.js';
+import { atlas, ctx, fighterFrame, portraits, ready, rr, setCtx, sprite, txt } from './gfx.js';
 import { STR, foeName, lang, t } from './i18n.js';
 import { touch } from './input.js';
 import { canFullScreen } from './touch.js';
@@ -381,6 +381,17 @@ export function drawDebris(d) {
 export function drawProj(q) {
   const x = q.x - G.cam,
     y = q.y - q.z;
+  if (q.k === 'nade') {
+    // Lucy's grenade, spinning round its middle
+    const [img, f] = fighterFrame('lucy', 'nade', 0);
+    if (!img.complete || !img.naturalWidth) return;
+    ctx.save();
+    ctx.translate(x, y - f[5] / 2);
+    ctx.rotate(q.rot);
+    ctx.drawImage(img, f[0], f[1], f[2], f[3], -f[4], -f[5] / 2, f[2], f[3]);
+    ctx.restore();
+    return;
+  }
   if (q.k === 'tnt') {
     // a lit stick of dynamite; it blinks faster as the fuse burns down
     ctx.save();
