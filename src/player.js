@@ -1,6 +1,7 @@
 // Raithwyn: movement, combo, air punch, bone throw, hadouken, super attack, getting hit.
 import {
   BONE_COST,
+  BULLET,
   D,
   HADO,
   FIGHTER_ANIM,
@@ -247,13 +248,28 @@ export function updPlayer(dt) {
       break;
     }
     case 'throw': {
-      const i = tl(D.thr, p.t);
+      // Lucy draws her pistol and fires instead of throwing a bone
+      const gun = p.who === 'lucy',
+        i = tl(gun ? D.gun : D.thr, p.t);
       if (i < 0) {
         toIdle();
         break;
       }
       p.an = ['throw', i];
-      if (i >= 2 && !p.sw) {
+      if (gun && i >= 3 && !p.sw) {
+        p.sw = 1;
+        SFX.gun();
+        G.shake = Math.max(G.shake, 2);
+        G.projs.push({
+          k: 'bullet',
+          x: p.x + p.face * BULLET.x,
+          y: p.y,
+          z: BULLET.z,
+          vx: p.face * BULLET.speed,
+          rot: 0,
+          life: BULLET.life,
+        });
+      } else if (!gun && i >= 2 && !p.sw) {
         p.sw = 1;
         SFX.swing();
         G.projs.push({
