@@ -112,8 +112,11 @@ FIGHTERS = [
         "body": BODY_ALIGNED,
     },
     {
+        # Lucy's frames and anchors come with her sheet (tools/lucy_sheet.py): each animation
+        # was cut with one window, so its frames keep their places from the video
         "sheet": ROOT / "assets/source/lucy_sheet.png",
-        "rows": ["idle", "punch1", "punch2"],
+        "frames": ROOT / "assets/source/lucy_sheet.json",
+        "rows": None,
         "atlas": "assets/lucy.png",
         "js": "src/lucy-frames.js",
         "lift": {},
@@ -130,6 +133,11 @@ def main():
 def build(F):
     im = Image.open(F["sheet"]).convert("RGBA")
     opaque = np.array(im)[..., 3] > 10
+    if F.get("frames"):
+        table = json.loads(F["frames"].read_text())
+        items = [[name, x0, y0, x1, y1, ax, ay, im]
+                 for name in table["rows"] for x0, y0, x1, y1, ax, ay in table["frames"][name]]
+        return pack(F, items)
     rows = runs(opaque.any(1))
     if len(rows) != len(F["rows"]):
         raise SystemExit(f"expected {len(F['rows'])} rows in {F['sheet'].name}, found {len(rows)}")
@@ -145,6 +153,10 @@ def build(F):
     for it in items:
         if it[0] in F["body"]:
             it[5] -= body_shift(opaque, idle, it)
+    pack(F, items)
+
+
+def pack(F, items):
     # Every frame is halved on the same grid: the anchor on a whole sheet pixel, an even
     # number of pixels from the crop's edge, and an even crop. Otherwise frames with an odd
     # offset are resampled half a pixel apart and the figure jitters from frame to frame

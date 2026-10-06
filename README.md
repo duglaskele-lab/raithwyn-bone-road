@@ -14,8 +14,8 @@ settings and remembered by the browser.
 After the splash screen comes the main menu: Start game, Settings, Exit. Before the fight there
 is the fighter select: four portraits (Raithwyn, Lucy, Tiger man, Gumdong) and four locked slots.
 Every fighter has a description and stats. Raithwyn and Lucy are playable (Lucy for testing:
-she has her own sprites for standing and two jabs, every other animation shows her standing
-frame, and she plays with Raithwyn's moves for now); the others can be looked at. The fighter
+she has her own sprites for standing, idle, walking, running and two jabs, every other animation
+shows her standing frame, and she plays with Raithwyn's moves for now); the others can be looked at. The fighter
 chosen goes into the run's replay.
 
 The game is written in plain JavaScript and Canvas 2D, with no engine and no runtime
@@ -538,12 +538,17 @@ hand: rebuilding it from the video would wipe those edits.
 
 **Lucy's sprites.** Her sheet is `assets/source/lucy_sheet.png`, made from her pictures and
 videos in `assets/source/lucy/` by `python3 tools/lucy_sheet.py`: each frame is cut out of its
-white background (only the figure is kept, so the video's watermark goes too), scaled to
-Raithwyn's height (356 sheet px, ears to boots) and stood on the row's bottom line. Rows so far:
-`idle` (standing.png), `punch1` and `punch2` (two jabs from strike_1.mp4; the video frames are
-in `PICKS`). `npm run atlas` then builds `assets/lucy.png` and `src/lucy-frames.js`
-(`FIGHTERS` in `tools/build_atlas.py`). An animation she does not have yet shows her standing
-frame (`fighterFrame` in `src/gfx.js`).
+white background (only the figure is kept, so the video's watermark goes too, and bits of
+background shut in between her legs or tail are cut out as well), scaled to Raithwyn's height
+(356 sheet px, ears to boots; one scale for all the videos) and the frames of one animation are
+cut with one window, so they keep their places from the video and do not jitter. Rows: `stand`
+(standing.png), `idle` (11 poses over the 2.6 s loop of idle.mp4), `walk` and `run` (8 frames
+over a 1 s loop of walk.mp4 and run.mp4), `punch1` and `punch2` (two jabs from strike_1.mp4;
+the video frames are in `ANIMS`). The frames and their anchors go to
+`assets/source/lucy_sheet.json`, and `npm run atlas` builds `assets/lucy.png` and
+`src/lucy-frames.js` from them (`FIGHTERS` in `tools/build_atlas.py`). How fast her idle, walk
+and run play is in `FIGHTER_ANIM` in `src/config.js`. An animation she does not have yet shows
+her standing frame (`fighterFrame` in `src/gfx.js`).
 
 **Portraits.** Put a picture in `assets/source/portraits/<name>.webp` and run
 `npm run portraits`: a smaller copy appears in `assets/portraits/`. A new fighter is described in

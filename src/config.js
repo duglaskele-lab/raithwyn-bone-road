@@ -565,6 +565,12 @@ export const RUN_FRAME = 0.065 / 0.85;
 // The idle loop (breathing, the tail swaying) from the video it was taken from: 11 poses spread
 // evenly over its 2.25 s, each held for this many 1/24 s.
 export const IDLE_HOLD = [5, 5, 5, 5, 5, 4, 5, 5, 5, 5, 5];
+// Each fighter's idle (poses held so many 1/24 s), walk and run (seconds a frame, frames).
+// Lucy's idle is 11 poses over the 2.6 s loop of her video.
+export const FIGHTER_ANIM = {
+  raithwyn: { idle: IDLE_HOLD, walk: [0.085, 8], run: [RUN_FRAME, 6] },
+  lucy: { idle: [6, 5, 6, 6, 5, 6, 5, 6, 6, 5, 6], walk: [0.1, 8], run: [0.065, 8] },
+};
 // Player animation timelines: seconds per frame of each attack.
 export const D = {
   atk1: [0.03, 0.05, 0.09, 0.06, 0.05],
