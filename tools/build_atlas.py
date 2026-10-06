@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Cuts each fighter's sprite sheet into frames and packs them into that fighter's atlas.
 
-Raithwyn: assets/source/character_sheet.png -> assets/atlas.png, src/atlas-frames.js.
+Raithwyn: assets/source/raithwyn_sheet.png -> assets/atlas.png, src/atlas-frames.js.
 Lucy: assets/source/lucy_sheet.png -> assets/lucy.png, src/lucy-frames.js (see FIGHTERS).
 Run it after editing a sprite sheet:
 
@@ -19,7 +19,7 @@ import numpy as np
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
-SHEET = ROOT / "assets/source/character_sheet.png"
+SHEET = ROOT / "assets/source/raithwyn_sheet.png"
 ROW_NAMES = ["idle", "jump", "run", "walk", "hurt", "laugh", "punch1", "punch2",
              "hado", "fx", "orb", "ko", "throw", "back"]
 SCALE = 0.5          # the sheet is drawn at twice the in-game size

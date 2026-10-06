@@ -5,7 +5,7 @@ An edge pixel that is partly see-through still carries the background's light co
 in, which shows as a thin pale outline on the dark game backdrop. Each such pixel gets the
 colour of the solid pixels next to it instead; how see-through it is stays as it was.
 
-    python3 tools/defringe.py [Y0 Y1]   # rows of assets/source/character_sheet.png (16 372: idle)
+    python3 tools/defringe.py [Y0 Y1]   # rows of assets/source/raithwyn_sheet.png (16 372: idle)
 """
 import sys
 from pathlib import Path
@@ -39,7 +39,7 @@ def defringe(rgba, steps=4):
 
 if __name__ == "__main__":
     y0, y1 = (int(v) for v in sys.argv[1:3]) if len(sys.argv) > 2 else (16, 372)
-    path = ROOT / "assets/source/character_sheet.png"
+    path = ROOT / "assets/source/raithwyn_sheet.png"
     sheet = np.array(Image.open(path).convert("RGBA"))
     sheet[y0:y1] = defringe(sheet[y0:y1])
     Image.fromarray(sheet, "RGBA").save(path, optimize=True)

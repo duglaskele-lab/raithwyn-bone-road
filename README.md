@@ -52,7 +52,7 @@ npm run build      # dist/raithwyn.html — opens from disk, works offline
 | --- | --- |
 | Move | `W` `A` `S` `D` or arrows |
 | Run | `Shift` or double tap left/right |
-| Punch (a three-hit chain; in the air, a flying kick) | `J` |
+| Punch (a three-hit chain; in the air, a flying kick); hold it to keep punching on your own | `J` |
 | Launcher: the third hit of the chain with "up" held throws the enemy up for juggling | `W` + `J` |
 | Jump | `Space` |
 | Throw a bone (costs 15 rage, 5% of the bar); Lucy fires her pistol, held to keep firing (10 rage a shot) | `K` |
@@ -522,7 +522,7 @@ export default defineFoe('jumper', {
 });
 ```
 
-**Sprites.** Edit `assets/source/character_sheet.png` and rebuild the atlas:
+**Sprites.** Edit `assets/source/raithwyn_sheet.png` and rebuild the atlas:
 
 ```bash
 pip install pillow numpy

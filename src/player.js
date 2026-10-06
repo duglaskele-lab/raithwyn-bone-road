@@ -121,7 +121,8 @@ export function updPlayer(dt) {
         Math.floor(p.t / (RUN_FRAME * 3)) !== Math.floor((p.t - dt) / (RUN_FRAME * 3))
       )
         dust(p.x - p.face * 14, p.y, 1);
-      const b = p.bufT > 0 ? p.buf : null;
+      // J held: she keeps punching on her own, chain after chain
+      const b = p.bufT > 0 ? p.buf : keys.atk ? 'atk' : null;
       if (b === 'jump') {
         p.buf = null;
         p.state = 'jump';
@@ -237,7 +238,7 @@ export function updPlayer(dt) {
         }
         strike({ x0: 0, x1: 100, dy: 27, dmg: 8, knock: false, rage: RAGE.punch });
       }
-      if (i >= 3 && p.buf === 'atk' && p.bufT > 0) startAtk(mx);
+      if (i >= 3 && ((p.buf === 'atk' && p.bufT > 0) || keys.atk)) startAtk(mx);
       break;
     }
     case 'atk2': {
