@@ -566,11 +566,13 @@ cut with one window, so they keep their places from the video and do not jitter.
 kept but not used; 8 frames over a 1 s loop of walk.mp4 and run.mp4; the video frames are in
 `ANIMS`), and from the videos that start with her standing still (each scaled by that first
 frame, which also lines the row up: its boots are the anchor and its ground the bottom,
-`REF_VIDEOS`): `run` (8 frames over one stride of run_2.mp4, after she sets off), `drink` (the
+`REF_VIDEOS`): `run2` (her second run, kept but not used: 8 frames over one stride of run_2.mp4, after she sets off), `drink` (the
 win, drink.mp4: 16 frames of sitting down and taking out the bottle, then the last 7, drunk from
 back and forth, `DRINK_LOOP` and `FIGHTER_ANIM.lucy.drink`), `evade1`, `evade2` and `evade3`
 (three dodges from evade.mp4, without its explosions) and `super` (super_gun.mp4: six frames of
-drawing the gun, six of firing), `punch1` and `punch2`
+drawing the gun, six of firing), and her run, `run`: the six drawn figures of run_3.png (`RUN3`), lined
+up by the head (it barely moves in a run, while the sleeves swing), each at its own height above
+the ground, so she bobs a little; 0.1 s a frame (`FIGHTER_ANIM.lucy.run`), `punch1` and `punch2`
 (the four panels of strike_2.png, guard, jab, fist back, cross, as two punches of five frames,
 `PUNCH1` and `PUNCH2`), `jump` (the four figures of jump.png as the five jump frames, `JUMPS`;
 the drawn ground shadows, dust and motion lines are taken off by `strip_marks`), `throw` (the four panels of shoot.png: side on, drawing,

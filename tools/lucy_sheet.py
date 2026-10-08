@@ -43,7 +43,8 @@ ANIMS = {
     "idle": ("idle.mp4", loop(58, 120, 11)),  # 62 frames, 2.6 s
     "walk": ("walk.mp4", loop(27, 51, 8)),  # 24 frames, 1 s
     "run1": ("run.mp4", loop(77, 101, 8)),  # her first run: 24 frames, 1 s (kept, not used)
-    "run": ("run_2.mp4", loop(66, 85, 8)),  # her run: one stride, 19 frames (she sets off first)
+    # her second run, kept but not used: one stride of 19 frames (she sets off first)
+    "run2": ("run_2.mp4", loop(66, 85, 8)),
 }
 # Videos that start with her standing still, each scaled by that first frame, and their rows
 # lined up by it: its boots are the anchor and its ground the row's bottom (she sits, ducks and
@@ -68,8 +69,16 @@ DRINK_LOOP = 7
 REF_ROWS = {"drink", "evade1", "evade2", "evade3", "super"}
 ROWS = [
     "stand", "idle", "walk", "run1", "punch1", "punch2", "throw", "hurt", "ko", "jump",
-    "grenade", "nade", "run", "drink", "evade1", "evade2", "evade3", "super",
+    "grenade", "nade", "run2", "drink", "evade1", "evade2", "evade3", "super", "run",
 ]
+# her run: the six drawn figures of run_3.png (on a see-through background), left to right;
+# boxes are (x0, x1) across the picture, above the next row's ears. They are lined up by the
+# head (it barely moves in a run; the sleeves swing, so the jacket would not do): each figure
+# is moved sideways onto the third one's head. Each keeps its own height above the ground, so
+# she bobs a little. RUN_TALL is her height running, as tall as her runs from the videos.
+RUN3 = [(2, 255), (266, 494), (1010, 1254), (1257, 1502), (1514, 1742), (1754, 1998)]
+RUN3_Y = 334
+RUN_TALL = 348
 # the pistol shot (the game's "throw" slot, K): the four panels of shoot.png, left to right
 PANELS = [(0, 347), (353, 767), (772, 1205), (1210, 1680)]
 # rows whose frames come from separate pictures: each frame its own window and anchor
@@ -337,6 +346,39 @@ def build_rows():
         img = Image.open(SRC / "grenade.png").convert("RGB")
         return [scaled(cut(img.crop(NADE)), memo["s_nade"] * NADE_SIZE)]
 
+    def drawn_run():
+        img = np.array(Image.open(SRC / "run_3.png").convert("RGBA"))
+        crops = []
+        for x0, x1 in RUN3:
+            c = img[:RUN3_Y, x0:x1].copy()
+            c[..., 3] = np.where(c[..., 3] < 10, 0, c[..., 3])
+            crops.append(c)
+        # all on canvases of one width, so they can be lined up
+        w = max(c.shape[1] for c in crops) + 80
+        crops = [np.pad(c, ((0, 0), (40, w - 40 - c.shape[1]), (0, 0))) for c in crops]
+
+        def head(c):
+            ys = np.where(c[..., 3].any(1))[0]
+            return c[ys.min() : ys.min() + int((ys.max() - ys.min()) * 0.3)]
+
+        def premul(a):
+            a = a.astype(float)
+            return a[..., :3] * a[..., 3:] / 255
+
+        ref = head(crops[2])
+
+        def shift(c):
+            hd = head(c)
+            n = min(hd.shape[0], ref.shape[0])
+            return min(
+                range(-40, 41),
+                key=lambda dx: np.abs(premul(ref[:n, 45:-45]) - premul(np.roll(hd, dx, 1)[:n, 45:-45])).mean(),
+            )
+
+        crops = [np.roll(c, shift(c), 1) for c in crops]
+        tall = max(RUN3_Y - np.where(c[..., 3].any(1))[0].min() for c in crops)
+        return [scaled(c, RUN_TALL / tall) for c in crops]
+
     hit = lambda: Image.open(SRC / "hit1.png").convert("RGB")  # noqa: E731
     return {
         "stand": lambda: [scaled(once("stand", stand_cut), s_st())],
@@ -348,6 +390,7 @@ def build_rows():
         "punch2": lambda: [once("strikes", strikes)[k] for k in PUNCH2],
         "jump": lambda: [once("jumps", jumps)[k] for k in JUMPS],
         "grenade": lambda: [once("throws", throws)[k] for k in NADE_FRAMES],
+        "run": drawn_run,
         "nade": nade,
     }
 

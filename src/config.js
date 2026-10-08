@@ -613,7 +613,7 @@ export const FIGHTER_ANIM = {
   lucy: {
     idle: [6, 5, 6, 6, 5, 6, 5, 6, 6, 5, 6],
     walk: [0.1, 8],
-    run: [0.07, 8],
+    run: [0.1, 6],
     // the win: `intro` frames of sitting down and taking out the bottle (`t` seconds each),
     // then the last `loop` frames back and forth (`lt` each): she drinks on and on
     drink: { intro: 16, t: 0.09, loop: 7, lt: 0.13 },

@@ -382,7 +382,8 @@ test('Lucy: her new run, a dodge now and then, her big gun for the super, and a 
   const { FIGHTER_ANIM, LUCK } = await import('../src/config.js');
   const { newRun } = await import('../src/replay.js');
   const { hitPlayer } = await import('../src/combat.js');
-  assert.equal(FR.run.length, 8, 'the new run');
+  assert.equal(FR.run.length, 6, 'her drawn run');
+  assert.equal(FR.run2.length, 8, 'her second run is kept too');
   assert.equal(FR.run1.length, 8, 'the first run is kept in the atlas');
   assert.deepEqual([FR.evade1.length, FR.evade2.length, FR.evade3.length], [7, 7, 6]);
   assert.equal(FR.super.length, 12);
