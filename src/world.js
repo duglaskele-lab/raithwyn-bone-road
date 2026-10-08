@@ -1,5 +1,6 @@
 // One simulation step: player, enemies, projectiles, pickups, debris, wave script.
 import {
+  BIG_GUN,
   BULLET,
   GRENADE,
   ACID,
@@ -246,18 +247,40 @@ export function update(dt) {
         .filter(([, zone]) => zone)
         .sort((a, b) => (a[2] - b[2]) * s);
       for (const [e, zone, at] of targets) {
+        // the big gun's bullet goes on through, weaker each time: each one is hit once
+        if (q.big && q.hit.has(e)) continue;
+        const power = q.big ? q.power : 1,
+          crush = q.big && power > BIG_GUN.heavy + 1e-6;
         if (
           hurtEnemy(
             e,
-            (q.dmg ?? BULLET.dmg) * dmgMult() * headBonus(e, zone),
+            (q.dmg ?? BULLET.dmg) * power * dmgMult() * headBonus(e, zone),
             Math.sign(q.vx),
             !!q.big,
-            q.big ? 'super' : 'bone',
+            crush ? 'super' : q.big ? 'punch' : 'bone',
           )
         ) {
           if (!e.isProp) {
             addRage(RAGE.bone);
             styleGain(8);
+          }
+          if (q.big) {
+            q.hit.add(e);
+            q.power = Math.max(0, power - BIG_GUN.loss);
+            for (let k = 0; k < 10; k++)
+              G.parts.push({
+                k: 'dot',
+                x: at,
+                y: q.y - q.z + rnd(-8, 8),
+                vx: s * rnd(-120, 260),
+                vy: rnd(-220, 80),
+                g: 500,
+                t: 0,
+                life: rnd(0.2, 0.4),
+                s: rnd(2.5, 4.5),
+                col: k % 2 ? '#ffe9a0' : '#ffb34a',
+              });
+            if (q.power > 1e-6) continue; // on it goes
           }
           // it stops in the enemy's middle and is drawn there for one last frame
           q.x = at;

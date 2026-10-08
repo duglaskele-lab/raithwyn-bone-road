@@ -431,14 +431,14 @@ test("Lucy's super on I: no charging, her big gun at once, shot after shot while
   G.banner = null;
   G.enemies = [];
   G.props = [];
-  P.rage = 100;
-  assert.equal(BIG_GUN.cost, MAXR * 0.1, 'a tenth of the bar a shot');
+  P.rage = 300;
+  assert.equal(BIG_GUN.cost, MAXR * 0.2, 'a fifth of the bar a shot');
   keys.super = true;
   pressed.super = true;
   update(DT);
   delete pressed.super;
   assert.equal(P.state, 'bigGun', 'straight to the gun, no charge');
-  assert.equal(P.rage, 100 - BIG_GUN.cost);
+  assert.equal(P.rage, 300 - BIG_GUN.cost);
   let shots = 0,
     big = null;
   for (let t = 0; t < 1.5; t += DT) {
@@ -452,12 +452,54 @@ test("Lucy's super on I: no charging, her big gun at once, shot after shot while
   }
   assert.ok(shots >= 3, `shot after shot (${shots})`);
   assert.ok(big.big && big.dmg > BULLET.dmg * 2, 'harder than her pistol');
-  assert.ok(P.rage < 100 - 2 * BIG_GUN.cost, 'each shot paid for');
+  assert.ok(P.rage <= 300 - 3 * BIG_GUN.cost, 'each shot paid for');
   const cycle = BIG_GUN.shot.reduce((a, b) => a + b);
   assert.ok(cycle > 0.3, 'slower than the pistol');
   // out of rage: she puts it away
   keys.super = false;
   for (let t = 0; t < 0.6; t += DT) update(DT);
   assert.notEqual(P.state, 'bigGun');
+  P.who = 'raithwyn';
+});
+
+test("Lucy's big-gun bullet goes through a line of enemies, a fifth weaker each time, and is gone when nothing is left", async () => {
+  const { BIG_GUN } = await import('../src/config.js');
+  const { newRun } = await import('../src/replay.js');
+  newRun(3, 1, 'lucy');
+  G.banner = null;
+  G.enemies = [];
+  G.props = [];
+  P.x = G.cam + 120;
+  P.face = 1;
+  // six fat ones in a row (fat: they take a lot)
+  const line = [0, 1, 2, 3, 4, 5].map((k) => {
+    const e = spawn('fat', 1, G.cam + 260 + k * 110, P.y);
+    e.state = 'idle';
+    e.hp = e.maxHp = 500;
+    return e;
+  });
+  G.projs.push({
+    k: 'bullet',
+    big: 1,
+    power: 1,
+    hit: new Set(),
+    dmg: BIG_GUN.dmg,
+    x: P.x + 60,
+    y: P.y,
+    z: BIG_GUN.z,
+    vx: BIG_GUN.speed,
+    rot: 0,
+    life: BIG_GUN.life,
+  });
+  for (let t = 0; t < 0.6; t += DT) {
+    G.freeze = 0;
+    update(DT);
+  }
+  const lost = line.map((e) => 500 - e.hp);
+  for (let k = 0; k < 5; k++) assert.ok(lost[k] > 0, `enemy ${k + 1} is hit`);
+  for (let k = 1; k < 5; k++) assert.ok(lost[k] < lost[k - 1], 'each one less than the one before');
+  assert.ok(Math.abs(lost[1] / lost[0] - 0.8) < 0.05, 'a fifth weaker after the first');
+  assert.equal(lost[5], 0, 'the sixth: nothing left of it');
+  assert.ok(!G.projs.some((q) => q.big), 'it is gone');
   P.who = 'raithwyn';
 });

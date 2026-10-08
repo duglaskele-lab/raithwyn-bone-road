@@ -19,7 +19,7 @@ import {
   WAVES,
   ZOMBIE,
 } from './config.js';
-import { clamp, random, tl } from './util.js';
+import { clamp, random, rnd, tl } from './util.js';
 import { G, P } from './state.js';
 import { keys, pressed } from './input.js';
 import { SFX } from './audio.js';
@@ -353,10 +353,26 @@ export function updPlayer(dt) {
         p.sw = 1;
         SFX.gun();
         SFX.heavy();
-        G.shake = Math.max(G.shake, 6);
+        G.shake = Math.max(G.shake, 7);
+        // a shower of sparks from the muzzle
+        for (let k = 0; k < 18; k++)
+          G.parts.push({
+            k: 'dot',
+            x: p.x + p.face * (BIG_GUN.x + rnd(-4, 10)),
+            y: p.y - BIG_GUN.z + rnd(-8, 8),
+            vx: p.face * rnd(80, 520),
+            vy: rnd(-260, 120),
+            g: 600,
+            t: 0,
+            life: rnd(0.2, 0.45),
+            s: rnd(2, 4.5),
+            col: k % 3 ? '#ffd76a' : '#ff8a3a',
+          });
         G.projs.push({
           k: 'bullet',
           big: 1,
+          power: 1,
+          hit: new Set(),
           dmg: BIG_GUN.dmg,
           x: p.x + p.face * BIG_GUN.x,
           y: p.y,
