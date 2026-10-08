@@ -591,11 +591,21 @@ export const MAX_HP = { raithwyn: 100, lucy: 90 };
 // Lucy's luck: a blow that would finish her has `chance` (plus `perRank` for each style rank,
 // D to SSS) not to: she goes down and gets up with `hp` of her health, under a neon sign that
 // says so for `sign` seconds.
-export const LUCK = { chance: 0.1, perRank: 0.05, hp: 0.1, sign: 2.4 };
+export const LUCK = { chance: 0.1, perRank: 0.05, hp: 0.1, sign: 2.4, evade: 0.1 };
+// (`evade`: the chance that a blow on her, on her feet and not busy, misses: she dodges it)
 export const BULLET = { speed: 2400, dmg: 7, life: 0.45, x: 58, z: 136, cost: 10 };
 export const FIGHTER_ANIM = {
   raithwyn: { idle: IDLE_HOLD, walk: [0.085, 8], run: [RUN_FRAME, 6] },
-  lucy: { idle: [6, 5, 6, 6, 5, 6, 5, 6, 6, 5, 6], walk: [0.1, 8], run: [0.065, 8] },
+  lucy: {
+    idle: [6, 5, 6, 6, 5, 6, 5, 6, 6, 5, 6],
+    walk: [0.1, 8],
+    run: [0.07, 8],
+    // the win: `intro` frames of sitting down and taking out the bottle (`t` seconds each),
+    // then the last `loop` frames back and forth (`lt` each): she drinks on and on
+    drink: { intro: 16, t: 0.09, loop: 7, lt: 0.13 },
+    // a dodge: seconds a frame; the three dodges have 7, 7 and 6 frames
+    evade: 0.06,
+  },
 };
 // Player animation timelines: seconds per frame of each attack.
 export const D = {

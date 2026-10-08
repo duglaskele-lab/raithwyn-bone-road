@@ -42,11 +42,33 @@ def loop(a, b, n):
 ANIMS = {
     "idle": ("idle.mp4", loop(58, 120, 11)),  # 62 frames, 2.6 s
     "walk": ("walk.mp4", loop(27, 51, 8)),  # 24 frames, 1 s
-    "run": ("run.mp4", loop(77, 101, 8)),  # 24 frames, 1 s
+    "run1": ("run.mp4", loop(77, 101, 8)),  # her first run: 24 frames, 1 s (kept, not used)
+    "run": ("run_2.mp4", loop(66, 85, 8)),  # her run: one stride, 19 frames (she sets off first)
 }
+# Videos that start with her standing still, each scaled by that first frame, and their rows
+# lined up by it: its boots are the anchor and its ground the row's bottom (she sits, ducks and
+# leans in them, so their own boots would move the anchor about).
+# drink.mp4 (the win): she sits down, takes out a bottle and drinks; DRINK_LOOP of its frames
+# are the last ones, drunk from again and again. evade.mp4: three dodges (a lean away, a lean
+# the other way, a duck) between explosions, which are left out (they are pieces of their own,
+# or frames not taken). super_gun.mp4 (the super attack, I): she draws a big gun (the first six,
+# while I is held) and fires twice (the last six).
+REF_VIDEOS = {"run_2.mp4", "drink.mp4", "evade.mp4", "super_gun.mp4"}
+ANIMS.update(
+    {
+        "drink": ("drink.mp4", [6, 14, 20, 24, 28, 32, 36, 42, 52, 58, 64, 70, 76, 82, 88, 94,
+                                96, 100, 104, 108, 112, 116, 120]),
+        "evade1": ("evade.mp4", [28, 31, 34, 38, 44, 38, 31]),
+        "evade2": ("evade.mp4", [64, 66, 68, 70, 72, 69, 66]),
+        "evade3": ("evade.mp4", [84, 86, 88, 90, 92, 94]),
+        "super": ("super_gun.mp4", [16, 21, 26, 31, 36, 46, 58, 61, 64, 84, 87, 92]),
+    }
+)
+DRINK_LOOP = 7
+REF_ROWS = {"drink", "evade1", "evade2", "evade3", "super"}
 ROWS = [
-    "stand", "idle", "walk", "run", "punch1", "punch2", "throw", "hurt", "ko", "jump",
-    "grenade", "nade",
+    "stand", "idle", "walk", "run1", "punch1", "punch2", "throw", "hurt", "ko", "jump",
+    "grenade", "nade", "run", "drink", "evade1", "evade2", "evade3", "super",
 ]
 # the pistol shot (the game's "throw" slot, K): the four panels of shoot.png, left to right
 PANELS = [(0, 347), (353, 767), (772, 1205), (1210, 1680)]
@@ -262,8 +284,16 @@ def build_rows():
 
     def video_row(name):
         video, picks = ANIMS[name]
-        s = once("video", video_scale)
-        return [scaled(cut(vid(video)(i)), s) for i in picks]
+        if video not in REF_VIDEOS:
+            s = once("video", video_scale)
+            return [scaled(cut(vid(video)(i)), s) for i in picks]
+        # its own scale, from her standing in its first frame
+        ref = once(video, lambda: cut(vid(video)(1)))
+        s = TALL / height(ref)
+        frames = [scaled(strip_marks(cut(vid(video)(i))), s) for i in picks]
+        if name in REF_ROWS:
+            return frames, scaled(ref, s)
+        return frames
 
     def shot():
         # four panels of one drawing, one scale (from the first, where she stands upright);
@@ -324,6 +354,15 @@ def build_rows():
 
 def layout(name, fr):
     """A row's frames cropped, and their anchors' x."""
+    if isinstance(fr, tuple):
+        # one window round all the frames, lined up by the reference frame: its boots are the
+        # anchor and its ground the bottom
+        fr, ref = fr
+        al = np.stack([f[..., 3] > 10 for f in fr]).any(0)
+        ys, xs = np.where(al)
+        y1 = np.where(ref[..., 3].any(1))[0].max() + 1
+        y0, x0, x1 = ys.min(), xs.min(), xs.max() + 1
+        return [f[y0:y1, x0:x1] for f in fr], [boots_x(ref) - x0] * len(fr)
     if name == "nade":
         # the grenade itself: anchored at its middle, so it can spin round it
         ys, xs = np.where(fr[0][..., 3] > 10)

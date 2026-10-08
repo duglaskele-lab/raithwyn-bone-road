@@ -376,7 +376,8 @@ export function updPlayer(dt) {
           break;
         }
         p.sup = Math.min(1, p.t / SUPER_HOLD);
-        p.an = ['orb', Math.min(5, Math.floor(p.sup * 6))];
+        // Lucy draws her big gun as it charges; Raithwyn gathers a dark orb
+        p.an = [p.who === 'lucy' ? 'super' : 'orb', Math.min(5, Math.floor(p.sup * 6))];
         if (random() < 0.3 + 0.6 * p.sup) motes(p.x + p.face * 52, p.y - 112, 1, 60 + 140 * p.sup);
         if (p.t >= SUPER_HOLD) {
           p.sw = 1;
@@ -386,7 +387,8 @@ export function updPlayer(dt) {
           superNova();
         }
       } else {
-        p.an = ['orb', 6];
+        p.an =
+          p.who === 'lucy' ? ['super', 6 + Math.min(5, Math.floor((p.t / 0.45) * 6))] : ['orb', 6];
         if (p.t > 0.45) toIdle();
       }
       break;
@@ -486,8 +488,28 @@ export function updPlayer(dt) {
       p.an = ['ko', 5];
       break;
     case 'win':
-      p.an = ['laugh', [0, 1, 2, 1, 2, 1, 2, 1][Math.floor(p.t / 0.13) % 8]]; // never frame 3
+      if (p.who === 'lucy') {
+        // she sits down, takes out a bottle and drinks, on and on
+        const d = FIGHTER_ANIM.lucy.drink,
+          k = Math.floor(p.t / d.t);
+        if (k < d.intro) p.an = ['drink', k];
+        else {
+          const m = Math.floor((p.t - d.intro * d.t) / d.lt) % (2 * d.loop - 2);
+          p.an = ['drink', d.intro + (m < d.loop ? m : 2 * d.loop - 2 - m)];
+        }
+      } else p.an = ['laugh', [0, 1, 2, 1, 2, 1, 2, 1][Math.floor(p.t / 0.13) % 8]]; // never frame 3
       break;
+    case 'evade': {
+      // Lucy dodges a blow: one of her three dodges, then back on guard
+      const n = [7, 7, 6][p.ev - 1],
+        i = Math.floor(p.t / FIGHTER_ANIM.lucy.evade);
+      if (i >= n) {
+        toIdle();
+        break;
+      }
+      p.an = ['evade' + p.ev, i];
+      break;
+    }
   }
   if (G.level === 2) {
     // Old Quarry: on the floor and on screen (the camera comes along between fights)
