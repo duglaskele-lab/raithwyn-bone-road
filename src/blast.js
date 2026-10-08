@@ -10,14 +10,15 @@ import { buzz } from './touch.js';
 /** Is (x, y) inside the blast's ellipse on the floor? */
 const within = (cx, cy, x, y, r) => ((x - cx) / r) ** 2 + ((y - cy) / (r * 0.42)) ** 2 < 1;
 
-/** A blast at (x, y) on the floor, of the kind `k` in BLAST ('barrel', 'dynamite', 'grenade'). */
-export function explode(x, y, k = 'barrel') {
+/** A blast at (x, y) on the floor, of the kind `k` in BLAST ('barrel', 'dynamite', 'grenade',
+ * 'airburst'); `z` up in the air for a grenade shot out of it (it still hits what is below). */
+export function explode(x, y, k = 'barrel', z = 0) {
   const B = BLAST[k];
   SFX.boom();
   buzz(90);
   G.shake = Math.max(G.shake, 16);
   G.freeze = Math.max(G.freeze, 0.06);
-  G.parts.push({ k: 'boom', x, y, t: 0, life: 0.55, s: B.r });
+  G.parts.push({ k: 'boom', x, y, z, t: 0, life: 0.55, s: B.r });
   G.parts.push({ k: 'gring', x, y, t: 0, life: 0.4, s: B.r * 1.1, col: '#ffb24a' });
   for (let i = 0; i < 16; i++) {
     const a = rnd(TAU),
@@ -25,7 +26,7 @@ export function explode(x, y, k = 'barrel') {
     G.parts.push({
       k: 'dot',
       x: x + rnd(-10, 10),
-      y: y - rnd(10, 60),
+      y: y - z - rnd(10, 60),
       vx: Math.cos(a) * v,
       vy: -Math.abs(Math.sin(a)) * v - 80,
       g: 700,
@@ -39,7 +40,7 @@ export function explode(x, y, k = 'barrel') {
     G.parts.push({
       k: 'smoke',
       x: x + rnd(-B.r * 0.4, B.r * 0.4),
-      y: y - rnd(20, 70),
+      y: y - z - rnd(20, 70),
       vx: rnd(-30, 30),
       vy: rnd(-70, -30),
       g: 0,

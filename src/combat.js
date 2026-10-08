@@ -4,6 +4,7 @@ import {
   DECOR,
   JUGGLE,
   LUCK,
+  LUCY,
   MAXR,
   RAGE,
   RL,
@@ -308,11 +309,23 @@ export function strike(o) {
           : null;
     if (zone) {
       p.hit.add(e);
-      const dmg = o.dmg * dmgMult() * headBonus(e, zone);
+      // Lucy's fists are weaker than Raithwyn's
+      const dmg = o.dmg * (p.who === 'lucy' ? LUCY.melee : 1) * dmgMult() * headBonus(e, zone);
       if (hurtEnemy(e, dmg, p.face, o.knock, src, o.launch) && !e.isProp) {
         addRage(o.rage);
         styleGain(10);
         buzz(o.knock ? 22 : 10);
+        // short of rounds: now and then a bandolier flies out of the one she hit
+        if (p.who === 'lucy' && p.ammo < LUCY.ammo && random() < LUCY.drop)
+          G.items.push({
+            kind: 'ammo',
+            x: e.x,
+            y: e.y + 4,
+            z: 70,
+            vz: 300,
+            vx: p.face * rnd(60, 140),
+            t: 0,
+          });
       }
     }
   }
