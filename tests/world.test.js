@@ -340,13 +340,13 @@ test('holding J: the fighter keeps punching on its own, whole chains, and stops 
   assert.ok(!P.state.startsWith('atk'), 'let go: it stops');
 });
 
-test('Lucy: 15% less health, and her luck: a finishing blow may leave her on 10%, more so at higher style ranks', async () => {
+test('Lucy: 20% less health, and her luck: a finishing blow may leave her on 10%, more so at higher style ranks', async () => {
   const { LUCK, MAX_HP } = await import('../src/config.js');
   const { newRun } = await import('../src/replay.js');
   const { hitPlayer } = await import('../src/combat.js');
   newRun(5, 1, 'lucy');
-  assert.equal(P.maxHp, 85);
-  assert.equal(P.hp, 85);
+  assert.equal(P.maxHp, 80);
+  assert.equal(P.hp, 80);
   assert.equal(MAX_HP.raithwyn, 100);
   // how often a finishing blow is shrugged off, at a style rank (0 = none, 7 = SSS)
   const luck = (rank) => {
@@ -357,7 +357,7 @@ test('Lucy: 15% less health, and her luck: a finishing blow may leave her on 10%
       hitPlayer(30, 1, false);
       if (P.hp > 0) {
         saved++;
-        assert.equal(P.hp, Math.round(85 * LUCK.hp), 'back on 10% of her health');
+        assert.equal(P.hp, Math.round(80 * LUCK.hp), 'back on 10% of her health');
         assert.equal(P.state, 'ko', 'she still goes down');
         assert.ok(P.lucky > 0, 'the sign lights up');
       }
@@ -513,7 +513,7 @@ test('Lucy: six rounds, a bandolier now and then from her punches when she is sh
   G.enemies = [];
   G.props = [];
   assert.equal(P.ammo, LUCY.ammo);
-  assert.ok(Math.abs(BULLET.dmg - 7 * 1.2) < 1e-9, 'her pistol: +20%');
+  assert.equal(BULLET.dmg, 9, 'her pistol');
   // all six rounds, then an empty click
   keys.bone = true;
   pressed.bone = true;
@@ -550,6 +550,36 @@ test('Lucy: six rounds, a bandolier now and then from her punches when she is sh
     strike({ x0: 0, x1: 100, dy: 27, dmg: 1, knock: false, rage: 0 });
   }
   assert.equal(G.items.length, 0, 'no drops with a full gun');
+  // one at a time: none while another lies about
+  P.ammo = 1;
+  G.items = [{ kind: 'ammo', x: P.x + 400, y: P.y, z: 0, vz: 0, t: 1 }];
+  for (let i = 0; i < 200; i++) {
+    e.hp = 999;
+    P.hit = new Set();
+    strike({ x0: 0, x1: 100, dy: 27, dmg: 1, knock: false, rage: 0 });
+  }
+  assert.equal(G.items.length, 1, 'not while another is about');
+  // it lies there three seconds, then it is gone
+  P.inv = 99; // the enemy beside her may not knock her about meanwhile
+  for (let t = 0; t < LUCY.lies - 0.2; t += DT) {
+    G.freeze = 0;
+    update(DT);
+  }
+  assert.equal(G.items.length, 1, 'still there');
+  for (let t = 0; t < 0.4; t += DT) {
+    G.freeze = 0;
+    update(DT);
+  }
+  assert.equal(G.items.length, 0, 'gone');
+  // flung at the screen's edge: it comes back
+  G.items = [{ kind: 'ammo', x: G.cam + 900, y: P.y + 60, z: 70, vz: 300, vx: 600, t: 0 }];
+  let far = 0;
+  for (let t = 0; t < 1; t += DT) {
+    G.freeze = 0;
+    update(DT);
+    if (G.items[0]) far = Math.max(far, G.items[0].x - G.cam);
+  }
+  assert.ok(far <= W - 24 + 1e-6, 'it stays on screen');
   // picked up: full again
   P.ammo = 1;
   G.items = [{ kind: 'ammo', x: P.x, y: P.y, z: 0, vz: 0, t: 1 }];
@@ -559,6 +589,9 @@ test('Lucy: six rounds, a bandolier now and then from her punches when she is sh
   // her fists: 20% weaker than Raithwyn's
   const hit = (who) => {
     P.who = who;
+    Object.assign(P, { face: 1, state: 'idle' });
+    Object.assign(e, { x: P.x + 60, y: P.y, z: 0, state: 'idle', dead: false });
+    if (!G.enemies.includes(e)) G.enemies.push(e);
     e.hp = 999;
     P.hit = new Set();
     strike({ x0: 0, x1: 100, dy: 27, dmg: 10, knock: false, rage: 0 });
@@ -570,7 +603,7 @@ test('Lucy: six rounds, a bandolier now and then from her punches when she is sh
   P.who = 'raithwyn';
 });
 
-test("Lucy's run of hits: each raises the chance of a lucky double shot, a miss or a pause ends it", async () => {
+test("Lucy's run of hits: each raises the chance of a critical double shot, a miss or a pause ends it", async () => {
   const { LUCY, BULLET } = await import('../src/config.js');
   const { newRun } = await import('../src/replay.js');
   newRun(5, 1, 'lucy');

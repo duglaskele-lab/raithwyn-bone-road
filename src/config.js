@@ -589,18 +589,20 @@ export const IDLE_HOLD = [5, 5, 5, 5, 5, 4, 5, 5, 5, 5, 5];
 // Lucy's idle is 11 poses over the 2.6 s loop of her video.
 // Lucy's pistol shot (K): a bullet that flies very fast; each shot costs `cost` rage.
 // Each fighter's health: Lucy has 10% less.
-export const MAX_HP = { raithwyn: 100, lucy: 85 };
+export const MAX_HP = { raithwyn: 100, lucy: 80 };
 // Lucy's guns and fists: her punches (J) do `melee` of their damage. Her pistol (K) holds `ammo`
 // rounds and costs no rage; a punch that lands drops a bandolier (`drop` of the time, only when
-// she is short of rounds) that fills it again. A pistol hit raises her chance of a lucky shot
-// (`crit` times the damage, a yellow neon "lucky!") by `streak`, up to `streakMax`; a miss, or
-// no shot for `keep` seconds, ends the streak.
+// she is short of rounds, and only when there is none about already) that fills it again; it
+// lies on the ground for `lies` seconds (blinking at the end) and is gone. A pistol hit raises
+// her chance of a critical shot (`crit` times the damage, a red neon "crit!") by `streak`, up to
+// `streakMax`; a miss, or no shot for `keep` seconds, ends the streak.
 export const LUCY = {
   melee: 0.8,
   ammo: 6,
   drop: 0.14,
+  lies: 3,
   streak: 0.1,
-  streakMax: 0.3,
+  streakMax: 0.6,
   keep: 1,
   crit: 2,
 };
@@ -628,7 +630,7 @@ export const BIG_GUN = {
   x: 60,
   z: 130,
 };
-export const BULLET = { speed: 2400, dmg: 8.4, life: 0.45, x: 58, z: 136 }; // 7 + 20%
+export const BULLET = { speed: 2400, dmg: 9, life: 0.45, x: 58, z: 136 };
 export const FIGHTER_ANIM = {
   raithwyn: { idle: IDLE_HOLD, walk: [0.085, 8], run: [RUN_FRAME, 6] },
   lucy: {

@@ -76,6 +76,8 @@ export function bar(x, y, w, h, v, lag, col, skew = 6) {
   ctx.stroke();
 }
 export function drawItem(it) {
+  // a bandolier about to go: it blinks
+  if (it.kind === 'ammo' && it.lie > LUCY.lies - 0.8 && Math.floor(it.lie * 14) % 2) return;
   const x = it.x - G.cam,
     y = it.y - it.z - 14 - Math.sin(it.t * 5) * 3;
   ctx.save();
@@ -751,8 +753,8 @@ export function drawPart(p) {
       break;
     }
     case 'neon':
-      // a lucky shot: a yellow neon "lucky!" over the one it hit, rising a little
-      neon(x, y - u * 18, 'lucky!', 20, 'yellow', Math.min(1, (1 - u) * 3), p.t);
+      // a critical shot: a red neon "crit!" over the one it hit, rising a little
+      neon(x, y - u * 18, 'crit!', 20, 'red', Math.min(1, (1 - u) * 3), p.t);
       break;
     case 'tracer':
       // a bullet's streak from the muzzle to where it lands
@@ -952,7 +954,7 @@ export function drawWorld() {
 /** A neon sign: a framed word that glows; `on` seconds since it lit (it flickers on). */
 const NEON = {
   blue: { glow: '#2fa8ff', line: '#5fd0ff', text: '#a8ecff', back: 'rgba(6,16,40,.6)' },
-  yellow: { glow: '#ffc21a', line: '#ffd84a', text: '#fff2a8', back: 'rgba(40,30,4,.6)' },
+  red: { glow: '#ff2a3a', line: '#ff5a64', text: '#ffc2c6', back: 'rgba(40,6,10,.6)' },
 };
 function neon(x, y, label, size, col, a, on) {
   if (on < 0.3 && Math.floor(on * 30) % 3 === 1) return; // a neon tube flickering on
