@@ -2,6 +2,7 @@
 import {
   BONE_COST,
   BULLET,
+  BIG_GUN,
   GRENADE,
   D,
   HADO,
@@ -154,6 +155,16 @@ export function updPlayer(dt) {
         } else {
           SFX.deny();
         }
+      } else if (b === 'super' && p.who === 'lucy') {
+        // Lucy's I: her big gun, no charging
+        p.buf = null;
+        if (p.rage >= BIG_GUN.cost) {
+          p.rage -= BIG_GUN.cost;
+          p.state = 'bigGun';
+          p.t = 0;
+          p.shots = 0;
+          p.sw = 0;
+        } else SFX.deny();
       } else if (b === 'super') {
         p.buf = null;
         if (p.rage < MAXR) {
@@ -310,6 +321,49 @@ export function updPlayer(dt) {
           vx: p.face * 650,
           rot: 0,
           life: 1.05,
+        });
+      }
+      break;
+    }
+    case 'bigGun': {
+      // Lucy's big gun: drawn (frames 0-5), then shot after shot while I is held
+      const drawn = 6 * BIG_GUN.draw;
+      if (p.t < drawn) {
+        p.an = ['super', Math.floor(p.t / BIG_GUN.draw)];
+        break;
+      }
+      let i = tl(BIG_GUN.shot, p.t - drawn);
+      if (i < 0) {
+        // the shot is done: another while I is held and the rage pays for it
+        if (keys.super && p.rage >= BIG_GUN.cost) {
+          p.rage -= BIG_GUN.cost;
+          p.t = drawn;
+          p.shots++;
+          p.sw = 0;
+          i = 0;
+        } else {
+          if (keys.super) SFX.deny();
+          toIdle();
+          break;
+        }
+      }
+      // two shots drawn differently, in turn; between them she aims
+      p.an = ['super', i === 3 ? 5 : (p.shots % 2 ? 9 : 6) + i];
+      if (!p.sw) {
+        p.sw = 1;
+        SFX.gun();
+        SFX.heavy();
+        G.shake = Math.max(G.shake, 6);
+        G.projs.push({
+          k: 'bullet',
+          big: 1,
+          dmg: BIG_GUN.dmg,
+          x: p.x + p.face * BIG_GUN.x,
+          y: p.y,
+          z: BIG_GUN.z,
+          vx: p.face * BIG_GUN.speed,
+          rot: 0,
+          life: BIG_GUN.life,
         });
       }
       break;

@@ -28,8 +28,11 @@ luck: a blow that would finish her has a 10% chance, plus 5% for each style rank
 to leave her on 10% of her health instead; she goes down, gets up, and a blue neon sign above her
 says "you feel lucky!" (`LUCK`). If she loses a stage anyway, she has her own line to say about
 it. A blow that comes while she is on her feet and not busy misses one time in ten: she dodges
-it, with one of three dodges (`LUCK.evade`). Her super attack (`I`) is a big gun: she draws it
-while the button is held and fires twice as it goes off. When she wins a stage she sits down and
+it, with one of three dodges (`LUCK.evade`). Her super attack (`I`) is a big gun, with no charging:
+she draws it and fires, shot after shot while `I` is held; each shot costs a tenth of the bar
+(30), comes slower than her pistol's (0.36 s) and hits harder (20 damage, and it knocks down;
+`BIG_GUN`). Her keys and touch buttons are named for her (Shot, Grenade, Super) and her rage bar
+is called Luck. When she wins a stage she sits down and
 drinks from a bottle, on and on); the others can be looked at. The fighter
 chosen goes into the run's replay.
 
@@ -64,7 +67,7 @@ npm run build      # dist/raithwyn.html — opens from disk, works offline
 | Jump | `Space` |
 | Throw a bone (costs 15 rage, 5% of the bar); Lucy fires her pistol, held to keep firing (10 rage a shot) | `K` |
 | Dark ball (level I); Lucy throws a grenade (100 rage) | `L` |
-| Super attack: hold for 1 s with a full rage bar, hits everyone on screen | hold `I` |
+| Super attack: hold for 1 s with a full rage bar, hits everyone on screen; Lucy: her big gun, shot after shot while held (30 rage a shot) | hold `I` |
 | Pause menu (resume, settings, main menu) / sound | `Esc` or `P` / `M` |
 | Record video: start / stop and download the file | `F9` |
 | FPS counter: show / hide | `F3` |
@@ -335,7 +338,8 @@ breaks wooden barrels and a moment later sets off red ones nearby.
 - **Dynamite Zombie** — tricky: a cowboy hat, a bandolier of sticks and a stick in hand (no
   pickaxe). Keeps its distance, lights a stick (the fuse burns 3 seconds), winds up for a long
   time and throws it in an arc; it does not reach for a stick often (every 3–5 seconds). The stick
-  lies on the ground and explodes, hurting both the heroine and enemies. Hit or kill it while it
+  lies on the ground and explodes, hurting both the heroine and enemies; a blast sets off the
+  sticks lying near it a moment later. Hit or kill it while it
   holds a lit stick and the stick drops at its feet and blows up there.
 - **Mutant Lizard** — a light enemy (any hit interrupts its attack; about player size), like a Fallout deathclaw:
   hunched, horned, with long claws and glowing radioactive spots. Runs fast, sees the heroine's
@@ -351,7 +355,8 @@ breaks wooden barrels and a moment later sets off red ones nearby.
   killed, it falls to the ground instead of crumbling into bones. It spins up the gun for a long
   time (1.2 s), tilting the barrel down, and fires for 2.6 s: bullets leave the muzzle and hit
   the ground (dust and tracers show where), first at its feet, then further and further away as
-  the barrel rises; every third bullet in a row knocks the heroine down. Up close it kicks: for
+  the barrel rises; every third bullet in a row knocks the heroine down. Barrels in the stream
+  burst (red ones blow up) and sticks of dynamite lying there go off. Up close it kicks: for
   0.6 s it raises its knee, the visor turns red and a "!" lights up above it (it knocks down).
   Now and then, at a distance, it crouches and leaps on the jets of its pack (flame and smoke
   trail behind it): a red area with a crosshair on the ground

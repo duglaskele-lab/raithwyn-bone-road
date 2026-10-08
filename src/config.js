@@ -593,6 +593,20 @@ export const MAX_HP = { raithwyn: 100, lucy: 90 };
 // says so for `sign` seconds.
 export const LUCK = { chance: 0.1, perRank: 0.05, hp: 0.1, sign: 2.4, evade: 0.1 };
 // (`evade`: the chance that a blow on her, on her feet and not busy, misses: she dodges it)
+// Lucy's super (I): she draws her big gun (`draw` s a frame, six frames) and fires, again and
+// again while I is held; each shot costs `cost` (a tenth of the rage bar) and takes `shot`
+// seconds (muzzle flash, flash, smoke, aim): slower than her pistol, but a bullet does `dmg`
+// and knocks down. It leaves the muzzle `x` ahead and `z` up and flies at `speed`.
+export const BIG_GUN = {
+  cost: MAXR * 0.1,
+  draw: 0.06,
+  shot: [0.06, 0.06, 0.12, 0.12],
+  dmg: 20,
+  speed: 1700,
+  life: 0.7,
+  x: 60,
+  z: 130,
+};
 export const BULLET = { speed: 2400, dmg: 7, life: 0.45, x: 58, z: 136, cost: 10 };
 export const FIGHTER_ANIM = {
   raithwyn: { idle: IDLE_HOLD, walk: [0.085, 8], run: [RUN_FRAME, 6] },

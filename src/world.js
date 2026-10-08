@@ -247,7 +247,13 @@ export function update(dt) {
         .sort((a, b) => (a[2] - b[2]) * s);
       for (const [e, zone, at] of targets) {
         if (
-          hurtEnemy(e, BULLET.dmg * dmgMult() * headBonus(e, zone), Math.sign(q.vx), false, 'bone')
+          hurtEnemy(
+            e,
+            (q.dmg ?? BULLET.dmg) * dmgMult() * headBonus(e, zone),
+            Math.sign(q.vx),
+            !!q.big,
+            q.big ? 'super' : 'bone',
+          )
         ) {
           if (!e.isProp) {
             addRage(RAGE.bone);
