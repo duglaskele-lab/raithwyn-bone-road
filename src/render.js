@@ -485,14 +485,14 @@ export function drawProj(q) {
   if (q.k === 'bullet') {
     // a streak of light along its path
     const d = Math.sign(q.vx) || q.d,
-      len = q.big ? 120 : 70,
+      len = q.big ? 150 : 70,
       g = ctx.createLinearGradient(x - d * len, y, x, y);
     g.addColorStop(0, 'rgba(255,220,120,0)');
     g.addColorStop(1, 'rgba(255,250,220,1)');
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     ctx.strokeStyle = g;
-    ctx.lineWidth = q.big ? 7 : 3;
+    ctx.lineWidth = q.big ? 11 : 3;
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(x - d * len, y);

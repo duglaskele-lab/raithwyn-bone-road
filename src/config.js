@@ -594,14 +594,19 @@ export const MAX_HP = { raithwyn: 100, lucy: 90 };
 export const LUCK = { chance: 0.1, perRank: 0.05, hp: 0.1, sign: 2.4, evade: 0.1 };
 // (`evade`: the chance that a blow on her, on her feet and not busy, misses: she dodges it)
 // Lucy's super (I): she draws her big gun (`draw` s a frame, six frames) and fires, again and
-// again while I is held; each shot costs `cost` (a tenth of the rage bar) and takes `shot`
+// again while I is held; each shot costs `cost` (a fifth of the rage bar) and takes `shot`
 // seconds (muzzle flash, flash, smoke, aim): slower than her pistol, but a bullet does `dmg`
-// and knocks down. It leaves the muzzle `x` ahead and `z` up and flies at `speed`.
+// and goes on through whoever it hits, losing `loss` of its power each time (its damage goes
+// down with it) until it has none left and is gone. While it has more than `heavy` of its
+// power it knocks enemies down as a crushing blow does, from then on as the last punch of a
+// chain does. It leaves the muzzle `x` ahead and `z` up, in a shower of sparks, at `speed`.
 export const BIG_GUN = {
-  cost: MAXR * 0.1,
+  cost: MAXR * 0.2,
   draw: 0.06,
   shot: [0.06, 0.06, 0.12, 0.12],
-  dmg: 20,
+  dmg: 40,
+  loss: 0.2,
+  heavy: 0.6,
   speed: 1700,
   life: 0.7,
   x: 60,

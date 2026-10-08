@@ -29,9 +29,11 @@ to leave her on 10% of her health instead; she goes down, gets up, and a blue ne
 says "you feel lucky!" (`LUCK`). If she loses a stage anyway, she has her own line to say about
 it. A blow that comes while she is on her feet and not busy misses one time in ten: she dodges
 it, with one of three dodges (`LUCK.evade`). Her super attack (`I`) is a big gun, with no charging:
-she draws it and fires, shot after shot while `I` is held; each shot costs a tenth of the bar
-(30), comes slower than her pistol's (0.36 s) and hits harder (20 damage, and it knocks down;
-`BIG_GUN`). Her keys and touch buttons are named for her (Shot, Grenade, Super) and her rage bar
+she draws it and fires, shot after shot while `I` is held; each shot costs a fifth of the bar
+(60) and comes slower than her pistol's (0.36 s), in a shower of sparks. Its bullet is wide and
+hard (40 damage) and goes on through whoever it hits, a fifth weaker each time, until nothing is
+left of it (five enemies in a row at most); while it is still at more than 60% it knocks enemies
+down as a crushing blow does, after that as the last punch of a chain does (`BIG_GUN`). Her keys and touch buttons are named for her (Shot, Grenade, Super) and her rage bar
 is called Luck. When she wins a stage she sits down and
 drinks from a bottle, on and on); the others can be looked at. The fighter
 chosen goes into the run's replay.
@@ -67,7 +69,7 @@ npm run build      # dist/raithwyn.html — opens from disk, works offline
 | Jump | `Space` |
 | Throw a bone (costs 15 rage, 5% of the bar); Lucy fires her pistol, held to keep firing (10 rage a shot) | `K` |
 | Dark ball (level I); Lucy throws a grenade (100 rage) | `L` |
-| Super attack: hold for 1 s with a full rage bar, hits everyone on screen; Lucy: her big gun, shot after shot while held (30 rage a shot) | hold `I` |
+| Super attack: hold for 1 s with a full rage bar, hits everyone on screen; Lucy: her big gun, shot after shot while held (60 rage a shot), each bullet through a whole line | hold `I` |
 | Pause menu (resume, settings, main menu) / sound | `Esc` or `P` / `M` |
 | Record video: start / stop and download the file | `F9` |
 | FPS counter: show / hide | `F3` |
