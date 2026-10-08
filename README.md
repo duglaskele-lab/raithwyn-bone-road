@@ -27,7 +27,10 @@ wide blast (250 px), it breaks barrels and sets red ones off, and it spares her 
 luck: a blow that would finish her has a 10% chance, plus 5% for each style rank (45% at SSS),
 to leave her on 10% of her health instead; she goes down, gets up, and a blue neon sign above her
 says "you feel lucky!" (`LUCK`). If she loses a stage anyway, she has her own line to say about
-it); the others can be looked at. The fighter
+it. A blow that comes while she is on her feet and not busy misses one time in ten: she dodges
+it, with one of three dodges (`LUCK.evade`). Her super attack (`I`) is a big gun: she draws it
+while the button is held and fires twice as it goes off. When she wins a stage she sits down and
+drinks from a bottle, on and on); the others can be looked at. The fighter
 chosen goes into the run's replay.
 
 The game is written in plain JavaScript and Canvas 2D, with no engine and no runtime
@@ -554,8 +557,15 @@ white background (only the figure is kept, so the video's watermark goes too, an
 background shut in between her legs or tail are cut out as well), scaled to Raithwyn's height
 (356 sheet px, ears to boots; one scale for all the videos) and the frames of one animation are
 cut with one window, so they keep their places from the video and do not jitter. Rows: `stand`
-(standing.png), `idle` (11 poses over the 2.6 s loop of idle.mp4), `walk` and `run` (8 frames
-over a 1 s loop of walk.mp4 and run.mp4; the video frames are in `ANIMS`), `punch1` and `punch2`
+(standing.png), `idle` (11 poses over the 2.6 s loop of idle.mp4), `walk` and `run1` (her first run,
+kept but not used; 8 frames over a 1 s loop of walk.mp4 and run.mp4; the video frames are in
+`ANIMS`), and from the videos that start with her standing still (each scaled by that first
+frame, which also lines the row up: its boots are the anchor and its ground the bottom,
+`REF_VIDEOS`): `run` (8 frames over one stride of run_2.mp4, after she sets off), `drink` (the
+win, drink.mp4: 16 frames of sitting down and taking out the bottle, then the last 7, drunk from
+back and forth, `DRINK_LOOP` and `FIGHTER_ANIM.lucy.drink`), `evade1`, `evade2` and `evade3`
+(three dodges from evade.mp4, without its explosions) and `super` (super_gun.mp4: six frames of
+drawing the gun, six of firing), `punch1` and `punch2`
 (the four panels of strike_2.png, guard, jab, fist back, cross, as two punches of five frames,
 `PUNCH1` and `PUNCH2`), `jump` (the four figures of jump.png as the five jump frames, `JUMPS`;
 the drawn ground shadows, dust and motion lines are taken off by `strip_marks`), `throw` (the four panels of shoot.png: side on, drawing,
