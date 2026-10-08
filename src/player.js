@@ -3,6 +3,7 @@ import {
   BONE_COST,
   BULLET,
   BIG_GUN,
+  LUCY,
   GRENADE,
   D,
   HADO,
@@ -73,6 +74,8 @@ export function updPlayer(dt) {
   p.comboT -= dt;
   p.boneCd -= dt;
   if (p.lucky > 0) p.lucky -= dt;
+  // Lucy's run of pistol hits ends when she stops shooting
+  if (p.streak && (p.streakT += dt) > LUCY.keep) p.streak = 0;
   p.bufT -= dt;
   p.hpLag += (p.hp - p.hpLag) * Math.min(1, dt * 3);
   const mx = (keys.r ? 1 : 0) - (keys.l ? 1 : 0),
@@ -136,10 +139,9 @@ export function updPlayer(dt) {
         p.airUsed = 0;
       } else if (b === 'atk') startAtk(mx);
       else if (b === 'bone' && p.who === 'lucy') {
-        // Lucy's K: she draws her pistol and fires
+        // Lucy's K: she draws her pistol and fires, if she has a round left
         p.buf = null;
-        if (p.rage >= BULLET.cost) {
-          p.rage -= BULLET.cost;
+        if (p.ammo > 0) {
           p.state = 'throw';
           p.t = 0;
           p.sw = 0;
@@ -285,8 +287,7 @@ export function updPlayer(dt) {
       let i = tl(gun ? D.gun : D.thr, p.t);
       if (i < 0 && gun && keys.bone) {
         // K held: she keeps the pistol up and fires again, aiming and firing in turn
-        if (p.rage >= BULLET.cost) {
-          p.rage -= BULLET.cost;
+        if (p.ammo > 0) {
           p.t = D.gun[0] + D.gun[1];
           p.sw = 0;
           i = 2;
@@ -299,6 +300,8 @@ export function updPlayer(dt) {
       p.an = ['throw', i];
       if (gun && i >= 3 && !p.sw) {
         p.sw = 1;
+        p.ammo--;
+        p.streakT = 0;
         SFX.gun();
         G.shake = Math.max(G.shake, 2);
         G.projs.push({

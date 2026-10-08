@@ -17,13 +17,19 @@ Every fighter has a description and stats. Raithwyn and Lucy are playable (Lucy 
 she has her own sprites for standing, idle, walking, running, jumping, punching, a pistol shot,
 a grenade throw, taking a hit and being knocked down, every other animation shows her standing
 frame, and she plays with Raithwyn's moves for now. Her `K` is a pistol instead of the bone:
-each shot costs 10 rage and does 7 damage, the bullet flies at 2400 px/s and hits the first
-enemy or barrel in its way, going out in the middle of it (`BULLET` in `src/config.js`), and with `K` held she keeps firing,
-aiming and firing in turn. Her `L` is a grenade instead of the dark ball: 100 rage; it flies in
+it holds six rounds (shown under her rage bar) and costs no rage; a shot does 8.4 damage (7 +
+20%), the bullet flies at 2400 px/s and hits the first enemy or barrel in its way, going out in
+the middle of it (`BULLET` in `src/config.js`), and with `K` held she keeps firing, aiming and
+firing in turn. Out of rounds, `K` only clicks. Her punches are 20% weaker than Raithwyn's, but
+while she is short of rounds a punch that lands knocks a round bandolier out of the enemy one
+time in seven (14%); picked up, it fills the gun again (`LUCY`). Each pistol hit in a row raises
+the chance of a lucky shot by 10%, up to 30%: twice the damage, under a yellow neon "lucky!"; a
+miss, or a second without a shot, ends the run. A pistol bullet that meets her own grenade in
+the air sets it off up there, 30% wider and 30% harder (`BLAST.airburst`). Her `L` is a grenade instead of the dark ball: 100 rage; it flies in
 an arc, spinning, lands, makes two little hops and blows up about 400 px ahead (it never leaves
 the screen: at the edge it bounces back): 70 damage to every enemy in a
 wide blast (250 px), it breaks barrels and sets red ones off, and it spares her (`GRENADE` and
-`BLAST.grenade` in `src/config.js`). She has 10% less health than Raithwyn (90, `MAX_HP`), but
+`BLAST.grenade` in `src/config.js`). She has 15% less health than Raithwyn (85, `MAX_HP`), but
 luck: a blow that would finish her has a 10% chance, plus 5% for each style rank (45% at SSS),
 to leave her on 10% of her health instead; she goes down, gets up, and a blue neon sign above her
 says "you feel lucky!" (`LUCK`). If she loses a stage anyway, she has her own line to say about
@@ -67,7 +73,7 @@ npm run build      # dist/raithwyn.html — opens from disk, works offline
 | Punch (a three-hit chain; in the air, a flying kick); hold it to keep punching on your own | `J` |
 | Launcher: the third hit of the chain with "up" held throws the enemy up for juggling | `W` + `J` |
 | Jump | `Space` |
-| Throw a bone (costs 15 rage, 5% of the bar); Lucy fires her pistol, held to keep firing (10 rage a shot) | `K` |
+| Throw a bone (costs 15 rage, 5% of the bar); Lucy fires her pistol, held to keep firing (six rounds) | `K` |
 | Dark ball (level I); Lucy throws a grenade (100 rage) | `L` |
 | Super attack: hold for 1 s with a full rage bar, hits everyone on screen; Lucy: her big gun, shot after shot while held (60 rage a shot), each bullet through a whole line | hold `I` |
 | Pause menu (resume, settings, main menu) / sound | `Esc` or `P` / `M` |

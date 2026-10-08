@@ -2,6 +2,7 @@
 import {
   BIG_GUN,
   BULLET,
+  LUCY,
   GRENADE,
   ACID,
   CHAIN_GAP,
@@ -246,15 +247,45 @@ export function update(dt) {
         })
         .filter(([, zone]) => zone)
         .sort((a, b) => (a[2] - b[2]) * s);
+      // her own grenade in the air, in the bullet's way before any enemy: it goes off up there
+      const nade =
+        !q.big &&
+        G.projs.find(
+          (n) =>
+            n.k === 'nade' &&
+            n.life > 0 &&
+            Math.abs(n.y - q.y) < 26 &&
+            Math.abs(n.z - q.z) < 45 &&
+            (n.x - from) * s >= -12 &&
+            (q.x - n.x) * s >= -12,
+        );
+      if (nade && (!targets.length || (nade.x - targets[0][2]) * s <= 0)) {
+        nade.life = 0;
+        explode(nade.x, nade.y, 'airburst', nade.z);
+        styleGain(15);
+        P.streak = Math.min(P.streak + 1, Math.round(LUCY.streakMax / LUCY.streak));
+        targets.length = 0;
+        q.x = nade.x;
+        q.d = s;
+        q.vx = 0;
+        q.spent = 1;
+        q.life = Math.min(q.life, dt * 0.5);
+      }
       for (const [e, zone, at] of targets) {
         // the big gun's bullet goes on through, weaker each time: each one is hit once
         if (q.big && q.hit.has(e)) continue;
         const power = q.big ? q.power : 1,
-          crush = q.big && power > BIG_GUN.heavy + 1e-6;
+          crush = q.big && power > BIG_GUN.heavy + 1e-6,
+          // a pistol hit may be a lucky one: the more hits in a row, the likelier
+          lucky = !q.big && random() < Math.min(LUCY.streakMax, LUCY.streak * P.streak);
         if (
           hurtEnemy(
             e,
-            (q.dmg ?? BULLET.dmg) * power * dmgMult() * headBonus(e, zone),
+            (q.dmg ?? BULLET.dmg) *
+              power *
+              (lucky ? LUCY.crit : 1) *
+              dmgMult() *
+              headBonus(e, zone),
             Math.sign(q.vx),
             !!q.big,
             crush ? 'super' : q.big ? 'punch' : 'bone',
@@ -263,6 +294,13 @@ export function update(dt) {
           if (!e.isProp) {
             addRage(RAGE.bone);
             styleGain(8);
+          }
+          if (!q.big) {
+            P.streak = Math.min(P.streak + 1, Math.round(LUCY.streakMax / LUCY.streak));
+            if (lucky) {
+              SFX.rank();
+              G.parts.push({ k: 'neon', x: e.x, y: e.y - 200, t: 0, life: 0.9 });
+            }
           }
           if (q.big) {
             q.hit.add(e);
@@ -304,6 +342,8 @@ export function update(dt) {
           break;
         }
       }
+      // gone without hitting anything: a miss, and the run of hits is over
+      if (!q.big && !q.spent && q.life <= 0) P.streak = 0;
     } else if (q.k === 'hado') {
       if (random() < 0.9)
         G.parts.push({
@@ -580,6 +620,7 @@ export function update(dt) {
     it.t += dt;
     it.vz -= 900 * dt;
     it.z += it.vz * dt;
+    if (it.vx && it.z > 0) it.x += it.vx * dt; // flung out of an enemy
     if (it.z < 0) {
       it.z = 0;
       it.vz = Math.abs(it.vz) > 80 ? -it.vz * 0.4 : 0;
@@ -596,6 +637,9 @@ export function update(dt) {
       if (it.kind === 'hp') {
         P.hp = Math.min(P.maxHp, P.hp + 35);
         floatTxt(it.x, it.y - 120, t('plusHp'), '#ff8f9d');
+      } else if (it.kind === 'ammo') {
+        P.ammo = LUCY.ammo;
+        floatTxt(it.x, it.y - 120, t('plusAmmo'), '#ffd76a');
       } else {
         addRage(RAGE.pickup);
         floatTxt(it.x, it.y - 120, t('plusRage'), '#d9b8ff');

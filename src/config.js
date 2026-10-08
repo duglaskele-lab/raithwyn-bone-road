@@ -214,6 +214,8 @@ export const BLAST = {
   dynamite: { r: 150, dmgP: 20, dmgE: 42, chain: 0.14 },
   // Lucy's grenade: wide and hard, and it spares her (no damage to the player)
   grenade: { r: 250, dmgP: 0, dmgE: 70, chain: 0.14 },
+  // her grenade shot out of the air by her pistol: 30% wider and 30% harder
+  airburst: { r: 325, dmgP: 0, dmgE: 91, chain: 0.14 },
 };
 // Lucy's grenade (L): costs `cost` rage; it leaves her hand `x` ahead and `z` up, flies in an
 // arc (`vx`, `vz` up, `g` down), spinning `spin` turns a second; on the ground it bounces
@@ -587,7 +589,21 @@ export const IDLE_HOLD = [5, 5, 5, 5, 5, 4, 5, 5, 5, 5, 5];
 // Lucy's idle is 11 poses over the 2.6 s loop of her video.
 // Lucy's pistol shot (K): a bullet that flies very fast; each shot costs `cost` rage.
 // Each fighter's health: Lucy has 10% less.
-export const MAX_HP = { raithwyn: 100, lucy: 90 };
+export const MAX_HP = { raithwyn: 100, lucy: 85 };
+// Lucy's guns and fists: her punches (J) do `melee` of their damage. Her pistol (K) holds `ammo`
+// rounds and costs no rage; a punch that lands drops a bandolier (`drop` of the time, only when
+// she is short of rounds) that fills it again. A pistol hit raises her chance of a lucky shot
+// (`crit` times the damage, a yellow neon "lucky!") by `streak`, up to `streakMax`; a miss, or
+// no shot for `keep` seconds, ends the streak.
+export const LUCY = {
+  melee: 0.8,
+  ammo: 6,
+  drop: 0.14,
+  streak: 0.1,
+  streakMax: 0.3,
+  keep: 1,
+  crit: 2,
+};
 // Lucy's luck: a blow that would finish her has `chance` (plus `perRank` for each style rank,
 // D to SSS) not to: she goes down and gets up with `hp` of her health, under a neon sign that
 // says so for `sign` seconds.
@@ -612,7 +628,7 @@ export const BIG_GUN = {
   x: 60,
   z: 130,
 };
-export const BULLET = { speed: 2400, dmg: 7, life: 0.45, x: 58, z: 136, cost: 10 };
+export const BULLET = { speed: 2400, dmg: 8.4, life: 0.45, x: 58, z: 136 }; // 7 + 20%
 export const FIGHTER_ANIM = {
   raithwyn: { idle: IDLE_HOLD, walk: [0.085, 8], run: [RUN_FRAME, 6] },
   lucy: {

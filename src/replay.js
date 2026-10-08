@@ -9,7 +9,7 @@
 // F7 watches the last run again (or a loaded one), F8 saves it to a file, and a saved file
 // dropped on the page plays it. A replay is tied to the version of the game it was made with.
 import { G, P, reset } from './state.js';
-import { MAX_HP } from './config.js';
+import { LUCY, MAX_HP } from './config.js';
 import { keys, pressed } from './input.js';
 import { seedRandom } from './util.js';
 import { startLevel } from './level.js';
@@ -49,6 +49,8 @@ function unmask(m, o) {
 function setFighter(who) {
   P.who = who ?? 'raithwyn';
   P.maxHp = P.hp = P.hpLag = MAX_HP[P.who] ?? 100;
+  P.ammo = LUCY.ammo;
+  P.streak = 0;
 }
 /** Start a fresh run: a new seed, a fresh world (at stage `level`), and a new recording. */
 export function newRun(seed = (Math.random() * 2 ** 32) >>> 0, level = 1, who = G.fighter) {

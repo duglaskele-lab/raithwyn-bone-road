@@ -185,7 +185,7 @@ test('Lucy fires her pistol on K: a very fast bullet from the muzzle that hits t
   update(DT);
   for (const k in pressed) delete pressed[k];
   assert.equal(P.state, 'throw');
-  assert.equal(P.rage, 100 - BULLET.cost);
+  assert.equal(P.rage, 100, 'no rage: it takes rounds');
   const fire = D.gun.slice(0, 3).reduce((a, b) => a + b, 0);
   let shot = null;
   for (let t = 0; t < fire + 0.1 && !shot; t += DT) {
@@ -232,7 +232,7 @@ test('Lucy keeps firing while K is held, aiming and firing in turn, each shot pa
   }
   assert.ok(shots >= 5, `several shots in a row (${shots})`);
   assert.deepEqual([...seen].sort(), [2, 3], 'aiming and firing frames in turn');
-  assert.equal(P.rage, 100 - BULLET.cost * shots, 'every shot costs rage');
+  assert.equal(P.ammo, 6 - shots, 'every shot takes a round');
   keys.bone = false;
   for (let t = 0; t < 0.4; t += DT) update(DT);
   assert.notEqual(P.state, 'throw', 'let go: she puts it away');
@@ -340,13 +340,13 @@ test('holding J: the fighter keeps punching on its own, whole chains, and stops 
   assert.ok(!P.state.startsWith('atk'), 'let go: it stops');
 });
 
-test('Lucy: 10% less health, and her luck: a finishing blow may leave her on 10%, more so at higher style ranks', async () => {
+test('Lucy: 15% less health, and her luck: a finishing blow may leave her on 10%, more so at higher style ranks', async () => {
   const { LUCK, MAX_HP } = await import('../src/config.js');
   const { newRun } = await import('../src/replay.js');
   const { hitPlayer } = await import('../src/combat.js');
   newRun(5, 1, 'lucy');
-  assert.equal(P.maxHp, 90);
-  assert.equal(P.hp, 90);
+  assert.equal(P.maxHp, 85);
+  assert.equal(P.hp, 85);
   assert.equal(MAX_HP.raithwyn, 100);
   // how often a finishing blow is shrugged off, at a style rank (0 = none, 7 = SSS)
   const luck = (rank) => {
@@ -357,7 +357,7 @@ test('Lucy: 10% less health, and her luck: a finishing blow may leave her on 10%
       hitPlayer(30, 1, false);
       if (P.hp > 0) {
         saved++;
-        assert.equal(P.hp, Math.round(90 * LUCK.hp), 'back on 10% of her health');
+        assert.equal(P.hp, Math.round(85 * LUCK.hp), 'back on 10% of her health');
         assert.equal(P.state, 'ko', 'she still goes down');
         assert.ok(P.lucky > 0, 'the sign lights up');
       }
@@ -501,5 +501,173 @@ test("Lucy's big-gun bullet goes through a line of enemies, a fifth weaker each 
   assert.ok(Math.abs(lost[1] / lost[0] - 0.8) < 0.05, 'a fifth weaker after the first');
   assert.equal(lost[5], 0, 'the sixth: nothing left of it');
   assert.ok(!G.projs.some((q) => q.big), 'it is gone');
+  P.who = 'raithwyn';
+});
+
+test('Lucy: six rounds, a bandolier now and then from her punches when she is short, weaker fists', async () => {
+  const { LUCY, BULLET } = await import('../src/config.js');
+  const { newRun } = await import('../src/replay.js');
+  const { strike } = await import('../src/combat.js');
+  newRun(4, 1, 'lucy');
+  G.banner = null;
+  G.enemies = [];
+  G.props = [];
+  assert.equal(P.ammo, LUCY.ammo);
+  assert.ok(Math.abs(BULLET.dmg - 7 * 1.2) < 1e-9, 'her pistol: +20%');
+  // all six rounds, then an empty click
+  keys.bone = true;
+  pressed.bone = true;
+  for (let t = 0; t < 3; t += DT) {
+    update(DT);
+    delete pressed.bone;
+  }
+  keys.bone = false;
+  assert.equal(P.ammo, 0, 'six shots and no more');
+  assert.equal(G.projs.filter((q) => q.k === 'bullet').length, 0);
+  pressed.bone = true;
+  update(DT);
+  delete pressed.bone;
+  assert.notEqual(P.state, 'throw', 'nothing to fire');
+  // her punches: a bandolier flies out about one time in seven while she is short
+  const e = spawn('fat', 1, P.x + 60, P.y);
+  e.state = 'idle';
+  let drops = 0;
+  for (let i = 0; i < 700; i++) {
+    e.hp = 999;
+    e.dead = false;
+    Object.assign(P, { hit: new Set(), face: 1 });
+    G.items = [];
+    strike({ x0: 0, x1: 100, dy: 27, dmg: 1, knock: false, rage: 0 });
+    if (G.items.some((it) => it.kind === 'ammo')) drops++;
+  }
+  assert.ok(Math.abs(drops / 700 - LUCY.drop) < 0.035, `about 14% (${drops})`);
+  // full: none
+  P.ammo = LUCY.ammo;
+  G.items = [];
+  for (let i = 0; i < 200; i++) {
+    e.hp = 999;
+    P.hit = new Set();
+    strike({ x0: 0, x1: 100, dy: 27, dmg: 1, knock: false, rage: 0 });
+  }
+  assert.equal(G.items.length, 0, 'no drops with a full gun');
+  // picked up: full again
+  P.ammo = 1;
+  G.items = [{ kind: 'ammo', x: P.x, y: P.y, z: 0, vz: 0, t: 1 }];
+  G.freeze = 0;
+  update(DT);
+  assert.equal(P.ammo, LUCY.ammo, 'a bandolier fills it');
+  // her fists: 20% weaker than Raithwyn's
+  const hit = (who) => {
+    P.who = who;
+    e.hp = 999;
+    P.hit = new Set();
+    strike({ x0: 0, x1: 100, dy: 27, dmg: 10, knock: false, rage: 0 });
+    return 999 - e.hp;
+  };
+  const lucy = hit('lucy'),
+    raith = hit('raithwyn');
+  assert.ok(Math.abs(lucy / raith - LUCY.melee) < 0.01, `${lucy} vs ${raith}`);
+  P.who = 'raithwyn';
+});
+
+test("Lucy's run of hits: each raises the chance of a lucky double shot, a miss or a pause ends it", async () => {
+  const { LUCY, BULLET } = await import('../src/config.js');
+  const { newRun } = await import('../src/replay.js');
+  newRun(5, 1, 'lucy');
+  G.banner = null;
+  G.enemies = [];
+  G.props = [];
+  const e = spawn('fat', 1, P.x + 300, P.y);
+  e.state = 'idle';
+  const shoot = (atY = P.y) => {
+    G.projs.push({
+      k: 'bullet',
+      x: P.x + 58,
+      y: atY,
+      z: 136,
+      vx: BULLET.speed,
+      rot: 0,
+      life: BULLET.life,
+    });
+    P.streakT = 0;
+    for (let t = 0; t < 0.5; t += DT) {
+      G.freeze = 0;
+      e.state = 'idle';
+      e.hp = 999;
+      update(DT);
+    }
+  };
+  shoot();
+  shoot();
+  assert.equal(P.streak, 2, 'two hits in a row');
+  shoot(P.y + 200); // wide of everything
+  assert.equal(P.streak, 0, 'a miss ends it');
+  shoot();
+  assert.equal(P.streak, 1);
+  for (let t = 0; t < LUCY.keep + 0.1; t += DT) update(DT);
+  assert.equal(P.streak, 0, 'a pause ends it too');
+  // a plain shot, then a sure lucky one: double damage and the sign
+  const dealt = () => {
+    G.projs.push({
+      k: 'bullet',
+      x: P.x + 58,
+      y: P.y,
+      z: 136,
+      vx: BULLET.speed,
+      rot: 0,
+      life: BULLET.life,
+    });
+    e.hp = 999;
+    e.state = 'idle';
+    P.streakT = 0;
+    for (let t = 0; t < 0.3 && e.hp === 999; t += DT) {
+      G.freeze = 0;
+      update(DT);
+    }
+    return 999 - e.hp;
+  };
+  P.streak = 0;
+  const plain = dealt();
+  const keep = [LUCY.streak, LUCY.streakMax];
+  LUCY.streak = LUCY.streakMax = 1; // a sure one
+  P.streak = 1;
+  G.parts = [];
+  const lucky = dealt();
+  [LUCY.streak, LUCY.streakMax] = keep;
+  assert.ok(Math.abs(lucky / plain - LUCY.crit) < 0.01, `twice the damage (${lucky} / ${plain})`);
+  assert.ok(
+    G.parts.some((p) => p.k === 'neon'),
+    'lucky!',
+  );
+  P.who = 'raithwyn';
+});
+
+test('Lucy shoots her own grenade out of the air: it goes off up there, wider and harder', async () => {
+  const { BLAST, BULLET } = await import('../src/config.js');
+  const { newRun } = await import('../src/replay.js');
+  newRun(6, 1, 'lucy');
+  G.banner = null;
+  G.enemies = [];
+  G.props = [];
+  assert.ok(BLAST.airburst.r >= BLAST.grenade.r * 1.3 - 1e-9);
+  assert.ok(BLAST.airburst.dmgE >= BLAST.grenade.dmgE * 1.3 - 1e-9);
+  const nade = { k: 'nade', x: P.x + 260, y: P.y, z: 140, vx: 0, vz: 0, rot: 0, life: 5 };
+  // an enemy further off than a grenade's blast would reach, but inside the airburst's
+  const e = spawn('fat', 1, nade.x + BLAST.grenade.r + 30, P.y);
+  e.state = 'idle';
+  const hp = e.hp;
+  G.projs = [
+    nade,
+    { k: 'bullet', x: P.x + 58, y: P.y, z: 136, vx: BULLET.speed, rot: 0, life: BULLET.life },
+  ];
+  for (let t = 0; t < 0.2; t += DT) {
+    nade.vz = 0; // held in the air for the test
+    nade.z = 140;
+    update(DT);
+  }
+  assert.ok(nade.life <= 0, 'the grenade went off');
+  const boom = G.parts.find((p) => p.k === 'boom');
+  assert.ok(boom && boom.z > 100, 'up in the air');
+  assert.ok(e.hp < hp, 'and reached further than it would have on the ground');
   P.who = 'raithwyn';
 });

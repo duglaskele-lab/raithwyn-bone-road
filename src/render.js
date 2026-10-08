@@ -5,6 +5,7 @@ import {
   FONT,
   H,
   LUCK,
+  LUCY,
   MAXR,
   OL,
   PURPLE,
@@ -82,7 +83,49 @@ export function drawItem(it) {
   ctx.lineJoin = 'round';
   ctx.lineWidth = 2.4;
   ctx.strokeStyle = OL;
-  if (it.kind === 'hp') {
+  if (it.kind === 'ammo') {
+    // a round bandolier: a leather belt in a ring, brass rounds all round it, a buckle
+    ctx.scale(1.35, 1.35);
+    ctx.strokeStyle = OL;
+    ctx.lineWidth = 9;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 13, 10, 0, 0, TAU);
+    ctx.stroke();
+    ctx.strokeStyle = '#7a4a26';
+    ctx.lineWidth = 6;
+    ctx.stroke();
+    for (let k = 0; k < 10; k++) {
+      const a = (k / 10) * TAU + 0.3,
+        bx = Math.cos(a) * 13,
+        by = Math.sin(a) * 10;
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.rotate(a + Math.PI / 2);
+      ctx.fillStyle = '#e0b04a';
+      ctx.strokeStyle = OL;
+      ctx.lineWidth = 1.2;
+      ctx.fillRect(-1.8, -6, 3.6, 6);
+      ctx.strokeRect(-1.8, -6, 3.6, 6);
+      ctx.fillStyle = '#c46a3a';
+      ctx.beginPath();
+      ctx.arc(0, -6, 1.8, Math.PI, 0);
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.fillStyle = '#d9d2bd';
+    ctx.strokeStyle = OL;
+    ctx.lineWidth = 1.6;
+    rr(-4, 6, 8, 6, 1.5);
+    ctx.fill();
+    ctx.stroke();
+    // a glint, now and then
+    if (Math.floor(G.time * 2) % 3 === 0) {
+      ctx.fillStyle = 'rgba(255,250,220,.9)';
+      ctx.beginPath();
+      ctx.arc(-9, -8, 2, 0, TAU);
+      ctx.fill();
+    }
+  } else if (it.kind === 'hp') {
     ctx.fillStyle = '#ff4a5e';
     ctx.beginPath();
     ctx.moveTo(0, 11);
@@ -685,7 +728,7 @@ export function drawPart(p) {
       // a fire blast: a white-hot flash, an orange fireball rising and a scorch on the ground
       const r = p.s * (0.35 + 0.65 * ease(Math.min(1, u * 1.8))),
         a = 1 - u,
-        cy = y - r * 0.5 - u * 40;
+        cy = y - (p.z || 0) - r * 0.5 - u * 40;
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       const g = ctx.createRadialGradient(x, cy, 2, x, cy, r);
@@ -707,6 +750,10 @@ export function drawPart(p) {
       ctx.restore();
       break;
     }
+    case 'neon':
+      // a lucky shot: a yellow neon "lucky!" over the one it hit, rising a little
+      neon(x, y - u * 18, 'lucky!', 20, 'yellow', Math.min(1, (1 - u) * 3), p.t);
+      break;
     case 'tracer':
       // a bullet's streak from the muzzle to where it lands
       ctx.save();
@@ -902,41 +949,79 @@ export function drawWorld() {
   ctx.restore();
   if (G.level === 2) drawFront2();
 }
-/** Lucy's luck held: a blue neon sign above her that flickers on, then fades. */
-function drawLucky(p) {
-  const left = p.lucky,
-    on = LUCK.sign - left;
-  if (!(left > 0)) return;
-  // flickering on like a neon tube, then steady, then fading out
-  if (on < 0.3 && Math.floor(on * 30) % 3 === 1) return;
-  const a = Math.min(1, left / 0.4),
-    x = clamp(p.x - G.cam, 130, W - 130),
-    y = p.y - G.camY - p.z - 222 - Math.min(on, 0.4) * 20;
-  const label = 'you feel lucky!';
+/** A neon sign: a framed word that glows; `on` seconds since it lit (it flickers on). */
+const NEON = {
+  blue: { glow: '#2fa8ff', line: '#5fd0ff', text: '#a8ecff', back: 'rgba(6,16,40,.6)' },
+  yellow: { glow: '#ffc21a', line: '#ffd84a', text: '#fff2a8', back: 'rgba(40,30,4,.6)' },
+};
+function neon(x, y, label, size, col, a, on) {
+  if (on < 0.3 && Math.floor(on * 30) % 3 === 1) return; // a neon tube flickering on
+  const C = NEON[col];
   ctx.save();
   ctx.globalAlpha = a;
-  ctx.font = `900 24px ${FONT}`;
-  const w = ctx.measureText(label).width + 34,
-    h = 42;
-  rr(x - w / 2, y - h / 2, w, h, 10);
-  ctx.fillStyle = 'rgba(6,16,40,.6)';
+  ctx.font = `900 ${size}px ${FONT}`;
+  const w = ctx.measureText(label).width + size * 1.4,
+    h = size * 1.75;
+  rr(x - w / 2, y - h / 2, w, h, size * 0.42);
+  ctx.fillStyle = C.back;
   ctx.fill();
-  ctx.shadowColor = '#2fa8ff';
+  ctx.shadowColor = C.glow;
   ctx.shadowBlur = 18;
   ctx.lineWidth = 3;
-  ctx.strokeStyle = '#5fd0ff';
+  ctx.strokeStyle = C.line;
   ctx.stroke();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#a8ecff';
+  ctx.fillStyle = C.text;
   ctx.fillText(label, x, y + 1);
   ctx.shadowBlur = 6;
   ctx.fillText(label, x, y + 1);
   ctx.restore();
 }
+/** Lucy's luck held: a blue neon sign above her that flickers on, then fades. */
+function drawLucky(p) {
+  const left = p.lucky,
+    on = LUCK.sign - left;
+  if (!(left > 0)) return;
+  neon(
+    clamp(p.x - G.cam, 130, W - 130),
+    p.y - G.camY - p.z - 222 - Math.min(on, 0.4) * 20,
+    'you feel lucky!',
+    24,
+    'blue',
+    Math.min(1, left / 0.4),
+    on,
+  );
+}
+/** Lucy's rounds, under her rage bar: brass ones left, dark ones spent. */
+function drawAmmo(p) {
+  for (let i = 0; i < LUCY.ammo; i++) {
+    const x = 92 + i * 13,
+      y = 77,
+      full = i < p.ammo;
+    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = OL;
+    ctx.fillStyle = full ? '#d8a63a' : 'rgba(30,26,34,.75)';
+    rr(x, y + 4, 8, 12, 2); // the case
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = full ? '#c46a3a' : 'rgba(30,26,34,.75)';
+    ctx.beginPath(); // the bullet
+    ctx.moveTo(x, y + 5);
+    ctx.quadraticCurveTo(x + 4, y - 4, x + 8, y + 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    if (full) {
+      ctx.fillStyle = 'rgba(255,240,190,.55)';
+      ctx.fillRect(x + 1.5, y + 6, 1.6, 8);
+    }
+  }
+}
 export function drawHUD() {
   const p = P;
   drawLucky(p);
+  if (p.who === 'lucy') drawAmmo(p);
   // portrait
   ctx.fillStyle = '#2a1b3d';
   rr(18, 14, 62, 62, 8);
