@@ -485,16 +485,17 @@ export function drawProj(q) {
   if (q.k === 'bullet') {
     // a streak of light along its path
     const d = Math.sign(q.vx) || q.d,
-      g = ctx.createLinearGradient(x - d * 70, y, x, y);
+      len = q.big ? 120 : 70,
+      g = ctx.createLinearGradient(x - d * len, y, x, y);
     g.addColorStop(0, 'rgba(255,220,120,0)');
     g.addColorStop(1, 'rgba(255,250,220,1)');
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     ctx.strokeStyle = g;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = q.big ? 7 : 3;
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(x - d * 70, y);
+    ctx.moveTo(x - d * len, y);
     ctx.lineTo(x, y);
     ctx.stroke();
     ctx.restore();
@@ -969,7 +970,7 @@ export function drawHUD() {
   ctx.fillStyle = '#ece5cb';
   for (const r of [RL[0], RL[1]]) ctx.fillRect(88 + (210 * r) / MAXR + 2, 61, 2, 10);
   txt(
-    t(['rage', 'hado1', 'hado2', 'hado3'][lv]),
+    p.who === 'lucy' ? STR[lang].lucy.rage : t(['rage', 'hado1', 'hado2', 'hado3'][lv]),
     308,
     71,
     12,

@@ -6,7 +6,7 @@ import { G, reset } from './state.js';
 import { pressed, touch } from './input.js';
 import { SFX } from './audio.js';
 import { CHARS, LEVEL, LOCKED, SLOTS, STATS } from './characters.js';
-import { STR, lang, nextLang, t } from './i18n.js';
+import { STR, helpFor, lang, nextLang, t } from './i18n.js';
 import { ctx, portraits, ready, rr, sprite, txt, wrapTxt } from './gfx.js';
 import { drawHUD, drawWorld, overlay } from './render.js';
 import { newRun } from './replay.js';
@@ -279,7 +279,7 @@ function drawSettings() {
     t('back'),
   ];
   labels.forEach((s, i) => item(s, SET_BOX[i], G.menu === i));
-  const help = Object.values(STR[lang].help),
+  const help = Object.values(helpFor(G.fighter)),
     rows = Math.ceil(help.length / 2),
     px = 120,
     py = 322,

@@ -535,3 +535,30 @@ test('up close a quarter of its kicks become a jump away, on the jets of its pac
   }
   assert.ok(dodged > N * 0.1 && dodged < N * 0.45, `${dodged}/${N} kicks became a jump`);
 });
+
+test('the minigun sets off red barrels and sticks of dynamite in its stream, and a blast sets off the dynamite around it', async () => {
+  const { explode } = await import('../src/blast.js');
+  quarry();
+  P.x = 150;
+  P.y = 450;
+  P.inv = 99;
+  const tnt = { isProp: 1, decor: 'tnt', x: 560, y: 450, z: 0, w: 24, hp: 1, drop: null };
+  G.props = [tnt];
+  const stick = { k: 'tnt', x: 520, y: 450, z: 0, vx: 0, vy: 0, vz: 0, rot: 0, fuse: 9, life: 99 };
+  G.projs = [stick];
+  const e = spawn('armor', 1, 800, 450);
+  Object.assign(e, { state: 'fire', t: 0, face: -1, reachD: 240, aimY: 450, shot: 0, hits: 0 });
+  for (let t = 0; t < 1 && !(tnt.dead && stick.life <= 0); t += DT) {
+    e.reachD = 240 + 60 * Math.sin(t * 20); // the stream sweeps over both
+    update(DT);
+  }
+  assert.ok(tnt.dead, 'the red barrel went off');
+  assert.ok(stick.life <= 0, 'and so did the dynamite');
+  // a blast: the sticks around it go off a moment later, not those far away
+  const near = { k: 'tnt', x: 400, y: 450, z: 0, vx: 0, vy: 0, vz: 0, rot: 0, fuse: 9, life: 99 },
+    far = { ...near, x: 900 };
+  G.projs = [near, far];
+  explode(320, 450, 'dynamite');
+  assert.ok(near.fuse <= 0.14, 'the one beside it is about to go off');
+  assert.equal(far.fuse, 9, 'the one far off is not');
+});

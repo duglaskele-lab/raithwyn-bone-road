@@ -32,7 +32,7 @@ import {
   startReplay,
   stopReplay,
 } from './replay.js';
-import { STR, lang, onLang, setLang, t } from './i18n.js';
+import { STR, helpFor, lang, onLang, padFor, setLang, t } from './i18n.js';
 import { countFrame, due, fps, toggleFps } from './fps.js';
 
 // Entry point: wires the DOM to the game modules and runs the frame loop.
@@ -66,7 +66,8 @@ function applyLang() {
   cv.setAttribute('aria-label', S.canvasLabel);
   const help = document.getElementById('help');
   help.replaceChildren();
-  for (const [name, keyText] of Object.values(S.help)) {
+  shownFor = G.fighter;
+  for (const [name, keyText] of Object.values(helpFor(G.fighter))) {
     const span = document.createElement('span'),
       b = document.createElement('b'),
       kbd = document.createElement('kbd');
@@ -76,10 +77,12 @@ function applyLang() {
     help.append(span, ' ');
   }
   for (const btn of document.querySelectorAll('#btns button'))
-    btn.textContent = S.pad[btn.dataset.a];
+    btn.textContent = padFor(G.fighter)[btn.dataset.a];
 }
+let shownFor = null; // the fighter the key list and the touch buttons are named for
 function frame(dt) {
   if (touch) syncTouch();
+  if (G.fighter !== shownFor) applyLang(); // another fighter: her own names for the moves
   // (dt is replaced by the recorded one while a replay plays)
   ctx.setTransform(G.K, 0, 0, G.K, 0, 0);
   ctx.imageSmoothingEnabled = true;

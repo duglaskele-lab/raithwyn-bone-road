@@ -422,3 +422,41 @@ test('Lucy: her new run, a dodge now and then, her big gun for the super, and a 
   assert.equal(seen.size, FR.drink.length, 'every frame shows');
   P.who = 'raithwyn';
 });
+
+test("Lucy's super on I: no charging, her big gun at once, shot after shot while I is held, slower and harder than her pistol", async () => {
+  const { BIG_GUN, BULLET, MAXR } = await import('../src/config.js');
+  const { newRun } = await import('../src/replay.js');
+  newRun(3, 1, 'lucy');
+  G.banner = null;
+  G.enemies = [];
+  G.props = [];
+  P.rage = 100;
+  assert.equal(BIG_GUN.cost, MAXR * 0.1, 'a tenth of the bar a shot');
+  keys.super = true;
+  pressed.super = true;
+  update(DT);
+  delete pressed.super;
+  assert.equal(P.state, 'bigGun', 'straight to the gun, no charge');
+  assert.equal(P.rage, 100 - BIG_GUN.cost);
+  let shots = 0,
+    big = null;
+  for (let t = 0; t < 1.5; t += DT) {
+    const n = G.projs.length;
+    update(DT);
+    if (G.projs.length > n) {
+      shots++;
+      big = G.projs.at(-1);
+    }
+    assert.notEqual(P.state, 'super');
+  }
+  assert.ok(shots >= 3, `shot after shot (${shots})`);
+  assert.ok(big.big && big.dmg > BULLET.dmg * 2, 'harder than her pistol');
+  assert.ok(P.rage < 100 - 2 * BIG_GUN.cost, 'each shot paid for');
+  const cycle = BIG_GUN.shot.reduce((a, b) => a + b);
+  assert.ok(cycle > 0.3, 'slower than the pistol');
+  // out of rage: she puts it away
+  keys.super = false;
+  for (let t = 0; t < 0.6; t += DT) update(DT);
+  assert.notEqual(P.state, 'bigGun');
+  P.who = 'raithwyn';
+});

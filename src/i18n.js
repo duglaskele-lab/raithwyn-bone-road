@@ -130,6 +130,12 @@ export const STR = {
       replay: ['Replay', 'F7 watch · F8 save'],
     },
     pad: { hado: 'Magic', bone: 'Bone', jump: 'Jump', atk: 'Hit', super: 'Super' },
+    // Lucy's own names for her moves, over the ones above, and for her rage bar
+    lucy: {
+      help: { bone: ['Shot', 'K'], hado: ['Grenade', 'L'], super: ['Super', 'I'] },
+      pad: { bone: 'Shot', hado: 'Grenade', super: 'Super' },
+      rage: 'Luck',
+    },
     foe: {
       grunt: 'Skeleton',
       thrower: 'Bone Thrower',
@@ -275,6 +281,11 @@ export const STR = {
       replay: ['Повтор', 'F7 смотреть · F8 сохранить'],
     },
     pad: { hado: 'Магия', bone: 'Кость', jump: 'Прыг', atk: 'Удар', super: 'Супер' },
+    lucy: {
+      help: { bone: ['Выстрел', 'K'], hado: ['Граната', 'L'], super: ['Супер', 'I'] },
+      pad: { bone: 'Выстрел', hado: 'Граната', super: 'Супер' },
+      rage: 'Удача',
+    },
     foe: {
       grunt: 'Скелет',
       thrower: 'Костемёт',
@@ -310,6 +321,15 @@ export let lang = typeof localStorage === 'undefined' ? 'en' : load();
 const listeners = [];
 
 /** Translates a key; `{0}`, `{1}`… are replaced by the extra arguments. */
+/** The key list and the touch buttons' names for a fighter (Lucy has her own for some). */
+export function helpFor(who) {
+  const S = STR[lang];
+  return { ...S.help, ...S[who]?.help };
+}
+export function padFor(who) {
+  const S = STR[lang];
+  return { ...S.pad, ...S[who]?.pad };
+}
 export function t(key, ...args) {
   const s = STR[lang][key] ?? STR.en[key] ?? key;
   return typeof s === 'string' ? s.replace(/\{(\d)\}/g, (_, i) => args[i]) : s;

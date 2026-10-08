@@ -8,12 +8,12 @@
 // become such a jump away instead. It always walks in from the side of the screen, and
 // falls down dead rather than into bones.
 // Heavy: only crushing blows move it.
-import { ARMOR, CORPSE_T, OL, TAU, W } from '../config.js';
+import { ARMOR, CORPSE_T, DECOR, OL, TAU, W } from '../config.js';
 import { clamp, ease, random, rnd } from '../util.js';
 import { G, P } from '../state.js';
 import { SFX } from '../audio.js';
 import { dust } from '../fx.js';
-import { hitPlayer } from '../combat.js';
+import { breakProp, hitPlayer } from '../combat.js';
 import { ctx } from '../gfx.js';
 import { drawAura } from '../skeleton.js';
 import { defineFoe } from './registry.js';
@@ -879,6 +879,18 @@ function bullet(e) {
       col: '#d8b04a',
       life: 0.8,
     });
+  // barrels in the stream burst (a red one blows up), sticks of dynamite on the ground go off
+  for (const u of G.props)
+    if (
+      !u.dead &&
+      (u.decor === 'barrel' || u.decor === 'tnt') &&
+      Math.abs(u.x - x) < DECOR[u.decor].w &&
+      Math.abs(u.y - y) < 22
+    )
+      breakProp(u);
+  for (const q of G.projs)
+    if (q.k === 'tnt' && q.z < 30 && Math.abs(q.x - x) < 22 && Math.abs(q.y - y) < 22)
+      q.fuse = Math.min(q.fuse, 0);
   if (Math.abs(P.x - x) < 26 && Math.abs(P.y - y) < 22 && P.z < 60) {
     e.hits = (e.hits ?? 0) + 1;
     if (hitPlayer(ARMOR.dmg, e.face, e.hits % 3 === 0)) SFX.clang();
