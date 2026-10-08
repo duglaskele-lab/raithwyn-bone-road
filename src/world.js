@@ -620,7 +620,19 @@ export function update(dt) {
     it.t += dt;
     it.vz -= 900 * dt;
     it.z += it.vz * dt;
-    if (it.vx && it.z > 0) it.x += it.vx * dt; // flung out of an enemy
+    if (it.vx && it.z > 0) {
+      // flung out of an enemy; the screen's edges throw it back
+      it.x += it.vx * dt;
+      const lo = G.cam + 24,
+        hi = G.cam + W - 24;
+      if (it.x < lo || it.x > hi) {
+        it.x = clamp(it.x, lo, hi);
+        it.vx = -it.vx * 0.6;
+      }
+    }
+    // a bandolier does not lie about for long
+    if (it.kind === 'ammo' && it.z <= 0 && (it.lie = (it.lie ?? 0) + dt) > LUCY.lies)
+      it.dead = true;
     if (it.z < 0) {
       it.z = 0;
       it.vz = Math.abs(it.vz) > 80 ? -it.vz * 0.4 : 0;

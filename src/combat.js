@@ -315,8 +315,13 @@ export function strike(o) {
         addRage(o.rage);
         styleGain(10);
         buzz(o.knock ? 22 : 10);
-        // short of rounds: now and then a bandolier flies out of the one she hit
-        if (p.who === 'lucy' && p.ammo < LUCY.ammo && random() < LUCY.drop)
+        // short of rounds and none about: now and then a bandolier flies out of the one she hit
+        if (
+          p.who === 'lucy' &&
+          p.ammo < LUCY.ammo &&
+          !G.items.some((it) => it.kind === 'ammo') &&
+          random() < LUCY.drop
+        )
           G.items.push({
             kind: 'ammo',
             x: e.x,

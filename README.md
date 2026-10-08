@@ -17,19 +17,19 @@ Every fighter has a description and stats. Raithwyn and Lucy are playable (Lucy 
 she has her own sprites for standing, idle, walking, running, jumping, punching, a pistol shot,
 a grenade throw, taking a hit and being knocked down, every other animation shows her standing
 frame, and she plays with Raithwyn's moves for now. Her `K` is a pistol instead of the bone:
-it holds six rounds (shown under her rage bar) and costs no rage; a shot does 8.4 damage (7 +
-20%), the bullet flies at 2400 px/s and hits the first enemy or barrel in its way, going out in
+it holds six rounds (shown under her rage bar) and costs no rage; a shot does 9 damage, the bullet flies at 2400 px/s and hits the first enemy or barrel in its way, going out in
 the middle of it (`BULLET` in `src/config.js`), and with `K` held she keeps firing, aiming and
 firing in turn. Out of rounds, `K` only clicks. Her punches are 20% weaker than Raithwyn's, but
 while she is short of rounds a punch that lands knocks a round bandolier out of the enemy one
-time in seven (14%); picked up, it fills the gun again (`LUCY`). Each pistol hit in a row raises
-the chance of a lucky shot by 10%, up to 30%: twice the damage, under a yellow neon "lucky!"; a
-miss, or a second without a shot, ends the run. A pistol bullet that meets her own grenade in
+time in seven (14%), unless one is already about; it bounces back off the screen's edges, lies
+there three seconds (blinking at the end) and is gone; picked up, it fills the gun again
+(`LUCY`). Each pistol hit in a row raises the chance of a critical shot by 10%, up to 60%: twice
+the damage, under a red neon "crit!"; a miss, or a second without a shot, ends the run. A pistol bullet that meets her own grenade in
 the air sets it off up there, 30% wider and 30% harder (`BLAST.airburst`). Her `L` is a grenade instead of the dark ball: 100 rage; it flies in
 an arc, spinning, lands, makes two little hops and blows up about 400 px ahead (it never leaves
 the screen: at the edge it bounces back): 70 damage to every enemy in a
 wide blast (250 px), it breaks barrels and sets red ones off, and it spares her (`GRENADE` and
-`BLAST.grenade` in `src/config.js`). She has 15% less health than Raithwyn (85, `MAX_HP`), but
+`BLAST.grenade` in `src/config.js`). She has 20% less health than Raithwyn (80, `MAX_HP`), but
 luck: a blow that would finish her has a 10% chance, plus 5% for each style rank (45% at SSS),
 to leave her on 10% of her health instead; she goes down, gets up, and a blue neon sign above her
 says "you feel lucky!" (`LUCK`). If she loses a stage anyway, she has her own line to say about
