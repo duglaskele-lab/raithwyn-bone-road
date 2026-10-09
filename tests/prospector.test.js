@@ -33,10 +33,10 @@ function arena(x = 600) {
   return e;
 }
 
-test('the Prospector: 1300 health, 1.3 times the power armour, heavy, a big boss', () => {
+test('the Prospector: 1300 health, bigger than the power armour, heavy, a big boss', () => {
   const T = TYPES.prospector;
   assert.equal(T.hp, 1300);
-  assert.ok(Math.abs(T.scale / TYPES.armor.scale - 1.3) < 0.01);
+  assert.ok(Math.abs(T.scale - 1.47 * 0.85) < 0.01, '15% smaller than it was');
   assert.equal(T.weight, 'heavy');
   assert.equal(T.bigBoss, 1);
   assert.ok(FOES.prospector.walksIn);
@@ -115,7 +115,7 @@ test('it comes walking at the player behind its flame, setting the road alight',
   assert.equal(e.state, 'chase');
 });
 
-test('the ram: a red lane, then a rush in a straight line that knocks her down', () => {
+test('the ram: flames out of its back, then a rush in a straight line that knocks her down', () => {
   const e = arena(700);
   e.ramCd = 0;
   step(DT * 2);
@@ -223,4 +223,32 @@ test('killed, it falls and the fight is over', () => {
   assert.ok(e.dying);
   assert.equal(e.state, 'fall');
   assert.ok(G.slow > 0, 'the boss finale');
+});
+
+test('in the second phase the ram leaves a cone of fire behind it that dies down fast', () => {
+  const e = arena(800);
+  P.inv = 99;
+  P.y += 200; // out of its way
+  Object.assign(e, { phase2: true, helmetOff: true, state: 'ram', t: 0, x0: e.x, rend: e.x - 600 });
+  e.face = -1;
+  step(0.5, () => (P.inv = 99));
+  const fires = G.pools.filter((a) => a.fire);
+  assert.ok(fires.length > 20);
+  assert.ok(
+    fires.every((a) => a.x > e.x - 5),
+    'behind it',
+  );
+  // narrow near it, wide further back: a cone
+  const C = PROS.ram.trail;
+  for (const a of fires) assert.ok(Math.abs(a.y - e.y) <= C.w0 + (a.x - e.x + 5) * C.spread + 1);
+  for (let i = 0; i < 120 && e.state === 'ram'; i++) step(DT, () => (P.inv = 99));
+  step(C.life + 0.1, () => (P.inv = 99));
+  assert.ok(!G.pools.some((a) => a.fire), 'gone soon after it stops');
+  // not in the first phase
+  freshGame();
+  const f = arena(800);
+  Object.assign(f, { state: 'ram', t: 0, x0: f.x, rend: f.x - 600 });
+  f.face = -1;
+  step(0.3);
+  assert.ok(!G.pools.some((a) => a.fire));
 });

@@ -197,7 +197,7 @@ export const PROS = {
     wind: 0.75,
     time: 1.6,
     time2: 2.2,
-    from: 236, // the nozzle, this far in front of it as it fires
+    from: 200, // the nozzle, this far in front of it as it fires
     len: 320,
     w0: 26,
     spread: 0.26,
@@ -222,9 +222,11 @@ export const PROS = {
     min: 260,
     max: 640,
   },
-  // the ram: it crouches (`wind`; a red lane on the ground shows where it goes), then rushes in
+  // the ram: it crouches (`wind`; flames roar out of the back of its tanks), then rushes in
   // a straight line at `speed` for up to `dist` (stopping at the screen's edge), knocking
-  // down whoever is in its way; it skids to a stop for `stop` seconds
+  // down whoever is in its way; it skids to a stop for `stop` seconds. In the second phase it
+  // leaves a cone of fire behind it (`trail`: patches every `every` seconds up to `len` behind
+  // it, `w0` + `spread` per pixel deep either way, each dying down in `life` seconds)
   ram: {
     wind: 0.85,
     speed: 820,
@@ -235,6 +237,7 @@ export const PROS = {
     first: [5, 8],
     min: 240,
     dy: 40,
+    trail: { every: 0.025, len: 260, w0: 12, spread: 0.4, life: 0.8 },
   },
   mortar: {
     wind: 0.7,
@@ -560,10 +563,10 @@ export const TYPES = {
   // the boss of Old Quarry (see PROS): heavy, only crushing blows move it
   prospector: {
     hp: 1300,
-    scale: 1.47, // 1.3 times the power armour
+    scale: 1.25, // 1.1 times the power armour (1.47 at first, 15% smaller since)
     speed: 44,
     dmg: 20,
-    reach: 118,
+    reach: 100,
     style: 'kick',
     wind: 0.6,
     act: 0.16,
@@ -572,7 +575,7 @@ export const TYPES = {
     knock: 1,
     bigBoss: 1,
     weight: 'heavy',
-    shadow: 74,
+    shadow: 63,
     col: '#6d737a',
     dk: '#43484e',
     eye: '#ff9a3a',
