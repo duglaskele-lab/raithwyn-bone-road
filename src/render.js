@@ -1,6 +1,7 @@
 // Draws the world, the HUD and the title screen.
 import {
   ACID,
+  BLAST,
   DECOR,
   FONT,
   H,
@@ -33,6 +34,7 @@ import { boneShape, drawAura, drawSkel } from './skeleton.js';
 import { drawBike } from './foes/bikes.js';
 import { FOES } from './foes/registry.js';
 import { stick } from './foes/dynamite.js';
+import { drawHelmetDebris } from './foes/prospector.js';
 import {
   drawDragon,
   drawDragonBeam,
@@ -412,7 +414,8 @@ export function drawDebris(d) {
   }
   ctx.translate(d.x - G.cam, d.gy - d.z - 3);
   ctx.rotate(d.rot);
-  if (d.k === 'bone') boneShape(d.len, 4.2, d.col);
+  if (d.k === 'helmet') drawHelmetDebris(d);
+  else if (d.k === 'bone') boneShape(d.len, 4.2, d.col);
   else if (d.k === 'shard') {
     ctx.fillStyle = d.col;
     ctx.strokeStyle = OL;
@@ -454,6 +457,36 @@ export function drawProj(q) {
     ctx.translate(x, y - f[5] / 2);
     ctx.rotate(q.rot);
     ctx.drawImage(img, f[0], f[1], f[2], f[3], -f[4], -f[5] / 2, f[2], f[3]);
+    ctx.restore();
+    return;
+  }
+  if (q.k === 'shell') {
+    // a mortar shell: a dark iron body with a brass band and fins, nose along its flight
+    ctx.save();
+    ctx.translate(x, y - 6);
+    ctx.rotate(q.rot);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = OL;
+    ctx.fillStyle = '#3a3d44';
+    ctx.beginPath();
+    ctx.moveTo(13, 0);
+    ctx.quadraticCurveTo(8, -7, -6, -6);
+    ctx.lineTo(-6, 6);
+    ctx.quadraticCurveTo(8, 7, 13, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#d9b25a';
+    ctx.fillRect(1, -6, 3, 12);
+    ctx.fillStyle = '#2a2420';
+    ctx.beginPath();
+    ctx.moveTo(-6, -4);
+    ctx.lineTo(-14, -8);
+    ctx.lineTo(-14, 8);
+    ctx.lineTo(-6, 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
     ctx.restore();
     return;
   }
@@ -790,7 +823,7 @@ export function drawPart(p) {
       break;
     case 'smoke':
       ctx.globalAlpha = (1 - u) * 0.45;
-      ctx.fillStyle = '#3a302c';
+      ctx.fillStyle = p.col ?? '#3a302c';
       ctx.beginPath();
       ctx.arc(x, y, p.s * (0.6 + u * 1.2), 0, TAU);
       ctx.fill();
@@ -889,6 +922,31 @@ export function drawPlayer() {
   }
   sprite(p.an[0], p.an[1], p.x - G.cam, p.y - p.z + 2, p.face < 0, 1, a, p.who);
 }
+/** Where a mortar shell will come down: a red area (the blast's own), filling as it falls. */
+function shellMark(q) {
+  const r = BLAST.mortar.r,
+    u = clamp(q.t / q.T, 0, 1),
+    x = q.tx - G.cam,
+    y = q.ty;
+  ctx.save();
+  ctx.fillStyle = `rgba(255,60,40,${0.12 + 0.22 * u})`;
+  ctx.beginPath();
+  ctx.ellipse(x, y, r, r * 0.42, 0, 0, TAU);
+  ctx.fill();
+  ctx.strokeStyle = u > 0.7 ? '#ff3a3a' : 'rgba(255,140,110,.9)';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(x, y, r * u, r * 0.42 * u, 0, 0, TAU);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x - 14, y);
+  ctx.lineTo(x + 14, y);
+  ctx.moveTo(x, y - 6);
+  ctx.lineTo(x, y + 6);
+  ctx.stroke();
+  ctx.restore();
+}
 export function drawWorld() {
   if (G.level === 2) drawBG2();
   else {
@@ -917,6 +975,7 @@ export function drawWorld() {
       ctx.stroke();
     }
   for (const a of G.pools) drawPool(a);
+  for (const q of G.projs) if (q.k === 'shell') shellMark(q);
   for (const e of G.enemies) if (e.T.dragon) drawDragonGround(e);
   drawShocks();
   // shadows
@@ -945,6 +1004,7 @@ export function drawWorld() {
   list.sort((a, b) => a[0] - b[0]);
   for (const l of list) l[1](l[2]);
   for (const e of G.enemies) if (e.T.dragon) drawDragonBeam(e);
+  for (const e of G.enemies) FOES[e.type]?.over?.(e);
   for (const p of G.parts) drawPart(p);
   for (const f of G.floats) {
     ctx.globalAlpha = 1 - Math.max(0, f.t - 0.6) / 0.5;
@@ -1147,8 +1207,8 @@ export function drawHUD() {
       bw = 360;
     txt(foeName(boss.type), bx + 8, 31, 14, '#e3c8ff', 'left', 4);
     bar(bx, 37, bw, 12, Math.max(0, boss.hp) / boss.T.hp, 0, '#b05cff');
-    if (boss.T.dragon) {
-      // phase marker on the dragon's bar
+    if (boss.T.dragon || boss.type === 'prospector') {
+      // phase marker on the dragon's (and the Prospector's) bar
       ctx.fillStyle = '#ece5cb';
       ctx.fillRect(bx + bw * 0.5 + 3, 37, 2, 12);
     } else if (boss.armor > 0)

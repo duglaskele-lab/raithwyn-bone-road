@@ -176,6 +176,64 @@ export const ARMOR = {
     dodge: 0.25,
   },
 };
+// The Prospector, the boss of Old Quarry (TYPES.prospector): a giant in rusty power armour with
+// a diver's helmet, a flamethrower on its arm fed from two fuel tanks on its back and two
+// mortars over its shoulders. Below `phase` of its health its helmet flies off and it fights
+// harder: `fast` times quicker on its feet and between its attacks, its flame sweeping across
+// the road (`sweep` up and down) and its mortars firing a fork of `shots2` shells.
+//   flame   wind-up (the pilot light flares), how long it burns (in each phase), the cone
+//           (from the nozzle `from` in front of it, `len` long, `w0` deep at the nozzle, widening `spread` per pixel), a bite of
+//           `dmg` every `tick` seconds while the player is in it
+//   mortar  wind-up (the barrels rise), shells and the time between them, their flight and
+//           how high they go, how far from the player they fall (`spread`, `fork`); the
+//           blast is BLAST.mortar
+//   jump    as ARMOR.jump: it always comes down on the player
+// Its flame, its mortars, its jump and the loss of its helmet cannot be interrupted.
+export const PROS = {
+  phase: 0.5,
+  fast: 1.25,
+  unmask: 1.5,
+  flame: {
+    wind: 0.75,
+    time: 1.6,
+    time2: 2.2,
+    from: 236, // the nozzle, this far in front of it as it fires
+    len: 320,
+    w0: 26,
+    spread: 0.26,
+    sweep: 120,
+    tick: 0.2,
+    dmg: 4,
+    cd: [3.5, 5.5],
+    first: [1.5, 3],
+  },
+  mortar: {
+    wind: 0.7,
+    shots: 3,
+    shots2: 5,
+    gap: 0.32,
+    flight: 1.15,
+    h: 430,
+    spread: 70,
+    fork: 170,
+    cd: [5, 8],
+    first: [3, 5],
+    min: 170,
+  },
+  jump: {
+    crouch: 0.6,
+    air: 1,
+    rec: 0.75,
+    h: 190,
+    rx: 160,
+    ry: 64,
+    dmg: 22,
+    cd: [7, 11],
+    min: 170,
+    max: 620,
+    first: [6, 9],
+  },
+};
 // The slime: its roll (wind-up, speed, how long), its jump (wind-up, flight, landing blast
 // radius and damage), its spit (wind-up; at most `minions` of its spawn about at once).
 export const SLIME = {
@@ -216,6 +274,8 @@ export const BLAST = {
   grenade: { r: 250, dmgP: 0, dmgE: 70, chain: 0.14 },
   // her grenade shot out of the air by her pistol: 30% wider and 30% harder
   airburst: { r: 325, dmgP: 0, dmgE: 91, chain: 0.14 },
+  // a shell of the Prospector's mortars: it hurts the player only
+  mortar: { r: 115, dmgP: 16, dmgE: 0, chain: 0.14 },
 };
 // Lucy's grenade (L): costs `cost` rage; it leaves her hand `x` ahead and `z` up, flies in an
 // arc (`vx`, `vz` up, `g` down), spinning `spin` turns a second; on the ground it bounces
@@ -467,6 +527,27 @@ export const TYPES = {
     dk: '#3c4248',
     eye: '#7dff5a',
     score: 2200,
+  },
+  // the boss of Old Quarry (see PROS): heavy, only crushing blows move it
+  prospector: {
+    hp: 1300,
+    scale: 1.47, // 1.3 times the power armour
+    speed: 44,
+    dmg: 20,
+    reach: 118,
+    style: 'kick',
+    wind: 0.6,
+    act: 0.16,
+    rec: 0.6,
+    cd: [1, 1.8],
+    knock: 1,
+    bigBoss: 1,
+    weight: 'heavy',
+    shadow: 74,
+    col: '#a8643a',
+    dk: '#6e3f24',
+    eye: '#ffb84a',
+    score: 8000,
   },
   // the mini-boss of Old Quarry: a radioactive slime (see SLIME)
   slime: {

@@ -100,25 +100,8 @@ export const WAVES2 = [
   { s: at(L2.HALL_X - 480), boss: 1, sp: [['slime', 1, 0.6]] },
   { s: at(END_X - 1280), lvl: 0.85 },
   { s: at(END_X - 1280), chain: 1, lvl: 1 },
-  // the last fight: two zombies in power armour; halfway through a gang of miners joins in
-  {
-    s: at(END_X - 960),
-    boss: 1,
-    final: 1,
-    sp: [
-      ['armor', 1, 0.8],
-      ['armor', -1, 1.6],
-    ],
-    mid: [
-      ['miner', 1, 0],
-      ['miner', -1, 0.3],
-      ['miner', 1, 0.6],
-      ['miner', -1, 0.9],
-      ['dynamite', 1, 1.4],
-      ['dynamite', -1, 1.8],
-      ['miner', 1, 2.4],
-    ],
-  },
+  // the last fight: the Prospector, alone
+  { s: at(END_X - 960), boss: 1, final: 1, sp: [['prospector', 1, 0.8]] },
 ];
 
 // How an ordinary fight of Old Quarry is rolled (as WAVEGEN, config.js): a quarter fewer

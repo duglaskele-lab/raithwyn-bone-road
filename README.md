@@ -183,7 +183,7 @@ up again, a little lower each time, and gives style points.
 | --- | --- | --- |
 | light (default) | Skeleton, Bone Thrower, Bonebreaker, Rocker, Bone Monkey, Necromancer, Zombie, Skeleton Samurai, Zombie Miner, Dynamite Zombie, Mutant Lizard | any hit interrupts its attack, a heavy hit knocks it back, easy to launch and juggle |
 | medium | Fatso | ordinary hits do not interrupt its attack, a heavy hit does (it flinches); knocking back or launching takes two heavy hits within 3 seconds or one crushing hit; juggles like a light enemy in the air |
-| heavy | Power Armor Zombie | its attacks are not interrupted; only a crushing hit knocks it back; not juggled in the air |
+| heavy | Power Armor Zombie, the Prospector | its attacks are not interrupted; only a crushing hit knocks it back; not juggled in the air |
 | bosses | Grave Baron, Bone Dragon, Radioactive Slime | their own rules (in their files in `src/foes`); the Slime's attacks are interrupted by the medium rules |
 
 A heavy hit is the chain's finisher, the flying kick, the dark ball or the super attack. A
@@ -337,7 +337,7 @@ once. The blast hits everyone in a large radius, enemies and the heroine (if she
 breaks wooden barrels and a moment later sets off red ones nearby.
 
 **Old Quarry's enemies** (numbers are in `TYPES`, `MINER`, `DYNAMITE`, `LIZARD`, `ARMOR`,
-`SLIME`):
+`SLIME`, `PROS`):
 
 - **Zombie Miner** — the main enemy: a helmet with a lamp, a checked shirt with braces, a
   pickaxe. Strikes down with the pickaxe. Now and then raises the pickaxe over its head (0.7 s
@@ -378,8 +378,30 @@ breaks wooden barrels and a moment later sets off red ones nearby.
   landed, get up and fight (no more than four at once). Its attacks are interrupted by the medium
   rules; instead of flying off it slides back.
 
-**The finale** — instead of a final boss: a fight with two Power Armor Zombies. When they have
-lost half their health, a gang of Zombie Miners and two Dynamite Zombies join in.
+**The finale: the Prospector** (boss of Old Quarry, 1300 health; numbers in `PROS` and
+`TYPES.prospector`, code in `src/foes/prospector.js`). A giant zombie in power armour, 1.3 times
+the size of the Power Armor Zombie and drawn in finer detail: rusty riveted plates with dents,
+hazard stripes and brass trim, a round brass diver's helmet with a glowing porthole, two red
+fuel tanks on its back feeding a flamethrower on its arm through a hose, two short mortars over
+its shoulders, a pressure gauge on its chest whose needle creeps into the red as it loses
+health, and steam hissing out of its joints. It walks in from the edge of the screen and fights
+alone. Its attacks:
+- **Flamethrower** — the pilot light flares for 0.75 s, then a cone of fire 320 px long pours
+  from the nozzle onto the road for 1.6 s; standing in it burns 4 health every 0.2 s without a
+  knockdown (a burn that would kill knocks down). There is no fire left on the ground.
+- **Mortars** — the barrels rise, and three shells go up one after another and come down where
+  the heroine stands (a little to the side for all but the first), each on a red area marked on
+  the ground that fills up as it falls; the blast (`BLAST.mortar`, r 115, 16 damage) knocks her
+  down and spares the enemies. Shells cannot be shot down.
+- **Jet jump** — as the Power Armor's, but bigger, and always onto the heroine.
+- **Kick** up close, with a "!" and a reddened porthole.
+
+At half health its helmet flies off and rolls away: under it is a zombie's head in miner's
+goggles. It fights harder: 25% faster on its feet and between attacks, the flame sweeps across
+the road from one side to the other (2.2 s) and the mortars fire a fork of five shells. It is
+heavy (only a crushing blow knocks it over, and only while it walks or kicks); the flame, the
+mortars, the jump and the loss of the helmet cannot be interrupted by anything (red outline),
+and it cannot be hurt while it tears off its helmet. Killed, it falls and the stage is won.
 
 **Secret.** On the first screen of the first stage, before the first fight, hold `Z` and `2`
 together for 2 seconds and the heroine goes straight to the entrance of Old Quarry.
@@ -478,7 +500,10 @@ What is checked:
   floor and the camera path (two slants), fights only on the flat, about 30% longer than the
   first stage, where enemies come from, barrels and blasts, the Miner, Dynamite, the Lizard, the
   Power Armor, its gun and its jump onto a marked spot, no more than two armors per wave, the Slime and its zombies, the
-  final fight.
+  final fight against the Prospector alone.
+- `prospector.test.js` — the Prospector: its health and size, what stops it and what does not,
+  the flame, the mortar shells (they spare it), the jump, the helmet coming off at half health
+  and the second phase, its death.
 - `waves.test.js` — random fights: few enemies and rarely strong ones at first, crowds of every
   kind at the end, difficulty rising along the road, a replay giving the same enemies.
 - `samurai.test.js` — the stance and creeping up, the arc cut, the stun from a distant attack,

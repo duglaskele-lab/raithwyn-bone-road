@@ -51,7 +51,8 @@ export function explode(x, y, k = 'barrel', z = 0) {
   // the player: knocked down, unless already out of reach in the air
   if (B.dmgP && within(x, y, P.x, P.y, B.r) && P.z < 140)
     hitPlayer(B.dmgP, P.x >= x ? 1 : -1, true);
-  for (const e of G.enemies)
+  // a blast that spares the enemies (the Prospector's mortar shells) leaves them be
+  for (const e of B.dmgE ? G.enemies : [])
     if (!e.dead && within(x, y, e.x, e.y, B.r))
       hurtEnemy(e, B.dmgE, e.x >= x ? 1 : -1, true, 'blast');
   // sticks of dynamite caught in it go off a moment later too

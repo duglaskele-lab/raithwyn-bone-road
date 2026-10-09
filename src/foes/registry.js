@@ -24,8 +24,11 @@
 //   unstoppable(e)           true while it is in an attack no hit can stop (red outline)
 //   attacks                  its own attack states (a medium enemy's attacks go on through hits)
 //   update(e, dt)            replaces the whole AI (the Bone Dragon)
+//   tick(e, dt)              every frame, after its state (steam from its joints...)
+//   jump                     the numbers of its jet jump, if it has one (ARMOR.jump)
 //   pose / look              skeletal animation and costume (see anim.js and skeleton.js)
 //   draw(e, aura)            draws it instead of the skeleton rig (a creature of its own)
+//   over(e)                  drawn over everyone after it (its flame), outside its red outline
 //   corpse                   it dies by falling down and lying still, not into bones
 //   walksIn                  it never climbs out of the ground, it comes in from a side
 export const FOES = {},
