@@ -521,7 +521,7 @@ test('entering the second phase it is only half the bonus faster, growing to all
   assert.equal(rageMult(d), DRAGON.rage, 'then all of it');
 });
 
-test('the sky beams also come one after another: from the top line down, or from the bottom up', () => {
+test('the sky beams: always all three at once, side by side or in a row led by the top or the bottom', () => {
   const S = DRAGON.sky;
   assert.deepEqual(S.ways, ['all', 'down', 'up']);
   for (const [way, first, last] of [
@@ -532,16 +532,25 @@ test('the sky beams also come one after another: from the top line down, or from
     Object.assign(d, { state: 'sky', t: 0, skyX0: 770, skyY0: 441, skyX: 770, skyY: 441 });
     d.skyWay = way;
     d.face = -1;
-    assert.ok(skyFire(d) > S.sweep * 1.5, 'it takes longer');
-    const lines = skyLines(),
-      at = (tf) => skyBeams(d, tf).map((b) => lines.indexOf(b.y));
-    assert.deepEqual(at(0.05), [first], 'one beam first');
-    assert.deepEqual(at(S.sweep * S.lag + 0.05), [first, 1], 'then the middle one joins');
-    assert.deepEqual(at(skyFire(d) - 0.05), [last], 'the last one ends it');
-    // the beam ahead is always further along than the one behind it
-    const two = skyBeams(d, S.sweep * S.lag * 1.5);
-    assert.ok((two[0].x - two[1].x) * d.face > 0);
+    const lines = skyLines();
+    for (const tf of [0.05, S.sweep * 0.5, skyFire(d) - 0.05]) {
+      const bs = skyBeams(d, tf);
+      assert.equal(bs.length, 3, 'all three at once');
+      assert.deepEqual(
+        bs.map((b) => lines.indexOf(b.y)),
+        [first, 1, last],
+      );
+    }
+    // in the middle of it all three are on their way, the leading one furthest along
+    const mid = skyBeams(d, skyFire(d) / 2);
+    assert.ok(mid.every((b) => b.live));
+    assert.ok((mid[0].x - mid[1].x) * d.face > 0 && (mid[1].x - mid[2].x) * d.face > 0);
   }
+  // side by side: level with each other all the way
+  const d = dragonAt(400, 450 + 100, { phase2: true });
+  d.skyWay = 'all';
+  const bs = skyBeams(d, S.sweep / 2);
+  assert.ok(bs.every((b) => b.x === bs[0].x));
   // each way comes up
   const seen = new Set();
   for (let i = 0; i < 40; i++) {
