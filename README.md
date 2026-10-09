@@ -259,7 +259,7 @@ its jaws, then fire three white beams from its mouth, turning its head (back ove
 the whole arena from edge to edge, under itself too, all three side by side at once. The
 arena's depth is split into five lines, three of them under beams and two safe, one of three
 ways at random (`DRAGON.sky.ways`): every other line (its top edge, its middle and its bottom
-edge, safe between them), the bottom three (the top two safe) or the top three (the bottom two
+edge, safe between them; here the beams are narrower, 17 px either way instead of 20), the bottom three (the top two safe) or the top three (the bottom two
 safe) — the heroine has to find the right place on the arena. Where a beam passes, the ground burns for a while. Hovering, it is out of reach. Then it drops straight down with the quake and the shockwave of its leap. If the heroine stands
 close behind the Dragon, it sometimes (no more than once in 7 seconds) kicks her with a hind
 leg instead of turning round. The heroine's hits push the Dragon back a little. The beaten
