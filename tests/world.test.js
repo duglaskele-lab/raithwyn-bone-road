@@ -413,14 +413,24 @@ test('Lucy: her new run, a dodge now and then, her big gun for the super, and a 
   assert.equal(P.state, 'idle', 'back on guard');
   // the win: she sits down and then drinks on and on, the last frames back and forth
   Object.assign(P, { state: 'win', t: 0 });
-  const seen = new Set();
-  for (let t = 0; t < 6; t += DT) {
+  const seen = new Set(),
+    ways = new Set();
+  let prev = null;
+  for (let t = 0; t < 30; t += DT) {
     P.t = t;
     update(0);
     seen.add(P.an[1]);
-    if (t > d.intro * d.t) assert.ok(P.an[1] >= d.intro, 'the drinking goes on');
+    if (t > d.intro * d.t) {
+      assert.ok(P.an[1] >= 13, 'the drinking goes on, the bottle never put away');
+      ways.add(P.dkWay);
+      // never a jump of more than two frames: it looks natural
+      if (prev !== null) assert.ok(Math.abs(P.an[1] - prev) <= 2, `${prev} -> ${P.an[1]}`);
+      prev = P.an[1];
+    }
   }
   assert.equal(seen.size, FR.drink.length, 'every frame shows');
+  assert.equal(ways.size, d.ways.length, 'every way of drinking comes up');
+  for (const w of d.ways) assert.ok(new Set(w).size <= 8, 'at most eight frames a way');
   P.who = 'raithwyn';
 });
 

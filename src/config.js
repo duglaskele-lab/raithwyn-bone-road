@@ -748,8 +748,20 @@ export const FIGHTER_ANIM = {
     walk: [0.1, 8],
     run: [0.1, 6],
     // the win: `intro` frames of sitting down and taking out the bottle (`t` seconds each),
-    // then the last `loop` frames back and forth (`lt` each): she drinks on and on
-    drink: { intro: 16, t: 0.09, loop: 7, lt: 0.13 },
+    // then she drinks on and on (`lt` a frame): first the last `loop` frames back and forth,
+    // then one of the `ways` after another, at random: the same sip, the bottle lowered for a
+    // breath and raised again, a long gulp with the head tipped back
+    drink: {
+      intro: 16,
+      t: 0.09,
+      loop: 7,
+      lt: 0.13,
+      ways: [
+        [16, 17, 18, 19, 20, 21, 22, 21, 20, 19, 18, 17],
+        [17, 18, 20, 22, 20, 18, 16, 14, 13, 13, 13, 13, 14, 15],
+        [17, 18, 19, 20, 21, 21, 21, 21, 21, 20, 19, 18, 17],
+      ],
+    },
     // a dodge: seconds a frame; the three dodges have 7, 7 and 6 frames
     evade: 0.06,
   },
