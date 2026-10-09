@@ -311,7 +311,8 @@ way for a moment); now and then she steps back near the player still facing her 
   the last one knocking down; then she stands open for 0.6 s.
 - **Running jump kick**: far off and lined up, she runs straight at the player, gathering speed,
   and leaps forward kicking (14, a knockdown).
-- **Bone** along the road (7 damage); in the third stage a fan of three.
+- **Bone** along the road (7 damage), never at a player within a quarter of the screen; in the
+  third stage a fan of three.
 - **Dark ball** of level I, II, III by stage (12, 18 knocking down, 26 knocking down and going on
   through): she holds it at her side (the second frame of her throw) for 0.45, 0.8 and 1.2 s,
   sparks flying out of it, more and faster the stronger it is; then the throw plays on and the
@@ -332,9 +333,10 @@ way for a moment); now and then she steps back near the player still facing her 
   it falls with her.
 
 She takes blows as a light enemy does, with no time out of reach after one: a hit stops her, a
-heavy one throws her. But five blows within 2.5 s steady her: for 2.5 s (a red glow round her)
-she takes them as a medium enemy does, and three more blows meanwhile make her heavy for 2 s (an
-orange glow): then only a crushing blow moves her, and she cannot be juggled (`EVIL.steady`). Killed, she falls and the stage is won.
+heavy one throws her. But four blows within 2.5 s steady her: for 2.5 s (a faint red glow round
+her) she takes them as a medium enemy does, and two more blows meanwhile make her heavy for 3 s
+(a strong red glow): then only a crushing blow moves her, and she cannot be juggled
+(`EVIL.steady`). Killed, she falls and the stage is won.
 
 **The Grave Baron.** The fight starts with seven zombies climbing out of the ground. Summoning
 minions, the charge and the roar cannot be interrupted. When the Baron is below half health the

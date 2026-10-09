@@ -350,40 +350,53 @@ test("before the orb's beams: red marks on the ground, and no harm yet", () => {
   assert.ok(e.orb.spots, 'then the beams come');
 });
 
-test('five blows in 2.5 s: medium for 2.5 s; three more meanwhile: heavy for 2 s', () => {
+test('four blows in 2.5 s: medium for 2.5 s; two more meanwhile: heavy for 3 s', () => {
   const S = EVIL.steady;
-  assert.deepEqual([S.hits, S.window, S.t, S.more, S.heavyT], [5, 2.5, 2.5, 3, 2]);
+  assert.deepEqual([S.hits, S.window, S.t, S.more, S.heavyT], [4, 2.5, 2.5, 2, 3]);
   const e = arena(400);
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 3; i++) {
     hurtEnemy(e, 1, 1, false, 'punch');
-    G.time += 0.4;
+    G.time += 0.5;
   }
-  assert.equal(e.weight, undefined, 'four are not enough');
+  assert.equal(e.weight, undefined, 'three are not enough');
   hurtEnemy(e, 1, 1, false, 'punch');
   assert.equal(e.weight, 'medium');
   // as a medium enemy, one heavy blow only staggers her
   Object.assign(e, { state: 'chase', t: 0 });
   hurtEnemy(e, 1, 1, true, 'punch');
   assert.notEqual(e.state, 'air', 'not thrown by one heavy blow');
-  // two more blows (three in all while medium): heavy
-  hurtEnemy(e, 1, 1, false, 'punch');
-  assert.equal(e.weight, 'medium');
+  // one more blow (two in all while medium): heavy
   hurtEnemy(e, 1, 1, false, 'punch');
   assert.equal(e.weight, 'heavy');
   // heavy: a heavy blow does not throw her, nor a launcher; only a crushing one does
   Object.assign(e, { state: 'chase', t: 0 });
   hurtEnemy(e, 1, 1, true, 'punch', true);
   assert.notEqual(e.state, 'air', 'no juggling her');
-  step(2.4, () => hold(e));
+  step(2.8, () => hold(e));
+  assert.equal(e.weight, 'heavy', 'still heavy short of three seconds');
+  step(0.5, () => hold(e));
   assert.equal(e.weight, undefined, 'light again');
-  // five blows spread over more than 2.5 seconds do nothing
-  for (let i = 0; i < 5; i++) {
+  // four blows spread over more than 2.5 seconds do nothing
+  for (let i = 0; i < 4; i++) {
     hurtEnemy(e, 1, 1, false, 'punch');
-    G.time += 0.8;
+    G.time += 0.9;
   }
   assert.equal(e.weight, undefined);
 });
 
+test('she throws no bone at a player within a quarter of the screen', () => {
+  assert.ok(EVIL.bone.min >= W / 4);
+  const e = arena(W / 4 - 20);
+  e.hp = e.T.hp * 0.9;
+  e.boneCd = 0;
+  for (let i = 0; i < 30; i++) {
+    updEnemy(e, DT, { n: 9 });
+    Object.assign(e, { comboCd: 99, ballCd: 99, jumpCd: 99, runCd: 99, rushCd: 99, boneCd: 0 });
+    e.x = P.x + W / 4 - 20;
+  }
+  assert.ok(!G.projs.some((q) => q.k === 'ebone'));
+  assert.notEqual(e.state, 'bthrow');
+});
 test('like the heroine, she mostly faces the way she walks, even away from the player', () => {
   const F = EVIL.face;
   const e = arena(60);
