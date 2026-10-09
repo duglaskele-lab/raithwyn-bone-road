@@ -254,30 +254,55 @@ test('in the second phase the ram leaves a cone of fire behind it that dies down
   assert.ok(!G.pools.some((a) => a.fire));
 });
 
-test('up close, a quarter of its kicks become a shoulder charge or a jet jump', () => {
-  assert.equal(PROS.bash.chance, 0.25);
-  const seen = new Set();
+test('up close it mostly moves elsewhere on its jets instead of kicking', () => {
+  const M = PROS.move;
+  assert.equal(PROS.bash, undefined, 'no shoulder charge');
+  const seen = {};
   let kicks = 0;
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < 120; i++) {
     freshGame();
     seedRandom(i + 3);
     const e = arena(600);
     P.inv = 99;
     P.x = e.x - 80;
     Object.assign(e, { state: 'windup', t: 0, face: -1 });
+    const [x, y] = [e.x, e.y];
     step(DT * 2, () => (P.inv = 99));
-    if (e.state === 'windup') kicks++;
-    else seen.add(e.state);
+    if (e.state === 'windup') {
+      kicks++;
+      continue;
+    }
+    if (e.state === 'jcrouch') {
+      seen.jump = 1;
+      continue;
+    }
+    assert.equal(e.state, 'phop');
+    const dx = e.hx1 - x,
+      dy = e.hy1 - y;
+    if (dx < -150)
+      seen.over = 1; // past the player, on her far side
+    else if (Math.abs(dy) > 60) seen.side = 1;
+    else if (dx > 150) seen.back = 1;
   }
-  assert.ok(seen.has('pbwind') && seen.has('jcrouch'), [...seen].join());
-  assert.ok(kicks > 40 && kicks < 75, `mostly kicks: ${kicks}`);
-  // the shoulder charge knocks her down
+  assert.deepEqual(Object.keys(seen).sort(), ['back', 'jump', 'over', 'side']);
+  assert.ok(kicks > 20 && kicks < 70, `kicks only now and then: ${kicks} of 120`);
+  // a hop lands it somewhere else, and it does not kick at once
   freshGame();
   const e = arena(600);
-  P.x = e.x - 120;
-  Object.assign(e, { state: 'pbwind', t: 0, face: -1 });
-  step(PROS.bash.wind + PROS.bash.time + 0.1);
-  assert.ok(P.hp <= 100 - PROS.bash.dmg);
-  assert.ok(['ko', 'down', 'getup'].includes(P.state));
-  assert.equal(e.state, 'chase', 'and no kick-like stance after it');
+  P.inv = 99;
+  P.x = e.x - 80;
+  Object.assign(e, {
+    state: 'phop',
+    t: 0,
+    hx0: e.x,
+    hy0: e.y,
+    hx1: e.x + 230,
+    hy1: e.y,
+    hopT: 0.45,
+    hopH: 60,
+  });
+  step(0.5, () => (P.inv = 99));
+  assert.equal(e.state, 'chase');
+  assert.ok(Math.abs(e.x - (P.x + 310)) < 5);
+  assert.ok(e.cd >= M.after - 0.1);
 });
