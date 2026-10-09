@@ -2,6 +2,7 @@
 import {
   ACID,
   BLAST,
+  EVIL,
   PROS,
   DECOR,
   FONT,
@@ -379,12 +380,16 @@ export function drawDecor(u) {
 function drawFire(a) {
   const R = PROS.fire,
     k = Math.min(1, a.t / 0.12) * Math.min(1, (a.life - a.t) / (a.life * 0.6)),
-    x = a.x - G.cam;
+    x = a.x - G.cam,
+    // Raithwyn's orb burns the ground in violet
+    [c0, c1, c2] = a.dark
+      ? ['200,120,255', '140,60,230', ['230,190,255', '170,90,255']]
+      : ['255,150,50', '255,60,20', ['255,200,80', '255,110,30']];
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   const g = ctx.createRadialGradient(x, a.y, 2, x, a.y, R.rx * 1.2);
-  g.addColorStop(0, `rgba(255,150,50,${0.55 * k})`);
-  g.addColorStop(1, 'rgba(255,60,20,0)');
+  g.addColorStop(0, `rgba(${c0},${0.55 * k})`);
+  g.addColorStop(1, `rgba(${c1},0)`);
   ctx.fillStyle = g;
   ctx.beginPath();
   ctx.ellipse(x, a.y, R.rx * 1.2, R.ry * 1.2, 0, 0, TAU);
@@ -394,7 +399,7 @@ function drawFire(a) {
       fy = a.y + Math.cos(i * 1.7 + a.seed) * R.ry * 0.4,
       h = (14 + 10 * Math.sin(G.time * 13 + i * 1.9 + a.seed)) * k + 6 * k,
       w = 6 * k + 2;
-    ctx.fillStyle = i % 2 ? `rgba(255,200,80,${0.85 * k})` : `rgba(255,110,30,${0.85 * k})`;
+    ctx.fillStyle = `rgba(${c2[i % 2]},${0.85 * k})`;
     ctx.beginPath();
     ctx.moveTo(fx - w, fy);
     ctx.quadraticCurveTo(fx - w * 0.6, fy - h * 0.6, fx + Math.sin(G.time * 9 + i) * 3, fy - h);
@@ -563,7 +568,7 @@ export function drawProj(q) {
     ctx.restore();
     return;
   }
-  if (q.k === 'hado') {
+  if (q.k === 'hado' || q.k === 'ehado') {
     const f = q.vx < 0,
       sc = [1, 1.5, 2.2][q.lv - 1] * (1.05 + 0.1 * Math.sin(G.time * 40));
     ctx.save();
@@ -1239,6 +1244,11 @@ export function drawHUD() {
       bw = 360;
     txt(foeName(boss.type), bx + 8, 31, 14, '#e3c8ff', 'left', 4);
     bar(bx, 37, bw, 12, Math.max(0, boss.hp) / boss.T.hp, 0, '#b05cff');
+    if (boss.type === 'evil' && boss.stage >= 2) {
+      // Raithwyn's rage, from her second stage on: a small bar under her health
+      bar(bx, 53, bw * 0.4, 6, (boss.rage ?? 0) / EVIL.rage.max, 0, '#ff4a5e');
+      txt(t('rage'), bx + bw * 0.4 + 6, 59, 10, '#ffb0b8', 'left', 3);
+    }
     if (boss.T.dragon || boss.type === 'prospector') {
       // phase marker on the dragon's (and the Prospector's) bar
       ctx.fillStyle = '#ece5cb';

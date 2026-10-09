@@ -3,6 +3,7 @@
 // The rolls use the game's seeded chance, so a replay meets the same enemies.
 import { WAVEGEN } from './config.js';
 import { level } from './level.js';
+import { P } from './state.js';
 import { lerp, random, rnd } from './util.js';
 
 const at = ([a, b], lvl) => lerp(a, b, lvl);
@@ -63,6 +64,9 @@ export function rollWave(lvl, G = WAVEGEN) {
 export function waveSpawns(i) {
   const L = level(),
     w = L.waves[i];
-  return w.sp ? w.sp.map((s) => s.slice()) : rollWave(w.lvl, L.gen);
+  // on the Bone Road, someone other than Raithwyn meets Raithwyn herself instead of the dragon
+  const swap = (s) =>
+    s[0] === 'dragon' && P.who && P.who !== 'raithwyn' ? ['evil', ...s.slice(1)] : s.slice();
+  return w.sp ? w.sp.map(swap) : rollWave(w.lvl, L.gen);
 }
 export const STRONG = Object.keys(WAVEGEN.pools.hard);

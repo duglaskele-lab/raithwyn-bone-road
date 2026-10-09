@@ -266,6 +266,49 @@ export const PROS = {
     first: [6, 9],
   },
 };
+// Raithwyn as the boss of the Bone Road (TYPES.evil, src/foes/evil.js), in the dragon's place
+// when the player is someone else. Three stages by her health (`stages`: above the first, then
+// above the second, then below), with no show of a change:
+//   combo  her three-punch chain up close: a glint in her eyes (`glint`), then the hits (`t`
+//          seconds each, `dmg`), the last one knocking down; `reach` in front
+//   bone   one bone, thrown along the road; in the third stage a fan of three (`fan`: how much
+//          the side ones drift in depth for each pixel ahead)
+//   ball   her dark ball, of level I, II, III by stage: `wind` to gather it, `dmg`, `speed`
+//   jump   a leap back from the player (`dist` away, `h` high, `t` long; at a wall, the other
+//          way, over her), as she is attacked; `cd` between leaps
+//   rage   from the second stage on she gathers rage (`max`): `hit` when she lands a blow,
+//          `hurt` when she takes one, and in the third stage `passive` a second too
+//   orb    with full rage: her super. She gathers a dark orb for `charge` seconds (a heavy blow
+//          breaks it and empties her rage; in the third stage nothing breaks it), it rises
+//          (`rise`) over the arena and swells, and for `life` seconds three beams from it run
+//          over the ground along their own paths, burning it (`fire` patches every `every`
+//          seconds that last `burn`) and hurting `hit` whoever they touch (`hitR` wide, once in
+//          `again` seconds); meanwhile she only walks about and leaps away
+//   summon at half health she calls up the dandy skeleton (TYPES.dandy)
+//   flinch a heavy blow staggers her; after `breaks` of them she shrugs off blows for `armor` s
+export const EVIL = {
+  stages: [0.66, 0.33],
+  combo: { glint: 0.28, t: [0.2, 0.2, 0.3], dmg: [8, 8, 14], reach: 95, rec: 0.6, cd: [1.1, 2] },
+  bone: { wind: 0.3, speed: 420, fan: 0.3, dmg: 7, cd: [2.4, 3.8], min: 170 },
+  ball: { wind: [0.45, 0.8, 1.2], dmg: [12, 18, 26], speed: 520, cd: [4, 6.5], min: 220 },
+  jump: { t: 0.55, dist: 260, h: 110, cd: 2.2, wall: 170 },
+  rage: { max: 100, hit: 12, hurt: 5, passive: 6 },
+  orb: {
+    charge: 1,
+    rise: 0.7,
+    life: 5,
+    z: 300,
+    hit: 10,
+    hitR: 32,
+    again: 0.7,
+    every: 0.05,
+    burn: 1.2,
+    keep: 300,
+  },
+  summon: 0.5,
+  breaks: 3,
+  armor: 4,
+};
 // The slime: its roll (wind-up, speed, how long), its jump (wind-up, flight, landing blast
 // radius and damage), its spit (wind-up; at most `minions` of its spawn about at once).
 export const SLIME = {
@@ -599,6 +642,43 @@ export const TYPES = {
     dk: '#2f8a1e',
     eye: '#f4ff9a',
     score: 5000,
+  },
+  // the other final boss of the Bone Road: Raithwyn herself, when the player is not her (EVIL)
+  evil: {
+    hp: 1000,
+    scale: 1,
+    speed: 160, // a tenth slower than the heroine's walk
+    dmg: 8,
+    reach: 60,
+    wind: 0.3,
+    act: 0.14,
+    rec: 0.4,
+    cd: [0.6, 1.2],
+    bigBoss: 1,
+    weight: 'boss',
+    shadow: 40,
+    col: '#2a2633',
+    dk: '#16131c',
+    eye: '#ff4a5e',
+    score: 6000,
+  },
+  // the skeleton Raithwyn calls up at half health: a dandy in a top hat and a torn tailcoat,
+  // a rose in its teeth; only her own attacks hurt it while she lives
+  dandy: {
+    hp: 140,
+    scale: 1.05,
+    speed: 88,
+    dmg: 9,
+    reach: 66,
+    style: 'punch',
+    wind: 0.36,
+    act: 0.14,
+    rec: 0.42,
+    cd: [0.8, 1.5],
+    col: '#efe9d6',
+    dk: '#b9b094',
+    eye: '#c58bff',
+    score: 600,
   },
   // the final boss; its behaviour and drawing live in dragon.js
   dragon: {
