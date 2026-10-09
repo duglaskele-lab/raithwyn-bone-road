@@ -1,15 +1,18 @@
 // Raithwyn as the final boss of the Bone Road (numbers in EVIL and TYPES.evil): she waits in the
 // dragon's place when the player is someone else, drawn with her own sprites. She fights with
-// the heroine's own moves, in three stages by her health, with no show of a change: her
-// three-punch chain up close (a glint in her eyes first), her bone along the road (a fan of
-// three in the third stage), her dark ball of level I, II and III by stage (gathered longer
-// each time), a leap back away from the player's attacks (at a wall, the other way, over her).
-// From the second stage on she gathers rage (a small bar under hers), and in the third it fills
-// by itself; full, she gathers a dark orb (a heavy blow breaks it and empties her rage, but not
-// in the third stage), it rises over the arena and for five seconds three beams from it run
-// over the ground along their own paths, burning it, while she only walks about and leaps
-// away. At half health she calls up the dandy skeleton (dandy.js), whom only her blows hurt.
-// A heavy blow staggers her; after a few she shrugs them off for a while.
+// the heroine's own moves, in three stages by her health, with no show of a change. She walks
+// at the heroine's pace and now and then runs (more often in the later stages) to close in or
+// to get away. Up close, her three-punch chain (a glint in her eyes first); far off, a running
+// jump kick (she runs straight at the player, gathering speed, and leaps); her bone along the
+// road (a fan of three in the third stage); her dark ball of level I, II and III by stage (held
+// at her side while it gathers, longer each time, sparks flying from it, more the stronger it
+// is; nothing stops it from the second stage on); a leap back from the player's attacks (at a
+// wall, the other way, over her). From the second stage on she gathers rage (a small bar under
+// hers), and in the third it fills by itself; full, she gathers a dark orb (a heavy blow breaks
+// it and empties her rage, but not in the third stage), it rises over the arena and for five
+// seconds three beams from it run over the ground along their own paths, burning it, while she
+// only walks about and leaps away. At half health she calls up the dandy skeleton (dandy.js).
+// Otherwise she takes blows as a light enemy: a hit stops her, a heavy one throws her.
 import { EVIL, GB, GT, PURPLE, TAU, W } from '../config.js';
 import { clamp, ease, lerp, random, rnd } from '../util.js';
 import { G, P } from '../state.js';
@@ -19,7 +22,7 @@ import { finale, hitPlayer, hurtEnemy } from '../combat.js';
 import { scoreMult } from '../style.js';
 import { ctx, sprite } from '../gfx.js';
 import { spawn } from '../enemies.js';
-import { defineFoe } from './registry.js';
+import { defineFoe, FOES } from './registry.js';
 import { faceP, go, inFront, moveTo } from './kit.js';
 
 /** Her stage, 1 to 3, by how much health she has left. */
@@ -28,7 +31,7 @@ export const stageOf = (e) => {
   return f > EVIL.stages[0] ? 1 : f > EVIL.stages[1] ? 2 : 3;
 };
 const onScreen = (e) => e.x > G.cam + 40 && e.x < G.cam + W - 40;
-/** The skeletons she has called up (only her blows hurt them while she lives). */
+/** The skeletons she has called up (her own blows hurt them too). */
 export const dandies = () => G.enemies.filter((o) => o.type === 'dandy' && !o.dead && !o.dying);
 /** One of her blows (her fist, a bone, a ball, a beam) on her own skeleton. */
 export function evilHurt(o, dmg, dir, knock) {
@@ -184,7 +187,7 @@ function drawOrb(e) {
 // --- drawing -----------------------------------------------------------------------------------
 
 /** Which of her frames to show now. */
-function frame(e) {
+export function evilFrame(e) {
   const t = e.t,
     C = EVIL.combo;
   switch (e.state) {
@@ -209,9 +212,27 @@ function frame(e) {
     case 'bthrow':
       return ['throw', Math.min(3, Math.floor(t / 0.09))];
     case 'eball':
-      return ['hado', 1 + (Math.floor(t / 0.12) % 3)];
+      // the second frame, the ball held at her side, held while it gathers
+      return ['hado', 1];
     case 'hrel':
-      return ['hado', t < 0.1 ? 4 : 5];
+      // then the rest of the throw
+      return ['hado', Math.min(5, 2 + Math.floor(t / 0.06))];
+    case 'erun':
+      return ['run', Math.floor(e.anim / 0.07) % 6];
+    case 'rrun':
+      return ['run', Math.floor(e.anim / (t < EVIL.rush.accel ? 0.1 : 0.06)) % 6];
+    case 'rjump': {
+      const u = t / EVIL.rush.jump;
+      return u < 0.3 ? ['jump', 1] : u < 0.92 ? ['punch2', u < 0.45 ? 1 : 2] : ['jump', 4];
+    }
+    case 'rland':
+      return ['jump', 4];
+    case 'air':
+      return ['ko', Math.min(2, Math.floor(t / 0.1))];
+    case 'down':
+      return ['ko', 5];
+    case 'getup':
+      return ['ko', Math.max(3, 5 - Math.floor(t / 0.15))];
     case 'scharge':
       return ['orb', Math.min(5, Math.floor((t / EVIL.orb.charge) * 6))];
     case 'sfire':
@@ -229,7 +250,7 @@ function frame(e) {
   return ['idle', Math.floor(e.anim / 0.12) % 11];
 }
 export function drawEvil(e) {
-  const [name, i] = frame(e),
+  const [name, i] = evilFrame(e),
     x = e.x - G.cam,
     y = e.y - e.z + 2,
     a =
@@ -258,12 +279,13 @@ export function drawEvil(e) {
     ctx.fill();
     ctx.restore();
   }
-  // the dark ball gathering in her hands
+  // the dark ball gathering in her hand: a glow round it, the bigger the stronger
   if (e.state === 'eball') {
     const u = clamp(e.t / EVIL.ball.wind[e.lv - 1], 0, 1),
-      R = (10 + 18 * e.lv) * u,
-      hx = x + e.face * 60,
-      hy = y - 104,
+      [bx, by] = ballAt(e),
+      R = (8 + 12 * e.lv) * (0.4 + 0.6 * u) * (1 + 0.1 * Math.sin(G.time * 30)),
+      hx = bx - G.cam,
+      hy = by - e.z,
       g = ctx.createRadialGradient(hx, hy, 1, hx, hy, R + 1);
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
@@ -278,6 +300,30 @@ export function drawEvil(e) {
 
 // --- behaviour ---------------------------------------------------------------------------------
 
+/** Where she holds her dark ball as it gathers (in the second frame of her throw). */
+const ballAt = (e) => [e.x - e.face * 27, e.y - 100];
+/** Sparks flying out of her ball as it gathers: more, and faster, the stronger it is. */
+function ballSparks(e) {
+  const [bx, by] = ballAt(e),
+    n = [1, 2, 4][e.lv - 1];
+  for (let k = 0; k < n; k++)
+    if (random() < [0.4, 0.8, 1][e.lv - 1]) {
+      const a = rnd(TAU),
+        v = rnd(60, 120 + 90 * e.lv);
+      G.parts.push({
+        k: 'glow',
+        x: bx,
+        y: by - e.z,
+        vx: Math.cos(a) * v,
+        vy: Math.sin(a) * v - 40,
+        g: 200,
+        t: 0,
+        life: rnd(0.2, 0.35 + 0.1 * e.lv),
+        s: rnd(2, 3 + e.lv),
+        col: random() < 0.4 ? '#ffffff' : PURPLE,
+      });
+    }
+}
 /** Her fist this frame: the player and her own skeleton in front of her. */
 function punch(e, dmg, knock) {
   const C = EVIL.combo;
@@ -311,13 +357,25 @@ function leap(e) {
   SFX.jump();
   dust(e.x, e.y, 4);
 }
+/** A run one way along the road, for a while. */
+function run(e, dir) {
+  const [a, b] = EVIL.run.t;
+  go(e, 'erun', 0, { engage: false, rdir: dir, dur: rnd(a, b), toward: (P.x - e.x) * dir > 0 });
+}
 const toChase = (e, extra) => go(e, 'chase', 0, { engage: false, ...extra });
 
 export default defineFoe('evil', {
   draw: drawEvil,
   over: drawOrb,
-  init: { comboCd: [0.4, 1], ballCd: [2, 3.5], boneCd: [1.2, 2.6], jumpCd: [1, 2] },
-  timers: ['comboCd', 'ballCd', 'boneCd', 'jumpCd'],
+  init: {
+    comboCd: [0.4, 1],
+    ballCd: [2, 3.5],
+    boneCd: [1.2, 2.6],
+    jumpCd: [1, 2],
+    runCd: [1, 2],
+    rushCd: [3, 5],
+  },
+  timers: ['comboCd', 'ballCd', 'boneCd', 'jumpCd', 'runCd', 'rushCd'],
   spawn(e, side, placed) {
     if (!placed) {
       e.x = G.cam + W - 260;
@@ -376,6 +434,15 @@ export default defineFoe('evil', {
       },
     },
     {
+      // far off and lined up: a running jump kick, straight at the player
+      when: (e, s) =>
+        e.rushCd <= 0 && !s.pdown && s.adx > EVIL.rush.min && s.ady < 30 && onScreen(e),
+      go(e) {
+        faceP(e);
+        go(e, 'rrun', 0, { engage: false, rdir: e.face, hitDone: false, hitSet: new Set() });
+      },
+    },
+    {
       // at a distance and lined up: her dark ball, as strong as her stage
       when: (e, s) =>
         e.ballCd <= 0 && !s.pdown && s.adx > EVIL.ball.min && s.ady < 26 && onScreen(e),
@@ -398,6 +465,18 @@ export default defineFoe('evil', {
         go(e, 'bthrow', 0, { engage: false, thrown: false });
       },
     },
+    {
+      // she mostly walks; now and then she runs to close in on a player far away...
+      when: (e, s, dt) =>
+        e.runCd <= 0 && s.adx > EVIL.run.far && random() < dt * EVIL.run.toward[stageOf(e) - 1],
+      go: (e) => run(e, P.x >= e.x ? 1 : -1),
+    },
+    {
+      // ...or to get away from one too near
+      when: (e, s, dt) =>
+        e.runCd <= 0 && s.adx < EVIL.run.near && random() < dt * EVIL.run.away[stageOf(e) - 1],
+      go: (e) => run(e, P.x >= e.x ? -1 : 1),
+    },
   ],
   attacks: [
     'c0',
@@ -412,32 +491,30 @@ export default defineFoe('evil', {
     'sfire',
     'bjump',
     'ecall',
+    'erun',
+    'rrun',
+    'rjump',
+    'rland',
   ],
-  // in the third stage nothing stops her gathering the orb
-  unstoppable: (e) => (e.state === 'scharge' && e.stage >= 3) || e.state === 'ecall',
-  immune: (e) =>
-    e.state === 'eintro' || e.state === 'ecall' || (e.state === 'bjump' && e.t < EVIL.jump.t * 0.8),
+  // nothing stops her gathering her ball from the second stage on, nor her orb in the third
+  unstoppable: (e) =>
+    (e.state === 'eball' && e.lv >= 2) ||
+    (e.state === 'scharge' && e.stage >= 3) ||
+    e.state === 'ecall',
+  immune: (e) => e.state === 'eintro',
+  // otherwise she takes blows as a light enemy does: a hit stops her, a heavy one throws her
   guard(e, knock, src, dir) {
     evilRage(e, EVIL.rage.hurt);
-    if (['sfire', 'edie'].includes(e.state)) return true;
+    if (FOES.evil.unstoppable(e) || e.state === 'sfire') return true;
     if (e.state === 'scharge') {
-      // a heavy blow breaks her super, and her rage is gone (not in the third stage)
-      if (knock && e.stage < 3) {
-        e.rage = 0;
-        go(e, 'hurt', 0, { vx: dir * 120 });
-        SFX.deny();
-      }
-      return true;
+      // only a heavy blow breaks her super, and then her rage is gone
+      if (!knock) return true;
+      e.rage = 0;
+      SFX.deny();
+      return false;
     }
-    if (knock && e.armor <= 0) {
-      go(e, 'hurt', 0, { vx: dir * 120 });
-      if (++e.breaks >= EVIL.breaks) {
-        e.breaks = 0;
-        e.armor = EVIL.armor;
-        SFX.boss();
-      }
-    } else if (!knock && e.state === 'chase') e.dodge = true;
-    return true;
+    if (!knock && e.state === 'chase') e.dodge = true;
+    return false;
   },
   die(e, dir) {
     P.score += Math.round(e.T.score * scoreMult());
@@ -523,9 +600,13 @@ export default defineFoe('evil', {
     eball(e, dt, s) {
       const wind = EVIL.ball.wind[e.lv - 1];
       if (e.t < wind * 0.6) e.face = s.dx >= 0 ? 1 : -1;
-      if (random() < 0.5) motes(e.x + e.face * 60, e.y - 104, 1, 60 + 40 * e.lv);
-      if (e.t > wind) {
-        go(e, 'hrel');
+      ballSparks(e);
+      // gathered: the throw plays on and the ball flies as her hand comes forward
+      if (e.t > wind) go(e, 'hrel', 0, { sent: false });
+    },
+    hrel(e) {
+      if (e.t >= 0.12 && !e.sent) {
+        e.sent = true;
         SFX.hado();
         if (e.lv === 3) {
           SFX.nova();
@@ -545,9 +626,7 @@ export default defineFoe('evil', {
           life: 2.6,
         });
       }
-    },
-    hrel(e) {
-      if (e.t > 0.25) toChase(e, { ballCd: rnd(...EVIL.ball.cd) });
+      if (e.t > 0.3) toChase(e, { ballCd: rnd(...EVIL.ball.cd) });
     },
     scharge(e) {
       const O = EVIL.orb,
@@ -586,6 +665,73 @@ export default defineFoe('evil', {
       const tx = P.x + side * EVIL.orb.keep;
       if (tx < G.cam + 60 || tx > G.cam + W - 60) side = -side;
       moveTo(e, P.x + side * EVIL.orb.keep, P.y + (e.y > P.y ? 40 : -40), e.T.speed * 0.9, dt);
+    },
+    erun(e, dt, s) {
+      const R = EVIL.run;
+      e.face = e.rdir;
+      e.x += e.rdir * R.speed * dt;
+      e.y += clamp(P.y - e.y, -60 * dt, 60 * dt) * (e.toward ? 1 : 0);
+      e.moving = true;
+      if (random() < 0.3) dust(e.x - e.rdir * 20, e.y, 1);
+      const edge = e.x < G.cam + 60 || e.x > G.cam + W - 60;
+      if (e.t > e.dur || edge || (e.toward ? s.adx < 140 : s.adx > 330)) {
+        e.x = clamp(e.x, G.cam + 60, G.cam + W - 60);
+        toChase(e, { runCd: rnd(1.2, 2.2) });
+      }
+    },
+    rrun(e, dt, s) {
+      // gathering speed in a straight line, then the leap
+      const R = EVIL.rush,
+        sp = lerp(e.T.speed, EVIL.run.speed, clamp(e.t / R.accel, 0, 1));
+      e.face = e.rdir;
+      e.x += e.rdir * sp * dt;
+      e.moving = true;
+      if (random() < 0.5) dust(e.x - e.rdir * 20, e.y, 1);
+      const ahead = (P.x - e.x) * e.rdir,
+        edge = e.x < G.cam + 60 || e.x > G.cam + W - 60;
+      if ((ahead < R.stop && e.t > R.accel) || e.t > R.run || edge) {
+        go(e, 'rjump', 0, {
+          x0: e.x,
+          x1: clamp(e.x + e.rdir * R.dist, G.cam + 50, G.cam + W - 50),
+        });
+        SFX.jump();
+        dust(e.x, e.y, 5);
+      }
+    },
+    rjump(e) {
+      // the flying kick: it lands on whoever is in front of her in the air's second half
+      const R = EVIL.rush,
+        u = Math.min(1, e.t / R.jump);
+      e.x = lerp(e.x0, e.x1, u);
+      e.z = 4 * R.h * u * (1 - u);
+      if (u > 0.3 && u < 0.92) {
+        if (
+          !e.hitDone &&
+          Math.abs(P.x - (e.x + e.rdir * 40)) < 60 &&
+          Math.abs(P.y - e.y) < 26 &&
+          P.z < 120
+        ) {
+          e.hitDone = true;
+          evilHitP(e, R.dmg, e.rdir, true);
+        }
+        for (const d of dandies())
+          if (
+            !e.hitSet.has(d) &&
+            Math.abs(d.x - (e.x + e.rdir * 40)) < 60 &&
+            Math.abs(d.y - e.y) < 26
+          ) {
+            e.hitSet.add(d);
+            evilHurt(d, R.dmg, e.rdir, true);
+          }
+      }
+      if (u >= 1) {
+        e.z = 0;
+        dust(e.x, e.y, 6);
+        go(e, 'rland');
+      }
+    },
+    rland(e) {
+      if (e.t > 0.3) toChase(e, { rushCd: rnd(...EVIL.rush.cd) });
     },
     bjump(e) {
       const J = EVIL.jump,

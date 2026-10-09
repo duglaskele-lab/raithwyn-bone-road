@@ -276,6 +276,12 @@ export const PROS = {
 //   ball   her dark ball, of level I, II, III by stage: `wind` to gather it, `dmg`, `speed`
 //   jump   a leap back from the player (`dist` away, `h` high, `t` long; at a wall, the other
 //          way, over her), as she is attacked; `cd` between leaps
+//   run    she walks at the heroine's pace and now and then runs (`speed`) for `t` seconds to
+//          close in on a player further than `far` or to get away from one nearer than `near`;
+//          `toward` and `away`: how often a second, by stage (in the first she mostly walks)
+//   rush   a running jump attack: lined up, she runs straight at the player, gathering speed
+//          over `accel` seconds (for up to `run`), and once `stop` away leaps `dist` forward,
+//          `h` high, `jump` long, kicking: `dmg`, a knockdown
 //   rage   from the second stage on she gathers rage (`max`): `hit` when she lands a blow,
 //          `hurt` when she takes one, and in the third stage `passive` a second too
 //   orb    with full rage: her super. She gathers a dark orb for `charge` seconds (a heavy blow
@@ -285,13 +291,33 @@ export const PROS = {
 //          seconds that last `burn`) and hurting `hit` whoever they touch (`hitR` wide, once in
 //          `again` seconds); meanwhile she only walks about and leaps away
 //   summon at half health she calls up the dandy skeleton (TYPES.dandy)
-//   flinch a heavy blow staggers her; after `breaks` of them she shrugs off blows for `armor` s
+// She takes blows like a light enemy (no time out of reach after one): a hit stops her, a heavy
+// one throws her, except while her ball (from the second stage) or her orb (third) gathers.
 export const EVIL = {
   stages: [0.66, 0.33],
   combo: { glint: 0.28, t: [0.2, 0.2, 0.3], dmg: [8, 8, 14], reach: 95, rec: 0.6, cd: [1.1, 2] },
   bone: { wind: 0.3, speed: 420, fan: 0.3, dmg: 7, cd: [2.4, 3.8], min: 170 },
   ball: { wind: [0.45, 0.8, 1.2], dmg: [12, 18, 26], speed: 520, cd: [4, 6.5], min: 220 },
   jump: { t: 0.55, dist: 260, h: 110, cd: 2.2, wall: 170 },
+  run: {
+    speed: 435,
+    t: [0.5, 0.9],
+    far: 380,
+    near: 150,
+    toward: [0.25, 0.7, 1],
+    away: [0.1, 0.3, 0.45],
+  },
+  rush: {
+    accel: 0.35,
+    run: 1.2,
+    stop: 230,
+    jump: 0.5,
+    dist: 240,
+    h: 120,
+    dmg: 14,
+    cd: [5, 8],
+    min: 330,
+  },
   rage: { max: 100, hit: 12, hurt: 5, passive: 6 },
   orb: {
     charge: 1,
@@ -306,8 +332,6 @@ export const EVIL = {
     keep: 300,
   },
   summon: 0.5,
-  breaks: 3,
-  armor: 4,
 };
 // The slime: its roll (wind-up, speed, how long), its jump (wind-up, flight, landing blast
 // radius and damage), its spit (wind-up; at most `minions` of its spawn about at once).
@@ -647,7 +671,7 @@ export const TYPES = {
   evil: {
     hp: 1000,
     scale: 1,
-    speed: 160, // a tenth slower than the heroine's walk
+    speed: 180, // the heroine's own walk (and her run, EVIL.run)
     dmg: 8,
     reach: 60,
     wind: 0.3,
@@ -655,7 +679,6 @@ export const TYPES = {
     rec: 0.4,
     cd: [0.6, 1.2],
     bigBoss: 1,
-    weight: 'boss',
     shadow: 40,
     col: '#2a2633',
     dk: '#16131c',
@@ -663,9 +686,9 @@ export const TYPES = {
     score: 6000,
   },
   // the skeleton Raithwyn calls up at half health: a dandy in a top hat and a torn tailcoat,
-  // a rose in its teeth; only her own attacks hurt it while she lives
+  // a rose in its teeth; tough (the player's blows and hers both hurt it), it falls with her
   dandy: {
-    hp: 140,
+    hp: 2000,
     scale: 1.05,
     speed: 88,
     dmg: 9,

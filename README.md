@@ -303,15 +303,19 @@ The single-file build has the songs built in (which is why it weighs about 12 MB
 the Bone Dragon, to the Dragon's music; numbers in `EVIL` and `TYPES.evil`, code in
 `src/foes/evil.js`). She is drawn with her own sprites and fights with the heroine's moves,
 1000 health, in three stages by her health (above 66%, above 33%, below), with no show of a
-change:
+change. She walks and runs at the heroine's own pace (180 and 435 px/s): in the first stage she
+mostly walks and only now and then runs to close in or to get away, later more often.
 - **Chain of punches** up close: a red glint in her eyes (0.28 s), then three hits (8, 8, 14),
   the last one knocking down; then she stands open for 0.6 s.
+- **Running jump kick**: far off and lined up, she runs straight at the player, gathering speed,
+  and leaps forward kicking (14, a knockdown).
 - **Bone** along the road (7 damage); in the third stage a fan of three.
 - **Dark ball** of level I, II, III by stage (12, 18 knocking down, 26 knocking down and going on
-  through), gathered in her hands for 0.45, 0.8 and 1.2 s.
+  through): she holds it at her side (the second frame of her throw) for 0.45, 0.8 and 1.2 s,
+  sparks flying out of it, more and faster the stronger it is; then the throw plays on and the
+  ball flies. From the second stage on nothing stops it (a red outline).
 - **Leap back** away from the player's attacks up close and, now and then, after a plain hit she
-  takes (out of reach while she leaps); with a wall behind her she leaps the other way, over the
-  player.
+  takes; with a wall behind her she leaps the other way, over the player.
 - **Rage**, from the second stage on, in a small bar under hers: 12 for a blow she lands, 5 for
   one she takes, and in the third stage 6 a second by itself. Full, she gathers a dark orb (1 s,
   as the heroine's super): a heavy blow breaks it and empties her rage (in the third stage
@@ -320,12 +324,12 @@ change:
   figure of eight), burning it violet (the fire hurts) and hurting 10 whoever they touch;
   meanwhile she starts no attack, only keeps her distance and leaps away.
 - **The dandy** — at half health she calls up a skeleton finer than the others: a top hat with a
-  purple band, a red rose in its teeth, a torn tailcoat with a red bow. While she lives nothing of
-  the player's hurts it (a purple shimmer round it): only her own fists, bones, dark balls and
-  beams do. When she falls, it falls with her.
+  purple band, a red rose in its teeth, a torn tailcoat with a red bow. It has 2000 health; the
+  player's blows hurt it, and so do her own fists, bones, dark balls and beams. When she falls,
+  it falls with her.
 
-A heavy blow staggers her; after three of them she shrugs blows off for 4 s. Killed, she falls
-and the stage is won.
+She takes blows as a light enemy does, with no time out of reach after one: a hit stops her, a
+heavy one throws her. Killed, she falls and the stage is won.
 
 **The Grave Baron.** The fight starts with seven zombies climbing out of the ground. Summoning
 minions, the charge and the roar cannot be interrupted. When the Baron is below half health the
@@ -529,7 +533,8 @@ What is checked:
   without errors, the flying kick, the whole stage played through to a win, the idle loop.
 - `extras.test.js` — music themes, style from scenery, the secret combo.
 - `evil.test.js` — Raithwyn as the boss: who meets her, her music, her stages, her dark ball and
-  bones by stage, her chain of punches, her leap back, her rage, her super and its orb, the dandy.
+  bones by stage, her chain of punches, her walk and run, her running jump kick, how blows take
+  her, her leap back, her rage, her super and its orb, the dandy.
 - `dragon.test.js` — the end of the stage, the Dragon's unstoppable attacks, choosing an attack
   that reaches, the bite and the ×1.5 head, the beam and dodging it, the widening second-phase
   beam, the hind-leg kick, plasma balls, the second-phase jump, the longer beam charge with sparks, the

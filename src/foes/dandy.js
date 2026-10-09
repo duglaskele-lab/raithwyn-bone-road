@@ -1,17 +1,12 @@
 // The skeleton Raithwyn calls up at half health (TYPES.dandy): finer than the others, a dandy
-// in a top hat and a torn tailcoat, a red rose in its teeth. It fights like a plain skeleton,
-// but nothing of the player's hurts it while she lives (a purple shimmer round it shows that):
-// only her own blows, bones, dark balls and beams do. Once she falls, it falls with her.
+// in a top hat and a torn tailcoat, a red rose in its teeth. It fights like a plain skeleton but
+// is very tough (TYPES.dandy.hp); the player's blows hurt it, and so do Raithwyn's own (her
+// fists, bones, dark balls and beams). Once she falls, it falls with her.
 import { OL, TAU } from '../config.js';
-import { G } from '../state.js';
 import { ctx } from '../gfx.js';
 import { defineFoe } from './registry.js';
 
-/** Raithwyn is still standing (and so the dandy cannot be hurt by the player). */
-export const evilAlive = () => G.enemies.some((o) => o.type === 'evil' && !o.dead && !o.dying);
-
 export default defineFoe('dandy', {
-  immune: (e) => !G.evilHit && evilAlive(),
   look: {
     back(c) {
       // the tails of the coat, torn into strips, swinging as it walks
@@ -125,19 +120,6 @@ export default defineFoe('dandy', {
       ctx.fillStyle = fl ? '#fff' : '#7a3fb0';
       ctx.fillRect(-10.5, -7, 23, 4.5);
       ctx.restore();
-      ctx.restore();
-    },
-    world(c) {
-      // while Raithwyn lives, a purple shimmer shows that nothing of the player's hurts it
-      const { e, s, sx, sy } = c;
-      if (!evilAlive() || e.state === 'rise') return;
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.strokeStyle = `rgba(176,92,255,${0.35 + 0.2 * Math.sin(G.time * 6)})`;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.ellipse(sx, sy - 70 * s, 44 * s, 86 * s, 0, 0, TAU);
-      ctx.stroke();
       ctx.restore();
     },
   },
