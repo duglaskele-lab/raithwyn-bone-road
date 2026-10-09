@@ -8,7 +8,7 @@ import { update } from '../src/world.js';
 import { waveSpawns } from '../src/waves.js';
 import { themeFor } from '../src/audio.js';
 import { FOES } from '../src/foes/index.js';
-import { orbSpot, stageOf } from '../src/foes/evil.js';
+import { evilFrame, orbSpot, stageOf } from '../src/foes/evil.js';
 import { DT, freshGame } from './helpers.js';
 
 beforeEach(freshGame);
@@ -91,6 +91,7 @@ test('her dark ball: level I, II, III by stage, gathered longer each time; it hu
       t += DT;
     }
     winds.push(t);
+    step(0.2, () => hold(e));
     const q = G.projs.find((p) => p.k === 'ehado');
     assert.ok(q && q.lv === st);
     const hp = P.hp;
@@ -145,7 +146,7 @@ test('she leaps back from an attack up close; with a wall behind her, the other 
   }
   assert.equal(e.state, 'bjump');
   assert.ok(e.x1 > x + 100, 'away from her');
-  assert.ok(FOES.evil.immune(e), 'out of reach as she leaps');
+  assert.ok(!FOES.evil.immune(e), 'not out of reach as she leaps');
   // at the right wall: over the player to the left
   freshGame();
   const f = arena(90);
@@ -186,7 +187,7 @@ test('her super: a heavy blow breaks it and empties her rage; not in the third s
   hurtEnemy(e, 5, 1, false, 'punch');
   assert.equal(e.state, 'scharge', 'a plain hit does not break it');
   hurtEnemy(e, 5, 1, true, 'punch');
-  assert.equal(e.state, 'hurt');
+  assert.equal(e.state, 'air', 'a heavy blow throws her');
   assert.equal(e.rage, 0);
   // the third stage
   freshGame();
@@ -235,7 +236,8 @@ test('the orb rises over the arena, three beams burn the ground for five seconds
   assert.ok(P.hp < 100);
 });
 
-test('at half health she calls up the dandy: only her own blows hurt it, and it falls with her', () => {
+test('at half health she calls up the dandy: tough, hurt by both sides, it falls with her', () => {
+  assert.equal(TYPES.dandy.hp, 2000);
   const e = arena(500, { summoned: false });
   e.hp = e.T.hp * 0.49;
   e.rage = 0;
@@ -244,10 +246,12 @@ test('at half health she calls up the dandy: only her own blows hurt it, and it 
   const d = G.enemies.find((o) => o.type === 'dandy');
   assert.ok(d, 'called up');
   step(1, () => ((P.inv = 99), hold(e)));
-  const hp = d.hp;
-  assert.equal(hurtEnemy(d, 20, 1, true, 'punch'), false, 'the player cannot hurt it');
-  assert.equal(d.hp, hp);
-  // her dark ball can
+  let hp = d.hp;
+  assert.ok(hurtEnemy(d, 20, 1, false, 'punch'), 'the player hurts it');
+  assert.equal(d.hp, hp - 20);
+  hp = d.hp;
+  G.freeze = 0;
+  // and her dark ball does too
   G.projs.push({
     k: 'ehado',
     lv: 1,
@@ -267,4 +271,67 @@ test('at half health she calls up the dandy: only her own blows hurt it, and it 
   hurtEnemy(e, 10, 1, true, 'punch');
   assert.ok(e.dying);
   assert.ok(d.dead, 'gone with her');
+});
+
+test("she walks at the heroine's pace, and runs at it now and then", () => {
+  assert.equal(TYPES.evil.speed, 180);
+  assert.equal(EVIL.run.speed, 435);
+  assert.ok(EVIL.run.toward[0] < EVIL.run.toward[2], 'in the first stage she mostly walks');
+  const e = arena(600);
+  hold(e);
+  e.runCd = 0;
+  let ran = false;
+  for (let i = 0; i < 6 / DT && !ran; i++) {
+    updEnemy(e, DT, { n: 0 });
+    hold(e);
+    e.rushCd = 99;
+    if (e.state === 'erun') ran = true;
+    if (e.state === 'chase') e.x = Math.max(e.x, P.x + 500);
+  }
+  assert.ok(ran, 'she runs to close in');
+  const x = e.x;
+  updEnemy(e, DT, { n: 0 });
+  assert.ok(Math.abs(Math.abs(x - e.x) - EVIL.run.speed * DT) < 1, "at the heroine's run");
+});
+
+test('the running jump kick: she runs straight, gathering speed, then leaps and kicks', () => {
+  const e = arena(600);
+  e.rushCd = 0;
+  step(DT * 2);
+  assert.equal(e.state, 'rrun');
+  const x0 = e.x;
+  step(0.1, () => hold(e));
+  const slow = Math.abs(e.x - x0) / 0.1;
+  const x1 = e.x;
+  step(0.3, () => hold(e));
+  const fast = Math.abs(e.x - x1) / 0.3;
+  assert.ok(fast > slow * 1.3, `faster as she goes: ${slow} -> ${fast}`);
+  for (let i = 0; i < 120 && e.state === 'rrun'; i++) step(DT, () => hold(e));
+  assert.equal(e.state, 'rjump');
+  step(EVIL.rush.jump + 0.1, () => hold(e));
+  assert.ok(P.hp <= 100 - EVIL.rush.dmg, 'kicked');
+  assert.ok(['ko', 'down', 'getup'].includes(P.state), 'and down');
+});
+
+test('she takes blows like a light enemy; her ball from the second stage cannot be stopped', () => {
+  const e = arena(400);
+  hurtEnemy(e, 5, 1, false, 'punch');
+  assert.equal(e.state, 'hurt', 'a plain hit stops her');
+  for (const [f, lv, stops] of [
+    [0.9, 1, true],
+    [0.55, 2, false],
+    [0.2, 3, false],
+  ]) {
+    freshGame();
+    const g = arena(450);
+    g.hp = g.T.hp * f;
+    g.ballCd = 0;
+    step(DT * 2);
+    assert.equal(g.state, 'eball');
+    assert.equal(g.lv, lv);
+    assert.deepEqual(evilFrame(g), ['hado', 1], 'the ball held at her side');
+    assert.equal(!!FOES.evil.unstoppable(g), !stops);
+    hurtEnemy(g, 5, 1, true, 'punch');
+    assert.equal(g.state !== 'eball', stops, `stage ${lv}`);
+  }
 });
