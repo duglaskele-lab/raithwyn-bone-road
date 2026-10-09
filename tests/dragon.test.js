@@ -12,13 +12,15 @@ import {
   laserBand,
   laserFire,
   rageMult,
+  skyBeams,
+  skyFire,
   skyLines,
   updShocks,
 } from '../src/dragon.js';
 import { GB, GT, W } from '../src/config.js';
 import { update } from '../src/world.js';
 import { DT, allFinite, freshGame } from './helpers.js';
-import { random, setRandom } from '../src/util.js';
+import { random, seedRandom, setRandom } from '../src/util.js';
 
 beforeEach(freshGame);
 
@@ -437,7 +439,7 @@ test('second phase: it hovers and fires three beams across the arena; the gaps a
     assert.ok(d.z > S.h * 0.9, 'up in the air');
     assert.equal(dragonZone(d, d.x - 50, d.x + 50, d.y), null, 'out of reach up there');
     assert.equal(P.hp, 100, 'nothing hurts yet');
-    run(d, S.fire / DRAGON.rage + 0.1);
+    run(d, skyFire(d) / DRAGON.rage + 0.1);
     assert.equal(P.hp < 100, hurt, `at depth ${y}`);
   }
 });
@@ -473,7 +475,7 @@ test('the sky beams run from edge to edge: under the dragon is not safe', () => 
 
 test('the sky beams come from the turning head, all three at once, slowly, leaving a trail', () => {
   const S = DRAGON.sky;
-  assert.ok(Math.abs(S.sweep - 0.75 / 0.6) < 1e-9, '40% slower than the old 0.75 s sweep');
+  assert.ok(Math.abs(S.sweep - 1.25 / 0.7) < 1e-9, '30% slower than the 1.25 s sweep');
   const d = dragonAt(400, 450 + 100, { phase2: true });
   P.x = 2000; // out of the way
   Object.assign(d, { state: 'sky', t: 0, skyX0: 770, skyY0: 441, skyX: 770, skyY: 441 });
@@ -517,4 +519,38 @@ test('entering the second phase it is only half the bonus faster, growing to all
   assert.ok(mid > 1.17 && mid < 1.25, `halfway: ${mid}`);
   run(d, DRAGON.rageRamp);
   assert.equal(rageMult(d), DRAGON.rage, 'then all of it');
+});
+
+test('the sky beams also come one after another: from the top line down, or from the bottom up', () => {
+  const S = DRAGON.sky;
+  assert.deepEqual(S.ways, ['all', 'down', 'up']);
+  for (const [way, first, last] of [
+    ['down', 0, 2],
+    ['up', 2, 0],
+  ]) {
+    const d = dragonAt(400, 450 + 100, { phase2: true });
+    Object.assign(d, { state: 'sky', t: 0, skyX0: 770, skyY0: 441, skyX: 770, skyY: 441 });
+    d.skyWay = way;
+    d.face = -1;
+    assert.ok(skyFire(d) > S.sweep * 1.5, 'it takes longer');
+    const lines = skyLines(),
+      at = (tf) => skyBeams(d, tf).map((b) => lines.indexOf(b.y));
+    assert.deepEqual(at(0.05), [first], 'one beam first');
+    assert.deepEqual(at(S.sweep * S.lag + 0.05), [first, 1], 'then the middle one joins');
+    assert.deepEqual(at(skyFire(d) - 0.05), [last], 'the last one ends it');
+    // the beam ahead is always further along than the one behind it
+    const two = skyBeams(d, S.sweep * S.lag * 1.5);
+    assert.ok((two[0].x - two[1].x) * d.face > 0);
+  }
+  // each way comes up
+  const seen = new Set();
+  for (let i = 0; i < 40; i++) {
+    freshGame();
+    const d = dragonAt(400, 450 + 100, { phase2: true, skyCd: 0, plasmaCd: 9, pounceCd: 9 });
+    Object.assign(d, { leapCd: 9, retreatCd: 9, laserCd: 9, last: 'claw' });
+    seedRandom(i + 7);
+    run(d, DT);
+    if (d.state === 'sky') seen.add(d.skyWay);
+  }
+  assert.equal(seen.size, 3);
 });

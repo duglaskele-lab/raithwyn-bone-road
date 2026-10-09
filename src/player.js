@@ -565,10 +565,18 @@ export function updPlayer(dt) {
         // she sits down, takes out a bottle and drinks, on and on
         const d = FIGHTER_ANIM.lucy.drink,
           k = Math.floor(p.t / d.t);
-        if (k < d.intro) p.an = ['drink', k];
-        else {
-          const m = Math.floor((p.t - d.intro * d.t) / d.lt) % (2 * d.loop - 2);
-          p.an = ['drink', d.intro + (m < d.loop ? m : 2 * d.loop - 2 - m)];
+        if (k < d.intro) {
+          p.an = ['drink', k];
+          Object.assign(p, { dkStep: -1, dkWay: 0, dkPos: -1 });
+        } else {
+          // one frame of the current way a step; at its end, another way at random
+          const step = Math.floor((p.t - d.intro * d.t) / d.lt);
+          for (; p.dkStep < step; p.dkStep++)
+            if (++p.dkPos >= d.ways[p.dkWay].length) {
+              p.dkWay = Math.floor(random() * d.ways.length);
+              p.dkPos = 0;
+            }
+          p.an = ['drink', d.ways[p.dkWay][Math.max(0, p.dkPos)]];
         }
       } else p.an = ['laugh', [0, 1, 2, 1, 2, 1, 2, 1][Math.floor(p.t / 0.13) % 8]]; // never frame 3
       break;

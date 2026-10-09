@@ -41,7 +41,9 @@ hard (40 damage) and goes on through whoever it hits, a fifth weaker each time, 
 left of it (five enemies in a row at most); while it is still at more than 60% it knocks enemies
 down as a crushing blow does, after that as the last punch of a chain does (`BIG_GUN`). Her keys and touch buttons are named for her (Shot, Grenade, Super) and her rage bar
 is called Luck. When she wins a stage she sits down and
-drinks from a bottle, on and on); the others can be looked at. The fighter
+drinks from a bottle, on and on: a sip back and forth, the bottle lowered for a breath and raised
+again, a long gulp with her head tipped back, one after another at random, up to 8 frames each,
+`FIGHTER_ANIM.lucy.drink.ways`); the others can be looked at. The fighter
 chosen goes into the run's replay.
 
 The game is written in plain JavaScript and Canvas 2D, with no engine and no runtime
@@ -253,9 +255,11 @@ whole arena that has to be jumped over. In the second phase the Dragon moves and
 again in the second phase), widens to 2.4 times its width by the end. It also combines attacks: when the heroine is close, it may leap back to the far side of
 the arena and charge the beam from there at once (as wide and as long as the beam of its current
 phase). In the second phase it can also rise and hover over the side of the arena, light gathering in
-its jaws, then fire three white beams from its mouth all at once, turning its head (back over its shoulder at first) to sweep them slowly (over 1.25 s) across
+its jaws, then fire three white beams from its mouth, turning its head (back over its shoulder at first) to sweep them slowly (each over 1.8 s, 30% slower than before, so that there is time to react) across
 the whole arena from edge to edge, under itself too — along its top edge, its middle and its bottom edge
-(between the middle and an edge it is safe). Where a beam passes, the ground burns for a while. Hovering, it is out of reach. Then it drops straight down with the quake and the shockwave of its leap. If the heroine stands
+(between the middle and an edge it is safe). It fires them one of three ways, at random: all at
+once, or one after another from the top line down, or from the bottom line up (each starting
+when the one before is 45% of the way across), its head following the newest (`DRAGON.sky`). Where a beam passes, the ground burns for a while. Hovering, it is out of reach. Then it drops straight down with the quake and the shockwave of its leap. If the heroine stands
 close behind the Dragon, it sometimes (no more than once in 7 seconds) kicks her with a hind
 leg instead of turning round. The heroine's hits push the Dragon back a little. The beaten
 Dragon does not crumble into bones: it roars one last time, sinks to the ground and falls apart —
