@@ -591,14 +591,14 @@ export const IDLE_HOLD = [5, 5, 5, 5, 5, 4, 5, 5, 5, 5, 5];
 // Each fighter's health: Lucy has 10% less.
 export const MAX_HP = { raithwyn: 100, lucy: 80 };
 // Lucy's guns and fists: her punches (J) do `melee` of their damage. Her pistol (K) holds `ammo`
-// rounds and costs no rage; a punch that lands drops a bandolier (`drop` of the time, only when
+// rounds and costs no rage; a punch that lands drops a magazine (`drop` of the time, only when
 // she is short of rounds, and only when there is none about already) that fills it again; it
 // lies on the ground for `lies` seconds (blinking at the end) and is gone. A pistol hit raises
 // her chance of a critical shot (`crit` times the damage, a red neon "crit!") by `streak`, up to
 // `streakMax`; a miss, or no shot for `keep` seconds, ends the streak.
 export const LUCY = {
   melee: 0.8,
-  ammo: 6,
+  ammo: 7,
   drop: 0.14,
   lies: 3,
   streak: 0.1,

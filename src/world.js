@@ -630,7 +630,7 @@ export function update(dt) {
         it.vx = -it.vx * 0.6;
       }
     }
-    // a bandolier does not lie about for long
+    // a magazine does not lie about for long
     if (it.kind === 'ammo' && it.z <= 0 && (it.lie = (it.lie ?? 0) + dt) > LUCY.lies)
       it.dead = true;
     if (it.z < 0) {

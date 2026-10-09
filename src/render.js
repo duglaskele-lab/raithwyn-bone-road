@@ -76,7 +76,7 @@ export function bar(x, y, w, h, v, lag, col, skew = 6) {
   ctx.stroke();
 }
 export function drawItem(it) {
-  // a bandolier about to go: it blinks
+  // a magazine about to go: it blinks
   if (it.kind === 'ammo' && it.lie > LUCY.lies - 0.8 && Math.floor(it.lie * 14) % 2) return;
   const x = it.x - G.cam,
     y = it.y - it.z - 14 - Math.sin(it.t * 5) * 3;
@@ -86,45 +86,64 @@ export function drawItem(it) {
   ctx.lineWidth = 2.4;
   ctx.strokeStyle = OL;
   if (it.kind === 'ammo') {
-    // a round bandolier: a leather belt in a ring, brass rounds all round it, a buckle
-    ctx.scale(1.35, 1.35);
+    // a pistol magazine: a gently curved steel case, a round showing at the feed lips on top,
+    // a broad base plate, a witness hole down the side; it lies tilted
+    ctx.scale(1.7, 1.7);
+    ctx.rotate(0.35);
+    ctx.lineWidth = 2;
     ctx.strokeStyle = OL;
-    ctx.lineWidth = 9;
+    // the round at the top
+    ctx.fillStyle = '#e0b04a';
+    ctx.fillRect(-3, -17, 6, 5);
+    ctx.strokeRect(-3, -17, 6, 5);
+    ctx.fillStyle = '#c46a3a';
     ctx.beginPath();
-    ctx.ellipse(0, 0, 13, 10, 0, 0, TAU);
-    ctx.stroke();
-    ctx.strokeStyle = '#7a4a26';
-    ctx.lineWidth = 6;
-    ctx.stroke();
-    for (let k = 0; k < 10; k++) {
-      const a = (k / 10) * TAU + 0.3,
-        bx = Math.cos(a) * 13,
-        by = Math.sin(a) * 10;
-      ctx.save();
-      ctx.translate(bx, by);
-      ctx.rotate(a + Math.PI / 2);
-      ctx.fillStyle = '#e0b04a';
-      ctx.strokeStyle = OL;
-      ctx.lineWidth = 1.2;
-      ctx.fillRect(-1.8, -6, 3.6, 6);
-      ctx.strokeRect(-1.8, -6, 3.6, 6);
-      ctx.fillStyle = '#c46a3a';
-      ctx.beginPath();
-      ctx.arc(0, -6, 1.8, Math.PI, 0);
-      ctx.fill();
-      ctx.restore();
-    }
-    ctx.fillStyle = '#d9d2bd';
-    ctx.strokeStyle = OL;
-    ctx.lineWidth = 1.6;
-    rr(-4, 6, 8, 6, 1.5);
+    ctx.moveTo(-3, -17);
+    ctx.quadraticCurveTo(0, -23, 3, -17);
+    ctx.closePath();
     ctx.fill();
     ctx.stroke();
+    // the body, bent a little forward like a horn
+    ctx.beginPath();
+    ctx.moveTo(-6, -13);
+    ctx.lineTo(6, -13);
+    ctx.quadraticCurveTo(9, 0, 8, 11);
+    ctx.lineTo(-5, 11);
+    ctx.quadraticCurveTo(-3, 0, -6, -13);
+    ctx.closePath();
+    ctx.fillStyle = '#3d4456';
+    ctx.fill();
+    ctx.stroke();
+    // a light along its front edge
+    ctx.strokeStyle = '#b4c0da';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(3.5, -11);
+    ctx.quadraticCurveTo(6, 0, 5.5, 9);
+    ctx.stroke();
+    // the witness holes
+    ctx.fillStyle = '#e0b04a';
+    ctx.strokeStyle = OL;
+    ctx.lineWidth = 1;
+    for (let k = 0; k < 3; k++) {
+      ctx.beginPath();
+      ctx.arc(-1 + k * 0.4, -6 + k * 5.5, 1.3, 0, TAU);
+      ctx.fill();
+      ctx.stroke();
+    }
+    // the base plate
+    ctx.fillStyle = '#2c2f38';
+    ctx.lineWidth = 1.8;
+    rr(-7, 10, 17, 5, 1.5);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#c94a3a'; // a red stripe, to find it on the ground
+    ctx.fillRect(-5.5, 11.6, 14, 1.8);
     // a glint, now and then
     if (Math.floor(G.time * 2) % 3 === 0) {
       ctx.fillStyle = 'rgba(255,250,220,.9)';
       ctx.beginPath();
-      ctx.arc(-9, -8, 2, 0, TAU);
+      ctx.arc(-3, -9, 2, 0, TAU);
       ctx.fill();
     }
   } else if (it.kind === 'hp') {

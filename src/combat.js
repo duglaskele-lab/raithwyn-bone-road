@@ -315,7 +315,7 @@ export function strike(o) {
         addRage(o.rage);
         styleGain(10);
         buzz(o.knock ? 22 : 10);
-        // short of rounds and none about: now and then a bandolier flies out of the one she hit
+        // short of rounds and none about: now and then a magazine flies out of the one she hit
         if (
           p.who === 'lucy' &&
           p.ammo < LUCY.ammo &&
