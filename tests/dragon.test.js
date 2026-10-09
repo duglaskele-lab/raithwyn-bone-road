@@ -12,6 +12,7 @@ import {
   laserBand,
   laserFire,
   rageMult,
+  skyBand,
   skyBeams,
   skyRows,
   skyFire,
@@ -584,5 +585,27 @@ test('standing on a safe line of each way, the sky beams miss; on a beam line th
     P.y = rows[row];
     run(d, (S.rise + S.charge + S.fire) / DRAGON.rage + 0.1);
     assert.equal(P.hp < 100, hurt, `${way}, line ${row}`);
+  }
+});
+
+test('in the every-other-line way the beams are narrower (17 either way), the others keep 20', () => {
+  const S = DRAGON.sky,
+    rows = skyRows();
+  assert.equal(S.altBand, 17);
+  assert.equal(S.band, 20);
+  for (const [way, dy, hurt] of [
+    ['alt', 18, false],
+    ['alt', 16, true],
+    ['low', 18, true],
+  ]) {
+    freshGame();
+    const d = dragonAt(400, 450 + 100, { phase2: true });
+    Object.assign(d, { state: 'sky', t: 0, skyX0: 770, skyY0: 441, skyX: 770, skyY: 441 });
+    d.skyWay = way;
+    assert.equal(skyBand(d), way === 'alt' ? 17 : 20);
+    P.x = 300;
+    P.y = rows[2] + dy;
+    run(d, (S.rise + S.charge + S.fire) / DRAGON.rage + 0.1);
+    assert.equal(P.hp < 100, hurt, `${way}, ${dy} off the middle line`);
   }
 });

@@ -59,6 +59,7 @@ export const DRAGON = {
     fall: 0.7,
     h: 130,
     band: 20,
+    altBand: 17, // narrower beams in the every-other-line way, the safe lines between wider
     edge: 15,
     dmg: 20,
     cd: 13,
@@ -868,6 +869,8 @@ export const skyRows = () => {
 };
 /** The depths of the three sky beams, for the attack's way (every other line by default). */
 export const skyLines = (way = 'alt') => DRAGON.sky.ways[way].map((i) => skyRows()[i]);
+/** How deep each sky beam reaches either way: narrower when they lie on every other line. */
+export const skyBand = (e) => (e.skyWay === 'alt' ? DRAGON.sky.altBand : DRAGON.sky.band);
 /** How long the sky beams fire: one sweep. */
 export const skyFire = () => DRAGON.sky.sweep;
 /** Where the sky attack is: 'rise', 'charge', 'fire', 'rec' or 'fall', and how far into it. */
@@ -919,7 +922,7 @@ function sky(e, dt) {
     for (const b of beams) e.trail.push({ x: b.x, y: b.y, t: 0 });
     G.shake = Math.max(G.shake, 4);
     if (!e.hitDone && P.z < 160)
-      if (beams.some((b) => Math.abs(P.x - b.x) < S.hit && Math.abs(P.y - b.y) < S.band))
+      if (beams.some((b) => Math.abs(P.x - b.x) < S.hit && Math.abs(P.y - b.y) < skyBand(e)))
         if (hitPlayer(S.dmg, e.face, true)) e.hitDone = true;
     if (random() < 0.95) {
       const b = beams[Math.floor(random() * beams.length)];
@@ -1237,7 +1240,7 @@ function drawTrails(e) {
     const a = 1 - p.t / S.trail;
     ctx.fillStyle = `rgba(255,${Math.round(150 + 90 * a)},${Math.round(200 * a)},${0.22 * a})`;
     ctx.beginPath();
-    ctx.ellipse(p.x - G.cam, p.y, 16, S.band * 0.55 * (0.6 + 0.4 * a), 0, 0, TAU);
+    ctx.ellipse(p.x - G.cam, p.y, 16, skyBand(e) * 0.55 * (0.6 + 0.4 * a), 0, 0, TAU);
     ctx.fill();
   }
   ctx.restore();
@@ -1257,7 +1260,7 @@ function drawSkyBeams(e) {
     ctx.fillStyle = core;
     ctx.fillRect(hx - 60, my - 60, 120, 120);
   } else if (ph === 'fire' && e.beams) {
-    const w = S.band * 0.8 + Math.sin(G.time * 70) * 2;
+    const w = skyBand(e) * 0.8 + Math.sin(G.time * 70) * 2;
     for (const b of e.beams)
       for (const [ww, c] of [
         [w * 1.6, 'rgba(176,92,255,.3)'],
