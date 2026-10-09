@@ -349,6 +349,10 @@ export const EVIL = {
     keep: 300,
   },
   summon: 0.5,
+  // she faces the way she walks once she has kept it `turn` seconds (moving at least `min` px
+  // a second along the road); `backpedal` of the time, near the player (`near`), she steps
+  // back still facing her instead (chosen anew every `every` seconds)
+  face: { turn: 0.08, min: 20, backpedal: 0.2, near: 220, every: 1.5 },
   // `hits` blows within `window` seconds make her take blows as a medium enemy for `t` seconds;
   // `more` blows meanwhile make her heavy for `heavyT` seconds (no juggling, no throwing)
   steady: { hits: 5, window: 2.5, t: 2.5, more: 3, heavyT: 2 },
