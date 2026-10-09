@@ -222,9 +222,21 @@ export const PROS = {
     min: 260,
     max: 640,
   },
-  // up close, `chance` of its kicks become a jet jump away or a shoulder charge: it draws back
-  // for `wind` seconds, then rushes `time` seconds at `speed`, knocking down (`dmg`)
-  bash: { chance: 0.25, wind: 0.35, time: 0.28, speed: 620, dmg: 18 },
+  // up close, `chance` of the time it moves somewhere else instead of kicking, on its jets: a
+  // hop back (`backDist`), a slide aside in depth (`sideDist`), a leap over the player to land
+  // `overDist` past her, or the big jump to another spot (ARMOR-like, with its slam); `back`,
+  // `side`, `over`, `jump`: how likely each one is; then `after` seconds before a kick
+  move: {
+    chance: 0.65,
+    back: 3,
+    side: 3,
+    over: 2,
+    jump: 2,
+    backDist: 230,
+    sideDist: 120,
+    overDist: 200,
+    after: 0.9,
+  },
   // the ram: it crouches (`wind`; flames roar out of the back of its tanks), then rushes in
   // a straight line at `speed` for up to `dist` (stopping at the screen's edge), knocking
   // down whoever is in its way; it skids to a stop for `stop` seconds. In the second phase it
@@ -337,8 +349,9 @@ export const EVIL = {
     keep: 300,
   },
   summon: 0.5,
-  // `hits` blows within `window` seconds make her take blows as a medium enemy for `t` seconds
-  steady: { hits: 4, window: 2, t: 2 },
+  // `hits` blows within `window` seconds make her take blows as a medium enemy for `t` seconds;
+  // `more` blows meanwhile make her heavy for `heavyT` seconds (no juggling, no throwing)
+  steady: { hits: 5, window: 2.5, t: 2.5, more: 3, heavyT: 2 },
 };
 // The slime: its roll (wind-up, speed, how long), its jump (wind-up, flight, landing blast
 // radius and damage), its spit (wind-up; at most `minions` of its spawn about at once).

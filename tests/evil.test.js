@@ -350,23 +350,34 @@ test("before the orb's beams: red marks on the ground, and no harm yet", () => {
   assert.ok(e.orb.spots, 'then the beams come');
 });
 
-test('four blows within two seconds steady her: a medium enemy for two seconds', () => {
+test('five blows in 2.5 s: medium for 2.5 s; three more meanwhile: heavy for 2 s', () => {
+  const S = EVIL.steady;
+  assert.deepEqual([S.hits, S.window, S.t, S.more, S.heavyT], [5, 2.5, 2.5, 3, 2]);
   const e = arena(400);
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 4; i++) {
     hurtEnemy(e, 1, 1, false, 'punch');
-    G.time += 0.3;
+    G.time += 0.4;
   }
-  assert.equal(e.weight, undefined, 'three are not enough');
+  assert.equal(e.weight, undefined, 'four are not enough');
   hurtEnemy(e, 1, 1, false, 'punch');
   assert.equal(e.weight, 'medium');
   // as a medium enemy, one heavy blow only staggers her
   Object.assign(e, { state: 'chase', t: 0 });
   hurtEnemy(e, 1, 1, true, 'punch');
   assert.notEqual(e.state, 'air', 'not thrown by one heavy blow');
+  // two more blows (three in all while medium): heavy
+  hurtEnemy(e, 1, 1, false, 'punch');
+  assert.equal(e.weight, 'medium');
+  hurtEnemy(e, 1, 1, false, 'punch');
+  assert.equal(e.weight, 'heavy');
+  // heavy: a heavy blow does not throw her, nor a launcher; only a crushing one does
+  Object.assign(e, { state: 'chase', t: 0 });
+  hurtEnemy(e, 1, 1, true, 'punch', true);
+  assert.notEqual(e.state, 'air', 'no juggling her');
   step(2.4, () => hold(e));
   assert.equal(e.weight, undefined, 'light again');
-  // four blows spread over more than two seconds do nothing
-  for (let i = 0; i < 4; i++) {
+  // five blows spread over more than 2.5 seconds do nothing
+  for (let i = 0; i < 5; i++) {
     hurtEnemy(e, 1, 1, false, 'punch');
     G.time += 0.8;
   }

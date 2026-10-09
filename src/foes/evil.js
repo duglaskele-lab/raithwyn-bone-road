@@ -291,10 +291,15 @@ export function drawEvil(e) {
           ? 0.55
           : 1;
   // steadied by a flurry of blows: a dark glow round her
+  // (red while medium, a stronger orange when heavy)
   if (e.weight) {
-    const g = ctx.createRadialGradient(x, y - 90, 8, x, y - 90, 120);
-    g.addColorStop(0, `rgba(255,70,100,${0.3 + 0.12 * Math.sin(G.time * 12)})`);
-    g.addColorStop(1, 'rgba(255,70,100,0)');
+    const c = e.weight === 'heavy' ? '255,150,40' : '255,70,100',
+      g = ctx.createRadialGradient(x, y - 90, 8, x, y - 90, 120);
+    g.addColorStop(
+      0,
+      `rgba(${c},${(e.weight === 'heavy' ? 0.45 : 0.3) + 0.12 * Math.sin(G.time * 12)})`,
+    );
+    g.addColorStop(1, `rgba(${c},0)`);
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     ctx.fillStyle = g;
@@ -548,14 +553,23 @@ export default defineFoe('evil', {
   // otherwise she takes blows as a light enemy does: a hit stops her, a heavy one throws her
   guard(e, knock, src, dir) {
     evilRage(e, EVIL.rage.hurt);
-    // a flurry of blows steadies her: for a while she takes them as a medium enemy
+    // a flurry of blows steadies her: for a while she takes them as a medium enemy, and a few
+    // more blows meanwhile make her heavy (nothing but a crushing blow moves her, no juggling)
     const S = EVIL.steady;
-    e.hits = (e.hits ?? []).filter((t) => G.time - t < S.window);
-    e.hits.push(G.time);
-    if (e.hits.length >= S.hits) {
-      e.hits = [];
-      e.weight = 'medium';
-      e.steadyT = S.t;
+    if (e.weight === 'medium') {
+      if (++e.more >= S.more) {
+        e.weight = 'heavy';
+        e.steadyT = S.heavyT;
+      }
+    } else if (!e.weight) {
+      e.hits = (e.hits ?? []).filter((t) => G.time - t < S.window);
+      e.hits.push(G.time);
+      if (e.hits.length >= S.hits) {
+        e.hits = [];
+        e.more = 0;
+        e.weight = 'medium';
+        e.steadyT = S.t;
+      }
     }
     if (FOES.evil.unstoppable(e) || e.state === 'sfire') return true;
     if (e.state === 'scharge') {

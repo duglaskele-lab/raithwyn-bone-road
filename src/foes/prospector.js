@@ -29,6 +29,7 @@ import {
   geo,
   joint,
   jumpMark,
+  jetTrail,
   jumpTo,
   kickWarning,
   leg,
@@ -114,17 +115,6 @@ function prosPose(e) {
       o.aB = [0.1 - 0.6 * u, 0.7 - 0.3 * u];
       break;
     }
-    case 'pbwind': {
-      // drawing back for the shoulder charge
-      const u = ease(clamp(e.t / PROS.bash.wind, 0, 1));
-      o.lean = 0.06 - 0.12 * u;
-      o.lF = [0.3, -0.1];
-      o.lB = [-0.45, -0.6];
-      o.aF = [0.45 - 0.6 * u, 1.3 - 0.8 * u];
-      o.aB = [0.1 - 0.5 * u, 0.7 - 0.3 * u];
-      break;
-    }
-    case 'pbash':
     case 'ram': {
       // a headlong rush, shoulder first, legs pounding
       const s = Math.sin(e.anim * 18);
@@ -234,6 +224,7 @@ function prosPose(e) {
       break;
     }
     case 'jump':
+    case 'phop':
       o.lF = [0.7, -1.1];
       o.lB = [0.1, -1.2];
       o.lean = 0.12;
@@ -780,7 +771,7 @@ export function drawProspector(e, aura = true) {
   usePal(PAL);
   if (e.state === 'windup' || e.state === 'ramwind') kickWarning(e, 250);
   if (e.state === 'jcrouch' || e.state === 'jump') jumpMark(e);
-  if (e.state === 'jump') drawJets(e);
+  if (e.state === 'jump' || e.state === 'phop') drawJets(e);
   if (aura) drawAura(e);
   ctx.save();
   if (e.state === 'corpse') ctx.globalAlpha = clamp((CORPSE_T - e.t) / 0.5, 0, 1);
@@ -1173,6 +1164,36 @@ function pour(e, L, dt, down) {
     if (inFlame(e)) burn(e, F.dmg);
   }
 }
+/** A jet hop from where it stands to (x, y) on the floor (kept on screen): `T` long, `h` high. */
+function hop(e, x, y, T, h) {
+  const to = floorClamp({ x: clamp(x, G.cam + 80, G.cam + W - 80), y });
+  go(e, 'phop', 0, {
+    engage: false,
+    hx0: e.x,
+    hy0: e.y,
+    hx1: to.x,
+    hy1: to.y,
+    hopT: T,
+    hopH: h,
+  });
+  e.face = to.x >= e.x ? 1 : -1;
+  dust(e.x, e.y, 6);
+  SFX.jump();
+  SFX.hiss();
+}
+/** Up close, one of its ways to get somewhere else: a hop back, a slide aside in depth, a leap
+ *  over the player to her other side, or the big jet jump to another spot on the arena. */
+function reposition(e) {
+  const M = PROS.move,
+    away = P.x >= e.x ? -1 : 1,
+    r = random() * (M.back + M.side + M.over + M.jump);
+  if (r < M.back) hop(e, e.x + away * M.backDist, e.y, 0.45, 60);
+  else if (r < M.back + M.side) {
+    const dy = (P.y > e.y ? -1 : 1) * M.sideDist;
+    hop(e, e.x + away * 50, e.y + dy, 0.35, 30);
+  } else if (r < M.back + M.side + M.over) hop(e, P.x - away * M.overDist, e.y, 0.6, 140);
+  else jumpTo(e, ...groundPoint(random));
+}
 /** Where a ram that starts now would stop: `dist` ahead, or at the screen's edge. */
 const ramEnd = (e) => clamp(e.x + e.face * PROS.ram.dist, G.cam + 70, G.cam + W - 70);
 
@@ -1264,7 +1285,7 @@ export default defineFoe('prospector', {
       },
     },
   ],
-  attacks: [...UNSTOPPABLE, 'jland', 'rstop', 'pbwind', 'pbash'],
+  attacks: [...UNSTOPPABLE, 'jland', 'rstop', 'phop'],
   unstoppable: (e) => UNSTOPPABLE.includes(e.state),
   // in those, nothing throws it (not even a crushing blow); otherwise it is a heavy enemy
   guard: (e) => UNSTOPPABLE.includes(e.state),
@@ -1289,15 +1310,11 @@ export default defineFoe('prospector', {
   },
   on: {
     windup(e) {
-      // up close, now and then a shoulder charge or a jet jump away instead of the kick
+      // up close, most of the time it moves somewhere else instead of kicking
       if (e.t < 0.05 && !e.rolled) {
         e.rolled = true;
-        if (random() < PROS.bash.chance) {
-          if (random() < 0.5) {
-            faceP(e);
-            go(e, 'pbwind', 0, { engage: false, hitDone: false });
-            SFX.hiss();
-          } else jumpTo(e, ...groundPoint(random));
+        if (random() < PROS.move.chance) {
+          reposition(e);
           return;
         }
       } else if (e.t >= 0.05) e.rolled = false;
@@ -1349,27 +1366,21 @@ export default defineFoe('prospector', {
         e.flameCd = Math.max(e.flameCd, 1.5);
       }
     },
-    pbwind(e) {
-      if (e.t > PROS.bash.wind) {
-        go(e, 'pbash', 0, { x0: e.x, hitDone: false });
-        SFX.charge();
-      }
-    },
-    pbash(e, dt) {
-      // a short, hard charge shoulder first: whoever it meets goes down
-      const B = PROS.bash;
-      e.x += e.face * B.speed * dt;
-      dust(e.x - e.face * 30, e.y, 1);
-      if (!e.hitDone && Math.abs(P.x - e.x) < 70 && Math.abs(P.y - e.y) < 30 && P.z < 100) {
-        e.hitDone = true;
-        if (hitPlayer(B.dmg, e.face, true)) {
-          G.shake = Math.max(G.shake, 10);
-          SFX.heavy();
-        }
-      }
-      if (e.t > B.time || e.x < G.cam + 50 || e.x > G.cam + W - 50) {
-        e.x = clamp(e.x, G.cam + 50, G.cam + W - 50);
-        go(e, 'chase', 0, { cd: Math.max(e.cd, 0.7) });
+    phop(e, dt) {
+      // a short hop on its jets to a new place: back, aside in depth, or over the player
+      const u = Math.min(1, e.t / e.hopT);
+      if (u < 1) jetTrail(e, dt);
+      e.x = e.hx0 + (e.hx1 - e.hx0) * ease(u);
+      e.y = e.hy0 + (e.hy1 - e.hy0) * ease(u);
+      e.z = 4 * e.hopH * u * (1 - u);
+      if (u >= 1) {
+        e.z = 0;
+        dust(e.x, e.y, 8);
+        G.shake = Math.max(G.shake, 4);
+        SFX.thud();
+        faceP(e);
+        // landed: what it does from there is its own choice, not a kick at once
+        go(e, 'chase', 0, { cd: Math.max(e.cd, PROS.move.after) });
       }
     },
     ramwind(e, dt, s) {
