@@ -17,10 +17,10 @@ Every fighter has a description and stats. Raithwyn and Lucy are playable (Lucy 
 she has her own sprites for standing, idle, walking, running, jumping, punching, a pistol shot,
 a grenade throw, taking a hit and being knocked down, every other animation shows her standing
 frame, and she plays with Raithwyn's moves for now. Her `K` is a pistol instead of the bone:
-it holds six rounds (shown under her rage bar) and costs no rage; a shot does 9 damage, the bullet flies at 2400 px/s and hits the first enemy or barrel in its way, going out in
+it holds seven rounds (shown under her rage bar) and costs no rage; a shot does 9 damage, the bullet flies at 2400 px/s and hits the first enemy or barrel in its way, going out in
 the middle of it (`BULLET` in `src/config.js`), and with `K` held she keeps firing, aiming and
 firing in turn. Out of rounds, `K` only clicks. Her punches are 20% weaker than Raithwyn's, but
-while she is short of rounds a punch that lands knocks a round bandolier out of the enemy one
+while she is short of rounds a punch that lands knocks a pistol magazine out of the enemy one
 time in seven (14%), unless one is already about; it bounces back off the screen's edges, lies
 there three seconds (blinking at the end) and is gone; picked up, it fills the gun again
 (`LUCY`). Each pistol hit in a row raises the chance of a critical shot by 10%, up to 60%: twice
@@ -73,7 +73,7 @@ npm run build      # dist/raithwyn.html — opens from disk, works offline
 | Punch (a three-hit chain; in the air, a flying kick); hold it to keep punching on your own | `J` |
 | Launcher: the third hit of the chain with "up" held throws the enemy up for juggling | `W` + `J` |
 | Jump | `Space` |
-| Throw a bone (costs 15 rage, 5% of the bar); Lucy fires her pistol, held to keep firing (six rounds) | `K` |
+| Throw a bone (costs 15 rage, 5% of the bar); Lucy fires her pistol, held to keep firing (seven rounds) | `K` |
 | Dark ball (level I); Lucy throws a grenade (100 rage) | `L` |
 | Super attack: hold for 1 s with a full rage bar, hits everyone on screen; Lucy: her big gun, shot after shot while held (60 rage a shot), each bullet through a whole line | hold `I` |
 | Pause menu (resume, settings, main menu) / sound | `Esc` or `P` / `M` |

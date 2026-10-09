@@ -52,7 +52,7 @@ export function reset() {
     maxHp: 100,
     hpLag: 100,
     lucky: 0,
-    ammo: 6,
+    ammo: 7,
     streak: 0,
     streakT: 0,
     rage: 0,

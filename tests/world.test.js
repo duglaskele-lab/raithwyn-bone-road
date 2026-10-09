@@ -211,7 +211,7 @@ test('Lucy fires her pistol on K: a very fast bullet from the muzzle that hits t
 });
 
 test('Lucy keeps firing while K is held, aiming and firing in turn, each shot paid for', async () => {
-  const { BULLET } = await import('../src/config.js');
+  const { BULLET, LUCY } = await import('../src/config.js');
   P.who = 'lucy';
   P.rage = 100;
   G.enemies = [];
@@ -232,7 +232,7 @@ test('Lucy keeps firing while K is held, aiming and firing in turn, each shot pa
   }
   assert.ok(shots >= 5, `several shots in a row (${shots})`);
   assert.deepEqual([...seen].sort(), [2, 3], 'aiming and firing frames in turn');
-  assert.equal(P.ammo, 6 - shots, 'every shot takes a round');
+  assert.equal(P.ammo, LUCY.ammo - shots, 'every shot takes a round');
   keys.bone = false;
   for (let t = 0; t < 0.4; t += DT) update(DT);
   assert.notEqual(P.state, 'throw', 'let go: she puts it away');
@@ -504,7 +504,7 @@ test("Lucy's big-gun bullet goes through a line of enemies, a fifth weaker each 
   P.who = 'raithwyn';
 });
 
-test('Lucy: six rounds, a bandolier now and then from her punches when she is short, weaker fists', async () => {
+test('Lucy: seven rounds, a magazine now and then from her punches when she is short, weaker fists', async () => {
   const { LUCY, BULLET } = await import('../src/config.js');
   const { newRun } = await import('../src/replay.js');
   const { strike } = await import('../src/combat.js');
@@ -514,7 +514,7 @@ test('Lucy: six rounds, a bandolier now and then from her punches when she is sh
   G.props = [];
   assert.equal(P.ammo, LUCY.ammo);
   assert.equal(BULLET.dmg, 9, 'her pistol');
-  // all six rounds, then an empty click
+  // all seven rounds, then an empty click
   keys.bone = true;
   pressed.bone = true;
   for (let t = 0; t < 3; t += DT) {
@@ -522,13 +522,13 @@ test('Lucy: six rounds, a bandolier now and then from her punches when she is sh
     delete pressed.bone;
   }
   keys.bone = false;
-  assert.equal(P.ammo, 0, 'six shots and no more');
+  assert.equal(P.ammo, 0, 'seven shots and no more');
   assert.equal(G.projs.filter((q) => q.k === 'bullet').length, 0);
   pressed.bone = true;
   update(DT);
   delete pressed.bone;
   assert.notEqual(P.state, 'throw', 'nothing to fire');
-  // her punches: a bandolier flies out about one time in seven while she is short
+  // her punches: a magazine flies out about one time in seven while she is short
   const e = spawn('fat', 1, P.x + 60, P.y);
   e.state = 'idle';
   let drops = 0;
@@ -585,7 +585,7 @@ test('Lucy: six rounds, a bandolier now and then from her punches when she is sh
   G.items = [{ kind: 'ammo', x: P.x, y: P.y, z: 0, vz: 0, t: 1 }];
   G.freeze = 0;
   update(DT);
-  assert.equal(P.ammo, LUCY.ammo, 'a bandolier fills it');
+  assert.equal(P.ammo, LUCY.ammo, 'a magazine fills it');
   // her fists: 20% weaker than Raithwyn's
   const hit = (who) => {
     P.who = who;
