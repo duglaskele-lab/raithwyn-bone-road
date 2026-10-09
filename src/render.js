@@ -86,20 +86,20 @@ export function drawItem(it) {
   ctx.lineWidth = 2.4;
   ctx.strokeStyle = OL;
   if (it.kind === 'ammo') {
-    // a pistol magazine: a gently curved steel case, a round showing at the feed lips on top,
+    // a pistol magazine: a gently curved steel case, a round lying across the feed lips on top,
     // a broad base plate, a witness hole down the side; it lies tilted
-    ctx.scale(1.7, 1.7);
+    ctx.scale(1.28, 1.28);
     ctx.rotate(0.35);
     ctx.lineWidth = 2;
     ctx.strokeStyle = OL;
-    // the round at the top
+    // the round on top, lying across the feed lips, its bullet forward
     ctx.fillStyle = '#e0b04a';
-    ctx.fillRect(-3, -17, 6, 5);
-    ctx.strokeRect(-3, -17, 6, 5);
+    ctx.fillRect(-6, -18, 8, 5);
+    ctx.strokeRect(-6, -18, 8, 5);
     ctx.fillStyle = '#c46a3a';
     ctx.beginPath();
-    ctx.moveTo(-3, -17);
-    ctx.quadraticCurveTo(0, -23, 3, -17);
+    ctx.moveTo(2, -18);
+    ctx.quadraticCurveTo(9, -15.5, 2, -13);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
