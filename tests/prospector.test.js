@@ -10,6 +10,7 @@ import { camTo, pathAt } from '../src/level.js';
 import { startLevel } from '../src/level.js';
 import { inFlame } from '../src/foes/prospector.js';
 import { DT, freshGame } from './helpers.js';
+import { seedRandom } from '../src/util.js';
 
 beforeEach(freshGame);
 
@@ -251,4 +252,32 @@ test('in the second phase the ram leaves a cone of fire behind it that dies down
   f.face = -1;
   step(0.3);
   assert.ok(!G.pools.some((a) => a.fire));
+});
+
+test('up close, a quarter of its kicks become a shoulder charge or a jet jump', () => {
+  assert.equal(PROS.bash.chance, 0.25);
+  const seen = new Set();
+  let kicks = 0;
+  for (let i = 0; i < 80; i++) {
+    freshGame();
+    seedRandom(i + 3);
+    const e = arena(600);
+    P.inv = 99;
+    P.x = e.x - 80;
+    Object.assign(e, { state: 'windup', t: 0, face: -1 });
+    step(DT * 2, () => (P.inv = 99));
+    if (e.state === 'windup') kicks++;
+    else seen.add(e.state);
+  }
+  assert.ok(seen.has('pbwind') && seen.has('jcrouch'), [...seen].join());
+  assert.ok(kicks > 40 && kicks < 75, `mostly kicks: ${kicks}`);
+  // the shoulder charge knocks her down
+  freshGame();
+  const e = arena(600);
+  P.x = e.x - 120;
+  Object.assign(e, { state: 'pbwind', t: 0, face: -1 });
+  step(PROS.bash.wind + PROS.bash.time + 0.1);
+  assert.ok(P.hp <= 100 - PROS.bash.dmg);
+  assert.ok(['ko', 'down', 'getup'].includes(P.state));
+  assert.equal(e.state, 'chase', 'and no kick-like stance after it');
 });

@@ -319,8 +319,9 @@ mostly walks and only now and then runs to close in or to get away, later more o
 - **Rage**, from the second stage on, in a small bar under hers: 12 for a blow she lands, 5 for
   one she takes, and in the third stage 6 a second by itself. Full, she gathers a dark orb (1 s,
   as the heroine's super): a heavy blow breaks it and empties her rage (in the third stage
-  nothing breaks it: a red outline). The orb rises over the middle of the arena and swells, and
-  for 5 s three beams from it run over the ground along their own paths (a wide sweep, a loop, a
+  nothing breaks it: a red outline). The orb rises over the middle of the arena and swells; for 1 s red
+  marks on the ground show where each beam will start and the way it will run, and then for 5 s
+  three beams from it run over the ground along their own paths (a wide sweep, a loop, a
   figure of eight), burning it violet (the fire hurts) and hurting 10 whoever they touch;
   meanwhile she starts no attack, only keeps her distance and leaps away.
 - **The dandy** — at half health she calls up a skeleton finer than the others: a top hat with a
@@ -329,7 +330,8 @@ mostly walks and only now and then runs to close in or to get away, later more o
   it falls with her.
 
 She takes blows as a light enemy does, with no time out of reach after one: a hit stops her, a
-heavy one throws her. Killed, she falls and the stage is won.
+heavy one throws her. But four blows within 2 s steady her: for 2 s (a red glow round her) she
+takes them as a medium enemy does (`EVIL.steady`). Killed, she falls and the stage is won.
 
 **The Grave Baron.** The fight starts with seven zombies climbing out of the ground. Summoning
 minions, the charge and the roar cannot be interrupted. When the Baron is below half health the
@@ -441,7 +443,9 @@ attacks:
   the ground that fills up as it falls; the blast (`BLAST.mortar`, r 115, 16 damage) knocks her
   down and spares the enemies. Shells cannot be shot down.
 - **Jet jump** — as the Power Armor's, but bigger, and always onto the heroine.
-- **Kick** up close, with a "!" and a reddened visor.
+- **Kick** up close, with a "!" and a reddened visor; a quarter of the time a **shoulder charge**
+  instead (it draws back, then rushes 0.28 s at 620 px/s, 18 damage and a knockdown) or a jet
+  jump away to another spot (`PROS.bash`).
 
 At half health its helmet flies off and rolls away: under it is a zombie's head in miner's
 goggles. It fights harder: 25% faster on its feet and between attacks, the flame sweeps across

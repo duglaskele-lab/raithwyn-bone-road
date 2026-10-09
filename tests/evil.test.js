@@ -210,7 +210,7 @@ test('the orb rises over the arena, three beams burn the ground for five seconds
   step(EVIL.orb.charge + 0.1, () => hold(e));
   assert.ok(e.orb, 'out');
   assert.equal(e.rage, 0);
-  step(EVIL.orb.rise + 0.5, () => ((P.inv = 99), hold(e)));
+  step(EVIL.orb.rise + EVIL.orb.warn + 0.5, () => ((P.inv = 99), hold(e)));
   assert.ok(e.orb.z > EVIL.orb.z * 0.9, 'up over the arena');
   assert.equal(e.orb.spots.length, 3);
   // three paths of their own
@@ -229,7 +229,7 @@ test('the orb rises over the arena, three beams burn the ground for five seconds
   // a beam that runs over the player hurts her
   freshGame();
   const f = arena(500);
-  f.orb = { t: EVIL.orb.rise + 1, x0: 0, y0: 0, z0: 0, cd: [0, 0, 0], burnT: 0 };
+  f.orb = { t: EVIL.orb.rise + EVIL.orb.warn + 1, x0: 0, y0: 0, z0: 0, cd: [0, 0, 0], burnT: 0 };
   const [sx, sy] = orbSpot(0, 1 + DT);
   Object.assign(P, { x: sx, y: sy });
   step(DT);
@@ -334,4 +334,41 @@ test('she takes blows like a light enemy; her ball from the second stage cannot 
     hurtEnemy(g, 5, 1, true, 'punch');
     assert.equal(g.state !== 'eball', stops, `stage ${lv}`);
   }
+});
+
+test("before the orb's beams: red marks on the ground, and no harm yet", () => {
+  const e = arena(500);
+  const O = EVIL.orb;
+  e.orb = { t: O.rise + 0.1, x0: e.x, y0: e.y, z0: 112, cd: [0, 0, 0], burnT: 0 };
+  const [sx, sy] = orbSpot(0, 0);
+  Object.assign(P, { x: sx, y: sy });
+  step(O.warn * 0.8, () => hold(e));
+  assert.equal(P.hp, 100, 'the warning hurts nobody');
+  assert.ok(!e.orb.spots, 'no beams yet');
+  assert.ok(typeof FOES.evil.ground === 'function', 'the marks are drawn on the ground');
+  step(O.warn * 0.3, () => hold(e));
+  assert.ok(e.orb.spots, 'then the beams come');
+});
+
+test('four blows within two seconds steady her: a medium enemy for two seconds', () => {
+  const e = arena(400);
+  for (let i = 0; i < 3; i++) {
+    hurtEnemy(e, 1, 1, false, 'punch');
+    G.time += 0.3;
+  }
+  assert.equal(e.weight, undefined, 'three are not enough');
+  hurtEnemy(e, 1, 1, false, 'punch');
+  assert.equal(e.weight, 'medium');
+  // as a medium enemy, one heavy blow only staggers her
+  Object.assign(e, { state: 'chase', t: 0 });
+  hurtEnemy(e, 1, 1, true, 'punch');
+  assert.notEqual(e.state, 'air', 'not thrown by one heavy blow');
+  step(2.4, () => hold(e));
+  assert.equal(e.weight, undefined, 'light again');
+  // four blows spread over more than two seconds do nothing
+  for (let i = 0; i < 4; i++) {
+    hurtEnemy(e, 1, 1, false, 'punch');
+    G.time += 0.8;
+  }
+  assert.equal(e.weight, undefined);
 });

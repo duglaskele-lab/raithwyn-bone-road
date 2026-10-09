@@ -1013,6 +1013,7 @@ export function drawWorld() {
     }
   for (const a of G.pools) drawPool(a);
   for (const q of G.projs) if (q.k === 'shell') shellMark(q);
+  for (const e of G.enemies) FOES[e.type]?.ground?.(e);
   for (const e of G.enemies) if (e.T.dragon) drawDragonGround(e);
   drawShocks();
   // shadows

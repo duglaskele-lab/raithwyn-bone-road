@@ -222,6 +222,9 @@ export const PROS = {
     min: 260,
     max: 640,
   },
+  // up close, `chance` of its kicks become a jet jump away or a shoulder charge: it draws back
+  // for `wind` seconds, then rushes `time` seconds at `speed`, knocking down (`dmg`)
+  bash: { chance: 0.25, wind: 0.35, time: 0.28, speed: 620, dmg: 18 },
   // the ram: it crouches (`wind`; flames roar out of the back of its tanks), then rushes in
   // a straight line at `speed` for up to `dist` (stopping at the screen's edge), knocking
   // down whoever is in its way; it skids to a stop for `stop` seconds. In the second phase it
@@ -289,7 +292,8 @@ export const PROS = {
 //          (`rise`) over the arena and swells, and for `life` seconds three beams from it run
 //          over the ground along their own paths, burning it (`fire` patches every `every`
 //          seconds that last `burn`) and hurting `hit` whoever they touch (`hitR` wide, once in
-//          `again` seconds); meanwhile she only walks about and leaps away
+//          `again` seconds); meanwhile she only walks about and leaps away. Between its rising
+//          and the beams, `warn` seconds of red marks on the ground show where they will run
 //   summon at half health she calls up the dandy skeleton (TYPES.dandy)
 // She takes blows like a light enemy (no time out of reach after one): a hit stops her, a heavy
 // one throws her, except while her ball (from the second stage) or her orb (third) gathers.
@@ -322,6 +326,7 @@ export const EVIL = {
   orb: {
     charge: 1,
     rise: 0.7,
+    warn: 1, // red marks on the ground where the beams will start and run, before they come
     life: 5,
     z: 300,
     hit: 10,
@@ -332,6 +337,8 @@ export const EVIL = {
     keep: 300,
   },
   summon: 0.5,
+  // `hits` blows within `window` seconds make her take blows as a medium enemy for `t` seconds
+  steady: { hits: 4, window: 2, t: 2 },
 };
 // The slime: its roll (wind-up, speed, how long), its jump (wind-up, flight, landing blast
 // radius and damage), its spit (wind-up; at most `minions` of its spawn about at once).

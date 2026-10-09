@@ -142,7 +142,7 @@ export function hurtEnemy(e, dmg, dir, knock, src, launch = false) {
   return true;
 }
 /** Its weight class: 'light' (the default), 'medium', 'heavy' or 'boss'. */
-export const weightOf = (e) => e.T.weight ?? 'light';
+export const weightOf = (e) => e.weight ?? e.T.weight ?? 'light';
 /** Can this enemy be juggled? The light and the medium can, once they are in the air. */
 export const canJuggle = (e) => ['light', 'medium'].includes(weightOf(e));
 /** A hit in the air pops the enemy up again, a little less with every hit. */
