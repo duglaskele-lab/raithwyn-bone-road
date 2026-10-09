@@ -83,7 +83,7 @@ export function updWaves(dt) {
         G.wave = { sp: waveSpawns(G.waveI), t: 0 };
         G.goT = 0;
         if (WAVES[G.waveI].final) {
-          G.banner = { a: '@armor', b: 'armorBanner', t: 0 };
+          G.banner = { a: '@prospector', b: 'prospectorBanner', t: 0 };
           SFX.boss();
         }
       }
@@ -461,6 +461,31 @@ export function update(dt) {
           q.vx *= GRENADE.roll;
           dust(q.x, q.y, 1);
         }
+      }
+    } else if (q.k === 'shell') {
+      // a mortar shell of the Prospector: up in an arc, down on its marked spot, a blast
+      q.t += dt;
+      const u = Math.min(1, q.t / q.T);
+      q.x = q.x0 + (q.tx - q.x0) * u;
+      q.y = q.y0 + (q.ty - q.y0) * u;
+      q.z = q.z0 * (1 - u) + 4 * q.h * u * (1 - u);
+      // nose along its flight, on screen
+      q.rot = Math.atan2(q.z0 - 4 * q.h * (1 - 2 * u), q.tx - q.x0 || 1);
+      if (random() < 0.5)
+        G.parts.push({
+          k: 'smoke',
+          x: q.x,
+          y: q.y - q.z,
+          vx: rnd(-15, 15),
+          vy: rnd(-30, 0),
+          g: 0,
+          t: 0,
+          life: rnd(0.4, 0.7),
+          s: rnd(5, 8),
+        });
+      if (u >= 1) {
+        q.life = 0;
+        explode(q.tx, q.ty, 'mortar');
       }
     } else if (q.k === 'tnt') {
       // a lit stick of dynamite: it flies, bounces, lies there and blows up

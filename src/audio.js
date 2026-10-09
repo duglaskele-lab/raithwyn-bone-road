@@ -274,6 +274,18 @@ export const SFX = {
     tone('sawtooth', 110, 70, 0.3, 0.16, 0, 600);
     noise(0.25, 0.18, 300, 120, 1);
   },
+  // the Prospector's flamethrower: a roaring rush of burning fuel
+  flame() {
+    noise(1.5, 0.38, 900, 300, 0.6);
+    noise(1.5, 0.16, 2600, 1800, 1.2);
+    tone('sawtooth', 70, 55, 1.5, 0.1, 0, 400);
+  },
+  // a mortar shell going up: a hollow thump, then a whistle
+  mortar() {
+    tone('sine', 150, 55, 0.25, 0.45);
+    noise(0.22, 0.3, 900, 200, 1);
+    tone('sine', 1900, 1500, 0.5, 0.04, 0.15);
+  },
   breath() {
     noise(1.1, 0.4, 500, 1600, 0.8);
     tone('sawtooth', 90, 60, 1.1, 0.14, 0, 500);

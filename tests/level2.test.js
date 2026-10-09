@@ -361,30 +361,23 @@ test('the slime spits out zombies that get up and fight', () => {
   assert.equal(TYPES.slime.bigBoss, 1);
 });
 
-test('the last fight: two power armours, then miners and dynamite join halfway', () => {
+test('the last fight: the Prospector, alone', () => {
   const last = WAVES2[WAVES2.length - 1];
   assert.deepEqual(
     last.sp.map((s) => s[0]),
-    ['armor', 'armor'],
+    ['prospector'],
   );
+  assert.equal(last.mid, undefined, 'no miners join in');
+  assert.ok(last.final && last.boss);
   quarry(px(last.s));
   G.waveI = WAVES2.length - 1;
   G.wave = { sp: last.sp.map((s) => s.slice()), t: 0 };
   P.inv = 99;
-  step(2);
-  const armors = G.enemies.filter((e) => e.type === 'armor');
-  assert.equal(armors.length, 2);
-  assert.ok(!G.wave.midT, 'nobody else yet');
-  for (const a of armors) a.hp = a.T.hp * 0.45;
-  step(0.1);
-  assert.ok(G.wave.midT, 'halfway: the others come');
-  assert.equal(G.wave.sp.filter((x) => x[0] === 'dynamite').length, 2);
-  // the screen holds six at most: the rest come as room is made
-  step(3, () => (P.inv = 99));
-  assert.ok(G.enemies.some((e) => e.type === 'miner'));
-  for (const e of G.enemies) if (e.type === 'miner') e.dead = true;
-  step(3, () => (P.inv = 99));
-  assert.ok(G.enemies.some((e) => e.type === 'dynamite'));
+  step(2, () => (P.inv = 99));
+  assert.deepEqual(
+    G.enemies.map((e) => e.type),
+    ['prospector'],
+  );
   assert.equal(levelWaves(), WAVES2);
 });
 

@@ -97,6 +97,7 @@ export function updEnemy(e, dt, ctxE) {
   e.shown = inView(e.x, e.y) ? (e.shown ?? 0) + dt : 0;
   e.moving = false;
   STATES[e.state]?.tick(e, dt, sense(e), ctxE);
+  F.tick?.(e, dt);
   floorClamp(e, 2, 0);
   // flying, staggering or rushing about, an enemy stays on screen
   if (STATES[e.state]?.pin) {

@@ -16,7 +16,7 @@ import { dust } from '../fx.js';
 import { breakProp, hitPlayer } from '../combat.js';
 import { ctx } from '../gfx.js';
 import { drawAura } from '../skeleton.js';
-import { defineFoe } from './registry.js';
+import { defineFoe, FOES } from './registry.js';
 import { faceP, go } from './kit.js';
 import { floorClamp, groundPoint } from '../level.js';
 import { chain, seg } from './lizard.js';
@@ -168,7 +168,7 @@ function armorPose(e) {
   return o;
 }
 /** Where its parts are, in its own frame (feet at 0,0, facing +x, before scaling). */
-function geo(o) {
+export function geo(o) {
   const lh = (l) => THIGH * Math.cos(l[0]) + SHIN * Math.cos(l[1]),
     hipH = (o.hipH ?? Math.max(lh(o.lF), lh(o.lB))) + 10,
     neck = [Math.sin(o.lean) * 62, -Math.cos(o.lean) * 62],
@@ -183,7 +183,7 @@ function geo(o) {
   return { hipH, neck, sh, A };
 }
 /** A point of its frame (hip at 0,0 after the body's lift) on the road. */
-function toWorld(e, o, g, p) {
+export function toWorld(e, o, g, p) {
   const s = e.T.scale,
     c = Math.cos(o.rot),
     n = Math.sin(o.rot),
@@ -213,6 +213,10 @@ export function muzzle(e) {
 // --- drawing ----------------------------------------------------------------------------------
 
 let PAL = null;
+/** The colours the plates below are drawn in (the Prospector brings its own). */
+export const usePal = (p) => (PAL = p);
+/** Its jet jump's numbers: the armour's own, or those of whoever borrows its jump. */
+const jumpOf = (e) => FOES[e.type].jump ?? ARMOR.jump;
 function palette(fl) {
   return fl
     ? { pl: '#fff', pl2: '#fff', dk: '#ffe0e0', jt: '#fff', tr: '#fff', gl: '#fff' }
@@ -226,7 +230,7 @@ function palette(fl) {
       };
 }
 /** A plate: a filled outline with a lit upper edge and rivets. */
-function plate(pts, fill, lit, rivets = []) {
+export function plate(pts, fill, lit, rivets = []) {
   ctx.lineJoin = 'round';
   ctx.beginPath();
   pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])));
@@ -253,7 +257,7 @@ function plate(pts, fill, lit, rivets = []) {
   }
 }
 /** An armoured limb along a bone from a to b: a joint ball and a long tapered plate. */
-function armLimb(a, b, w0, w1, fill) {
+export function armLimb(a, b, w0, w1, fill) {
   const dx = b[0] - a[0],
     dy = b[1] - a[1],
     L = Math.hypot(dx, dy),
@@ -282,7 +286,7 @@ function armLimb(a, b, w0, w1, fill) {
   ctx.lineTo(a[0] + dx * 0.55 - nx * w1, a[1] + dy * 0.55 - ny * w1);
   ctx.stroke();
 }
-function joint(p, r) {
+export function joint(p, r) {
   ctx.fillStyle = PAL.pl;
   ctx.strokeStyle = OL;
   ctx.lineWidth = 2.6;
@@ -295,7 +299,7 @@ function joint(p, r) {
   ctx.arc(p[0] - r * 0.3, p[1] - r * 0.3, r * 0.35, 0, TAU);
   ctx.fill();
 }
-function leg(l, off, fill) {
+export function leg(l, off, fill) {
   const pts = chain(
     [off, 0],
     [
@@ -333,7 +337,7 @@ function leg(l, off, fill) {
   ctx.fillRect(f[0] - 16, f[1] + 3, 46, 4);
   return pts;
 }
-function gauntlet(h, a, fill) {
+export function gauntlet(h, a, fill) {
   // a big armoured fist
   ctx.save();
   ctx.translate(h[0], h[1]);
@@ -443,20 +447,20 @@ function minigun(h, a, o) {
 }
 
 /** The kick's warning: a '!' over its head (the visor reddens too). */
-function kickWarning(e) {
+export function kickWarning(e, h = 225) {
   const T = e.T;
   ctx.save();
   ctx.fillStyle = '#ff4a5e';
   ctx.globalAlpha = 0.6 + 0.4 * Math.sin(e.t * 30);
   ctx.font = '900 28px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('!', e.x - G.cam, e.y - e.z - 225 * T.scale);
+  ctx.fillText('!', e.x - G.cam, e.y - e.z - h * T.scale);
   ctx.restore();
 }
 /** The bottom of the pack on its back, where the jets come out (world x, screen y). */
 const nozzle = (e) => [e.x - e.face * 40 * e.T.scale, e.y - e.z - 100 * e.T.scale];
 /** The jets of the pack while it flies: a flame cone below the pack. */
-function drawJets(e) {
+export function drawJets(e) {
   const [x0, y0] = nozzle(e),
     x = x0 - G.cam,
     len = 46 + 10 * Math.sin(G.time * 50),
@@ -477,7 +481,7 @@ function drawJets(e) {
   ctx.restore();
 }
 /** Sparks and smoke out of the jets, trailing behind it in the air. */
-function jetTrail(e, dt) {
+export function jetTrail(e, dt) {
   const [x, y] = nozzle(e);
   for (let i = 0; i < dt * 60; i++) {
     G.parts.push({
@@ -508,8 +512,8 @@ function jetTrail(e, dt) {
 }
 /** Where the jump comes down: a red area on the ground with a crosshair, filling up as it
  *  falls. Drawn from the crouch until it lands. */
-function jumpMark(e) {
-  const J = ARMOR.jump,
+export function jumpMark(e) {
+  const J = jumpOf(e),
     u = clamp(e.state === 'jcrouch' ? 0 : e.t / J.air, 0, 1),
     x = e.jx - G.cam,
     y = e.jy;
@@ -898,7 +902,7 @@ function bullet(e) {
 }
 
 /** Crouches for a jump that will come down at (x, y) (kept on screen and on the floor). */
-function jumpTo(e, x, y) {
+export function jumpTo(e, x, y) {
   const to = floorClamp({ x: clamp(x, G.cam + 90, G.cam + W - 90), y });
   faceP(e);
   go(e, 'jcrouch', 0, { engage: false, jx: to.x, jy: to.y });
@@ -970,7 +974,7 @@ export default defineFoe('armor', {
   },
   states: {
     jcrouch(e) {
-      if (e.t > ARMOR.jump.crouch) {
+      if (e.t > jumpOf(e).crouch) {
         go(e, 'jump', 0, { x0: e.x, y0: e.y });
         e.face = e.jx >= e.x ? 1 : -1;
         SFX.jump();
@@ -981,7 +985,7 @@ export default defineFoe('armor', {
       }
     },
     jump(e, dt) {
-      const J = ARMOR.jump,
+      const J = jumpOf(e),
         u = Math.min(1, e.t / J.air);
       if (u < 1) jetTrail(e, dt);
       e.x = e.x0 + (e.jx - e.x0) * u;
@@ -1009,8 +1013,8 @@ export default defineFoe('armor', {
       go(e, 'jland');
     },
     jland(e) {
-      if (e.t > ARMOR.jump.rec)
-        go(e, 'chase', 0, { jumpCd: rnd(ARMOR.jump.cd[0], ARMOR.jump.cd[1]) });
+      const J = jumpOf(e);
+      if (e.t > J.rec) go(e, 'chase', 0, { jumpCd: rnd(J.cd[0], J.cd[1]) });
     },
     spin(e, dt) {
       e.spinA = (e.spinA + dt * 40 * Math.min(1, e.t / ARMOR.spin)) % TAU;

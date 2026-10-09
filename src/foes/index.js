@@ -14,6 +14,7 @@ import './miner.js';
 import './dynamite.js';
 import './lizard.js';
 import './armor.js';
+import './prospector.js';
 import './slime.js';
 import './baron.js';
 import './dragon.js';
