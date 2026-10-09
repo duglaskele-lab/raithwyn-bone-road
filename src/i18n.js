@@ -134,8 +134,8 @@ export const STR = {
     pad: { hado: 'Magic', bone: 'Bone', jump: 'Jump', atk: 'Hit', super: 'Super' },
     // Lucy's own names for her moves, over the ones above, and for her rage bar
     lucy: {
-      help: { bone: ['Shot', 'K'], hado: ['Grenade', 'L'], super: ['Super', 'I'] },
-      pad: { bone: 'Shot', hado: 'Grenade', super: 'Super' },
+      help: { bone: ['Shot', 'K'], hado: ['Big gun', 'L'], super: ['Grenade', 'I'] },
+      pad: { bone: 'Shot', hado: 'Big gun', super: 'Grenade' },
       rage: 'Luck',
     },
     foe: {
@@ -289,8 +289,8 @@ export const STR = {
     },
     pad: { hado: 'Магия', bone: 'Кость', jump: 'Прыг', atk: 'Удар', super: 'Супер' },
     lucy: {
-      help: { bone: ['Выстрел', 'K'], hado: ['Граната', 'L'], super: ['Супер', 'I'] },
-      pad: { bone: 'Выстрел', hado: 'Граната', super: 'Супер' },
+      help: { bone: ['Выстрел', 'K'], hado: ['Пушка', 'L'], super: ['Граната', 'I'] },
+      pad: { bone: 'Выстрел', hado: 'Пушка', super: 'Граната' },
       rage: 'Удача',
     },
     foe: {

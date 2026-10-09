@@ -54,7 +54,7 @@ export function explode(x, y, k = 'barrel', z = 0) {
   // a blast that spares the enemies (the Prospector's mortar shells) leaves them be
   for (const e of B.dmgE ? G.enemies : [])
     if (!e.dead && within(x, y, e.x, e.y, B.r))
-      hurtEnemy(e, B.dmgE, e.x >= x ? 1 : -1, true, 'blast');
+      hurtEnemy(e, B.dmgE, e.x >= x ? 1 : -1, true, B.crush ? 'blast2' : 'blast');
   // sticks of dynamite caught in it go off a moment later too
   for (const q of G.projs)
     if (q.k === 'tnt' && q.fuse > B.chain && within(x, y, q.x, q.y, B.r)) q.fuse = B.chain;

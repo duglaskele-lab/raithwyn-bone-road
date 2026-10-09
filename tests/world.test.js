@@ -246,7 +246,7 @@ test('Lucy has her own frames for taking a hit and being knocked down', async ()
   assert.equal(FR.ko.length, 6);
 });
 
-test('Lucy throws a spinning grenade on L: an arc, little hops, and a wide blast that spares her', async () => {
+test('Lucy throws a spinning grenade on I: an arc, little hops, and a wide blast that spares her', async () => {
   const { FR } = await import('../src/lucy-frames.js');
   const { BLAST, GRENADE } = await import('../src/config.js');
   assert.equal(FR.jump.length, 5, 'her jump: crouch, rising, top, falling, landing');
@@ -263,9 +263,9 @@ test('Lucy throws a spinning grenade on L: an arc, little hops, and a wide blast
     P.y = 450;
     P.face = 1;
     P.hp = 100;
-    pressed.hado = true;
+    pressed.super = true;
     update(DT);
-    delete pressed.hado;
+    delete pressed.super;
     assert.equal(P.state, 'nade');
     assert.equal(P.rage, 150 - GRENADE.cost);
     let q = null;
@@ -434,7 +434,7 @@ test('Lucy: her new run, a dodge now and then, her big gun for the super, and a 
   P.who = 'raithwyn';
 });
 
-test("Lucy's super on I: no charging, her big gun at once, shot after shot while I is held, slower and harder than her pistol", async () => {
+test("Lucy's big gun on L: no charging, at once, shot after shot while L is held, slower and harder than her pistol", async () => {
   const { BIG_GUN, BULLET, MAXR } = await import('../src/config.js');
   const { newRun } = await import('../src/replay.js');
   newRun(3, 1, 'lucy');
@@ -443,10 +443,10 @@ test("Lucy's super on I: no charging, her big gun at once, shot after shot while
   G.props = [];
   P.rage = 300;
   assert.equal(BIG_GUN.cost, MAXR * 0.2, 'a fifth of the bar a shot');
-  keys.super = true;
-  pressed.super = true;
+  keys.hado = true;
+  pressed.hado = true;
   update(DT);
-  delete pressed.super;
+  delete pressed.hado;
   assert.equal(P.state, 'bigGun', 'straight to the gun, no charge');
   assert.equal(P.rage, 300 - BIG_GUN.cost);
   let shots = 0,
@@ -466,7 +466,7 @@ test("Lucy's super on I: no charging, her big gun at once, shot after shot while
   const cycle = BIG_GUN.shot.reduce((a, b) => a + b);
   assert.ok(cycle > 0.3, 'slower than the pistol');
   // out of rage: she puts it away
-  keys.super = false;
+  keys.hado = false;
   for (let t = 0; t < 0.6; t += DT) update(DT);
   assert.notEqual(P.state, 'bigGun');
   P.who = 'raithwyn';

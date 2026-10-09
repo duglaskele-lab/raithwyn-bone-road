@@ -158,13 +158,12 @@ export function updPlayer(dt) {
           SFX.deny();
         }
       } else if (b === 'super' && p.who === 'lucy') {
-        // Lucy's I: her big gun, no charging
+        // Lucy's I: she throws a grenade
         p.buf = null;
-        if (p.rage >= BIG_GUN.cost) {
-          p.rage -= BIG_GUN.cost;
-          p.state = 'bigGun';
+        if (p.rage >= GRENADE.cost) {
+          p.rage -= GRENADE.cost;
+          p.state = 'nade';
           p.t = 0;
-          p.shots = 0;
           p.sw = 0;
         } else SFX.deny();
       } else if (b === 'super') {
@@ -179,12 +178,13 @@ export function updPlayer(dt) {
           p.sw = 0;
         }
       } else if (b === 'hado' && p.who === 'lucy') {
-        // Lucy's L: she throws a grenade
+        // Lucy's L: her big gun, shot after shot while it is held
         p.buf = null;
-        if (p.rage >= GRENADE.cost) {
-          p.rage -= GRENADE.cost;
-          p.state = 'nade';
+        if (p.rage >= BIG_GUN.cost) {
+          p.rage -= BIG_GUN.cost;
+          p.state = 'bigGun';
           p.t = 0;
+          p.shots = 0;
           p.sw = 0;
         } else SFX.deny();
       } else if (b === 'hado') {
@@ -338,14 +338,14 @@ export function updPlayer(dt) {
       let i = tl(BIG_GUN.shot, p.t - drawn);
       if (i < 0) {
         // the shot is done: another while I is held and the rage pays for it
-        if (keys.super && p.rage >= BIG_GUN.cost) {
+        if (keys.hado && p.rage >= BIG_GUN.cost) {
           p.rage -= BIG_GUN.cost;
           p.t = drawn;
           p.shots++;
           p.sw = 0;
           i = 0;
         } else {
-          if (keys.super) SFX.deny();
+          if (keys.hado) SFX.deny();
           toIdle();
           break;
         }

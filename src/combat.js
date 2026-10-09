@@ -38,8 +38,9 @@ export function addRage(n) {
  * heavy at once (see WEIGHT).
  */
 export function hurtEnemy(e, dmg, dir, knock, src, launch = false) {
-  const crush = src === 'super' || src === 'hado2' || src === 'hado3';
-  if (crush) src = src === 'super' ? 'super' : 'hado'; // the foes' own rules see a dark ball
+  // (Lucy's grenade, `blast2`, is a crushing blow too)
+  const crush = src === 'super' || src === 'hado2' || src === 'hado3' || src === 'blast2';
+  if (crush) src = src === 'super' ? 'super' : src === 'blast2' ? 'blast' : 'hado'; // the foes' own rules see a dark ball (or a blast)
   if (e.isProp) {
     // smashing scenery keeps the style meter from draining between fights
     styleKeep();

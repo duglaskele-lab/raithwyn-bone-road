@@ -286,7 +286,6 @@ export function update(dt) {
         // the big gun's bullet goes on through, weaker each time: each one is hit once
         if (q.big && q.hit.has(e)) continue;
         const power = q.big ? q.power : 1,
-          crush = q.big && power > BIG_GUN.heavy + 1e-6,
           // a pistol hit may be a lucky one: the more hits in a row, the likelier
           lucky = !q.big && random() < Math.min(LUCY.streakMax, LUCY.streak * P.streak);
         if (
@@ -299,7 +298,7 @@ export function update(dt) {
               headBonus(e, zone),
             Math.sign(q.vx),
             !!q.big,
-            crush ? 'super' : q.big ? 'punch' : 'bone',
+            q.big ? 'punch' : 'bone',
           )
         ) {
           if (!e.isProp) {

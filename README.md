@@ -25,21 +25,22 @@ time in seven (14%), unless one is already about; it bounces back off the screen
 there three seconds (blinking at the end) and is gone; picked up, it fills the gun again
 (`LUCY`). Each pistol hit in a row raises the chance of a critical shot by 10%, up to 60%: twice
 the damage, under a small red neon "crit!" (0.63 s); a miss, or a second without a shot, ends the run. A pistol bullet that meets her own grenade in
-the air sets it off up there, 30% wider and 30% harder (`BLAST.airburst`). Her `L` is a grenade instead of the dark ball: 100 rage; it flies in
+the air sets it off up there, 30% wider and 30% harder (`BLAST.airburst`). Her `I` is a grenade instead of the super: 100 rage; it flies in
 an arc, spinning, lands, makes two little hops and blows up about 400 px ahead (it never leaves
 the screen: at the edge it bounces back): 70 damage to every enemy in a
-wide blast (250 px), it breaks barrels and sets red ones off, and it spares her (`GRENADE` and
-`BLAST.grenade` in `src/config.js`). She has 20% less health than Raithwyn (80, `MAX_HP`), but
+wide blast (250 px), knocking them down as a crushing blow does, it breaks barrels and sets red
+ones off, and it spares her (`GRENADE` and `BLAST.grenade` in `src/config.js`). She has 20% less health than Raithwyn (80, `MAX_HP`), but
 luck: a blow that would finish her has a 10% chance, plus 5% for each style rank (45% at SSS),
 to leave her on 10% of her health instead; she goes down, gets up, and a blue neon sign above her
 says "you feel lucky!" (`LUCK`). If she loses a stage anyway, she has her own line to say about
 it. A blow that comes while she is on her feet and not busy misses one time in ten: she dodges
-it, with one of three dodges (`LUCK.evade`). Her super attack (`I`) is a big gun, with no charging:
-she draws it and fires, shot after shot while `I` is held; each shot costs a fifth of the bar
+it, with one of three dodges (`LUCK.evade`). Her `L` is a big gun instead of the dark ball, with no charging:
+she draws it and fires, shot after shot while `L` is held; each shot costs a fifth of the bar
 (60) and comes slower than her pistol's (0.36 s), in a shower of sparks. Its bullet is wide and
 hard (40 damage) and goes on through whoever it hits, a fifth weaker each time, until nothing is
-left of it (five enemies in a row at most); while it is still at more than 60% it knocks enemies
-down as a crushing blow does, after that as the last punch of a chain does (`BIG_GUN`). Her keys and touch buttons are named for her (Shot, Grenade, Super) and her rage bar
+left of it (five enemies in a row at most); it always knocks enemies down as the last punch of a
+chain does, a heavy blow (`BIG_GUN`). Her keys and touch buttons are named for her (Shot, Big
+gun, Grenade) and her rage bar
 is called Luck. When she wins a stage she sits down and
 drinks from a bottle, on and on: a sip back and forth, the bottle lowered for a breath and raised
 again, a long gulp with her head tipped back, one after another at random, up to 8 frames each,
@@ -76,8 +77,8 @@ npm run build      # dist/raithwyn.html — opens from disk, works offline
 | Launcher: the third hit of the chain with "up" held throws the enemy up for juggling | `W` + `J` |
 | Jump | `Space` |
 | Throw a bone (costs 15 rage, 5% of the bar); Lucy fires her pistol, held to keep firing (seven rounds) | `K` |
-| Dark ball (level I); Lucy throws a grenade (100 rage) | `L` |
-| Super attack: hold for 1 s with a full rage bar, hits everyone on screen; Lucy: her big gun, shot after shot while held (60 rage a shot), each bullet through a whole line | hold `I` |
+| Dark ball (level I); Lucy: her big gun, shot after shot while held (60 rage a shot), each bullet through a whole line | `L` |
+| Super attack: hold for 1 s with a full rage bar, hits everyone on screen; Lucy throws a grenade (100 rage) | hold `I` |
 | Pause menu (resume, settings, main menu) / sound | `Esc` or `P` / `M` |
 | Record video: start / stop and download the file | `F9` |
 | FPS counter: show / hide | `F3` |
