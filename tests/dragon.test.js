@@ -13,6 +13,7 @@ import {
   laserFire,
   rageMult,
   skyBeams,
+  skyRows,
   skyFire,
   skyLines,
   updShocks,
@@ -433,6 +434,7 @@ test('second phase: it hovers and fires three beams across the arena; the gaps a
     Object.assign(d, { leapCd: 9, retreatCd: 9, laserCd: 9, last: 'claw' });
     run(d, DT);
     assert.equal(d.state, 'sky');
+    d.skyWay = 'alt';
     P.y = y;
     P.x = 300;
     run(d, (S.rise + S.charge) / DRAGON.rage - 0.05);
@@ -521,36 +523,35 @@ test('entering the second phase it is only half the bonus faster, growing to all
   assert.equal(rageMult(d), DRAGON.rage, 'then all of it');
 });
 
-test('the sky beams: always all three at once, side by side or in a row led by the top or the bottom', () => {
-  const S = DRAGON.sky;
-  assert.deepEqual(S.ways, ['all', 'down', 'up']);
-  for (const [way, first, last] of [
-    ['down', 0, 2],
-    ['up', 2, 0],
+test('the sky beams: every other line, or the bottom three of five, or the top three', () => {
+  const S = DRAGON.sky,
+    rows = skyRows();
+  assert.equal(rows.length, 5);
+  assert.equal(rows[0], GT + S.edge);
+  assert.equal(rows[4], GB - S.edge);
+  for (const [way, hot, safe] of [
+    ['alt', [0, 2, 4], [1, 3]],
+    ['low', [2, 3, 4], [0, 1]],
+    ['high', [0, 1, 2], [3, 4]],
   ]) {
     const d = dragonAt(400, 450 + 100, { phase2: true });
     Object.assign(d, { state: 'sky', t: 0, skyX0: 770, skyY0: 441, skyX: 770, skyY: 441 });
     d.skyWay = way;
     d.face = -1;
-    const lines = skyLines();
-    for (const tf of [0.05, S.sweep * 0.5, skyFire(d) - 0.05]) {
-      const bs = skyBeams(d, tf);
-      assert.equal(bs.length, 3, 'all three at once');
-      assert.deepEqual(
-        bs.map((b) => lines.indexOf(b.y)),
-        [first, 1, last],
+    // all three at once, side by side
+    const bs = skyBeams(d, S.sweep / 2);
+    assert.deepEqual(
+      bs.map((b) => rows.indexOf(b.y)),
+      hot,
+    );
+    assert.ok(bs.every((b) => b.x === bs[0].x));
+    // a safe line is clear of every beam
+    for (const i of safe)
+      assert.ok(
+        bs.every((b) => Math.abs(rows[i] - b.y) >= S.band),
+        `${way} ${i}`,
       );
-    }
-    // in the middle of it all three are on their way, the leading one furthest along
-    const mid = skyBeams(d, skyFire(d) / 2);
-    assert.ok(mid.every((b) => b.live));
-    assert.ok((mid[0].x - mid[1].x) * d.face > 0 && (mid[1].x - mid[2].x) * d.face > 0);
   }
-  // side by side: level with each other all the way
-  const d = dragonAt(400, 450 + 100, { phase2: true });
-  d.skyWay = 'all';
-  const bs = skyBeams(d, S.sweep / 2);
-  assert.ok(bs.every((b) => b.x === bs[0].x));
   // each way comes up
   const seen = new Set();
   for (let i = 0; i < 40; i++) {
@@ -562,4 +563,26 @@ test('the sky beams: always all three at once, side by side or in a row led by t
     if (d.state === 'sky') seen.add(d.skyWay);
   }
   assert.equal(seen.size, 3);
+});
+
+test('standing on a safe line of each way, the sky beams miss; on a beam line they hit', () => {
+  const S = DRAGON.sky,
+    rows = skyRows();
+  for (const [way, row, hurt] of [
+    ['low', 0, false],
+    ['low', 1, false],
+    ['low', 3, true],
+    ['high', 3, false],
+    ['high', 4, false],
+    ['high', 1, true],
+  ]) {
+    freshGame();
+    const d = dragonAt(400, 450 + 100, { phase2: true });
+    Object.assign(d, { state: 'sky', t: 0, skyX0: 770, skyY0: 441, skyX: 770, skyY: 441 });
+    d.skyWay = way;
+    P.x = 300;
+    P.y = rows[row];
+    run(d, (S.rise + S.charge + S.fire) / DRAGON.rage + 0.1);
+    assert.equal(P.hp < 100, hurt, `${way}, line ${row}`);
+  }
 });

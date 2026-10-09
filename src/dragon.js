@@ -12,8 +12,8 @@
 //            and at once charges the beam from there
 //   sky    - phase two only: it rises and hovers and, turning its head, sweeps three white
 //            beams from its jaws across the whole arena, slowly (along its top edge, its middle
-//            and its bottom edge; the gaps between are safe), all three at once: side by side,
-//            or in a slanting row led by the top one or by the bottom one, each leaving a burning
+//            and its bottom edge, the gaps between safe; or the bottom three of five lines, the
+//            top two safe; or the top three, the bottom two safe), each leaving a burning
 //            trail on the ground for a while; then it drops straight down and sends out the
 //            leap's shockwave
 // A heavy hit (a knockdown blow, a dark ball, the super) during the wind-up of the bite, the
@@ -40,19 +40,19 @@ export const DRAGON = {
   // the leap back before a beam: to the far side of the arena from a player this near
   retreat: { crouch: 0.3, air: 0.75, rec: 0, h: 190, cd: 11, near: 280, first: 6 },
   // the hovering triple beam (phase two): rise, charge, fire, hang on, drop straight down.
-  // The beams lie along depths GT + edge, the middle and GB - edge, each band deep each way.
-  // Firing, the three beams sweep from under the dragon across the arena, each in `sweep`
-  // seconds (the 1.25 s they used to take, 30% slower, so that there is time to react), its
-  // head turning with them; where they pass the ground burns for `trail` seconds. All three
-  // fire at once, one of three ways (`ways`): side by side, or in a slanting row with the top
-  // line leading, or the bottom one, each `lag` of a sweep behind the one ahead of it.
+  // The arena's depth is split into five lines, from GT + edge to GB - edge; the three beams lie
+  // along three of them, each band deep each way, the other two are safe. Which three is the
+  // attack's way (`ways`): every other line (safe between them), the bottom three (the top two
+  // safe) or the top three (the bottom two safe). Firing, the three beams sweep together from
+  // under the dragon across the arena in `sweep` seconds (the 1.25 s they used to take, 30%
+  // slower, so that there is time to react), its head turning with them; where they pass the
+  // ground burns for `trail` seconds.
   sky: {
     rise: 0.9,
     charge: 1.0,
     sweep: 1.25 / 0.7,
-    fire: 1.25 / 0.7, // = sweep, when all three go together
-    lag: 0.25,
-    ways: ['all', 'down', 'up'],
+    fire: 1.25 / 0.7, // = sweep
+    ways: { alt: [0, 2, 4], low: [2, 3, 4], high: [0, 1, 2] },
     trail: 1.4,
     hit: 30, // how close (along the line) the beam's spot must pass to hurt
     rec: 0.3,
@@ -253,7 +253,8 @@ function start(e, a) {
   if (a === 'retreat') e.retreatCd = DRAGON.retreat.cd;
   if (a === 'sky') {
     e.skyCd = DRAGON.sky.cd;
-    e.skyWay = DRAGON.sky.ways[Math.floor(random() * DRAGON.sky.ways.length)];
+    const ways = Object.keys(DRAGON.sky.ways);
+    e.skyWay = ways[Math.floor(random() * ways.length)];
     e.skyX0 = e.x;
     e.skyY0 = e.y;
     // it hovers over the side of the arena it is nearer to
@@ -860,16 +861,15 @@ export function skyMouth(e) {
 /** The sky beams sweep from the edge of the arena behind the dragon to the far edge: no spot of
  *  the line is spared, not even under it. */
 const skyEdges = (e) => (e.face > 0 ? [G.cam - 30, G.cam + W + 30] : [G.cam + W + 30, G.cam - 30]);
-/** The depths of the three sky beams: the top edge of the arena, its middle, its bottom edge. */
-export const skyLines = () => {
+/** The five lines across the arena's depth, from its top edge to its bottom edge. */
+export const skyRows = () => {
   const S = DRAGON.sky;
-  return [GT + S.edge, (GT + GB) / 2, GB - S.edge];
+  return [0, 1, 2, 3, 4].map((i) => GT + S.edge + ((GB - GT - 2 * S.edge) * i) / 4);
 };
-/** How long the sky beams fire: one sweep all together, longer one after another. */
-export const skyFire = (e) => {
-  const S = DRAGON.sky;
-  return !e.skyWay || e.skyWay === 'all' ? S.sweep : S.sweep * (1 + 2 * S.lag);
-};
+/** The depths of the three sky beams, for the attack's way (every other line by default). */
+export const skyLines = (way = 'alt') => DRAGON.sky.ways[way].map((i) => skyRows()[i]);
+/** How long the sky beams fire: one sweep. */
+export const skyFire = () => DRAGON.sky.sweep;
 /** Where the sky attack is: 'rise', 'charge', 'fire', 'rec' or 'fall', and how far into it. */
 export function skyPhase(e) {
   const S = DRAGON.sky;
@@ -881,21 +881,11 @@ export function skyPhase(e) {
   }
   return ['done', 1];
 }
-/** The three beams `tf` seconds into the fire: where each one has got to, the leading one first. */
+/** The three beams `tf` seconds into the fire, side by side: where they have got to. */
 export function skyBeams(e, tf) {
-  const S = DRAGON.sky,
-    [x0, x1] = skyEdges(e),
-    lines = skyLines(),
-    way = e.skyWay ?? 'all',
-    order = way === 'up' ? [2, 1, 0] : [0, 1, 2],
-    out = [];
-  // all three fire at once; in a staggered way each one sets off `lag` of a sweep after the
-  // one before (waiting at the arena's edge till then, and at the far edge once across)
-  order.forEach((li, k) => {
-    const u = (tf - (way === 'all' ? 0 : k * S.lag * S.sweep)) / S.sweep;
-    out.push({ x: lerp(x0, x1, clamp(u, 0, 1)), y: lines[li], live: u > 0 && u < 1 });
-  });
-  return out;
+  const [x0, x1] = skyEdges(e),
+    x = lerp(x0, x1, clamp(tf / DRAGON.sky.sweep, 0, 1));
+  return skyLines(e.skyWay ?? 'alt').map((y) => ({ x, y }));
 }
 // The hovering triple beam: up over the side of the arena, three beams across it from edge to
 // edge, then straight down with the leap's quake and shockwave.
@@ -911,7 +901,7 @@ function sky(e, dt) {
   } else if (ph === 'charge') {
     e.z = S.h + Math.sin(e.anim * 3) * 6;
     // the jaws gather the light, turned at where the first beam will start
-    e.aim = aimLocal(e, skyEdges(e)[0], skyLines()[{ down: 0, up: 2 }[e.skyWay] ?? 1]);
+    e.aim = aimLocal(e, skyEdges(e)[0], skyLines(e.skyWay ?? 'alt')[1]);
     const [mx, my] = skyMouth(e);
     heartSparks(mx, my, dt, u);
     if (!e.charged) {
@@ -920,13 +910,13 @@ function sky(e, dt) {
     }
   } else if (ph === 'fire') {
     e.z = S.h;
-    // the spots where the three beams meet the ground run from under it across the arena,
-    // side by side or in a slanting row; the head follows the middle one
+    // the spots where the three beams meet the ground run together from under it across the
+    // arena; the head follows the middle one
     const beams = skyBeams(e, u * skyFire(e));
     if (!e.beams) SFX.laser();
     e.beams = beams;
-    e.aim = aimLocal(e, beams[1].x, skyLines()[1]);
-    for (const b of beams) if (b.live) e.trail.push({ x: b.x, y: b.y, t: 0 });
+    e.aim = aimLocal(e, beams[1].x, beams[1].y);
+    for (const b of beams) e.trail.push({ x: b.x, y: b.y, t: 0 });
     G.shake = Math.max(G.shake, 4);
     if (!e.hitDone && P.z < 160)
       if (beams.some((b) => Math.abs(P.x - b.x) < S.hit && Math.abs(P.y - b.y) < S.band))

@@ -256,11 +256,11 @@ again in the second phase), widens to 2.4 times its width by the end. It also co
 the arena and charge the beam from there at once (as wide and as long as the beam of its current
 phase). In the second phase it can also rise and hover over the side of the arena, light gathering in
 its jaws, then fire three white beams from its mouth, turning its head (back over its shoulder at first) to sweep them slowly (each over 1.8 s, 30% slower than before, so that there is time to react) across
-the whole arena from edge to edge, under itself too — along its top edge, its middle and its bottom edge
-(between the middle and an edge it is safe). All three always fire at once, one of three ways,
-at random: side by side, or in a slanting row led by the top line, or by the bottom line (each
-a quarter of a sweep behind the one ahead of it), its head following the middle one
-(`DRAGON.sky`). Where a beam passes, the ground burns for a while. Hovering, it is out of reach. Then it drops straight down with the quake and the shockwave of its leap. If the heroine stands
+the whole arena from edge to edge, under itself too, all three side by side at once. The
+arena's depth is split into five lines, three of them under beams and two safe, one of three
+ways at random (`DRAGON.sky.ways`): every other line (its top edge, its middle and its bottom
+edge, safe between them), the bottom three (the top two safe) or the top three (the bottom two
+safe) — the heroine has to find the right place on the arena. Where a beam passes, the ground burns for a while. Hovering, it is out of reach. Then it drops straight down with the quake and the shockwave of its leap. If the heroine stands
 close behind the Dragon, it sometimes (no more than once in 7 seconds) kicks her with a hind
 leg instead of turning round. The heroine's hits push the Dragon back a little. The beaten
 Dragon does not crumble into bones: it roars one last time, sinks to the ground and falls apart —
