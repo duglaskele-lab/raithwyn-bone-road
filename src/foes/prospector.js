@@ -18,7 +18,7 @@ import { breakProp, finale, hitPlayer } from '../combat.js';
 import { styleBreak, scoreMult } from '../style.js';
 import { ctx, rr } from '../gfx.js';
 import { drawAura } from '../skeleton.js';
-import { floorClamp } from '../level.js';
+import { floorClamp, groundPoint } from '../level.js';
 import { defineFoe } from './registry.js';
 import { faceP, go, moveTo } from './kit.js';
 import { chain } from './lizard.js';
@@ -114,6 +114,17 @@ function prosPose(e) {
       o.aB = [0.1 - 0.6 * u, 0.7 - 0.3 * u];
       break;
     }
+    case 'pbwind': {
+      // drawing back for the shoulder charge
+      const u = ease(clamp(e.t / PROS.bash.wind, 0, 1));
+      o.lean = 0.06 - 0.12 * u;
+      o.lF = [0.3, -0.1];
+      o.lB = [-0.45, -0.6];
+      o.aF = [0.45 - 0.6 * u, 1.3 - 0.8 * u];
+      o.aB = [0.1 - 0.5 * u, 0.7 - 0.3 * u];
+      break;
+    }
+    case 'pbash':
     case 'ram': {
       // a headlong rush, shoulder first, legs pounding
       const s = Math.sin(e.anim * 18);
@@ -1253,7 +1264,7 @@ export default defineFoe('prospector', {
       },
     },
   ],
-  attacks: [...UNSTOPPABLE, 'jland', 'rstop'],
+  attacks: [...UNSTOPPABLE, 'jland', 'rstop', 'pbwind', 'pbash'],
   unstoppable: (e) => UNSTOPPABLE.includes(e.state),
   // in those, nothing throws it (not even a crushing blow); otherwise it is a heavy enemy
   guard: (e) => UNSTOPPABLE.includes(e.state),
@@ -1278,6 +1289,18 @@ export default defineFoe('prospector', {
   },
   on: {
     windup(e) {
+      // up close, now and then a shoulder charge or a jet jump away instead of the kick
+      if (e.t < 0.05 && !e.rolled) {
+        e.rolled = true;
+        if (random() < PROS.bash.chance) {
+          if (random() < 0.5) {
+            faceP(e);
+            go(e, 'pbwind', 0, { engage: false, hitDone: false });
+            SFX.hiss();
+          } else jumpTo(e, ...groundPoint(random));
+          return;
+        }
+      } else if (e.t >= 0.05) e.rolled = false;
       if (e.t < 0.05 && !e.hissed) {
         e.hissed = true;
         SFX.hiss();
@@ -1324,6 +1347,29 @@ export default defineFoe('prospector', {
       if (e.t > Wk.time) {
         go(e, 'chase', 0, { walkCd: cd(e, Wk.cd), flen: 0, cd: Math.max(e.cd, 0.5) });
         e.flameCd = Math.max(e.flameCd, 1.5);
+      }
+    },
+    pbwind(e) {
+      if (e.t > PROS.bash.wind) {
+        go(e, 'pbash', 0, { x0: e.x, hitDone: false });
+        SFX.charge();
+      }
+    },
+    pbash(e, dt) {
+      // a short, hard charge shoulder first: whoever it meets goes down
+      const B = PROS.bash;
+      e.x += e.face * B.speed * dt;
+      dust(e.x - e.face * 30, e.y, 1);
+      if (!e.hitDone && Math.abs(P.x - e.x) < 70 && Math.abs(P.y - e.y) < 30 && P.z < 100) {
+        e.hitDone = true;
+        if (hitPlayer(B.dmg, e.face, true)) {
+          G.shake = Math.max(G.shake, 10);
+          SFX.heavy();
+        }
+      }
+      if (e.t > B.time || e.x < G.cam + 50 || e.x > G.cam + W - 50) {
+        e.x = clamp(e.x, G.cam + 50, G.cam + W - 50);
+        go(e, 'chase', 0, { cd: Math.max(e.cd, 0.7) });
       }
     },
     ramwind(e, dt, s) {

@@ -78,7 +78,7 @@ function updOrb(e, dt) {
   o.y = lerp(o.y0, (GT + GB) / 2, u);
   o.z = lerp(o.z0, O.z, u);
   o.r = lerp(16, 54, u);
-  const tau = o.t - O.rise;
+  const tau = o.t - O.rise - O.warn;
   if (tau < 0) return;
   if (tau > O.life) {
     e.orb = null;
@@ -122,6 +122,37 @@ function updOrb(e, dt) {
   });
   if (o.burnT <= 0) o.burnT = O.every;
   G.shake = Math.max(G.shake, 2);
+}
+/** Before the beams come: red marks on the ground where each will start, and the way it will
+ *  run for its first second, filling up as the moment comes. */
+function orbMarks(e) {
+  const O = EVIL.orb,
+    o = e.orb;
+  if (!o || o.t < O.rise * 0.5 || o.t > O.rise + O.warn) return;
+  const u = clamp((o.t - O.rise * 0.5) / (O.rise * 0.5 + O.warn), 0, 1);
+  ctx.save();
+  for (let i = 0; i < 3; i++) {
+    ctx.fillStyle = `rgba(255,60,40,${0.25 + 0.3 * u})`;
+    for (let k = 1; k <= 8; k++) {
+      const [px, py] = orbSpot(i, k * 0.12);
+      ctx.beginPath();
+      ctx.ellipse(px - G.cam, py, 5, 2.5, 0, 0, TAU);
+      ctx.fill();
+    }
+    const [x, y] = orbSpot(i, 0),
+      r = O.hitR * 1.3;
+    ctx.fillStyle = `rgba(255,60,40,${0.14 + 0.22 * u})`;
+    ctx.beginPath();
+    ctx.ellipse(x - G.cam, y, r, r * 0.45, 0, 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = u > 0.7 ? '#ff3a3a' : 'rgba(255,140,110,.9)';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(x - G.cam, y, r * u, r * 0.45 * u, 0, 0, TAU);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 /** The orb and its beams, over everything. */
 function drawOrb(e) {
@@ -259,6 +290,17 @@ export function drawEvil(e) {
         : e.flash > 0 && Math.floor(G.time * 30) % 2
           ? 0.55
           : 1;
+  // steadied by a flurry of blows: a dark glow round her
+  if (e.weight) {
+    const g = ctx.createRadialGradient(x, y - 90, 8, x, y - 90, 120);
+    g.addColorStop(0, `rgba(255,70,100,${0.3 + 0.12 * Math.sin(G.time * 12)})`);
+    g.addColorStop(1, 'rgba(255,70,100,0)');
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = g;
+    ctx.fillRect(x - 120, y - 210, 240, 240);
+    ctx.restore();
+  }
   sprite(name, i, x, y, e.face < 0, 1, a);
   // the glint in her eyes before her chain of punches
   if (e.state === 'c0') {
@@ -367,6 +409,7 @@ const toChase = (e, extra) => go(e, 'chase', 0, { engage: false, ...extra });
 export default defineFoe('evil', {
   draw: drawEvil,
   over: drawOrb,
+  ground: orbMarks,
   init: {
     comboCd: [0.4, 1],
     ballCd: [2, 3.5],
@@ -505,6 +548,15 @@ export default defineFoe('evil', {
   // otherwise she takes blows as a light enemy does: a hit stops her, a heavy one throws her
   guard(e, knock, src, dir) {
     evilRage(e, EVIL.rage.hurt);
+    // a flurry of blows steadies her: for a while she takes them as a medium enemy
+    const S = EVIL.steady;
+    e.hits = (e.hits ?? []).filter((t) => G.time - t < S.window);
+    e.hits.push(G.time);
+    if (e.hits.length >= S.hits) {
+      e.hits = [];
+      e.weight = 'medium';
+      e.steadyT = S.t;
+    }
     if (FOES.evil.unstoppable(e) || e.state === 'sfire') return true;
     if (e.state === 'scharge') {
       // only a heavy blow breaks her super, and then her rage is gone
@@ -524,6 +576,7 @@ export default defineFoe('evil', {
   },
   tick(e, dt) {
     if (e.dying) return;
+    if (e.steadyT > 0 && (e.steadyT -= dt) <= 0) e.weight = undefined;
     e.stage = stageOf(e);
     if (e.stage >= 3) evilRage(e, EVIL.rage.passive * dt);
     if (e.orb) updOrb(e, dt);
