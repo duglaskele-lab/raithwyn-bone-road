@@ -682,29 +682,35 @@ function zombieHead(e, fl) {
     ctx.fill();
   }
 }
-/** Where the ram goes: a red lane along the road to where it will stop, filling as it winds up. */
-function ramLane(e) {
-  const R = PROS.ram,
-    u = clamp(e.t / R.wind, 0, 1),
-    x0 = e.x - G.cam,
-    x1 = (e.rend ?? e.x) - G.cam,
-    lo = Math.min(x0, x1),
-    w = Math.abs(x1 - x0);
+/** Tongues of flame roaring out backwards from the bottom of its tanks as it gets ready to
+ *  ram and as it rushes (in the torso's frame, the back to -x). */
+function backJets(e, lean) {
+  const u = e.state === 'ramwind' ? ease(clamp(e.t / PROS.ram.wind, 0, 1)) : 1;
   ctx.save();
-  ctx.fillStyle = `rgba(255,60,40,${0.12 + 0.22 * u})`;
-  ctx.fillRect(lo, e.y - R.dy, w, R.dy * 2);
-  ctx.strokeStyle = u > 0.7 ? '#ff3a3a' : 'rgba(255,140,110,.9)';
-  ctx.lineWidth = 2.5;
-  ctx.strokeRect(lo, e.y - R.dy, w, R.dy * 2);
-  // chevrons pointing the way, filling up the lane as it winds up
-  ctx.lineWidth = 3;
-  for (let x = 40; x < w * u; x += 60) {
-    const cx = x0 + Math.sign(x1 - x0) * x;
+  ctx.globalCompositeOperation = 'lighter';
+  for (const [y, k] of [
+    [-6, 1],
+    [-30, 0.8],
+  ]) {
+    const L = (24 + 86 * u) * k * (1 + 0.15 * Math.sin(G.time * 47 + y)),
+      w = (6 + 6 * u) * k,
+      x0 = 0,
+      g = ctx.createLinearGradient(x0, 0, x0 - L, 0);
+    g.addColorStop(0, 'rgba(255,250,220,.95)');
+    g.addColorStop(0.3, 'rgba(255,190,70,.85)');
+    g.addColorStop(1, 'rgba(255,80,20,0)');
+    // out of the tank's bottom, levelled out to blow straight back whatever its lean
+    ctx.save();
+    ctx.translate(-60, y);
+    ctx.rotate(-lean);
+    ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.moveTo(cx - e.face * 10, e.y - 16);
-    ctx.lineTo(cx + e.face * 6, e.y);
-    ctx.lineTo(cx - e.face * 10, e.y + 16);
-    ctx.stroke();
+    ctx.moveTo(x0, -w);
+    ctx.quadraticCurveTo(x0 - L * 0.5, -w * 1.3 + Math.sin(G.time * 31 + y) * 3, x0 - L, 0);
+    ctx.quadraticCurveTo(x0 - L * 0.5, w * 1.3 - Math.sin(G.time * 29 + y) * 3, x0, w);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
   }
   ctx.restore();
 }
@@ -762,7 +768,6 @@ export function drawProspector(e, aura = true) {
   PAL = palette(fl);
   usePal(PAL);
   if (e.state === 'windup' || e.state === 'ramwind') kickWarning(e, 250);
-  if (e.state === 'ramwind') ramLane(e);
   if (e.state === 'jcrouch' || e.state === 'jump') jumpMark(e);
   if (e.state === 'jump') drawJets(e);
   if (aura) drawAura(e);
@@ -791,6 +796,7 @@ export function drawProspector(e, aura = true) {
   ctx.save();
   ctx.translate(neck[0] * 0.5, neck[1] * 0.5);
   ctx.rotate(o.lean);
+  if (e.state === 'ramwind' || e.state === 'ram') backJets(e, o.lean);
   mortar(e, 0, fl);
   tank(-52, -54, 20, 62, '#86301f', '#a8442c', fl);
   tank(-62, -50, 22, 64, '#b8402e', '#de6a4c', fl);
@@ -1328,6 +1334,19 @@ export default defineFoe('prospector', {
         e.rend = ramEnd(e);
       }
       if (random() < 0.4) dust(e.x - e.face * 30, e.y, 1);
+      if (random() < 0.3 + 0.6 * (e.t / R.wind))
+        G.parts.push({
+          k: 'glow',
+          x: e.x - e.face * 90 * e.T.scale,
+          y: e.y - 105 * e.T.scale + rnd(-15, 15),
+          vx: -e.face * rnd(120, 280),
+          vy: rnd(-60, 20),
+          g: 0,
+          t: 0,
+          life: rnd(0.15, 0.3),
+          s: rnd(3, 6),
+          col: random() < 0.5 ? '#ffcf5a' : '#ff7a2a',
+        });
       if (e.t > R.wind) {
         go(e, 'ram', 0, { x0: e.x, hitDone: false });
         SFX.charge();
@@ -1351,11 +1370,24 @@ export default defineFoe('prospector', {
           s: rnd(4, 7),
           col: random() < 0.5 ? '#ffcf5a' : '#ff7a2a',
         });
+      // in the second phase it leaves a wide cone of fire behind it, dying down fast
+      if (e.phase2 && (e.trailT = (e.trailT ?? 0) - dt) <= 0) {
+        const C = R.trail;
+        e.trailT = C.every;
+        for (let i = 0; i < 2; i++) {
+          const d = rnd(30, C.len),
+            o = floorClamp({
+              x: e.x - e.face * d,
+              y: e.y + rnd(-1, 1) * (C.w0 + d * C.spread),
+            });
+          G.pools.push({ fire: true, x: o.x, y: o.y, t: 0, life: C.life, seed: rnd(6) });
+        }
+      }
       // barrels in the way burst
       for (const u of G.props)
         if (!u.dead && u.decor && Math.abs(u.x - e.x) < 50 && Math.abs(u.y - e.y) < 30)
           breakProp(u);
-      if (!e.hitDone && Math.abs(P.x - e.x) < 70 && Math.abs(P.y - e.y) < R.dy && P.z < 100) {
+      if (!e.hitDone && Math.abs(P.x - e.x) < 60 && Math.abs(P.y - e.y) < R.dy && P.z < 100) {
         e.hitDone = true;
         if (hitPlayer(R.dmg, e.face, true)) {
           G.shake = Math.max(G.shake, 12);

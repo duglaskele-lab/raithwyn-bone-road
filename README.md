@@ -383,7 +383,7 @@ breaks wooden barrels and a moment later sets off red ones nearby.
   rules; instead of flying off it slides back.
 
 **The finale: the Prospector** (boss of Old Quarry, 1300 health; numbers in `PROS` and
-`TYPES.prospector`, code in `src/foes/prospector.js`). A giant zombie in grey power armour, 1.3
+`TYPES.prospector`, code in `src/foes/prospector.js`). A giant zombie in grey power armour, 1.1
 times the size of the Power Armor Zombie and drawn in finer detail: riveted plates with dents,
 hazard stripes and orange trim, a helmet like the Power Armor's (a rounded dome with a glowing
 visor slit and a crack over the dead face, two antennas), two red fuel tanks on its back
@@ -398,9 +398,11 @@ attacks:
   (`PROS.fire`).
 - **Walking flame** — it comes walking at the heroine for 2.6 s with the flame aimed at the road
   just in front of it, setting the ground before it on fire.
-- **Ram** — it crouches for 0.85 s (a "!" and a red lane with arrows on the ground show where it
-  will go), then rushes in a straight line at 820 px/s up to 760 px or the screen's edge,
-  knocking down whoever is in its way (24 damage) and bursting barrels, and skids to a stop.
+- **Ram** — it crouches for 0.85 s (a "!", and tongues of flame roaring out backwards from its
+  tanks), then rushes in a straight line at 820 px/s up to 760 px or the screen's edge, knocking
+  down whoever is in its way (24 damage) and bursting barrels, and skids to a stop. In the second
+  phase it leaves a wide cone of fire on the ground behind it as it rushes, which burns and dies
+  down in 0.8 s (`PROS.ram.trail`).
 - **Mortars** — the barrels rise, and three shells go up one after another and come down where
   the heroine stands (a little to the side for all but the first), each on a red area marked on
   the ground that fills up as it falls; the blast (`BLAST.mortar`, r 115, 16 damage) knocks her
