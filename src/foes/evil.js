@@ -291,13 +291,14 @@ export function drawEvil(e) {
           ? 0.55
           : 1;
   // steadied by a flurry of blows: a dark glow round her
-  // (red while medium, a stronger orange when heavy)
+  // (a faint red while medium, a strong red when heavy)
   if (e.weight) {
-    const c = e.weight === 'heavy' ? '255,150,40' : '255,70,100',
-      g = ctx.createRadialGradient(x, y - 90, 8, x, y - 90, 120);
+    const heavy = e.weight === 'heavy',
+      g = ctx.createRadialGradient(x, y - 90, 8, x, y - 90, 120),
+      c = '255,50,70';
     g.addColorStop(
       0,
-      `rgba(${c},${(e.weight === 'heavy' ? 0.45 : 0.3) + 0.12 * Math.sin(G.time * 12)})`,
+      `rgba(${c},${(heavy ? 0.5 : 0.16) + (heavy ? 0.12 : 0.05) * Math.sin(G.time * 12)})`,
     );
     g.addColorStop(1, `rgba(${c},0)`);
     ctx.save();

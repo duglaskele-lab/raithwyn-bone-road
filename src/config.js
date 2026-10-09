@@ -312,7 +312,7 @@ export const PROS = {
 export const EVIL = {
   stages: [0.66, 0.33],
   combo: { glint: 0.28, t: [0.2, 0.2, 0.3], dmg: [8, 8, 14], reach: 95, rec: 0.6, cd: [1.1, 2] },
-  bone: { wind: 0.3, speed: 420, fan: 0.3, dmg: 7, cd: [2.4, 3.8], min: 170 },
+  bone: { wind: 0.3, speed: 420, fan: 0.3, dmg: 7, cd: [2.4, 3.8], min: 240 }, // a quarter screen
   ball: { wind: [0.45, 0.8, 1.2], dmg: [12, 18, 26], speed: 520, cd: [4, 6.5], min: 220 },
   jump: { t: 0.55, dist: 260, h: 110, cd: 2.2, wall: 170 },
   run: {
@@ -355,7 +355,7 @@ export const EVIL = {
   face: { turn: 0.08, min: 20, backpedal: 0.2, near: 220, every: 1.5 },
   // `hits` blows within `window` seconds make her take blows as a medium enemy for `t` seconds;
   // `more` blows meanwhile make her heavy for `heavyT` seconds (no juggling, no throwing)
-  steady: { hits: 5, window: 2.5, t: 2.5, more: 3, heavyT: 2 },
+  steady: { hits: 4, window: 2.5, t: 2.5, more: 2, heavyT: 3 },
 };
 // The slime: its roll (wind-up, speed, how long), its jump (wind-up, flight, landing blast
 // radius and damage), its spit (wind-up; at most `minions` of its spawn about at once).
