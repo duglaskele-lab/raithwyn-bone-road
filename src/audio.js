@@ -907,9 +907,15 @@ export function themeFor(state, enemies = G.enemies, wave = G.wave) {
     return wave && levelWaves()[G.waveI]?.boss ? 'showdown' : 'frontier';
   if (state === 'play') {
     // the Bone Dragon brings its own music, faster in its second phase
-    const d = enemies.find((e) => e.T?.dragon);
-    if (d) return d.dead || d.state === 'dying' ? 'dragonEnd' : d.phase2 ? 'dragon2' : 'dragon';
-    if (wave?.sp.some((s) => s[0] === 'dragon' && s.done)) return 'dragonEnd'; // just fell apart
+    // (and so does Raithwyn in its place, faster in her third stage)
+    const d = enemies.find((e) => e.T?.dragon || e.type === 'evil');
+    if (d)
+      return d.dead || d.dying || d.state === 'dying'
+        ? 'dragonEnd'
+        : d.phase2 || d.stage >= 3
+          ? 'dragon2'
+          : 'dragon';
+    if (wave?.sp.some((s) => ['dragon', 'evil'].includes(s[0]) && s.done)) return 'dragonEnd'; // just fell
     return 'night';
   }
   if (state === 'win') return 'dragonEnd';

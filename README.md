@@ -299,6 +299,34 @@ browser's Cache Storage after the first visit (`cachedFetch` in `src/songs.js`) 
 downloaded again; when a song is replaced, raise `MUSIC_CACHE` and the old copies are deleted.
 The single-file build has the songs built in (which is why it weighs about 12 MB).
 
+**Raithwyn, the other final boss** (when the player is not Raithwyn: Lucy meets her instead of
+the Bone Dragon, to the Dragon's music; numbers in `EVIL` and `TYPES.evil`, code in
+`src/foes/evil.js`). She is drawn with her own sprites and fights with the heroine's moves,
+1000 health, in three stages by her health (above 66%, above 33%, below), with no show of a
+change:
+- **Chain of punches** up close: a red glint in her eyes (0.28 s), then three hits (8, 8, 14),
+  the last one knocking down; then she stands open for 0.6 s.
+- **Bone** along the road (7 damage); in the third stage a fan of three.
+- **Dark ball** of level I, II, III by stage (12, 18 knocking down, 26 knocking down and going on
+  through), gathered in her hands for 0.45, 0.8 and 1.2 s.
+- **Leap back** away from the player's attacks up close and, now and then, after a plain hit she
+  takes (out of reach while she leaps); with a wall behind her she leaps the other way, over the
+  player.
+- **Rage**, from the second stage on, in a small bar under hers: 12 for a blow she lands, 5 for
+  one she takes, and in the third stage 6 a second by itself. Full, she gathers a dark orb (1 s,
+  as the heroine's super): a heavy blow breaks it and empties her rage (in the third stage
+  nothing breaks it: a red outline). The orb rises over the middle of the arena and swells, and
+  for 5 s three beams from it run over the ground along their own paths (a wide sweep, a loop, a
+  figure of eight), burning it violet (the fire hurts) and hurting 10 whoever they touch;
+  meanwhile she starts no attack, only keeps her distance and leaps away.
+- **The dandy** — at half health she calls up a skeleton finer than the others: a top hat with a
+  purple band, a red rose in its teeth, a torn tailcoat with a red bow. While she lives nothing of
+  the player's hurts it (a purple shimmer round it): only her own fists, bones, dark balls and
+  beams do. When she falls, it falls with her.
+
+A heavy blow staggers her; after three of them she shrugs blows off for 4 s. Killed, she falls
+and the stage is won.
+
 **The Grave Baron.** The fight starts with seven zombies climbing out of the ground. Summoning
 minions, the charge and the roar cannot be interrupted. When the Baron is below half health the
 second phase begins: after a roar he gains an acid breath. 0.7 seconds of wind-up that cannot be
@@ -500,6 +528,8 @@ What is checked:
 - `world.test.js` — the simulation: the first fight starts, each enemy type fights for 20 seconds
   without errors, the flying kick, the whole stage played through to a win, the idle loop.
 - `extras.test.js` — music themes, style from scenery, the secret combo.
+- `evil.test.js` — Raithwyn as the boss: who meets her, her music, her stages, her dark ball and
+  bones by stage, her chain of punches, her leap back, her rage, her super and its orb, the dandy.
 - `dragon.test.js` — the end of the stage, the Dragon's unstoppable attacks, choosing an attack
   that reaches, the bite and the ×1.5 head, the beam and dodging it, the widening second-phase
   beam, the hind-leg kick, plasma balls, the second-phase jump, the longer beam charge with sparks, the

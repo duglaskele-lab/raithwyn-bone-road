@@ -30,6 +30,7 @@ import { dmgMult, styleGain, updStyle } from './style.js';
 import { updPlayer } from './player.js';
 import { spawn, updEnemy } from './enemies.js';
 import { waveSpawns } from './waves.js';
+import { dandies, evilHitP, evilHurt } from './foes/evil.js';
 import { explode, updFuses } from './blast.js';
 import { camTo, floorClamp, followPath, levelWaves, pathAt, pathPx, startLevel } from './level.js';
 
@@ -623,11 +624,53 @@ export function update(dt) {
           });
       }
       if (q.x < G.cam - 100 || q.x > G.cam + W + 100) q.life = 0;
+    } else if (q.k === 'ehado') {
+      // Raithwyn's own dark ball (the boss): it hurts the player, and her skeleton too
+      if (random() < 0.9)
+        G.parts.push({
+          k: 'glow',
+          x: q.x - Math.sign(q.vx) * rnd(10, 40),
+          y: q.y - q.z + rnd(-18, 18),
+          vx: -q.vx * 0.15,
+          vy: rnd(-30, 30),
+          g: 0,
+          t: 0,
+          life: rnd(0.2, 0.4),
+          s: rnd(2, 5),
+          col: PURPLE,
+        });
+      const r = [34, 50, 74][q.lv - 1],
+        dy = [26, 36, 56][q.lv - 1];
+      if (!q.hitP && Math.abs(P.x - q.x) < r && Math.abs(P.y - q.y) < dy && P.z < 130)
+        if (evilHitP(q.owner, q.dmg, Math.sign(q.vx), q.lv > 1)) {
+          q.hitP = true;
+          if (q.lv < 3) q.life = 0;
+        }
+      for (const d of dandies())
+        if (!q.hit.has(d) && Math.abs(d.x - q.x) < d.w + r && Math.abs(d.y - q.y) < dy) {
+          q.hit.add(d);
+          evilHurt(d, q.dmg * 2, Math.sign(q.vx), true);
+        }
+      if (q.x < G.cam - 120 || q.x > G.cam + W + 120) q.life = 0;
     } else {
+      // an enemy's bone; Raithwyn's (with an owner) may drift in depth and hits her skeleton
       q.rot += dt * 16 * Math.sign(q.vx);
+      q.y += (q.vy ?? 0) * dt;
       if (Math.abs(P.x - q.x) < 24 && Math.abs(P.y - q.y) < 19 && P.z < 95) {
-        if (hitPlayer(7, Math.sign(q.vx), false)) q.life = 0;
+        const dmg = q.dmg ?? 7;
+        if (
+          q.owner
+            ? evilHitP(q.owner, dmg, Math.sign(q.vx), false)
+            : hitPlayer(dmg, Math.sign(q.vx), false)
+        )
+          q.life = 0;
       }
+      if (q.owner)
+        for (const d of dandies())
+          if (q.life > 0 && Math.abs(d.x - q.x) < d.w + 16 && Math.abs(d.y - q.y) < 22) {
+            evilHurt(d, q.dmg ?? 7, Math.sign(q.vx), false);
+            q.life = 0;
+          }
       if (q.x < G.cam - 100 || q.x > G.cam + W + 100) q.life = 0;
     }
   }

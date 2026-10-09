@@ -18,4 +18,6 @@ import './prospector.js';
 import './slime.js';
 import './baron.js';
 import './dragon.js';
+import './evil.js';
+import './dandy.js';
 export { FOES, STATES } from './registry.js';

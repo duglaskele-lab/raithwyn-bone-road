@@ -191,7 +191,7 @@ export function finale(e) {
         o.dead = true;
         shatter(o, o.x < e.x ? -1 : 1);
       }
-    G.projs = G.projs.filter((p) => !['ebone', 'acid', 'plasma', 'shell'].includes(p.k));
+    G.projs = G.projs.filter((p) => !['ebone', 'ehado', 'acid', 'plasma', 'shell'].includes(p.k));
     G.pools = [];
     G.shocks = [];
   }
