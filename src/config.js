@@ -202,10 +202,39 @@ export const PROS = {
     w0: 26,
     spread: 0.26,
     sweep: 120,
+    grow: 0.9, // seconds for the flame to reach its full length
     tick: 0.2,
     dmg: 4,
     cd: [3.5, 5.5],
     first: [1.5, 3],
+  },
+  // the fire its flame leaves on the ground: a patch every `every` seconds, `rx` x `ry`,
+  // burning `dmg` every `tick` seconds; it dies down in `life` seconds
+  fire: { every: 0.09, life: 1.4, rx: 40, ry: 17, tick: 0.25, dmg: 3 },
+  // walking at the player with the flame aimed at the ground in front of it, setting it alight
+  walk: {
+    wind: 0.5,
+    time: 2.6,
+    speed: 75,
+    len: 170,
+    cd: [6, 9],
+    first: [4, 7],
+    min: 260,
+    max: 640,
+  },
+  // the ram: it crouches (`wind`; a red lane on the ground shows where it goes), then rushes in
+  // a straight line at `speed` for up to `dist` (stopping at the screen's edge), knocking
+  // down whoever is in its way; it skids to a stop for `stop` seconds
+  ram: {
+    wind: 0.85,
+    speed: 820,
+    dist: 760,
+    stop: 0.7,
+    dmg: 24,
+    cd: [6, 10],
+    first: [5, 8],
+    min: 240,
+    dy: 40,
   },
   mortar: {
     wind: 0.7,
@@ -544,9 +573,9 @@ export const TYPES = {
     bigBoss: 1,
     weight: 'heavy',
     shadow: 74,
-    col: '#a8643a',
-    dk: '#6e3f24',
-    eye: '#ffb84a',
+    col: '#6d737a',
+    dk: '#43484e',
+    eye: '#ff9a3a',
     score: 8000,
   },
   // the mini-boss of Old Quarry: a radioactive slime (see SLIME)

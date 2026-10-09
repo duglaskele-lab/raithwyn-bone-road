@@ -416,16 +416,17 @@ export function superNova() {
   for (const q of G.projs) if ((q.k === 'ebone' || q.k === 'acid') && onScreen(q)) q.life = 0;
   G.pools = G.pools.filter((a) => !onScreen(a));
 }
-// One bite of an acid puddle: drains health without staggering. A bite that would kill goes
-// through hitPlayer so that the usual knockdown and death follow.
-export function acidBite(dmg) {
+// One bite of an acid puddle (or of the fire on the ground, `fire`): drains health without
+// staggering. A bite that would kill goes through hitPlayer so that the usual knockdown and
+// death follow.
+export function acidBite(dmg, fire = false) {
   const p = P;
   if (p.inv > 0 || G.state !== 'play' || ['ko', 'down', 'getup', 'dead', 'win'].includes(p.state))
     return false;
   if (p.hp <= dmg) return hitPlayer(dmg, p.face, false);
   p.hp -= dmg;
   styleBreak();
-  SFX.splash();
+  fire ? SFX.hurt() : SFX.splash();
   for (let i = 0; i < 4; i++)
     G.parts.push({
       k: 'dot',
@@ -437,7 +438,7 @@ export function acidBite(dmg) {
       t: 0,
       life: rnd(0.3, 0.5),
       s: rnd(3, 5),
-      col: '#9dff4a',
+      col: fire ? '#ff8a2a' : '#9dff4a',
     });
   return true;
 }

@@ -14,13 +14,13 @@ import { clamp, ease, random, rnd } from '../util.js';
 import { G, P } from '../state.js';
 import { SFX } from '../audio.js';
 import { dust } from '../fx.js';
-import { finale, hitPlayer } from '../combat.js';
+import { breakProp, finale, hitPlayer } from '../combat.js';
 import { styleBreak, scoreMult } from '../style.js';
 import { ctx, rr } from '../gfx.js';
 import { drawAura } from '../skeleton.js';
 import { floorClamp } from '../level.js';
 import { defineFoe } from './registry.js';
-import { faceP, go } from './kit.js';
+import { faceP, go, moveTo } from './kit.js';
 import { chain } from './lizard.js';
 import {
   armLimb,
@@ -40,7 +40,18 @@ import {
 const UARM = 34,
   FARM = 32;
 // what no hit can stop (and what no blow throws it out of)
-const UNSTOPPABLE = ['fwind', 'flame', 'mwind', 'mortar', 'jcrouch', 'jump', 'unmask'];
+const UNSTOPPABLE = [
+  'fwind',
+  'flame',
+  'fwalk',
+  'mwind',
+  'mortar',
+  'jcrouch',
+  'jump',
+  'ramwind',
+  'ram',
+  'unmask',
+];
 /** A cooldown out of a range: shorter once it has lost its helmet. */
 const cd = (e, [a, b]) => rnd(a, b) / (e.phase2 ? PROS.fast : 1);
 /** It is well on screen (it starts nothing from off its edge). */
@@ -59,7 +70,7 @@ function prosPose(e) {
       aB: [0.1, 0.7],
       bob: br * 1.5 + (e.kick ?? 0) * 5,
     };
-  if (e.moving && e.state === 'chase') {
+  if (e.moving && (e.state === 'chase' || e.state === 'fwalk')) {
     // slow, heavy strides
     const s = Math.sin(e.walkT),
       c = Math.cos(e.walkT);
@@ -82,6 +93,45 @@ function prosPose(e) {
         o.aF[1] += Math.sin(e.anim * 70) * 0.015 + ((e.fdy ?? 0) / PROS.flame.sweep) * 0.12;
         o.bob += Math.sin(e.anim * 55) * 1.2;
       }
+      break;
+    }
+    case 'fwalk': {
+      // the flamethrower aimed down at the road just in front, as it walks
+      const u = ease(clamp(e.t / 0.3, 0, 1));
+      o.aF = [0.45 + 0.5 * u, 1.3 - 0.2 * u + Math.sin(e.anim * 60) * 0.01];
+      o.lean = 0.12;
+      break;
+    }
+    case 'ramwind': {
+      // down low, leaning in, the arms swung back; it shakes on its hydraulics
+      const u = ease(clamp(e.t / 0.4, 0, 1)),
+        k = e.t > 0.4 ? Math.sin(e.t * 55) * 0.03 : 0;
+      o.hipH = 88 - 18 * u;
+      o.lean = 0.06 + 0.4 * u + k;
+      o.lF = [0.2 + 0.45 * u, -0.05 - 0.6 * u];
+      o.lB = [-0.22 - 0.3 * u, -0.32 - 0.5 * u];
+      o.aF = [0.45 - 0.75 * u, 1.3 - 0.9 * u];
+      o.aB = [0.1 - 0.6 * u, 0.7 - 0.3 * u];
+      break;
+    }
+    case 'ram': {
+      // a headlong rush, shoulder first, legs pounding
+      const s = Math.sin(e.anim * 18);
+      o.lean = 0.5;
+      o.lF = [0.6 * s, 0.6 * s - 0.3];
+      o.lB = [-0.6 * s, -0.6 * s - 0.3];
+      o.aF = [-0.3, 0.4];
+      o.aB = [-0.4, 0.3];
+      o.bob = Math.abs(s) * 5;
+      break;
+    }
+    case 'rstop': {
+      // skidding to a stop, leaning back
+      const u = ease(clamp(e.t / PROS.ram.stop, 0, 1));
+      o.lean = -0.2 + 0.26 * u;
+      o.lF = [0.7 - 0.5 * u, 0.3 - 0.35 * u];
+      o.lB = [-0.4, -0.5];
+      o.aF = [0.9 - 0.45 * u, 1.6 - 0.3 * u];
       break;
     }
     case 'mwind':
@@ -214,7 +264,7 @@ function mortarAt(e, i) {
   return { p: [-40 + i * 12, -58 + i * 3], a, d: [Math.sin(a), -Math.cos(a)] };
 }
 const MORTAR_L = 40,
-  HEAD = 1.05; // the head's size
+  HEAD = 1.1; // the head's size
 /** The mouth of mortar i on the road (world x, screen y). */
 export function mortarMouth(e, i) {
   const o = prosPose(e),
@@ -228,27 +278,28 @@ export function nozzleAt(e) {
     g = geo(o);
   return toWorld(e, o, g, gunPt(g, o.aF[1], [86, 0]));
 }
-/** Is the player in the flame? A cone along the road from the nozzle on, sweeping in depth
- *  (`fdy`). */
+/** Is the player in the flame? A cone along the road from the nozzle on, as long as it has
+ *  grown (`flen`), sweeping in depth (`fdy`). */
 export function inFlame(e) {
   const F = PROS.flame,
+    L = e.flen ?? F.len,
     f = (P.x - nozzleAt(e)[0]) * e.face,
     c = e.y + (e.fdy ?? 0) * clamp(f / F.len, 0, 1);
-  return f > -10 && f < F.len && Math.abs(P.y - c) < F.w0 + Math.max(0, f) * F.spread && P.z < 110;
+  return f > -10 && f < L && Math.abs(P.y - c) < F.w0 + Math.max(0, f) * F.spread && P.z < 110;
 }
 
 // --- drawing ----------------------------------------------------------------------------------
 
-function palette(fl) {
+export function palette(fl) {
   return fl
     ? { pl: '#fff', pl2: '#fff', dk: '#ffe0d0', jt: '#fff', tr: '#fff', gl: '#fff' }
     : {
-        pl: '#a8643a', // rusty plates
-        pl2: '#d08a52', // their lit edges
-        dk: '#6e3f24', // the shadowed side
-        jt: '#2a2420', // joints, the suit under the plates
-        tr: '#d9b25a', // brass trim
-        gl: '#ffb84a', // the porthole's glow
+        pl: '#6d737a', // grey gunmetal plates
+        pl2: '#8f979f', // their lit edges
+        dk: '#43484e', // the shadowed side
+        jt: '#222529', // joints, the suit under the plates
+        tr: '#d8822a', // orange trim
+        gl: '#ff9a3a', // the visor's glow
       };
 }
 let PAL = palette(false);
@@ -435,7 +486,7 @@ function flamethrower(e, h, a, fl) {
   ctx.strokeRect(24, -8, 40, 16);
   ctx.fillStyle = '#16141a';
   for (let x = 28; x < 62; x += 6) ctx.fillRect(x, -6, 2.5, 12);
-  if (e.state === 'flame') {
+  if (e.state === 'flame' || e.state === 'fwalk') {
     ctx.fillStyle = `rgba(255,110,30,${Math.min(0.55, e.t * 0.5)})`;
     ctx.fillRect(18, -8, 54, 16);
   }
@@ -449,90 +500,91 @@ function flamethrower(e, h, a, fl) {
   ctx.fill();
   ctx.stroke();
   ctx.translate(86, 0);
-  if (e.state !== 'flame')
+  if (e.state !== 'flame' && e.state !== 'fwalk')
     pilot(e.state === 'fwind' ? 1 + 1.6 * clamp(e.t / PROS.flame.wind, 0, 1) : 1);
   ctx.restore();
 }
-/** Its round brass diver's helmet, in the head's frame: `glass` the porthole's colour. */
-export function drawHelmet(fl, glass, lit = true) {
-  // the collar it sits on, bolted down
-  ctx.fillStyle = fl ? '#fff' : '#9a7434';
+/** Its helmet, in the head's frame: the power armour's rounded dome with a glowing visor
+ *  slit (`eye`), cracked over a dead face, a breathing hose and two antennas. */
+export function drawHelmet(fl, eye, lit = true) {
   ctx.strokeStyle = OL;
-  ctx.lineWidth = 2.4;
+  ctx.lineWidth = 7;
   ctx.beginPath();
-  ctx.ellipse(2, 13, 25, 8, 0, 0, TAU);
+  ctx.moveTo(10, 6);
+  ctx.quadraticCurveTo(20, 24, 6, 36);
+  ctx.stroke();
+  ctx.strokeStyle = PAL.jt;
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  plate(
+    [
+      [-16, -22],
+      [8, -30],
+      [22, -18],
+      [24, 2],
+      [16, 12],
+      [-14, 12],
+      [-20, -4],
+    ],
+    PAL.pl,
+    PAL.pl2,
+    [
+      [-12, 4],
+      [-14, -12],
+      [16, 6],
+    ],
+  );
+  // an orange band over the brow
+  ctx.fillStyle = PAL.tr;
+  ctx.beginPath();
+  ctx.moveTo(-17, -16);
+  ctx.lineTo(8, -25);
+  ctx.lineTo(20, -16);
+  ctx.lineTo(18, -13);
+  ctx.lineTo(7, -21);
+  ctx.lineTo(-17, -12);
+  ctx.closePath();
   ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = fl ? '#fff' : '#e6c27a';
-  for (let i = 0; i < 6; i++) {
-    ctx.beginPath();
-    ctx.arc(2 + Math.cos((i / 6) * TAU) * 20, 13 + Math.sin((i / 6) * TAU) * 5.5, 1.8, 0, TAU);
-    ctx.fill();
-  }
-  // the dome
-  ctx.fillStyle = fl ? '#fff' : '#b88a3e';
-  ctx.beginPath();
-  ctx.arc(2, -10, 24, 0, TAU);
-  ctx.fill();
-  ctx.stroke();
-  ctx.strokeStyle = 'rgba(255,236,190,.55)';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.arc(2, -10, 19, 3.6, 4.6);
-  ctx.stroke();
-  // a valve on top, a small side port
-  ctx.fillStyle = PAL.jt;
-  ctx.strokeStyle = OL;
-  ctx.lineWidth = 2;
-  ctx.fillRect(-3, -39, 8, 6);
-  ctx.strokeRect(-3, -39, 8, 6);
-  ctx.fillStyle = fl ? '#fff' : '#2e4650';
-  ctx.beginPath();
-  ctx.arc(-9, -14, 5.5, 0, TAU);
-  ctx.fill();
-  ctx.stroke();
-  // the front porthole: a thick rim, bolts, glowing glass behind a cage
-  ctx.fillStyle = fl ? '#fff' : '#7a5a24';
-  ctx.beginPath();
-  ctx.arc(14, -9, 12, 0, TAU);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = fl ? '#fff' : glass;
+  // the visor
+  ctx.fillStyle = OL;
+  ctx.fillRect(2, -12, 22, 10);
+  ctx.fillStyle = fl ? '#fff' : lit ? eye : '#3a2a20';
   if (lit) {
-    ctx.shadowColor = glass;
-    ctx.shadowBlur = 16;
+    ctx.shadowColor = eye;
+    ctx.shadowBlur = 12;
   }
-  ctx.beginPath();
-  ctx.arc(14, -9, 8, 0, TAU);
-  ctx.fill();
+  ctx.fillRect(4, -10, 18, 5);
   ctx.shadowBlur = 0;
-  ctx.strokeStyle = OL;
-  ctx.lineWidth = 1.6;
-  ctx.stroke();
-  ctx.fillStyle = 'rgba(255,255,240,.6)';
+  // the crack, and a rotten eye socket behind it
+  ctx.fillStyle = fl ? '#fff' : '#8a9a6a';
   ctx.beginPath();
-  ctx.arc(11.5, -11.5, 2.2, 0, TAU);
+  ctx.moveTo(12, -5);
+  ctx.lineTo(20, -2);
+  ctx.lineTo(16, 4);
+  ctx.closePath();
   ctx.fill();
-  ctx.strokeStyle = 'rgba(30,22,14,.85)';
-  ctx.lineWidth = 1.6;
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(14, -17);
-  ctx.lineTo(14, -1);
-  ctx.moveTo(6, -9);
-  ctx.lineTo(22, -9);
+  ctx.moveTo(12, -5);
+  ctx.lineTo(18, 2);
+  ctx.lineTo(14, 8);
+  ctx.moveTo(18, 2);
+  ctx.lineTo(23, 0);
   ctx.stroke();
-  ctx.fillStyle = fl ? '#fff' : '#e6c27a';
-  for (let i = 0; i < 6; i++) {
-    ctx.beginPath();
-    ctx.arc(
-      14 + Math.cos((i / 6) * TAU + 0.5) * 10.2,
-      -9 + Math.sin((i / 6) * TAU + 0.5) * 10.2,
-      1.3,
-      0,
-      TAU,
-    );
-    ctx.fill();
-  }
+  // two antennas
+  ctx.strokeStyle = PAL.jt;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-10, -22);
+  ctx.lineTo(-18, -44);
+  ctx.moveTo(-4, -25);
+  ctx.lineTo(-8, -40);
+  ctx.stroke();
+  ctx.fillStyle = lit && Math.floor(G.time * 2) % 2 ? '#ff4a3a' : '#5a1a14';
+  ctx.beginPath();
+  ctx.arc(-18, -45, 2.5, 0, TAU);
+  ctx.fill();
 }
 /** Under the helmet: a rotten head in miner's goggles, jaw hanging open. */
 function zombieHead(e, fl) {
@@ -630,16 +682,42 @@ function zombieHead(e, fl) {
     ctx.fill();
   }
 }
+/** Where the ram goes: a red lane along the road to where it will stop, filling as it winds up. */
+function ramLane(e) {
+  const R = PROS.ram,
+    u = clamp(e.t / R.wind, 0, 1),
+    x0 = e.x - G.cam,
+    x1 = (e.rend ?? e.x) - G.cam,
+    lo = Math.min(x0, x1),
+    w = Math.abs(x1 - x0);
+  ctx.save();
+  ctx.fillStyle = `rgba(255,60,40,${0.12 + 0.22 * u})`;
+  ctx.fillRect(lo, e.y - R.dy, w, R.dy * 2);
+  ctx.strokeStyle = u > 0.7 ? '#ff3a3a' : 'rgba(255,140,110,.9)';
+  ctx.lineWidth = 2.5;
+  ctx.strokeRect(lo, e.y - R.dy, w, R.dy * 2);
+  // chevrons pointing the way, filling up the lane as it winds up
+  ctx.lineWidth = 3;
+  for (let x = 40; x < w * u; x += 60) {
+    const cx = x0 + Math.sign(x1 - x0) * x;
+    ctx.beginPath();
+    ctx.moveTo(cx - e.face * 10, e.y - 16);
+    ctx.lineTo(cx + e.face * 6, e.y);
+    ctx.lineTo(cx - e.face * 10, e.y + 16);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
 /** The flame: a roaring cone from the nozzle down onto the road, white-hot near the gun. */
 function drawFlame(e) {
   const F = PROS.flame,
     [mx, my] = nozzleAt(e),
-    grow = clamp(e.t / 0.18, 0, 1),
-    L = F.len * grow,
+    L = e.flen ?? 0,
+    grow = L / F.len,
     x0 = mx - G.cam,
     x1 = mx + e.face * L - G.cam,
     gy = e.y + (e.fdy ?? 0) * grow,
-    y1 = gy - 46,
+    y1 = gy - (e.state === 'fwalk' ? 8 : 46),
     flick = Math.sin(G.time * 37) * 6,
     half = 18 + (F.w0 + L * F.spread) * 0.42;
   ctx.save();
@@ -683,7 +761,8 @@ export function drawProspector(e, aura = true) {
     fl = e.flash > 0;
   PAL = palette(fl);
   usePal(PAL);
-  if (e.state === 'windup') kickWarning(e, 250);
+  if (e.state === 'windup' || e.state === 'ramwind') kickWarning(e, 250);
+  if (e.state === 'ramwind') ramLane(e);
   if (e.state === 'jcrouch' || e.state === 'jump') jumpMark(e);
   if (e.state === 'jump') drawJets(e);
   if (aura) drawAura(e);
@@ -866,17 +945,18 @@ export function drawProspector(e, aura = true) {
   ctx.restore();
   // the head: the diver's helmet, or (once it is off) the zombie under it
   ctx.save();
-  ctx.translate(neck[0] + 6, neck[1] - 16);
+  ctx.translate(neck[0] + 8, neck[1] - 20);
   ctx.rotate(o.lean * 0.5 + o.head);
   ctx.scale(HEAD, HEAD);
   if (e.helmetOff) zombieHead(e, fl);
-  else drawHelmet(fl, e.state === 'windup' ? '#ff3a2a' : PAL.gl);
+  else drawHelmet(fl, ['windup', 'ramwind'].includes(e.state) ? '#ff3a2a' : PAL.gl);
   ctx.restore();
   ctx.restore();
 }
 /** Its helmet lying on the road once it has come off (a piece of debris). */
 export function drawHelmetDebris(d) {
   PAL = palette(false);
+  usePal(PAL);
   ctx.scale(d.s * HEAD, d.s * HEAD);
   ctx.translate(0, -14);
   drawHelmet(false, '#7a5a30', false);
@@ -1024,14 +1104,75 @@ function unmask(e) {
   SFX.hiss();
 }
 
+/** The flame pours out `L` long (aimed at the ground just in front if `down`): fire and smoke
+ *  along it, patches of fire left burning on the road, and a lick of it for whoever is in it. */
+function pour(e, L, dt, down) {
+  const F = PROS.flame,
+    Fi = PROS.fire,
+    [mx, my] = nozzleAt(e),
+    fdy = e.fdy ?? 0;
+  for (let i = 0; i < 4; i++) {
+    const life = rnd(0.3, 0.5),
+      reach = L * Math.sqrt(rnd(0.05, 1)),
+      gy = e.y + fdy * (reach / F.len) + rnd(-1, 1) * (F.w0 + reach * F.spread) * 0.6;
+    G.parts.push({
+      k: 'glow',
+      x: mx,
+      y: my,
+      vx: (e.face * (reach + 10)) / life,
+      vy: (gy - (down ? 8 : 40) - my) / life,
+      g: 0,
+      t: 0,
+      life,
+      s: rnd(5, 10),
+      col: random() < 0.5 ? '#ffcf5a' : '#ff6a2a',
+    });
+  }
+  if (random() < 0.5)
+    G.parts.push({
+      k: 'smoke',
+      x: mx + e.face * rnd(20, Math.max(30, L)),
+      y: e.y + fdy - rnd(60, 110),
+      vx: rnd(-20, 20),
+      vy: rnd(-70, -30),
+      g: 0,
+      t: 0,
+      life: rnd(0.8, 1.2),
+      s: rnd(12, 20),
+    });
+  // the road catches fire under it, behind the flame's front
+  if ((e.fireT = (e.fireT ?? 0) - dt) <= 0 && L > 40) {
+    e.fireT = Fi.every;
+    const f = L * rnd(down ? 0.35 : 0.5, 1),
+      o = floorClamp({
+        x: mx + e.face * f,
+        y: e.y + fdy * (f / F.len) + rnd(-1, 1) * (F.w0 + f * F.spread) * 0.5,
+      });
+    G.pools.push({ fire: true, x: o.x, y: o.y, t: 0, life: Fi.life, seed: rnd(6) });
+  }
+  G.shake = Math.max(G.shake, 2);
+  if ((e.tick = (e.tick ?? 0) - dt) <= 0) {
+    e.tick = F.tick;
+    if (inFlame(e)) burn(e, F.dmg);
+  }
+}
+/** Where a ram that starts now would stop: `dist` ahead, or at the screen's edge. */
+const ramEnd = (e) => clamp(e.x + e.face * PROS.ram.dist, G.cam + 70, G.cam + W - 70);
+
 export default defineFoe('prospector', {
   draw: drawProspector,
-  over: (e) => e.state === 'flame' && drawFlame(e),
+  over: (e) => (e.state === 'flame' || e.state === 'fwalk') && drawFlame(e),
   walksIn: true,
   corpse: true,
   jump: PROS.jump,
-  init: { flameCd: PROS.flame.first, mortCd: PROS.mortar.first, jumpCd: PROS.jump.first },
-  timers: ['flameCd', 'mortCd', 'jumpCd'],
+  init: {
+    flameCd: PROS.flame.first,
+    mortCd: PROS.mortar.first,
+    jumpCd: PROS.jump.first,
+    ramCd: PROS.ram.first,
+    walkCd: PROS.walk.first,
+  },
+  timers: ['flameCd', 'mortCd', 'jumpCd', 'ramCd', 'walkCd'],
   spawn(e) {
     e.w = 44;
     e.kick = 0;
@@ -1057,6 +1198,21 @@ export default defineFoe('prospector', {
       go: (e) => jumpTo(e, P.x, P.y),
     },
     {
+      // lined up with the player and room to run: the ram
+      when: (e, s) =>
+        e.ramCd <= 0 &&
+        !s.pdown &&
+        s.adx > PROS.ram.min &&
+        s.ady < PROS.ram.dy &&
+        onScreen(e) &&
+        Math.abs(ramEnd({ x: e.x, face: s.dx >= 0 ? 1 : -1 }) - e.x) > s.adx,
+      go(e) {
+        faceP(e);
+        go(e, 'ramwind', 0, { engage: false, rend: ramEnd(e) });
+        SFX.hiss();
+      },
+    },
+    {
       // the player out of reach of its fists: a volley from the mortars
       when: (e, s) => e.mortCd <= 0 && !s.pdown && s.adx > PROS.mortar.min && onScreen(e),
       go(e) {
@@ -1076,12 +1232,22 @@ export default defineFoe('prospector', {
         onScreen(e),
       go(e) {
         faceP(e);
-        go(e, 'fwind', 0, { engage: false });
+        go(e, 'fwind', 0, { engage: false, walkMode: false });
+        SFX.hiss();
+      },
+    },
+    {
+      // further off: it comes walking at the player, setting the road alight before it
+      when: (e, s) =>
+        e.walkCd <= 0 && !s.pdown && s.adx > PROS.walk.min && s.adx < PROS.walk.max && onScreen(e),
+      go(e) {
+        faceP(e);
+        go(e, 'fwind', 0, { engage: false, walkMode: true });
         SFX.hiss();
       },
     },
   ],
-  attacks: ['fwind', 'flame', 'mwind', 'mortar', 'jcrouch', 'jump', 'jland', 'unmask'],
+  attacks: [...UNSTOPPABLE, 'jland', 'rstop'],
   unstoppable: (e) => UNSTOPPABLE.includes(e.state),
   // in those, nothing throws it (not even a crushing blow); otherwise it is a heavy enemy
   guard: (e) => UNSTOPPABLE.includes(e.state),
@@ -1115,55 +1281,99 @@ export default defineFoe('prospector', {
   states: {
     fwind(e, dt, s) {
       // the pilot light flares; it turns to face the player until just before it fires
-      if (e.t < PROS.flame.wind * 0.6) e.face = s.dx >= 0 ? 1 : -1;
-      if (e.t > PROS.flame.wind) {
+      const wind = e.walkMode ? PROS.walk.wind : PROS.flame.wind;
+      if (e.t < wind * 0.6) e.face = s.dx >= 0 ? 1 : -1;
+      if (e.t > wind) {
         // the second phase sweeps the flame across the road, from the far side to the near
-        const sw = e.phase2 ? PROS.flame.sweep * (random() < 0.5 ? -1 : 1) : 0;
-        go(e, 'flame', 0, { tick: 0, sweep0: sw, fdy: sw });
+        const sw = e.phase2 && !e.walkMode ? PROS.flame.sweep * (random() < 0.5 ? -1 : 1) : 0;
+        go(e, e.walkMode ? 'fwalk' : 'flame', 0, {
+          tick: 0,
+          fireT: 0,
+          flen: 0,
+          sweep0: sw,
+          fdy: sw,
+        });
         SFX.flame();
       }
     },
     flame(e, dt) {
+      // the flame grows out slowly to its full length, and burns on
       const F = PROS.flame,
-        dur = e.phase2 ? F.time2 : F.time,
-        [mx, my] = nozzleAt(e);
+        dur = e.phase2 ? F.time2 : F.time;
       if (e.phase2) e.fdy = e.sweep0 * Math.cos((e.t / dur) * Math.PI);
-      // flames and sparks pour out along the cone, smoke above it
-      for (let i = 0; i < 4; i++) {
-        const life = rnd(0.3, 0.5),
-          reach = F.len * Math.sqrt(rnd(0.05, 1)),
-          gy = e.y + e.fdy * (reach / F.len) + rnd(-1, 1) * (F.w0 + reach * F.spread) * 0.6;
+      e.flen = F.len * Math.min(1, e.t / F.grow);
+      pour(e, e.flen, dt, false);
+      if (e.t > dur)
+        go(e, 'chase', 0, { flameCd: cd(e, F.cd), fdy: 0, flen: 0, cd: Math.max(e.cd, 0.5) });
+    },
+    fwalk(e, dt, s) {
+      // walking at the player, the flame aimed at the road just in front
+      const Wk = PROS.walk;
+      faceP(e);
+      e.flen = Wk.len * Math.min(1, e.t / 0.4);
+      if (s.adx > PROS.flame.from * 0.7)
+        moveTo(e, P.x, P.y, Wk.speed * (e.phase2 ? PROS.fast : 1), dt);
+      pour(e, e.flen, dt, true);
+      if (random() < 0.3) dust(e.x - e.face * 10, e.y, 1);
+      if (e.t > Wk.time) {
+        go(e, 'chase', 0, { walkCd: cd(e, Wk.cd), flen: 0, cd: Math.max(e.cd, 0.5) });
+        e.flameCd = Math.max(e.flameCd, 1.5);
+      }
+    },
+    ramwind(e, dt, s) {
+      // crouched to charge; it turns after the player until just before it goes
+      const R = PROS.ram;
+      if (e.t < R.wind * 0.6) {
+        e.face = s.dx >= 0 ? 1 : -1;
+        e.rend = ramEnd(e);
+      }
+      if (random() < 0.4) dust(e.x - e.face * 30, e.y, 1);
+      if (e.t > R.wind) {
+        go(e, 'ram', 0, { x0: e.x, hitDone: false });
+        SFX.charge();
+        G.shake = Math.max(G.shake, 6);
+      }
+    },
+    ram(e, dt) {
+      const R = PROS.ram;
+      e.x += e.face * R.speed * dt;
+      dust(e.x - e.face * 30, e.y, 1);
+      if (random() < 0.6)
         G.parts.push({
           k: 'glow',
-          x: mx,
-          y: my,
-          vx: (e.face * (reach + 10)) / life,
-          vy: (gy - 40 - my) / life,
+          x: e.x - e.face * 50 * e.T.scale,
+          y: e.y - 150 * e.T.scale + rnd(-10, 10),
+          vx: -e.face * rnd(150, 300),
+          vy: rnd(-40, 40),
           g: 0,
           t: 0,
-          life,
-          s: rnd(5, 10),
-          col: random() < 0.5 ? '#ffcf5a' : '#ff6a2a',
+          life: rnd(0.15, 0.3),
+          s: rnd(4, 7),
+          col: random() < 0.5 ? '#ffcf5a' : '#ff7a2a',
         });
+      // barrels in the way burst
+      for (const u of G.props)
+        if (!u.dead && u.decor && Math.abs(u.x - e.x) < 50 && Math.abs(u.y - e.y) < 30)
+          breakProp(u);
+      if (!e.hitDone && Math.abs(P.x - e.x) < 70 && Math.abs(P.y - e.y) < R.dy && P.z < 100) {
+        e.hitDone = true;
+        if (hitPlayer(R.dmg, e.face, true)) {
+          G.shake = Math.max(G.shake, 12);
+          SFX.heavy();
+        }
       }
-      if (random() < 0.5)
-        G.parts.push({
-          k: 'smoke',
-          x: mx + e.face * rnd(40, F.len),
-          y: e.y + e.fdy - rnd(60, 110),
-          vx: rnd(-20, 20),
-          vy: rnd(-70, -30),
-          g: 0,
-          t: 0,
-          life: rnd(0.8, 1.2),
-          s: rnd(12, 20),
-        });
-      G.shake = Math.max(G.shake, 2);
-      if ((e.tick -= dt) <= 0) {
-        e.tick = F.tick;
-        if (inFlame(e)) burn(e, F.dmg);
+      if ((e.x - e.rend) * e.face >= 0 || Math.abs(e.x - e.x0) >= R.dist) {
+        e.x = e.rend;
+        go(e, 'rstop');
+        G.shake = Math.max(G.shake, 9);
+        dust(e.x, e.y, 10);
+        SFX.thud();
       }
-      if (e.t > dur) go(e, 'recover', -0.2, { flameCd: cd(e, F.cd), fdy: 0 });
+    },
+    rstop(e) {
+      if (e.t < 0.3 && random() < 0.6) dust(e.x + e.face * 20, e.y, 1);
+      if (e.t > PROS.ram.stop)
+        go(e, 'chase', 0, { ramCd: cd(e, PROS.ram.cd), cd: Math.max(e.cd, 0.4) });
     },
     mwind(e) {
       if (e.t > PROS.mortar.wind) go(e, 'mortar', 0, { shots: volley(e), shotT: 0 });

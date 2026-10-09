@@ -60,21 +60,83 @@ test('only crushing blows move it, and not in its flame, mortars or jump', () =>
   assert.equal(e.state, 'air', 'a crushing blow throws it while it walks');
 });
 
-test('the flame: the pilot light flares, then it burns the road in front, without a stagger', () => {
-  const e = arena(560);
+test('the flame: the pilot light flares, it grows out slowly and burns the road in front', () => {
+  const e = arena(700);
+  P.x = e.x - PROS.flame.from - 240;
   Object.assign(e, { state: 'fwind', t: 0 });
   step(PROS.flame.wind + 0.05, () => (e.flameCd = 99));
   assert.equal(e.state, 'flame');
-  assert.ok(inFlame(e), 'she is in it');
+  assert.ok(!inFlame(e), 'not yet: the flame is still on its way');
+  step(PROS.flame.grow * 0.5);
+  assert.ok(!inFlame(e), 'halfway there');
+  assert.ok(e.flen < PROS.flame.len * 0.6);
+  step(PROS.flame.grow * 0.5);
+  assert.ok(inFlame(e), 'now she is in it');
   const hp = P.hp;
-  step(0.5);
+  step(0.4);
   assert.ok(P.hp < hp, 'it burns');
   assert.ok(!['ko', 'down'].includes(P.state), 'without knocking her down');
+  // it leaves fire on the road
+  assert.ok(G.pools.some((a) => a.fire));
   // behind it she is safe
   P.x = e.x + 120;
   assert.ok(!inFlame(e));
   step(PROS.flame.time);
-  assert.notEqual(e.state, 'flame', 'it stops');
+  assert.equal(e.state, 'chase', 'it stops, and does not kick the air after it');
+});
+
+test('the fire on the road burns her, and dies down fast', () => {
+  arena(800);
+  G.pools.push({ fire: true, x: P.x, y: P.y, t: 0, life: PROS.fire.life, seed: 0 });
+  const hp = P.hp;
+  step(0.6);
+  assert.ok(P.hp < hp, 'it burns');
+  assert.ok(!['ko', 'down'].includes(P.state));
+  step(PROS.fire.life);
+  assert.ok(!G.pools.some((a) => a.fire), 'gone');
+});
+
+test('it comes walking at the player behind its flame, setting the road alight', () => {
+  const e = arena(900);
+  P.inv = 99;
+  const x = e.x;
+  Object.assign(e, { state: 'fwind', t: 0, walkMode: true });
+  step(PROS.walk.wind + 0.05, () => (P.inv = 99));
+  assert.equal(e.state, 'fwalk');
+  assert.ok(FOES.prospector.unstoppable(e));
+  step(PROS.walk.time * 0.8, () => (P.inv = 99));
+  assert.ok(e.x < x - 80, 'it walks at her');
+  assert.ok(G.pools.filter((a) => a.fire).length > 5, 'fire all over the road ahead');
+  assert.ok(
+    G.pools.every((a) => !a.fire || a.x < e.x),
+    'in front of it',
+  );
+  step(PROS.walk.time, () => (P.inv = 99));
+  assert.equal(e.state, 'chase');
+});
+
+test('the ram: a red lane, then a rush in a straight line that knocks her down', () => {
+  const e = arena(700);
+  e.ramCd = 0;
+  step(DT * 2);
+  assert.equal(e.state, 'ramwind');
+  assert.ok(FOES.prospector.unstoppable(e));
+  assert.ok(e.rend < P.x, 'the lane runs past her');
+  const hp = e.hp;
+  hurtEnemy(e, 5, 1, true, 'hado3');
+  assert.equal(e.state, 'ramwind', 'nothing stops it');
+  assert.equal(e.hp, hp - 5);
+  G.freeze = 0;
+  step(PROS.ram.wind + 0.05);
+  assert.equal(e.state, 'ram');
+  for (let i = 0; i < 180 && e.state === 'ram'; i++) step(DT);
+  assert.ok(['ko', 'down', 'getup'].includes(P.state), 'run over');
+  assert.ok(P.hp <= 100 - PROS.ram.dmg);
+  assert.equal(e.state, 'rstop');
+  assert.ok(Math.abs(e.x - e.rend) < 1, 'it stops at the end of its lane');
+  // the skid can be broken by a crushing blow
+  Object.assign(e, { state: 'rstop', t: 0 });
+  assert.ok(!FOES.prospector.unstoppable(e));
 });
 
 test('the mortars: a volley of shells onto marked spots round the player; they spare the boss', () => {

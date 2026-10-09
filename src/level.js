@@ -269,7 +269,9 @@ export function startLevel(n) {
     G[k] = [];
   G.lastFoe = null;
   G.slow = 0;
-  G.secretDone = true;
+  // the secret works on each stage's first screen (X: straight to its boss)
+  G.secretDone = false;
+  G.secretT = 0;
   G.props = n === 2 ? levelProps() : G.props;
   camTo(0);
   Object.assign(P, { x: 150, y: 450, z: 0, vz: 0, vx: 0, state: 'idle', t: 0, face: 1, inv: 1 });
