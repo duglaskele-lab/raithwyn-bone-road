@@ -16,6 +16,7 @@ import {
   STAGE_HOLD,
   W,
   ZOMBIE,
+  PROS,
 } from './config.js';
 import { clamp, random, rnd } from './util.js';
 import { G, P } from './state.js';
@@ -30,7 +31,7 @@ import { updPlayer } from './player.js';
 import { spawn, updEnemy } from './enemies.js';
 import { waveSpawns } from './waves.js';
 import { explode, updFuses } from './blast.js';
-import { floorClamp, followPath, levelWaves, startLevel } from './level.js';
+import { camTo, floorClamp, followPath, levelWaves, pathAt, pathPx, startLevel } from './level.js';
 
 // How full the screen is: zombies come in crowds and count as half an enemy each. The bodies
 // of the dead (a lizard or a power armour lying where it fell) do not count.
@@ -100,11 +101,13 @@ export function updWaves(dt) {
   }
 }
 // The secret: hold X for SECRET_HOLD seconds before the first fight starts, and the road
-// folds away — the player lands at the gate of the final boss's arena.
+// folds away — the player lands at the gate of the final boss's arena (on either stage).
 function secretWarp(dt) {
-  if (G.level !== 1 || G.waveI !== 0 || G.wave || G.secretDone) return;
-  stageWarp(dt);
-  if (G.secretDone) return;
+  if (G.waveI !== 0 || G.wave || G.secretDone) return;
+  if (G.level === 1) {
+    stageWarp(dt);
+    if (G.secretDone) return;
+  }
   if (!keys.secret) {
     G.secretT = 0;
     return;
@@ -114,12 +117,19 @@ function secretWarp(dt) {
   if (G.secretT < SECRET_HOLD) return;
   G.secretDone = true;
   const WAVES = levelWaves(),
-    last = WAVES.length - 1,
-    lim = WAVES[last].x;
+    last = WAVES.length - 1;
   G.waveI = last;
-  G.cam = lim;
-  P.x = lim + 260;
-  P.y = 450;
+  if (G.level === 2) {
+    // Old Quarry: straight to the Prospector's arena, along the road
+    const d = pathPx(WAVES[last].s),
+      c = pathAt(d);
+    camTo(d);
+    Object.assign(P, { x: c.x, y: c.y });
+  } else {
+    G.cam = WAVES[last].x;
+    P.x = G.cam + 260;
+    P.y = 450;
+  }
   G.enemies = [];
   G.projs = [];
   G.pools = [];
@@ -299,7 +309,7 @@ export function update(dt) {
             P.streak = Math.min(P.streak + 1, Math.round(LUCY.streakMax / LUCY.streak));
             if (lucky) {
               SFX.rank();
-              G.parts.push({ k: 'neon', x: e.x, y: e.y - 200, t: 0, life: 0.9 });
+              G.parts.push({ k: 'neon', x: e.x, y: e.y - 200, t: 0, life: 0.63 });
             }
           }
           if (q.big) {
@@ -623,18 +633,29 @@ export function update(dt) {
   }
   G.projs = G.projs.filter((q) => q.life > 0);
   // acid puddles bite the player standing in them
-  let inAcid = false;
+  // and the Prospector's fire on the ground burns her
+  let inAcid = false,
+    inFire = false;
   for (const a of G.pools) {
     a.t += dt;
-    const ex = (P.x - a.x) / ACID.rx,
-      ey = (P.y - a.y) / ACID.ry;
-    if (a.t < a.life - 0.3 && ex * ex + ey * ey < 1 && P.z < 8) inAcid = true;
+    const R = a.fire ? PROS.fire : ACID,
+      ex = (P.x - a.x) / R.rx,
+      ey = (P.y - a.y) / R.ry;
+    if (a.t < a.life - 0.3 && ex * ex + ey * ey < 1 && P.z < 8) {
+      if (a.fire) inFire = true;
+      else inAcid = true;
+    }
   }
   G.pools = G.pools.filter((a) => a.t < a.life);
   if (!inAcid) P.acidT = 0.15;
   else if ((P.acidT -= dt) <= 0) {
     P.acidT = ACID.tick;
     acidBite(ACID.dmg);
+  }
+  if (!inFire) P.fireT = 0.1;
+  else if ((P.fireT -= dt) <= 0) {
+    P.fireT = PROS.fire.tick;
+    acidBite(PROS.fire.dmg, true);
   }
   updFuses(dt);
   G.enemies = G.enemies.filter((e) => !e.dead);

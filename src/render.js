@@ -2,6 +2,7 @@
 import {
   ACID,
   BLAST,
+  PROS,
   DECOR,
   FONT,
   H,
@@ -373,7 +374,38 @@ export function drawDecor(u) {
   ctx.restore();
 }
 // A puddle of the necromancer's acid, bubbling until it dries up.
+/** A patch of the Prospector's fire on the ground: a glow and licking tongues of flame that
+ *  die down fast. */
+function drawFire(a) {
+  const R = PROS.fire,
+    k = Math.min(1, a.t / 0.12) * Math.min(1, (a.life - a.t) / (a.life * 0.6)),
+    x = a.x - G.cam;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createRadialGradient(x, a.y, 2, x, a.y, R.rx * 1.2);
+  g.addColorStop(0, `rgba(255,150,50,${0.55 * k})`);
+  g.addColorStop(1, 'rgba(255,60,20,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.ellipse(x, a.y, R.rx * 1.2, R.ry * 1.2, 0, 0, TAU);
+  ctx.fill();
+  for (let i = 0; i < 4; i++) {
+    const fx = x + Math.sin(i * 2.1 + a.seed) * R.rx * 0.6,
+      fy = a.y + Math.cos(i * 1.7 + a.seed) * R.ry * 0.4,
+      h = (14 + 10 * Math.sin(G.time * 13 + i * 1.9 + a.seed)) * k + 6 * k,
+      w = 6 * k + 2;
+    ctx.fillStyle = i % 2 ? `rgba(255,200,80,${0.85 * k})` : `rgba(255,110,30,${0.85 * k})`;
+    ctx.beginPath();
+    ctx.moveTo(fx - w, fy);
+    ctx.quadraticCurveTo(fx - w * 0.6, fy - h * 0.6, fx + Math.sin(G.time * 9 + i) * 3, fy - h);
+    ctx.quadraticCurveTo(fx + w * 0.6, fy - h * 0.6, fx + w, fy);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
 export function drawPool(a) {
+  if (a.fire) return drawFire(a);
   const k = Math.min(1, a.t / 0.2) * Math.min(1, (a.life - a.t) / 0.6),
     x = a.x - G.cam;
   ctx.save();
@@ -806,7 +838,7 @@ export function drawPart(p) {
     }
     case 'neon':
       // a critical shot: a red neon "crit!" over the one it hit, rising a little
-      neon(x, y - u * 18, 'crit!', 20, 'red', Math.min(1, (1 - u) * 3), p.t);
+      neon(x, y - u * 13, 'crit!', 14, 'red', Math.min(1, (1 - u) * 3), p.t);
       break;
     case 'tracer':
       // a bullet's streak from the muzzle to where it lands

@@ -24,7 +24,7 @@ while she is short of rounds a punch that lands knocks a pistol magazine out of 
 time in seven (14%), unless one is already about; it bounces back off the screen's edges, lies
 there three seconds (blinking at the end) and is gone; picked up, it fills the gun again
 (`LUCY`). Each pistol hit in a row raises the chance of a critical shot by 10%, up to 60%: twice
-the damage, under a red neon "crit!"; a miss, or a second without a shot, ends the run. A pistol bullet that meets her own grenade in
+the damage, under a small red neon "crit!" (0.63 s); a miss, or a second without a shot, ends the run. A pistol bullet that meets her own grenade in
 the air sets it off up there, 30% wider and 30% harder (`BLAST.airburst`). Her `L` is a grenade instead of the dark ball: 100 rage; it flies in
 an arc, spinning, lands, makes two little hops and blows up about 400 px ahead (it never leaves
 the screen: at the edge it bounces back): 70 damage to every enemy in a
@@ -379,32 +379,42 @@ breaks wooden barrels and a moment later sets off red ones nearby.
   rules; instead of flying off it slides back.
 
 **The finale: the Prospector** (boss of Old Quarry, 1300 health; numbers in `PROS` and
-`TYPES.prospector`, code in `src/foes/prospector.js`). A giant zombie in power armour, 1.3 times
-the size of the Power Armor Zombie and drawn in finer detail: rusty riveted plates with dents,
-hazard stripes and brass trim, a round brass diver's helmet with a glowing porthole, two red
-fuel tanks on its back feeding a flamethrower on its arm through a hose, two short mortars over
-its shoulders, a pressure gauge on its chest whose needle creeps into the red as it loses
-health, and steam hissing out of its joints. It walks in from the edge of the screen and fights
-alone. Its attacks:
-- **Flamethrower** — the pilot light flares for 0.75 s, then a cone of fire 320 px long pours
-  from the nozzle onto the road for 1.6 s; standing in it burns 4 health every 0.2 s without a
-  knockdown (a burn that would kill knocks down). There is no fire left on the ground.
+`TYPES.prospector`, code in `src/foes/prospector.js`). A giant zombie in grey power armour, 1.3
+times the size of the Power Armor Zombie and drawn in finer detail: riveted plates with dents,
+hazard stripes and orange trim, a helmet like the Power Armor's (a rounded dome with a glowing
+visor slit and a crack over the dead face, two antennas), two red fuel tanks on its back
+feeding a flamethrower on its arm through a hose, two short mortars over its shoulders, a
+pressure gauge on its chest whose needle creeps into the red as it loses health, and steam
+hissing out of its joints. It walks in from the edge of the screen and fights alone. Its
+attacks:
+- **Flamethrower** — the pilot light flares for 0.75 s, then the flame slowly grows out of the
+  nozzle (0.9 s to its full 320 px) and burns for 1.6 s; standing in it burns 4 health every
+  0.2 s without a knockdown (a burn that would kill knocks down). It sets the road alight
+  behind its front: patches of fire that burn 3 health every 0.25 s and die down in 1.4 s
+  (`PROS.fire`).
+- **Walking flame** — it comes walking at the heroine for 2.6 s with the flame aimed at the road
+  just in front of it, setting the ground before it on fire.
+- **Ram** — it crouches for 0.85 s (a "!" and a red lane with arrows on the ground show where it
+  will go), then rushes in a straight line at 820 px/s up to 760 px or the screen's edge,
+  knocking down whoever is in its way (24 damage) and bursting barrels, and skids to a stop.
 - **Mortars** — the barrels rise, and three shells go up one after another and come down where
   the heroine stands (a little to the side for all but the first), each on a red area marked on
   the ground that fills up as it falls; the blast (`BLAST.mortar`, r 115, 16 damage) knocks her
   down and spares the enemies. Shells cannot be shot down.
 - **Jet jump** — as the Power Armor's, but bigger, and always onto the heroine.
-- **Kick** up close, with a "!" and a reddened porthole.
+- **Kick** up close, with a "!" and a reddened visor.
 
 At half health its helmet flies off and rolls away: under it is a zombie's head in miner's
 goggles. It fights harder: 25% faster on its feet and between attacks, the flame sweeps across
 the road from one side to the other (2.2 s) and the mortars fire a fork of five shells. It is
-heavy (only a crushing blow knocks it over, and only while it walks or kicks); the flame, the
-mortars, the jump and the loss of the helmet cannot be interrupted by anything (red outline),
-and it cannot be hurt while it tears off its helmet. Killed, it falls and the stage is won.
+heavy (only a crushing blow knocks it over, and only while it walks, kicks or skids to a stop
+after the ram); the flame, the walking flame, the ram, the mortars, the jump and the loss of
+the helmet cannot be interrupted by anything (red outline), and it cannot be hurt while it
+tears off its helmet. Killed, it falls and the stage is won.
 
 **Secret.** On the first screen of the first stage, before the first fight, hold `Z` and `2`
-together for 2 seconds and the heroine goes straight to the entrance of Old Quarry.
+together for 2 seconds and the heroine goes straight to the entrance of Old Quarry. On the first
+screen of Old Quarry, hold `X` for 3 seconds and she goes straight to the Prospector's arena.
 
 **Music.** For now the second stage plays synthesised western themes (`THEMES` in
 `src/audio.js`): "Old Quarry" (A minor, 136 BPM, Andalusian cadence, galloping bass, whistle,
@@ -500,10 +510,11 @@ What is checked:
   floor and the camera path (two slants), fights only on the flat, about 30% longer than the
   first stage, where enemies come from, barrels and blasts, the Miner, Dynamite, the Lizard, the
   Power Armor, its gun and its jump onto a marked spot, no more than two armors per wave, the Slime and its zombies, the
-  final fight against the Prospector alone.
+  final fight against the Prospector alone, the `X` secret to it.
 - `prospector.test.js` — the Prospector: its health and size, what stops it and what does not,
-  the flame, the mortar shells (they spare it), the jump, the helmet coming off at half health
-  and the second phase, its death.
+  the slowly growing flame and the fire it leaves, the walking flame, the ram, the mortar shells
+  (they spare it), the jump, the helmet coming off at half health and the second phase, its
+  death.
 - `waves.test.js` — random fights: few enemies and rarely strong ones at first, crowds of every
   kind at the end, difficulty rising along the road, a replay giving the same enemies.
 - `samurai.test.js` — the stance and creeping up, the arc cut, the stun from a distant attack,

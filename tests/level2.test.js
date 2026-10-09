@@ -555,3 +555,17 @@ test('the minigun sets off red barrels and sticks of dynamite in its stream, and
   assert.ok(near.fuse <= 0.14, 'the one beside it is about to go off');
   assert.equal(far.fuse, 9, 'the one far off is not');
 });
+
+test('holding X on the first screen of Old Quarry takes the player to the Prospector', () => {
+  startLevel(2);
+  G.banner = null;
+  assert.ok(!G.secretDone);
+  keys.secret = true;
+  step(3.1);
+  delete keys.secret;
+  const last = WAVES2.length - 1;
+  assert.equal(G.waveI, last);
+  step(2.5);
+  assert.ok(G.wave, 'the fight is on');
+  assert.ok(G.enemies.some((e) => e.type === 'prospector'));
+});
