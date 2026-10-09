@@ -304,7 +304,9 @@ the Bone Dragon, to the Dragon's music; numbers in `EVIL` and `TYPES.evil`, code
 `src/foes/evil.js`). She is drawn with her own sprites and fights with the heroine's moves,
 1000 health, in three stages by her health (above 66%, above 33%, below), with no show of a
 change. She walks and runs at the heroine's own pace (180 and 435 px/s): in the first stage she
-mostly walks and only now and then runs to close in or to get away, later more often.
+mostly walks and only now and then runs to close in or to get away, later more often. Like the heroine she
+mostly faces the way she walks or runs, even away from the player (once she has kept going one
+way for a moment); now and then she steps back near the player still facing her (`EVIL.face`).
 - **Chain of punches** up close: a red glint in her eyes (0.28 s), then three hits (8, 8, 14),
   the last one knocking down; then she stands open for 0.6 s.
 - **Running jump kick**: far off and lined up, she runs straight at the player, gathering speed,

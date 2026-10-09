@@ -409,6 +409,28 @@ function run(e, dir) {
   const [a, b] = EVIL.run.t;
   go(e, 'erun', 0, { engage: false, rdir: dir, dur: rnd(a, b), toward: (P.x - e.x) * dir > 0 });
 }
+/** As the heroine does, she mostly faces the way she walks: once she has gone one way along
+ *  the road for a moment she turns that way, even away from the player. Now and then
+ *  (`backpedal` of the time, chosen anew every `every` seconds) she steps back near the player
+ *  still facing her. Standing, or in her attacks, she faces the player. */
+function faceWay(e, dt) {
+  const F = EVIL.face,
+    dx = e.x - (e.px ?? e.x);
+  e.px = e.x;
+  if ((e.bpT = (e.bpT ?? 0) - dt) <= 0) {
+    e.bpT = F.every;
+    e.backpedal = random() < F.backpedal;
+  }
+  if (!['chase', 'roam'].includes(e.state) || Math.abs(dx) < F.min * dt) {
+    e.wayT = 0;
+    return;
+  }
+  const d = Math.sign(dx);
+  e.wayT = d === e.way ? (e.wayT ?? 0) + dt : 0;
+  e.way = d;
+  const near = Math.abs(P.x - e.x) < F.near;
+  if (e.wayT > F.turn && !(e.backpedal && near)) e.face = d;
+}
 const toChase = (e, extra) => go(e, 'chase', 0, { engage: false, ...extra });
 
 export default defineFoe('evil', {
@@ -594,6 +616,7 @@ export default defineFoe('evil', {
     e.stage = stageOf(e);
     if (e.stage >= 3) evilRage(e, EVIL.rage.passive * dt);
     if (e.orb) updOrb(e, dt);
+    faceWay(e, dt);
   },
   states: {
     eintro(e) {

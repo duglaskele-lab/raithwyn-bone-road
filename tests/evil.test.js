@@ -383,3 +383,37 @@ test('five blows in 2.5 s: medium for 2.5 s; three more meanwhile: heavy for 2 s
   }
   assert.equal(e.weight, undefined);
 });
+
+test('like the heroine, she mostly faces the way she walks, even away from the player', () => {
+  const F = EVIL.face;
+  const e = arena(60);
+  hold(e);
+  Object.assign(e, { cd: 99, engage: false, backpedal: false, bpT: 99, ox: 300, oy: 0, oyT: 99 });
+  let away = 0,
+    moving = 0;
+  for (let i = 0; i < 90; i++) {
+    const x = e.x;
+    updEnemy(e, DT, { n: 9 });
+    hold(e);
+    e.cd = 99;
+    if (e.x - x > F.min * DT) {
+      moving++;
+      if (e.face === 1) away++;
+    }
+  }
+  assert.ok(moving > 20, 'she walks away from the player');
+  assert.ok(away > moving * 0.7, `facing the way she goes: ${away}/${moving}`);
+  // with a backpedal chosen she steps back near the player still facing her
+  freshGame();
+  const f = arena(60);
+  hold(f);
+  Object.assign(f, { cd: 99, engage: false, backpedal: true, bpT: 99, ox: 100, oy: 0, oyT: 99 });
+  let facing = 0;
+  for (let i = 0; i < 30; i++) {
+    updEnemy(f, DT, { n: 9 });
+    hold(f);
+    f.cd = 99;
+    if (f.face === -1) facing++;
+  }
+  assert.equal(facing, 30, 'backpedalling, she keeps her eyes on the player');
+});
