@@ -569,3 +569,33 @@ test('holding X on the first screen of Old Quarry takes the player to the Prospe
   assert.ok(G.wave, 'the fight is on');
   assert.ok(G.enemies.some((e) => e.type === 'prospector'));
 });
+
+test("Lucy's big gun is always a heavy blow; her grenade's blast is a crushing one", async () => {
+  const { explode } = await import('../src/blast.js');
+  quarry();
+  P.x = 300;
+  P.y = 450;
+  // a full-power big gun bullet does not move a power armour (only a crushing blow would)
+  const a = spawn('armor', 1, 600, 450);
+  a.state = 'chase';
+  G.projs.push({
+    k: 'bullet',
+    big: 1,
+    power: 1,
+    hit: new Set(),
+    dmg: 40,
+    x: 520,
+    y: 450,
+    z: 130,
+    vx: 1700,
+    rot: 0,
+    life: 0.7,
+  });
+  step(0.1);
+  assert.ok(a.hp < TYPES.armor.hp, 'hurt');
+  assert.notEqual(a.state, 'air', 'but not thrown');
+  // a grenade's blast throws it
+  G.freeze = 0;
+  explode(a.x, a.y, 'grenade');
+  assert.equal(a.state, 'air', 'thrown by the grenade');
+});

@@ -394,13 +394,13 @@ export const BLAST = {
   barrel: { r: 175, dmgP: 22, dmgE: 48, chain: 0.14, lit: 0.9 },
   dynamite: { r: 150, dmgP: 20, dmgE: 42, chain: 0.14 },
   // Lucy's grenade: wide and hard, and it spares her (no damage to the player)
-  grenade: { r: 250, dmgP: 0, dmgE: 70, chain: 0.14 },
+  grenade: { r: 250, dmgP: 0, dmgE: 70, chain: 0.14, crush: 1 },
   // her grenade shot out of the air by her pistol: 30% wider and 30% harder
-  airburst: { r: 325, dmgP: 0, dmgE: 91, chain: 0.14 },
+  airburst: { r: 325, dmgP: 0, dmgE: 91, chain: 0.14, crush: 1 },
   // a shell of the Prospector's mortars: it hurts the player only
   mortar: { r: 115, dmgP: 16, dmgE: 0, chain: 0.14 },
 };
-// Lucy's grenade (L): costs `cost` rage; it leaves her hand `x` ahead and `z` up, flies in an
+// Lucy's grenade (I): costs `cost` rage; its blast is a crushing blow (BLAST `crush`); it leaves her hand `x` ahead and `z` up, flies in an
 // arc (`vx`, `vz` up, `g` down), spinning `spin` turns a second; on the ground it bounces
 // `bounces` times, each time keeping `bounce` of its speed up and `roll` of its speed ahead, and
 // then blows up. It never leaves the screen: at its edge it bounces back.
@@ -851,20 +851,18 @@ export const LUCY = {
 // says so for `sign` seconds.
 export const LUCK = { chance: 0.1, perRank: 0.05, hp: 0.1, sign: 2.4, evade: 0.1 };
 // (`evade`: the chance that a blow on her, on her feet and not busy, misses: she dodges it)
-// Lucy's super (I): she draws her big gun (`draw` s a frame, six frames) and fires, again and
-// again while I is held; each shot costs `cost` (a fifth of the rage bar) and takes `shot`
+// Lucy's big gun (L): she draws it (`draw` s a frame, six frames) and fires, again and
+// again while L is held; each shot costs `cost` (a fifth of the rage bar) and takes `shot`
 // seconds (muzzle flash, flash, smoke, aim): slower than her pistol, but a bullet does `dmg`
 // and goes on through whoever it hits, losing `loss` of its power each time (its damage goes
-// down with it) until it has none left and is gone. While it has more than `heavy` of its
-// power it knocks enemies down as a crushing blow does, from then on as the last punch of a
-// chain does. It leaves the muzzle `x` ahead and `z` up, in a shower of sparks, at `speed`.
+// down with it) until it has none left and is gone. It always knocks enemies down as the last
+// punch of a chain does (a heavy blow). It leaves the muzzle `x` ahead and `z` up, in a shower of sparks, at `speed`.
 export const BIG_GUN = {
   cost: MAXR * 0.2,
   draw: 0.06,
   shot: [0.06, 0.06, 0.12, 0.12],
   dmg: 40,
   loss: 0.2,
-  heavy: 0.6,
   speed: 1700,
   life: 0.7,
   x: 60,
