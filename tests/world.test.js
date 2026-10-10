@@ -240,7 +240,7 @@ test('Lucy keeps firing while K is held, aiming and firing in turn, each shot pa
   P.who = 'raithwyn';
 });
 
-test('Lucy: J J K, a heavy shot straight from the aim: it knocks down, three times the damage, a BOOM', async () => {
+test('Lucy: J J K, buckshot straight from the aim: all in a short spread knocked down, three times the damage', async () => {
   const { BULLET, D, LUCY } = await import('../src/config.js');
   const press = (b) => {
     // (not in the hit-stop after a blow: the world, and so she, waits it out)
@@ -280,28 +280,35 @@ test('Lucy: J J K, a heavy shot straight from the aim: it knocks down, three tim
   const e = setup();
   jjk();
   assert.equal(P.state, 'gunFin', 'her shot after two punches that landed');
-  const hp = e.hp;
-  let shot = null;
-  for (let t = 0; t <= D.gunFin[0] + DT && !shot; t += DT) {
+  // two more in the spread (one a little off her line), one beyond its reach
+  const near = spawn('grunt', 1, P.x + 150, 470),
+    far = spawn('grunt', 1, P.x + LUCY.buck.range + 120, 450);
+  for (const o of [near, far]) Object.assign(o, { state: 'chase', hp: 500, cd: 99 });
+  const hp = [e.hp, near.hp, far.hp];
+  let fired = false;
+  for (let t = 0; t <= D.gunFin[0] + 2 * DT && !fired; t += DT) {
     update(DT);
     assert.equal(P.an[0], 'throw');
     assert.ok(P.an[1] >= 2, 'straight to the aiming and firing frames');
-    shot = G.projs.find((q) => q.k === 'bullet');
+    fired = P.ammo < LUCY.ammo;
   }
-  assert.ok(shot && shot.fin, 'fired at once');
-  assert.equal(shot.dmg, BULLET.dmg * 3, 'three times the pistol');
+  assert.ok(fired, 'fired at once');
   assert.equal(P.ammo, LUCY.ammo - 1, 'one round');
-  for (let i = 0; i < 0.3 / DT && e.hp === hp; i++) update(DT);
-  assert.ok(hp - e.hp >= BULLET.dmg * 3 - 1e-9, `three times the damage (${hp - e.hp})`);
-  assert.ok(['air', 'down'].includes(e.state), `it knocks down (${e.state})`);
+  assert.equal(G.projs.filter((q) => q.k === 'bullet').length, 0, 'buckshot: no bullet flies off');
+  for (const [o, h] of [
+    [e, hp[0]],
+    [near, hp[1]],
+  ]) {
+    assert.ok(Math.abs(h - o.hp - BULLET.dmg * 3) < 1e-6, `three times the pistol (${h - o.hp})`);
+    assert.ok(['air', 'down'].includes(o.state), `knocked down (${o.state})`);
+  }
+  assert.equal(far.hp, hp[2], 'out of its short reach');
   assert.ok(
     G.parts.some((p) => p.k === 'gring' && p.col === '#ffcf4a'),
-    'golden sparks of its own',
+    'golden sparks',
   );
-  assert.ok(
-    G.parts.some((p) => p.k === 'boomTxt'),
-    'and a BOOM!',
-  );
+  assert.ok(G.parts.filter((p) => p.k === 'tracer').length >= 6, 'pellets fanning out');
+  assert.ok(!G.parts.some((p) => p.k === 'boomTxt'), 'no BOOM');
 
   // within the moment after the punch: still her heavy shot
   setup();
@@ -330,6 +337,34 @@ test('Lucy: J J K, a heavy shot straight from the aim: it knocks down, three tim
   jjk();
   assert.notEqual(P.state, 'gunFin');
   assert.equal(G.projs.filter((q) => q.k === 'bullet').length, 0);
+  P.who = 'raithwyn';
+});
+
+test('Lucy: a foe she kills (not a boss) drops a magazine one time in twenty, by the same rules', async () => {
+  const { LUCY } = await import('../src/config.js');
+  const { killEnemy } = await import('../src/combat.js');
+  const { setRandom } = await import('../src/util.js');
+  assert.equal(LUCY.dropKill, 0.05);
+  const kill = (type, { ammo = 3, mag = false, who = 'lucy', roll = 0.01 } = {}) => {
+    freshGame();
+    Object.assign(P, { who, ammo });
+    G.items = mag ? [{ kind: 'ammo', x: 0, y: 450, z: 0, t: 1 }] : [];
+    const e = spawn(type, 1, 600, 450);
+    const was = setRandom(() => roll); // (the dice say what they are told)
+    try {
+      killEnemy(e, 1);
+    } finally {
+      setRandom(was);
+    }
+    return G.items.filter((it) => it.kind === 'ammo').length - (mag ? 1 : 0);
+  };
+  assert.equal(kill('grunt'), 1, 'a magazine');
+  assert.equal(kill('zombie'), 1);
+  assert.equal(kill('grunt', { roll: 0.06 }), 0, 'only one time in twenty');
+  assert.equal(kill('grunt', { ammo: LUCY.ammo }), 0, 'not with a full pistol');
+  assert.equal(kill('grunt', { mag: true }), 0, 'not with one lying about');
+  assert.equal(kill('grunt', { who: 'raithwyn' }), 0, 'only for Lucy');
+  assert.equal(kill('slime'), 0, 'not from a boss');
   P.who = 'raithwyn';
 });
 

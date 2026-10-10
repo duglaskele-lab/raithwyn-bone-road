@@ -618,16 +618,15 @@ export function drawProj(q) {
   }
   if (q.k === 'bullet') {
     // a streak of light along its path
-    // (Lucy's shot after two punches: longer, thicker, golden)
     const d = Math.sign(q.vx) || q.d,
-      len = q.big ? 150 : q.fin ? 120 : 70,
+      len = q.big ? 150 : 70,
       g = ctx.createLinearGradient(x - d * len, y, x, y);
-    g.addColorStop(0, q.fin ? 'rgba(255,190,60,0)' : 'rgba(255,220,120,0)');
-    g.addColorStop(1, q.fin ? 'rgba(255,230,140,1)' : 'rgba(255,250,220,1)');
+    g.addColorStop(0, 'rgba(255,220,120,0)');
+    g.addColorStop(1, 'rgba(255,250,220,1)');
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     ctx.strokeStyle = g;
-    ctx.lineWidth = q.big ? 11 : q.fin ? 6 : 3;
+    ctx.lineWidth = q.big ? 11 : 3;
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(x - d * len, y);
@@ -855,44 +854,6 @@ export function drawPart(p) {
       ctx.beginPath();
       ctx.ellipse(x, y, r * 1.1, r * 0.42, 0, 0, TAU);
       ctx.fill();
-      ctx.restore();
-      break;
-    }
-    case 'boomTxt': {
-      // Lucy's J J K: a comic "BOOM!" on a spiky yellow burst; it pops in, then fades rising
-      const pop = u < 0.12 ? 1.35 * ease(u / 0.12) : 1.35 - 0.3 * Math.min(1, (u - 0.12) / 0.15),
-        a = Math.min(1, (1 - u) / 0.3);
-      ctx.save();
-      ctx.translate(x, y - u * 22);
-      ctx.rotate(p.rot);
-      ctx.scale(pop, pop);
-      ctx.globalAlpha = a;
-      ctx.lineJoin = 'round';
-      for (const [r0, r1, col] of [
-        [58, 38, '#ff6a1a'],
-        [48, 31, '#ffd23a'],
-      ]) {
-        ctx.beginPath();
-        for (let k = 0; k < 24; k++) {
-          const ang = (k / 24) * TAU,
-            r = k % 2 ? r1 : r0 * (k % 4 === 0 ? 1 : 0.86);
-          ctx.lineTo(Math.cos(ang) * r * 1.25, Math.sin(ang) * r * 0.8);
-        }
-        ctx.closePath();
-        ctx.fillStyle = col;
-        ctx.fill();
-        ctx.strokeStyle = OL;
-        ctx.lineWidth = 3;
-        ctx.stroke();
-      }
-      ctx.font = `900 27px ${FONT}`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.lineWidth = 7;
-      ctx.strokeStyle = OL;
-      ctx.strokeText('BOOM!', 0, 1);
-      ctx.fillStyle = '#e8261c';
-      ctx.fillText('BOOM!', 0, 1);
       ctx.restore();
       break;
     }

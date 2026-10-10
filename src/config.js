@@ -872,11 +872,16 @@ export const LUCY = {
   streakMax: 0.6,
   keep: 1,
   crit: 2,
-  // J J K: after two punches, a single heavy shot (it knocks down, `fin` times the pistol's
-  // damage, sparks of its own, a "BOOM!"); one round, and it does not go on into a run of
-  // shots. Only if her second punch landed, and K comes within `finWin` seconds of it ending
+  // J J K: after two punches, a single heavy shot of buckshot: everyone in a short spread in
+  // front of her (`buck`: `range` px ahead, `dy` px either way in depth) is knocked down for
+  // `fin` times the pistol's damage, in golden sparks; one round, and it does not go on into a
+  // run of shots. Only if her second punch landed, and K comes within `finWin` s of it ending
   fin: 3,
   finWin: 0.25,
+  buck: { range: 170, dy: 40, spread: 0.3 },
+  // an enemy (not a boss) she kills drops a magazine `dropKill` of the time, by the same rules
+  // as her punches' (only when she is short of rounds, and none lies about already)
+  dropKill: 0.05,
 };
 // Lucy's luck: a blow that would finish her has `chance` (plus `perRank` for each style rank,
 // D to SSS) not to: she goes down and gets up with `hp` of her health, under a neon sign that

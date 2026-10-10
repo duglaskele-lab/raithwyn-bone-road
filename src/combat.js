@@ -1,6 +1,7 @@
 // Damage rules: who can be hit, what a hit does, rage, the boss interrupt immunity.
 import {
   BLAST,
+  BULLET,
   DECOR,
   JUGGLE,
   LUCK,
@@ -157,6 +158,8 @@ function juggle(e, dir, knock, launch) {
 }
 export function killEnemy(e, dir) {
   const F = FOES[e.type];
+  // Lucy short of rounds: now and then a magazine from a foe she kills (not a boss)
+  if (!e.T.bigBoss) dropAmmo(e, LUCY.dropKill, dir);
   if (F.die) return F.die(e, dir);
   if (F.corpse) {
     // not a skeleton: thrown back, it falls and lies there a moment before it is gone
@@ -179,6 +182,111 @@ export function killEnemy(e, dir) {
   shatter(e, dir);
   if (e.T.bigBoss) finale(e);
   else if (random() < 0.12) G.items.push({ kind: 'rage', x: e.x, y: e.y, z: 60, vz: 200, t: 0 });
+}
+/** A pistol magazine flies out of `e`, `chance` of the time: only for Lucy, only while she is
+ *  short of rounds, and only if none lies about already. */
+export function dropAmmo(e, chance, dir) {
+  const p = P;
+  if (
+    p.who === 'lucy' &&
+    p.ammo < LUCY.ammo &&
+    !G.items.some((it) => it.kind === 'ammo') &&
+    random() < chance
+  )
+    G.items.push({
+      kind: 'ammo',
+      x: e.x,
+      y: e.y + 4,
+      z: 70,
+      vz: 300,
+      vx: dir * rnd(60, 140),
+      t: 0,
+    });
+}
+/** Golden sparks where her buckshot strikes. */
+function buckSparks(x, y, d) {
+  spark(x, y, '#ffd24a', true);
+  G.parts.push({ k: 'gring', x, y, t: 0, life: 0.3, s: 46, col: '#ffcf4a' });
+  for (let k = 0; k < 12; k++) {
+    const a = (d > 0 ? 0 : Math.PI) + fxRnd(-1.1, 1.1),
+      v = fxRnd(200, 480);
+    G.parts.push({
+      k: 'dot',
+      x,
+      y,
+      vx: Math.cos(a) * v,
+      vy: Math.sin(a) * v - 60,
+      g: 600,
+      t: 0,
+      life: fxRnd(0.25, 0.45),
+      s: fxRnd(2.5, 4.5),
+      col: k % 3 ? '#ffd24a' : '#fff6d0',
+    });
+  }
+}
+/**
+ * Lucy's shot after two punches (J J K): buckshot at close range. Everyone (and every barrel)
+ * in a short spread in front of her (LUCY.buck) is hit at once and knocked down, for LUCY.fin
+ * times a pistol shot. Returns how many it hit.
+ */
+export function buckshot() {
+  const p = P,
+    B = LUCY.buck,
+    mx = p.x + p.face * BULLET.x,
+    my = p.y - BULLET.z;
+  let n = 0;
+  for (const e of G.enemies.concat(G.props)) {
+    if (e.dead || e.dying) continue;
+    const dx = (e.x - p.x) * p.face,
+      zone = e.T?.dragon
+        ? dragonZone(e, p.x, p.x + p.face * B.range, p.y, B.dy)
+        : dx > -10 && dx < B.range + e.w && Math.abs(e.y - p.y) < B.dy && e.z < 140
+          ? 'body'
+          : null;
+    if (!zone) continue;
+    if (
+      hurtEnemy(e, BULLET.dmg * LUCY.fin * dmgMult() * headBonus(e, zone), p.face, true, 'bone')
+    ) {
+      n++;
+      if (!e.isProp) {
+        addRage(RAGE.bone);
+        styleGain(8);
+      }
+      buckSparks(e.x - p.face * 12, e.y - e.z - 100 * (e.T?.scale ?? 1), p.face);
+    }
+  }
+  // the spray: pellets fanning out a short way, and a cone of fire at the muzzle
+  for (let k = 0; k < 9; k++) {
+    const a = fxRnd(-B.spread, B.spread),
+      L = B.range * fxRnd(0.7, 1.05);
+    G.parts.push({
+      k: 'tracer',
+      x: mx,
+      y: my,
+      x2: mx + p.face * Math.cos(a) * L,
+      y2: my + Math.sin(a) * L * 0.7,
+      t: 0,
+      life: 0.1,
+    });
+  }
+  for (let k = 0; k < 14; k++) {
+    const a = fxRnd(-B.spread, B.spread),
+      v = fxRnd(300, 700);
+    G.parts.push({
+      k: 'glow',
+      x: mx,
+      y: my,
+      vx: p.face * Math.cos(a) * v,
+      vy: Math.sin(a) * v * 0.7,
+      g: 0,
+      t: 0,
+      life: fxRnd(0.08, 0.18),
+      s: fxRnd(3, 6),
+      col: k % 2 ? '#ffd24a' : '#fff1c0',
+    });
+  }
+  G.shake = Math.max(G.shake, 7);
+  return n;
 }
 // A boss falls: slow motion, a flash, every other enemy crumbles, the arena is cleared.
 export function finale(e) {
@@ -319,21 +427,7 @@ export function strike(o) {
         styleGain(10);
         buzz(o.knock ? 22 : 10);
         // short of rounds and none about: now and then a magazine flies out of the one she hit
-        if (
-          p.who === 'lucy' &&
-          p.ammo < LUCY.ammo &&
-          !G.items.some((it) => it.kind === 'ammo') &&
-          random() < LUCY.drop
-        )
-          G.items.push({
-            kind: 'ammo',
-            x: e.x,
-            y: e.y + 4,
-            z: 70,
-            vz: 300,
-            vx: p.face * rnd(60, 140),
-            t: 0,
-          });
+        dropAmmo(e, LUCY.drop, p.face);
       }
     }
   }
