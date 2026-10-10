@@ -671,6 +671,7 @@ export function drawProj(q) {
 // A red outline round an enemy in an attack no hit can stop. The enemy is drawn alone on a
 // layer; its silhouette, made solid and red, is stamped a few pixels around itself and the
 // silhouette's own area cut out, leaving a ring; the ring and then the layer go on screen.
+// (Glows round it go on screen apart, before and after: in the layer they would turn solid red.)
 const layers = {};
 function canvasLayer(name, w, h) {
   let c = layers[name];
@@ -684,34 +685,48 @@ function canvasLayer(name, w, h) {
 }
 function outlined(draw, e) {
   if (!FOES[e.type]?.unstoppable?.(e) || typeof document === 'undefined') return draw;
-  // a light picture (G.lowFx): no layers, a blinking red tint instead of the ring
-  if (G.lowFx)
-    return (e) => {
-      draw(e);
-      if (Math.floor(G.time * 12) % 2) return;
-      ctx.fillStyle = 'rgba(255,40,40,.3)';
-      ctx.beginPath();
-      ctx.ellipse(
-        e.x - G.cam,
-        e.y - e.z - 90 * e.T.scale,
-        60 * e.T.scale,
-        110 * e.T.scale,
-        0,
-        0,
-        TAU,
-      );
-      ctx.fill();
-    };
   return (e) => {
     const main = ctx,
+      m = main.getTransform();
+    // the layers cover the whole screen; in a light picture (G.lowFx) only a box round the
+    // enemy, so the outline costs little there too (the dragon, too big for a box, gets a
+    // blinking red tint instead)
+    let ox = 0,
+      oy = 0,
       w = main.canvas.width,
-      h = main.canvas.height,
-      [layer, lc] = canvasLayer('layer', w, h),
+      h = main.canvas.height;
+    if (G.lowFx) {
+      if (e.T.dragon) {
+        draw(e);
+        if (Math.floor(G.time * 12) % 2) return;
+        ctx.fillStyle = 'rgba(255,40,40,.3)';
+        ctx.beginPath();
+        ctx.ellipse(
+          e.x - G.cam,
+          e.y - e.z - 90 * e.T.scale,
+          60 * e.T.scale,
+          110 * e.T.scale,
+          0,
+          0,
+          TAU,
+        );
+        ctx.fill();
+        return;
+      }
+      const sc = e.T.scale ?? 1,
+        p = m.transformPoint(new DOMPoint(e.x - G.cam, e.y - e.z - 120 * sc));
+      w = Math.ceil(380 * sc * m.a);
+      h = Math.ceil(420 * sc * m.d);
+      ox = Math.round(p.x - w / 2);
+      oy = Math.round(p.y - h / 2);
+    }
+    const [layer, lc] = canvasLayer('layer', w, h),
       [sil, sc] = canvasLayer('sil', w, h),
       [ring, rc] = canvasLayer('ring', w, h);
     // a glow round it is not part of its shape: it goes straight on screen, unoutlined
     if (!e.T.dragon) drawAura(e);
-    lc.setTransform(main.getTransform());
+    FOES[e.type]?.aura?.(e);
+    lc.setTransform(m.a, m.b, m.c, m.d, m.e - ox, m.f - oy);
     setCtx(lc);
     draw(e, false);
     setCtx(main);
@@ -722,7 +737,7 @@ function outlined(draw, e) {
     sc.fillRect(0, 0, w, h);
     sc.globalCompositeOperation = 'source-over';
     for (let i = 0; i < 4; i++) sc.drawImage(sil, 0, 0);
-    const r = 3 * (w / W);
+    const r = 3 * m.a;
     for (let i = 0; i < 8; i++) {
       const a = (i / 8) * TAU;
       rc.drawImage(sil, Math.cos(a) * r, Math.sin(a) * r);
@@ -732,10 +747,11 @@ function outlined(draw, e) {
     main.save();
     main.setTransform(1, 0, 0, 1, 0, 0);
     main.globalAlpha = 0.8 + 0.2 * Math.sin(G.time * 18);
-    main.drawImage(ring, 0, 0);
+    main.drawImage(ring, ox, oy);
     main.globalAlpha = 1;
-    main.drawImage(layer, 0, 0);
+    main.drawImage(layer, ox, oy);
     main.restore();
+    FOES[e.type]?.glow?.(e);
   };
 }
 export function drawPart(p) {
@@ -858,6 +874,64 @@ export function drawPart(p) {
       ctx.stroke();
       ctx.restore();
       break;
+    case 'bat': {
+      // a violet bat: wheeling round its spot (closing in and rising), or flying off
+      if (p.t < 0) break;
+      let bx = x,
+        by = y,
+        dir = Math.sign(p.vx ?? 1) || 1;
+      if (p.a0 !== undefined) {
+        const ang = p.a0 + p.w * p.t,
+          r = p.r0 + (p.r1 - p.r0) * ease(u),
+          hh = p.h0 + (p.h1 - p.h0) * u;
+        bx = x + Math.cos(ang) * r;
+        by = y - hh + Math.sin(ang) * r * 0.32;
+        dir = -Math.sign(Math.sin(ang) * p.w) || 1;
+      }
+      const flap = Math.sin(p.t * 34 + p.ph),
+        s = p.s,
+        a = Math.min(1, u * 6, (1 - u) * 5);
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.scale(dir, 1);
+      ctx.globalAlpha = a;
+      ctx.fillStyle = '#2a1342';
+      ctx.strokeStyle = 'rgba(197,139,255,.85)';
+      ctx.lineWidth = 1.2;
+      ctx.lineJoin = 'round';
+      for (const side of [-1, 1]) {
+        const tip = -s * 0.2 - flap * s * 0.7;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(side * s * 0.6, tip - s * 0.3, side * s * 1.3, tip);
+        ctx.lineTo(side * s * 0.95, tip * 0.4 + s * 0.15);
+        ctx.lineTo(side * s * 0.6, s * 0.3);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.ellipse(s * 0.1, 0, s * 0.32, s * 0.24, 0, 0, TAU);
+      ctx.fill();
+      ctx.stroke();
+      // two little glowing eyes
+      ctx.fillStyle = '#ff7ad9';
+      ctx.fillRect(s * 0.22, -s * 0.12, 1.6, 1.6);
+      ctx.restore();
+      break;
+    }
+    case 'mist': {
+      // a puff of violet mist: it swells, drifts up a little, thins out
+      const r = p.s * (0.6 + 0.8 * u),
+        a = Math.sin(Math.PI * Math.min(1, u * 1.15)) * 0.5,
+        g = ctx.createRadialGradient(x, y, 1, x, y, r);
+      g.addColorStop(0, `rgba(150,70,220,${a})`);
+      g.addColorStop(0.55, `rgba(110,40,170,${a * 0.6})`);
+      g.addColorStop(1, 'rgba(80,20,130,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(x - r, y - r, r * 2, r * 2);
+      break;
+    }
     case 'smoke':
       ctx.globalAlpha = (1 - u) * 0.45;
       ctx.fillStyle = p.col ?? '#3a302c';
@@ -1019,7 +1093,7 @@ export function drawWorld() {
   // shadows
   for (const u of G.props) shadow(u.x, u.y, 0, u.decor ? DECOR[u.decor].w * 1.2 : 22);
   for (const e of G.enemies)
-    if (e.state !== 'rise' || e.t > 0.4)
+    if ((e.state !== 'rise' || e.t > 0.4) && !FOES[e.type]?.hidden?.(e))
       shadow(
         e.x,
         e.y,

@@ -263,6 +263,30 @@ export const SFX = {
     tone('sawtooth', 55, 40, 1.2, 0.3);
     noise(1, 0.2, 200, 900, 1);
   },
+  // a flock of bats: quick, papery wingbeats, many of them
+  bats() {
+    for (let i = 0; i < 14; i++) {
+      const at = i * 0.055 + rnd(0, 0.03);
+      noise(0.035, 0.1, rnd(1800, 3200), 900, 2.5, at);
+      tone('triangle', rnd(5200, 6800), rnd(4200, 5200), 0.03, 0.012, at);
+    }
+  },
+  // gone in her mist: a hollow, falling whoosh
+  warp() {
+    tone('sine', 700, 110, 0.4, 0.18);
+    tone('triangle', 1400, 220, 0.3, 0.05);
+    noise(0.45, 0.22, 2600, 300, 1.2);
+  },
+  // her laugh: a few falling "ha"s, low and throaty
+  laugh() {
+    for (let k = 0; k < 5; k++) {
+      const at = k * 0.15,
+        f = 330 - k * 22;
+      tone('sawtooth', f, f * 0.82, 0.12, 0.09, at, 1300);
+      tone('square', f * 0.5, f * 0.42, 0.12, 0.05, at, 900);
+      noise(0.09, 0.08, 1400, 700, 1.5, at);
+    }
+  },
   rise() {
     noise(0.5, 0.2, 200, 700, 1.2);
   },
