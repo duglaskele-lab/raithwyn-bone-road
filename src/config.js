@@ -357,7 +357,25 @@ export const EVIL = {
   // seconds; for `gone` seconds bats wheel at the spot she comes back to (at least `min` px from
   // the player, often behind her) and mist gathers there; she steps out of it in `in` seconds.
   // Every `cd` seconds at most, at random (`rate` a second) or to get away from blows up close
-  tele: { out: 0.35, gone: 0.7, in: 0.4, cd: [4.5, 7.5], min: 260, rate: 0.35 },
+  tele: { out: 0.35, gone: 0.7, in: 0.4, cd: [4.5, 7.5], min: 260, rate: 0.35, third: 2 },
+  // (`third`: in the third stage she vanishes that many times as often: `rate` up, `cd` down)
+  // In the third stage, her barrage: `n` quick vanishings in a row (out, gone, in in seconds),
+  // each time coming back lined up with the player and throwing a dark ball gathered in only
+  // `wind` seconds; the ball is of level I, II or III by the odds in `lv`. Now and then
+  // (`rate` a second), at most every `cd` seconds.
+  barrage: {
+    n: [3, 5],
+    out: 0.16,
+    gone: 0.24,
+    in: 0.16,
+    wind: 0.22,
+    lv: [0.45, 0.35, 0.2],
+    cd: [7, 11],
+    rate: 0.45,
+  },
+  // her end: a violet mist gathers over her body (from `mist` s), bats burst from it every way
+  // (at `bats` s) and the body is gone under the mist (by `gone` s)
+  death: { mist: 0.9, bats: 1.6, gone: 1.85 },
   // she faces the way she walks once she has kept it `turn` seconds (moving at least `min` px
   // a second along the road); `backpedal` of the time, near the player (`near`), she steps
   // back still facing her instead (chosen anew every `every` seconds)

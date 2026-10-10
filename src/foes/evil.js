@@ -291,14 +291,20 @@ export function evilFrame(e) {
   if (e.moving) return ['walk', Math.floor(e.walkT * 1.5) % 8];
   return ['idle', Math.floor(e.anim / 0.12) % 11];
 }
+/** The timings of the vanishing she is in: a plain one, or one of her barrage. */
+const blinkT = (e) => (e.inBarrage ? EVIL.barrage : EVIL.tele);
 /** How much of her is there (0 to 1): nothing while the bats wheel before her coming or while
  *  she is gone, and the fades into and out of the mist. */
 export function evilShown(e) {
   const I = EVIL.intro,
-    T = EVIL.tele;
+    T = blinkT(e),
+    D = EVIL.death;
   switch (e.state) {
     case 'eintro':
       return clamp((e.t - I.bats - I.mist + 0.35) / 0.35, 0, 1);
+    case 'edie':
+      // the body goes under her mist
+      return clamp((D.gone - e.t) / (D.gone - D.bats + 0.15), 0, 1);
     case 'tout':
       return clamp(1 - e.t / T.out, 0, 1);
     case 'tgone':
@@ -331,7 +337,7 @@ function evilAura(e) {
 /** The dark ball gathering in her hand: a glow round it, the bigger the stronger. */
 function ballGlow(e) {
   if (e.state !== 'eball') return;
-  const u = clamp(e.t / EVIL.ball.wind[e.lv - 1], 0, 1),
+  const u = clamp(e.t / (e.wind ?? EVIL.ball.wind[e.lv - 1]), 0, 1),
     [bx, by] = ballAt(e),
     R = (8 + 12 * e.lv) * (0.4 + 0.6 * u) * (1 + 0.1 * Math.sin(G.time * 30)),
     hx = bx - G.cam,
@@ -354,13 +360,7 @@ export function drawEvil(e, whole = true) {
   const [name, i] = evilFrame(e),
     x = e.x - G.cam,
     y = e.y - e.z + 2,
-    a =
-      shown *
-      (e.state === 'edie'
-        ? clamp((3 - e.t) / 0.6, 0, 1)
-        : e.flash > 0 && Math.floor(G.time * 30) % 2
-          ? 0.55
-          : 1);
+    a = shown * (e.flash > 0 && e.state !== 'edie' && Math.floor(G.time * 30) % 2 ? 0.55 : 1);
   sprite(name, i, x, y, e.face < 0, 1, a);
   // the glint in her eyes before her chain of punches
   if (e.state === 'c0') {
@@ -406,16 +406,17 @@ function batSwirl(x, y, n, life) {
       ph: fxRnd(TAU),
     });
 }
-/** Bats bursting out of her, scattering up and away. */
-function batBurst(x, y, n) {
+/** Bats bursting out of her, scattering up and away (or, `every` way, out of a spot low on the
+ *  ground: her body). */
+function batBurst(x, y, n, every = false) {
   if (APP.lowFx) n = Math.ceil(n / 2);
   for (let k = 0; k < n; k++) {
-    const a = fxRnd(-Math.PI * 0.95, -Math.PI * 0.05),
-      v = fxRnd(220, 420);
+    const a = every ? (k / n) * TAU + fxRnd(-0.2, 0.2) : fxRnd(-Math.PI * 0.95, -Math.PI * 0.05),
+      v = fxRnd(220, every ? 520 : 420);
     G.parts.push({
       k: 'bat',
       x: x + fxRnd(-20, 20),
-      y: y - fxRnd(50, 150),
+      y: y - (every ? fxRnd(10, 50) : fxRnd(50, 150)),
       vx: Math.cos(a) * v,
       vy: Math.sin(a) * v * 0.6,
       g: -60,
@@ -426,14 +427,14 @@ function batBurst(x, y, n) {
     });
   }
 }
-/** Puffs of violet mist round a spot, from the ground up to her height. */
-function mist(x, y, n, spread = 70) {
+/** Puffs of violet mist round a spot, from the ground up to her height (or up to `h`). */
+function mist(x, y, n, spread = 70, h = 150) {
   if (APP.lowFx) n = Math.ceil(n / 2);
   for (let k = 0; k < n; k++)
     G.parts.push({
       k: 'mist',
       x: x + fxRnd(-spread, spread),
-      y: y - fxRnd(0, 150),
+      y: y - fxRnd(0, h),
       vx: fxRnd(-25, 25),
       vy: fxRnd(-30, -5),
       t: 0,
@@ -442,31 +443,53 @@ function mist(x, y, n, spread = 70) {
       gy: y,
     });
 }
-/** Where she comes back to: on screen, well away from the player, often behind her. */
-function teleSpot(e) {
+/** Where she comes back to: on screen, well away from the player, often behind her (`lined`:
+ *  on the player's line, for a ball). */
+function teleSpot(e, lined = false) {
   const T = EVIL.tele,
     lo = G.cam + 90,
-    hi = G.cam + W - 90;
-  let best = null;
-  for (let k = 0; k < 12; k++) {
-    const behind = random() < 0.5,
-      side = behind ? -P.face || 1 : P.x >= e.x ? -1 : 1,
-      x = clamp(P.x + side * rnd(T.min, T.min + 200), lo, hi),
-      y = rnd(GT + 12, GB - 12);
-    best = [x, y];
-    if (Math.abs(x - P.x) >= T.min && Math.abs(x - e.x) > 120) break;
-  }
-  return best;
+    hi = G.cam + W - 90,
+    room = (side) => (side < 0 ? P.x - lo : hi - P.x),
+    behind = -P.face || 1,
+    near = P.x >= e.x ? -1 : 1;
+  // behind the player half the time, else on her own side; a side with no room for the
+  // distance is no choice (if neither has room, the roomier one)
+  let side = random() < 0.5 ? behind : near;
+  if (room(side) < T.min) side = room(-side) >= T.min || room(-side) > room(side) ? -side : side;
+  const x = clamp(P.x + side * Math.min(rnd(T.min, T.min + 200), room(side)), lo, hi),
+    y = lined ? clamp(P.y + rnd(-10, 10), GT + 12, GB - 12) : rnd(GT + 12, GB - 12);
+  return [x, y];
 }
-/** She vanishes in mist and bats (see EVIL.tele). */
-function teleport(e) {
+/** She vanishes in mist and bats, to come back somewhere else (`barrage`: one of the quick
+ *  vanishings of her barrage, back on the player's line). */
+function blink(e, barrage = false) {
   faceP(e);
-  const [tx, ty] = teleSpot(e);
-  go(e, 'tout', 0, { engage: false, tx, ty, teleCd: rnd(...EVIL.tele.cd), swirled: false });
-  mist(e.x, e.y, 10, 40);
-  batBurst(e.x, e.y, 16);
-  SFX.bats();
+  const [tx, ty] = teleSpot(e, barrage);
+  go(e, 'tout', 0, { engage: false, tx, ty, swirled: false, inBarrage: barrage });
+  mist(e.x, e.y, barrage ? 6 : 10, 40);
+  batBurst(e.x, e.y, barrage ? 9 : 16);
+  if (!barrage) SFX.bats();
   SFX.warp();
+}
+/** A plain vanishing (EVIL.tele): twice as often in the third stage. */
+function teleport(e) {
+  const f = e.stage >= 3 ? EVIL.tele.third : 1;
+  e.chain = 0;
+  blink(e);
+  e.teleCd = rnd(...EVIL.tele.cd) / f;
+}
+/** Her barrage (EVIL.barrage): 3 to 5 quick vanishings, a quick dark ball after each. */
+function barrage(e) {
+  const B = EVIL.barrage;
+  e.chain = B.n[0] + Math.floor(random() * (B.n[1] - B.n[0] + 1));
+  e.barrageCd = rnd(...B.cd);
+  blink(e, true);
+}
+/** The level of a barrage ball: I, II or III by the odds in EVIL.barrage.lv. */
+function barrageLv() {
+  const [a, b] = EVIL.barrage.lv,
+    r = random();
+  return r < a ? 1 : r < a + b ? 2 : 3;
 }
 
 // --- behaviour ---------------------------------------------------------------------------------
@@ -569,8 +592,9 @@ export default defineFoe('evil', {
     runCd: [1, 2],
     rushCd: [3, 5],
     teleCd: [3, 5],
+    barrageCd: [2, 4],
   },
-  timers: ['comboCd', 'ballCd', 'boneCd', 'jumpCd', 'runCd', 'rushCd', 'teleCd'],
+  timers: ['comboCd', 'ballCd', 'boneCd', 'jumpCd', 'runCd', 'rushCd', 'teleCd', 'barrageCd'],
   spawn(e, side, placed) {
     if (!placed) {
       e.x = G.cam + W - 260;
@@ -609,13 +633,22 @@ export default defineFoe('evil', {
       },
     },
     {
+      // the third stage: her barrage of quick vanishings and quick dark balls
+      when: (e, s, dt) =>
+        e.stage >= 3 && e.barrageCd <= 0 && onScreen(e) && random() < dt * EVIL.barrage.rate,
+      go: barrage,
+    },
+    {
       // from the second stage: gone in mist and bats, and back somewhere else (EVIL.tele) —
       // now and then, or (more often) to get away from blows up close
       when: (e, s, dt) =>
         e.stage >= 2 &&
         e.teleCd <= 0 &&
         onScreen(e) &&
-        random() < dt * (s.adx < 140 && attacking() ? 4 : EVIL.tele.rate),
+        random() <
+          dt *
+            (s.adx < 140 && attacking() ? 4 : EVIL.tele.rate) *
+            (e.stage >= 3 ? EVIL.tele.third : 1),
       go: teleport,
     },
     {
@@ -655,7 +688,13 @@ export default defineFoe('evil', {
         e.ballCd <= 0 && !s.pdown && s.adx > EVIL.ball.min && s.ady < 26 && onScreen(e),
       go(e) {
         faceP(e);
-        go(e, 'eball', 0, { engage: false, lv: stageOf(e) });
+        go(e, 'eball', 0, {
+          engage: false,
+          lv: stageOf(e),
+          wind: null,
+          inBarrage: false,
+          chain: 0,
+        });
         SFX.charge();
       },
     },
@@ -715,8 +754,9 @@ export default defineFoe('evil', {
   immune: (e) =>
     e.state === 'eintro' ||
     e.state === 'tgone' ||
-    (e.state === 'tout' && e.t > EVIL.tele.out * 0.4) ||
-    (e.state === 'tin' && e.t < EVIL.tele.in * 0.6),
+    (e.state === 'tout' && e.t > blinkT(e).out * 0.4) ||
+    (e.state === 'tin' && e.t < blinkT(e).in * 0.6) ||
+    e.state === 'edie',
   hidden: (e) => evilShown(e) <= 0,
   aura: evilAura,
   glow: ballGlow,
@@ -764,6 +804,9 @@ export default defineFoe('evil', {
     e.stage = stageOf(e);
     if (e.stage >= 3) evilRage(e, EVIL.rage.passive * dt);
     if (e.orb) updOrb(e, dt);
+    // a blow that stops her (or throws her) stops her barrage too
+    if (e.inBarrage && ['hurt', 'air', 'down', 'getup'].includes(e.state))
+      Object.assign(e, { chain: 0, inBarrage: false, wind: null });
     faceWay(e, dt);
   },
   states: {
@@ -783,18 +826,18 @@ export default defineFoe('evil', {
       if (e.t > I.bats + I.mist + I.laugh) toChase(e);
     },
     tout(e) {
-      if (e.t >= EVIL.tele.out) go(e, 'tgone', 0);
+      if (e.t >= blinkT(e).out) go(e, 'tgone', 0);
     },
     tgone(e, dt) {
-      const T = EVIL.tele;
+      const T = blinkT(e);
       if (!e.swirled) {
         // gone: she is already where she will come back (nobody can touch her meanwhile)
         e.swirled = true;
         e.x = e.tx;
         e.y = e.ty;
         e.px = e.x;
-        batSwirl(e.tx, e.ty, 16, T.gone + T.in * 0.5);
-        SFX.bats();
+        batSwirl(e.tx, e.ty, e.inBarrage ? 9 : 16, T.gone + T.in * 0.5);
+        if (!e.inBarrage) SFX.bats();
       }
       if (e.t > T.gone * 0.45 && fxRandom() < dt * 30) mist(e.tx, e.ty, 1, 45);
       if (e.t >= T.gone) {
@@ -805,7 +848,13 @@ export default defineFoe('evil', {
     },
     tin(e) {
       faceP(e);
-      if (e.t >= EVIL.tele.in) toChase(e);
+      if (e.t < blinkT(e).in) return;
+      // in her barrage: a dark ball at once, gathered in no time, of any level
+      if (e.inBarrage && e.chain > 0) {
+        e.chain--;
+        go(e, 'eball', 0, { engage: false, lv: barrageLv(), wind: EVIL.barrage.wind });
+        SFX.charge();
+      } else toChase(e, { inBarrage: false, chain: 0 });
     },
     ecall(e) {
       faceP(e);
@@ -872,7 +921,7 @@ export default defineFoe('evil', {
       if (e.t > B.wind + 0.15) toChase(e, { boneCd: rnd(...B.cd) });
     },
     eball(e, dt, s) {
-      const wind = EVIL.ball.wind[e.lv - 1];
+      const wind = e.wind ?? EVIL.ball.wind[e.lv - 1];
       if (e.t < wind * 0.6) e.face = s.dx >= 0 ? 1 : -1;
       ballSparks(e);
       // gathered: the throw plays on and the ball flies as her hand comes forward
@@ -900,7 +949,10 @@ export default defineFoe('evil', {
           life: 2.6,
         });
       }
-      if (e.t > 0.3) toChase(e, { ballCd: rnd(...EVIL.ball.cd) });
+      if (e.t <= 0.3) return;
+      // her barrage goes on: gone again, back somewhere else, another ball
+      if (e.inBarrage && e.chain > 0) blink(e, true);
+      else toChase(e, { ballCd: rnd(...EVIL.ball.cd), inBarrage: false, chain: 0, wind: null });
     },
     scharge(e) {
       const O = EVIL.orb,
@@ -1019,8 +1071,19 @@ export default defineFoe('evil', {
       }
     },
     edie(e, dt) {
+      const D = EVIL.death;
       e.x += (e.vx ?? 0) * dt;
       e.vx = (e.vx ?? 0) * Math.pow(0.05, dt);
+      // a violet mist gathers over her body, low and wide, and covers it...
+      if (e.t > D.mist && e.t < D.gone + 0.6 && fxRandom() < dt * 40) mist(e.x, e.y, 1, 85, 70);
+      // ...bats burst from it every way, and the body is gone under it
+      if (e.t >= D.bats && !e.scattered) {
+        e.scattered = true;
+        mist(e.x, e.y, 14, 80, 70);
+        batBurst(e.x, e.y, 28, true);
+        SFX.bats();
+        SFX.warp();
+      }
       if (e.t > 3) e.dead = true;
     },
   },

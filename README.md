@@ -331,7 +331,14 @@ way for a moment); now and then she steps back near the player still facing her 
   (0.35 s); for 0.7 s bats wheel and mist gathers somewhere else, at least 260 px from the
   player and often behind her, and she steps out of it (0.4 s). Nothing touches her while she
   is (all but) gone. She does it now and then (every 4.5–7.5 s at most), and more readily to
-  get away from blows up close.
+  get away from blows up close; in the third stage twice as often (`EVIL.tele.third`).
+- **Barrage** (`EVIL.barrage`), in the third stage: 3 to 5 quick vanishings in a row (0.16 s
+  out, 0.24 s gone, 0.16 s in); each time she comes back on the player's line, well away from
+  her, and throws a dark ball gathered in only 0.22 s — a plain one, a stronger or the strongest
+  (levels I, II, III: 45%, 35%, 20%). A blow that stops her ends the barrage. Now and then, at
+  most every 7–11 s.
+- **Her end** (`EVIL.death`): she falls, a violet mist gathers low over her body, bats burst
+  from it every way, and the body is gone under the mist.
 - **Chain of punches** up close: a red glint in her eyes (0.28 s), then three hits (8, 8, 14),
   the last one knocking down; then she stands open for 0.6 s.
 - **Running jump kick**: far off and lined up, she runs straight at the player, gathering speed,
@@ -570,7 +577,8 @@ What is checked:
 - `evil.test.js` — Raithwyn as the boss: who meets her, her music, her stages, her dark ball and
   bones by stage, her chain of punches, her walk and run, her running jump kick, how blows take
   her, her leap back, her rage, her super and its orb, the dandy, her coming out of bats and mist,
-  her vanishing and coming back somewhere else.
+  her vanishing and coming back somewhere else (twice as often in the third stage), her barrage
+  of quick vanishings and quick balls of any level, her end in mist and bats.
 - `dragon.test.js` — the end of the stage, the Dragon's unstoppable attacks, choosing an attack
   that reaches, the bite and the ×1.5 head, the beam and dodging it, the widening second-phase
   beam, the hind-leg kick, plasma balls, the second-phase jump, the longer beam charge with sparks, the
