@@ -9,6 +9,7 @@ import { waveSpawns } from '../src/waves.js';
 import { themeFor } from '../src/audio.js';
 import { FOES } from '../src/foes/index.js';
 import { evilFrame, evilShown, orbSpot, stageOf } from '../src/foes/evil.js';
+import { seedRandom } from '../src/util.js';
 import { DT, freshGame } from './helpers.js';
 
 beforeEach(freshGame);
@@ -485,4 +486,100 @@ test('from the second stage she vanishes in mist and bats and comes back somewhe
   assert.equal(evilShown(e), 1);
   assert.ok(!['tout', 'tgone', 'tin'].includes(e.state));
   assert.ok(e.teleCd >= T.cd[0] - T.in - T.gone - T.out - 0.1, 'and not again for a while');
+});
+
+test('third stage: her barrage, 3 to 5 quick vanishings, a quick ball of any level after each', (t) => {
+  const rate = EVIL.barrage.rate;
+  EVIL.barrage.rate = 1000;
+  t.after(() => (EVIL.barrage.rate = rate));
+  const B = EVIL.barrage,
+    counts = [],
+    levels = new Set();
+  for (let seed = 1; seed <= 12; seed++) {
+    freshGame();
+    seedRandom(seed);
+    const e = arena(300, { barrageCd: 0, teleCd: 99, rushCd: 99, runCd: 99 });
+    e.hp = e.T.hp * 0.2;
+    const keep = () => Object.assign(hold(e), { teleCd: 99, rushCd: 99, runCd: 99 });
+    step(DT * 2, keep);
+    assert.equal(e.state, 'tout', 'the barrage starts with a vanishing');
+    let blinks = 0,
+      balls = 0,
+      was = e.state,
+      castT = 0;
+    for (let i = 0; i < 60 * 8 && (e.inBarrage || i < 2); i++) {
+      step(DT, keep);
+      P.hp = 100;
+      P.inv = 1;
+      if (e.state !== was) {
+        if (e.state === 'tout') blinks++;
+        if (e.state === 'eball') {
+          castT = 0;
+          levels.add(e.lv);
+          assert.ok(Math.abs(e.y - P.y) <= 12, "back on the player's line");
+          assert.ok(Math.abs(e.x - P.x) >= EVIL.tele.min - 1, 'well away from her');
+        }
+        if (e.state === 'hrel') {
+          balls++;
+          assert.ok(castT <= B.wind + 2 * DT, `gathered in no time (${castT})`);
+        }
+        was = e.state;
+      }
+      if (e.state === 'eball') castT += DT;
+    }
+    counts.push(balls);
+    assert.equal(balls, blinks + 1, 'a ball after each vanishing');
+    assert.ok(balls >= B.n[0] && balls <= B.n[1], `${balls} balls`);
+    assert.ok(e.barrageCd > 0);
+  }
+  assert.ok(new Set(counts).size >= 2, `not always the same number: ${counts}`);
+  assert.deepEqual([...levels].sort(), [1, 2, 3], 'plain, stronger and strongest balls');
+});
+
+test('in the third stage she vanishes twice as often as in the second', () => {
+  const T = EVIL.tele;
+  for (const [f, mul] of [
+    [0.6, 1],
+    [0.2, 2],
+  ]) {
+    for (let k = 0; k < 20; k++) {
+      freshGame();
+      seedRandom(k + 1);
+      const e = arena(300);
+      e.hp = e.T.hp * f;
+      e.stage = stageOf(e);
+      FOES.evil.moves.find((m) => m.go.name === 'teleport').go(e);
+      assert.ok(
+        e.teleCd >= T.cd[0] / mul - 1e-9 && e.teleCd <= T.cd[1] / mul + 1e-9,
+        `${e.teleCd}`,
+      );
+    }
+  }
+  assert.equal(T.third, 2);
+});
+
+test('her end: a violet mist covers her body and bats burst from it every way', () => {
+  const e = arena(200);
+  const D = EVIL.death;
+  hurtEnemy(e, 5000, 1, true, 'punch');
+  assert.equal(e.state, 'edie');
+  // (her fall slows the world down for a moment: her own clock says how far she is)
+  const until = (t) => {
+    for (let i = 0; i < 60 * 10 && !e.dead && e.t < t; i++) update(DT);
+  };
+  until(D.mist + 0.3);
+  assert.ok(
+    G.parts.some((p) => p.k === 'mist'),
+    'the mist gathers over her',
+  );
+  assert.ok(evilShown(e) > 0, 'her body is still there');
+  until(D.bats + 0.05);
+  const bats = G.parts.filter((p) => p.k === 'bat' && p.vx !== undefined);
+  assert.ok(bats.length >= 10, 'bats burst out');
+  assert.ok(bats.some((b) => b.vx > 0) && bats.some((b) => b.vx < 0), 'both ways along the road');
+  assert.ok(bats.some((b) => b.vy > 0) && bats.some((b) => b.vy < 0), 'and in depth');
+  until(D.gone + 0.05);
+  assert.equal(evilShown(e), 0, 'the body is gone under the mist');
+  until(3.1);
+  assert.ok(e.dead);
 });
