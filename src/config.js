@@ -872,6 +872,9 @@ export const LUCY = {
   streakMax: 0.6,
   keep: 1,
   crit: 2,
+  // J J K: after two punches, a single heavy shot (it knocks down, `fin` times the pistol's
+  // damage, sparks of its own); one round, and it does not go on into a run of shots
+  fin: 3,
 };
 // Lucy's luck: a blow that would finish her has `chance` (plus `perRank` for each style rank,
 // D to SSS) not to: she goes down and gets up with `hp` of her health, under a neon sign that
@@ -925,6 +928,8 @@ export const D = {
   thr: [0.05, 0.08, 0.09, 0.12],
   // Lucy's pistol (K, in place of the bone): side on, drawing it, aiming, firing
   gun: [0.05, 0.08, 0.07, 0.14],
+  // her shot after two punches (J J K): straight to the last two frames, aimed and firing
+  gunFin: [0.04, 0.16],
   // Lucy's grenade (L): in hand, arm back, letting go (it flies from here), arm out, follow through
   nade: [0.07, 0.12, 0.06, 0.08, 0.16],
   hado: [0.06, 0.09, 0.08, 0.08, 0.1, 0.1],

@@ -240,6 +240,76 @@ test('Lucy keeps firing while K is held, aiming and firing in turn, each shot pa
   P.who = 'raithwyn';
 });
 
+test('Lucy: J J K, a heavy shot straight from the aim: it knocks down, three times the damage, one round', async () => {
+  const { BULLET, D, LUCY } = await import('../src/config.js');
+  // J, J (two punches), then K: the pistol comes up already aimed
+  const jjk = (holdK = false) => {
+    for (const b of ['atk', 'atk']) {
+      pressed[b] = true;
+      update(DT);
+      delete pressed[b];
+      for (let i = 0; i < 0.12 / DT; i++) update(DT);
+    }
+    pressed.bone = true;
+    if (holdK) keys.bone = true;
+    update(DT);
+    delete pressed.bone;
+    for (let i = 0; i < 0.3 / DT && P.state !== 'gunFin'; i++) update(DT);
+  };
+  const setup = () => {
+    freshGame();
+    Object.assign(P, { who: 'lucy', x: 300, y: 450, ammo: LUCY.ammo, streak: 0 });
+    G.props = [];
+    G.items = [];
+  };
+  setup();
+  const e = spawn('grunt', 1, 800, 450);
+  Object.assign(e, { state: 'chase', hp: 500 });
+  jjk();
+  assert.equal(P.state, 'gunFin', 'her shot after two punches');
+  let shot = null;
+  for (let t = 0; t <= D.gunFin[0] + DT && !shot; t += DT) {
+    update(DT);
+    assert.equal(P.an[0], 'throw');
+    assert.ok(P.an[1] >= 2, 'straight to the aiming and firing frames');
+    shot = G.projs.find((q) => q.k === 'bullet');
+  }
+  assert.ok(shot && shot.fin, 'fired at once');
+  assert.equal(shot.dmg, BULLET.dmg * 3, 'three times the pistol');
+  assert.equal(P.ammo, LUCY.ammo - 1, 'one round');
+  const hp = e.hp;
+  for (let i = 0; i < 0.3 / DT && e.hp === hp; i++) update(DT);
+  assert.ok(e.hp < hp);
+  assert.ok(['air', 'down'].includes(e.state), `it knocks down (${e.state})`);
+  assert.ok(
+    G.parts.some((p) => p.k === 'gring' && p.col === '#ffcf4a'),
+    'golden sparks of its own',
+  );
+
+  // K held: still one shot, no run of shots after it
+  setup();
+  jjk(true);
+  for (let t = 0; t < 0.8; t += DT) update(DT);
+  keys.bone = false;
+  assert.equal(P.ammo, LUCY.ammo - 1, 'one shot only');
+  assert.notEqual(P.state, 'throw');
+
+  // no round left: no shot
+  setup();
+  P.ammo = 0;
+  jjk();
+  assert.notEqual(P.state, 'gunFin');
+  assert.equal(G.projs.filter((q) => q.k === 'bullet').length, 0);
+
+  // K alone is her plain shot
+  setup();
+  pressed.bone = true;
+  update(DT);
+  delete pressed.bone;
+  assert.equal(P.state, 'throw');
+  P.who = 'raithwyn';
+});
+
 test('Lucy has her own frames for taking a hit and being knocked down', async () => {
   const { FR } = await import('../src/lucy-frames.js');
   assert.equal(FR.hurt.length, 2);
