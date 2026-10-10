@@ -182,6 +182,38 @@ test('her wail stuns whoever is in its cone for half a second; out of its depth,
   assert.notEqual(P.state, 'dazed');
 });
 
+test('from afar she conjures a slow skull: open to blows meanwhile; it knocks down, or is dodged', () => {
+  const e = foe('banshee', 420);
+  Object.assign(e, { state: 'gfloat', t: 1, floatT: 9, castCd: 0 });
+  update(DT);
+  assert.equal(e.state, 'gcast');
+  const hp = e.hp;
+  assert.equal(hurtEnemy(e, 1, -1, false, 'punch'), true, 'shown, she can be hit');
+  assert.ok(e.hp < hp);
+  Object.assign(e, { state: 'gcast', t: 0, cast: false, x: P.x + 420, face: -1 });
+  step(BANSHEE.castWind + 0.05);
+  const q = G.projs.find((p) => p.k === 'skull');
+  assert.ok(q, 'the skull flies');
+  assert.ok(q.vx < 0 && Math.abs(q.vx) === BANSHEE.skullSpeed, 'slowly, at the player');
+  const hp0 = P.hp;
+  for (let i = 0; i < 4 / DT && q.life > 0; i++) update(DT);
+  assert.equal(P.state, 'ko', 'it knocks her down');
+  assert.equal(P.hp, hp0 - BANSHEE.skullDmg);
+  // the next one: she steps out of its line
+  freshGame();
+  G.waveI = 99;
+  G.cam = WAVES.at(-1).x - 600;
+  Object.assign(P, { x: G.cam + 300, y: (GT + GB) / 2 });
+  const e2 = foe('banshee', 420, { state: 'gcast', t: 0, cast: false });
+  step(BANSHEE.castWind + 0.05);
+  const q2 = G.projs.find((p) => p.k === 'skull');
+  P.y += 60;
+  for (let i = 0; i < 6 / DT && q2.life > 0; i++) update(DT);
+  assert.notEqual(P.state, 'ko', 'dodged');
+  assert.ok(q2.life <= 0, 'gone off the screen');
+  void e2;
+});
+
 test('she dies dissolving into the air, no bones', () => {
   const e = foe('banshee', 200, { state: 'gshow', t: 0 });
   const debris = G.debris.length;

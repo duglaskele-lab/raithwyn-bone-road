@@ -81,10 +81,12 @@ export function drawAura(e) {
  *   look.mount   what it rides (drawn under it)       look.back   behind the body
  *   look.torso   over the ribs                         look.legs   over the front leg
  *   look.head    on the skull                          look.weapon in the front hand
+ *   look.arm     over the front arm
  *   look.world   effects in screen space               look.sleeves(fl) robe sleeves
  *   look.rise    seconds it takes to climb out of the ground
  * Every hook gets one object with what it may need: e, T, o (the pose), fl (hit flash),
- * col, dk, s, sx, sy, hipH, neck, sh, limb, TH, SH and, for the weapon, L, h (hand), wa.
+ * col, dk, s, sx, sy, hipH, neck, sh, limb, TH, SH, UA, FA and, for the weapon and the front
+ * arm, L, h (hand), wa.
  * With `aura` false the purple armor glow is left out (it is then drawn apart).
  */
 export function drawSkel(e, aura = true) {
@@ -149,7 +151,7 @@ export function drawSkel(e, aura = true) {
     ctx.fill();
     return h;
   };
-  const c = { e, T, o, fl, col, dk, s, sx, sy, hipH, neck, sh, limb, TH, SH };
+  const c = { e, T, o, fl, col, dk, s, sx, sy, hipH, neck, sh, limb, TH, SH, UA, FA };
   // back limbs
   arm(o.aB, dk, -3);
   leg(o.lB, dk, -3);
@@ -286,6 +288,7 @@ export function drawSkel(e, aura = true) {
   ctx.beginPath();
   ctx.arc(h[0], h[1], 4.6, 0, TAU);
   ctx.fill();
+  F.look?.arm?.(c);
   ctx.restore();
   F.look?.world?.(c);
 }

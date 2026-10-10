@@ -33,6 +33,7 @@ import { spawn, updEnemy } from './enemies.js';
 import { waveSpawns } from './waves.js';
 import { dandies, evilHitP, evilHurt } from './foes/evil.js';
 import { roadBand } from './foes/strongman.js';
+import { skullBall, skullBurst } from './foes/banshee.js';
 import { explode, updFuses } from './blast.js';
 import { camTo, floorClamp, followPath, levelWaves, pathAt, pathPx, startLevel } from './level.js';
 
@@ -227,6 +228,10 @@ export function update(dt) {
       quakeWave(q);
       continue;
     }
+    if (q.k === 'skull') {
+      skullBall(q, dt);
+      continue;
+    }
     if (q.k === 'bone') {
       q.rot += dt * 24 * Math.sign(q.vx);
       if (q.life < 0.25) q.z -= 260 * dt;
@@ -415,11 +420,14 @@ export function update(dt) {
       }
       for (const o of G.projs)
         if (
-          (o.k === 'ebone' || o.k === 'acid') &&
+          (o.k === 'ebone' || o.k === 'acid' || o.k === 'skull') &&
+          o.life > 0 &&
           Math.abs(o.x - q.x) < 40 &&
           Math.abs(o.y - q.y) < 40
-        )
+        ) {
           o.life = 0;
+          if (o.k === 'skull') skullBurst(o);
+        }
       if (q.x < G.cam - 120 || q.x > G.cam + W + 120) q.life = 0;
     } else if (q.k === 'zhead') {
       // a zombie's thrown head: an arc, a bite on a hit, otherwise it rolls on the ground

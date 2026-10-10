@@ -35,6 +35,7 @@ import { hadoLevel } from './combat.js';
 import { boneShape, drawAura, drawSkel } from './skeleton.js';
 import { drawBike } from './foes/bikes.js';
 import { roadBand } from './foes/strongman.js';
+import { drawSkull } from './foes/banshee.js';
 import { FOES } from './foes/registry.js';
 import { stick } from './foes/dynamite.js';
 import { drawHelmetDebris } from './foes/prospector.js';
@@ -617,6 +618,10 @@ export function drawProj(q) {
     ctx.fill();
     return;
   }
+  if (q.k === 'skull') {
+    drawSkull(x, y, 20, Math.sign(q.vx) || 1, q.rot);
+    return;
+  }
   if (q.k === 'quake') {
     // the strongman's shock wave: a ridge of rock spikes heaving up across the road
     const [y0, y1] = roadBand(q.x),
@@ -1128,7 +1133,12 @@ export function drawWorld() {
   for (const it of G.items) shadow(it.x, it.y, it.z, 12);
   for (const q of G.projs)
     if (q.k !== 'bullet' && q.k !== 'quake')
-      shadow(q.x, q.y, q.z, q.k === 'hado' ? 26 * q.lv : q.k === 'plasma' ? 20 : 10);
+      shadow(
+        q.x,
+        q.y,
+        q.z,
+        q.k === 'hado' ? 26 * q.lv : q.k === 'plasma' || q.k === 'skull' ? 20 : 10,
+      );
   if (APP.state !== 'title') shadow(P.x, P.y, P.z, 40);
   const list = [];
   for (const d of G.debris) list.push([d.gy - 1, drawDebris, d]);

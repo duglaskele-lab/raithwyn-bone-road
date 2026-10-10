@@ -309,7 +309,7 @@ export function finale(e) {
         shatter(o, o.x < e.x ? -1 : 1);
       }
     G.projs = G.projs.filter(
-      (p) => !['ebone', 'ehado', 'acid', 'plasma', 'shell', 'quake'].includes(p.k),
+      (p) => !['ebone', 'ehado', 'acid', 'plasma', 'shell', 'quake', 'skull'].includes(p.k),
     );
     G.pools = [];
     G.shocks = [];
