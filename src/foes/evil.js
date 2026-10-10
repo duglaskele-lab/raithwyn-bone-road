@@ -55,7 +55,7 @@ export function evilHitP(e, dmg, dir, knock) {
 }
 /** The player is in the middle of an attack (what she leaps away from). */
 const attacking = () =>
-  ['atk1', 'atk2', 'throw', 'hado', 'super', 'bigGun', 'nade'].includes(P.state);
+  ['atk1', 'atk2', 'throw', 'gunFin', 'hado', 'super', 'bigGun', 'nade'].includes(P.state);
 
 // --- her orb -----------------------------------------------------------------------------------
 

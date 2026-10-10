@@ -236,7 +236,7 @@ export function grabPlayer(e) {
     p.inv > 0 ||
     p.z > 6 ||
     APP.state !== 'play' ||
-    !['idle', 'walk', 'run', 'atk1', 'atk2', 'throw'].includes(p.state)
+    !['idle', 'walk', 'run', 'atk1', 'atk2', 'throw', 'gunFin'].includes(p.state)
   )
     return false;
   if (p.hp <= e.T.dmg) return hitPlayer(e.T.dmg, e.face, false) && false;

@@ -39,6 +39,20 @@ export function toIdle() {
   P.t = 0;
   P.an = ['idle', 0];
 }
+/** Lucy's shot after two punches (J J K): one round, one heavy shot (LUCY.fin). */
+function startFinShot() {
+  const p = P;
+  p.buf = null;
+  p.combo = 0;
+  if (p.ammo <= 0) {
+    SFX.deny();
+    return false;
+  }
+  p.state = 'gunFin';
+  p.t = 0;
+  p.sw = 0;
+  return true;
+}
 export function startAtk(mx) {
   const p = P;
   p.buf = null;
@@ -138,6 +152,7 @@ export function updPlayer(dt) {
         p.airT = null;
         p.airUsed = 0;
       } else if (b === 'atk') startAtk(mx);
+      else if (b === 'bone' && p.who === 'lucy' && p.combo >= 2 && p.comboT > 0) startFinShot();
       else if (b === 'bone' && p.who === 'lucy') {
         // Lucy's K: she draws her pistol and fires, if she has a round left
         p.buf = null;
@@ -252,6 +267,11 @@ export function updPlayer(dt) {
         }
         strike({ x0: 0, x1: 100, dy: 27, dmg: 8, knock: false, rage: RAGE.punch });
       }
+      // Lucy, two punches in: K now is her heavy shot instead of a third punch
+      if (i >= 3 && p.who === 'lucy' && p.combo >= 2 && p.buf === 'bone' && p.bufT > 0) {
+        if (!startFinShot()) toIdle();
+        break;
+      }
       if (i >= 3 && ((p.buf === 'atk' && p.bufT > 0) || keys.atk)) startAtk(mx);
       break;
     }
@@ -277,6 +297,55 @@ export function updPlayer(dt) {
           knock: true,
           rage: RAGE.finisher,
           launch: !!keys.u,
+        });
+      }
+      break;
+    }
+    case 'gunFin': {
+      // the pistol comes up already aimed (her third and fourth frames): one heavy shot, and
+      // no more however long K is held
+      const i = tl(D.gunFin, p.t);
+      if (i < 0) {
+        toIdle();
+        break;
+      }
+      p.an = ['throw', 2 + i];
+      if (i >= 1 && !p.sw) {
+        p.sw = 1;
+        p.ammo--;
+        p.streakT = 0;
+        SFX.gun();
+        SFX.heavy();
+        G.shake = Math.max(G.shake, 6);
+        const mx = p.x + p.face * BULLET.x,
+          my = p.y - BULLET.z;
+        // a burst of golden sparks at the muzzle
+        for (let k = 0; k < 10; k++) {
+          const a = (p.face > 0 ? 0 : Math.PI) + fxRnd(-0.7, 0.7),
+            v = fxRnd(160, 420);
+          G.parts.push({
+            k: 'glow',
+            x: mx,
+            y: my,
+            vx: Math.cos(a) * v,
+            vy: Math.sin(a) * v,
+            g: 300,
+            t: 0,
+            life: fxRnd(0.15, 0.3),
+            s: fxRnd(2.5, 4.5),
+            col: k % 3 ? '#ffd24a' : '#ffffff',
+          });
+        }
+        G.projs.push({
+          k: 'bullet',
+          fin: true,
+          dmg: BULLET.dmg * LUCY.fin,
+          x: mx,
+          y: p.y,
+          z: BULLET.z,
+          vx: p.face * BULLET.speed,
+          rot: 0,
+          life: BULLET.life,
         });
       }
       break;

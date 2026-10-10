@@ -618,15 +618,16 @@ export function drawProj(q) {
   }
   if (q.k === 'bullet') {
     // a streak of light along its path
+    // (Lucy's shot after two punches: longer, thicker, golden)
     const d = Math.sign(q.vx) || q.d,
-      len = q.big ? 150 : 70,
+      len = q.big ? 150 : q.fin ? 120 : 70,
       g = ctx.createLinearGradient(x - d * len, y, x, y);
-    g.addColorStop(0, 'rgba(255,220,120,0)');
-    g.addColorStop(1, 'rgba(255,250,220,1)');
+    g.addColorStop(0, q.fin ? 'rgba(255,190,60,0)' : 'rgba(255,220,120,0)');
+    g.addColorStop(1, q.fin ? 'rgba(255,230,140,1)' : 'rgba(255,250,220,1)');
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     ctx.strokeStyle = g;
-    ctx.lineWidth = q.big ? 11 : 3;
+    ctx.lineWidth = q.big ? 11 : q.fin ? 6 : 3;
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(x - d * len, y);

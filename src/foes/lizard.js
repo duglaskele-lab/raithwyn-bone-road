@@ -436,7 +436,7 @@ export default defineFoe('lizard', {
       when: (e, s) =>
         e.dodgeCd <= 0 &&
         !s.pdown &&
-        ['atk1', 'atk2', 'throw'].includes(P.state) &&
+        ['atk1', 'atk2', 'throw', 'gunFin'].includes(P.state) &&
         P.t < 0.1 &&
         s.adx < 170 &&
         s.ady < 50 &&
