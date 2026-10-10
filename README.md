@@ -33,8 +33,7 @@ ones off, and it spares her (`GRENADE` and `BLAST.grenade` in `src/config.js`). 
 luck: a blow that would finish her has a 10% chance, plus 5% for each style rank (45% at SSS),
 to leave her on 10% of her health instead; she goes down, gets up, and a blue neon sign above her
 says "you feel lucky!" (`LUCK`). If she loses a stage anyway, she has her own line to say about
-it. A blow that comes while she is on her feet and not busy misses one time in ten: she dodges
-it, with one of three dodges (`LUCK.evade`). Her `L` is a big gun instead of the dark ball, with no charging:
+it. (She no longer dodges blows by chance: what happens to her depends only on the player.) Her `L` is a big gun instead of the dark ball, with no charging:
 she draws it and fires, shot after shot while `L` is held; each shot costs a fifth of the bar
 (60) and comes slower than her pistol's (0.36 s), in a shower of sparks. Its bullet is wide and
 hard (40 damage) and goes on through whoever it hits, a fifth weaker each time, until nothing is
@@ -168,7 +167,16 @@ How it works: all the randomness of the simulation comes from one seeded generat
 in `src/util.js`), and from the outside the simulation only gets the time step (in whole
 milliseconds) and the buttons. A run is the seed plus, for each frame, the step and the pressed
 buttons (`src/replay.js`). Screen shake and synth noise take their randomness elsewhere and do
-not affect the game.
+not affect the game. Three rules keep it so (and tests check them):
+
+- Drawing never draws on the game's generator nor changes the world: a frame drawn or not, at
+  any frame rate, the run goes the same way.
+- The light picture (`G.lowFx`, switched on by itself on a slow device, maybe in the middle of
+  a run) only changes the look: never how many particles there are or anything else in the
+  world.
+- A new run and a replay start from the same numbers: `reset()` clears all a run may leave
+  behind (the clock, a hit-stop, shake, a burn under way, a grab...), so a replay watched right
+  after a run plays it exactly.
 
 ## Readability and juggling
 
@@ -586,7 +594,8 @@ What is checked:
   the close-range counter, the kick, 3 seconds on screen before the stance, taking the stance
   again.
 - `replay.test.js` — the same seed and buttons give the same run; a recorded run (and the same
-  run from a file) replays exactly.
+  run from a file) replays exactly, even right after another run that left things behind;
+  drawing every frame, and the light picture, change nothing in a fight with every kind of foe.
 - `skeleton.test.js` — every enemy has a valid pose in every state.
 - `util.test.js` — helper functions.
 
@@ -678,7 +687,8 @@ frame, which also lines the row up: its boots are the anchor and its ground the 
 `REF_VIDEOS`): `run2` (her second run, kept but not used: 8 frames over one stride of run_2.mp4, after she sets off), `drink` (the
 win, drink.mp4: 16 frames of sitting down and taking out the bottle, then the last 7, drunk from
 back and forth, `DRINK_LOOP` and `FIGHTER_ANIM.lucy.drink`), `evade1`, `evade2` and `evade3`
-(three dodges from evade.mp4, without its explosions) and `super` (super_gun.mp4: six frames of
+(three dodges from evade.mp4, without its explosions; kept in the atlas, not used since her
+dodge by chance is gone) and `super` (super_gun.mp4: six frames of
 drawing the gun, six of firing), and her run, `run`: the six drawn figures of run_3.png (`RUN3`), lined
 up by the head (it barely moves in a run, while the sleeves swing), each at its own height above
 the ground, so she bobs a little; 0.1 s a frame (`FIGHTER_ANIM.lucy.run`), `punch1` and `punch2`

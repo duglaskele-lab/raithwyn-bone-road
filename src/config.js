@@ -858,8 +858,7 @@ export const LUCY = {
 // Lucy's luck: a blow that would finish her has `chance` (plus `perRank` for each style rank,
 // D to SSS) not to: she goes down and gets up with `hp` of her health, under a neon sign that
 // says so for `sign` seconds.
-export const LUCK = { chance: 0.1, perRank: 0.05, hp: 0.1, sign: 2.4, evade: 0.1 };
-// (`evade`: the chance that a blow on her, on her feet and not busy, misses: she dodges it)
+export const LUCK = { chance: 0.1, perRank: 0.05, hp: 0.1, sign: 2.4 };
 // Lucy's big gun (L): she draws it (`draw` s a frame, six frames) and fires, again and
 // again while L is held; each shot costs `cost` (a fifth of the rage bar) and takes `shot`
 // seconds (muzzle flash, flash, smoke, aim): slower than her pistol, but a bullet does `dmg`
@@ -899,8 +898,6 @@ export const FIGHTER_ANIM = {
         [17, 18, 19, 20, 21, 21, 21, 21, 21, 20, 19, 18, 17],
       ],
     },
-    // a dodge: seconds a frame; the three dodges have 7, 7 and 6 frames
-    evade: 0.06,
   },
 };
 // Player animation timelines: seconds per frame of each attack.

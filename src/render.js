@@ -875,8 +875,10 @@ export function drawPart(p) {
       ctx.restore();
       break;
     case 'bat': {
-      // a violet bat: wheeling round its spot (closing in and rising), or flying off
-      if (p.t < 0) break;
+      // a violet bat: wheeling round its spot (closing in and rising), or flying off (in a
+      // light picture every other one is left out: only the look changes, never how many
+      // there are, which would change the game's chance and so its replays)
+      if (p.t < 0 || (G.lowFx && p.ph < Math.PI)) break;
       let bx = x,
         by = y,
         dir = Math.sign(p.vx ?? 1) || 1;
@@ -922,6 +924,7 @@ export function drawPart(p) {
     }
     case 'mist': {
       // a puff of violet mist: it swells, drifts up a little, thins out
+      if (G.lowFx && p.s < 36) break;
       const r = p.s * (0.6 + 0.8 * u),
         a = Math.sin(Math.PI * Math.min(1, u * 1.15)) * 0.5,
         g = ctx.createRadialGradient(x, y, 1, x, y, r);

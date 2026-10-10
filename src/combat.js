@@ -347,20 +347,6 @@ export function hitPlayer(dmg, dir, knock) {
   const p = P;
   if (p.inv > 0 || G.state !== 'play' || ['ko', 'down', 'getup', 'dead', 'win'].includes(p.state))
     return false;
-  // Lucy may dodge a blow that comes while she is on her feet and not busy
-  if (
-    p.who === 'lucy' &&
-    ['idle', 'walk', 'run'].includes(p.state) &&
-    p.z <= 0 &&
-    random() < LUCK.evade
-  ) {
-    p.state = 'evade';
-    p.ev = 1 + Math.floor(random() * 3);
-    p.t = 0;
-    p.inv = Math.max(p.inv, 0.4);
-    SFX.swing();
-    return false;
-  }
   p.hp = Math.max(0, p.hp - dmg);
   // Lucy's luck: the blow that would finish her may not; she still goes down
   const lucky =

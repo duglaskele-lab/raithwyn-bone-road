@@ -82,6 +82,14 @@ export function reset() {
     styT: 0,
     styPop: 0,
     acidT: 0,
+    // (everything a run may have left on her, so that a run and its replay start alike)
+    fireT: 0.1,
+    shots: 0,
+    grabber: null,
+    hold: 0,
+    dkStep: -1,
+    dkWay: 0,
+    dkPos: -1,
   });
   G.cam = 0;
   G.camY = 0;
@@ -100,6 +108,13 @@ export function reset() {
   G.debris = [];
   G.floats = [];
   G.lastFoe = null;
+  // the clock and the hit-stop, shake and flash too: a replay must start from the same numbers
+  G.time = 0;
+  G.lastFoeT = 0;
+  G.freeze = 0;
+  G.shake = 0;
+  G.flash = 0;
+  G.evilHit = false;
   G.endT = 0;
   G.slow = 0;
   G.bikes = 0;

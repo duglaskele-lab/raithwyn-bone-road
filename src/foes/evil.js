@@ -388,7 +388,6 @@ export function drawEvil(e, whole = true) {
 
 /** Violet bats wheeling round a spot on the ground, closing in and rising as they go. */
 function batSwirl(x, y, n, life) {
-  if (G.lowFx) n = Math.ceil(n / 2);
   for (let k = 0; k < n; k++)
     G.parts.push({
       k: 'bat',
@@ -408,7 +407,6 @@ function batSwirl(x, y, n, life) {
 }
 /** Bats bursting out of her, scattering up and away. */
 function batBurst(x, y, n) {
-  if (G.lowFx) n = Math.ceil(n / 2);
   for (let k = 0; k < n; k++) {
     const a = rnd(-Math.PI * 0.95, -Math.PI * 0.05),
       v = rnd(220, 420);
@@ -428,7 +426,6 @@ function batBurst(x, y, n) {
 }
 /** Puffs of violet mist round a spot, from the ground up to her height. */
 function mist(x, y, n, spread = 70) {
-  if (G.lowFx) n = Math.ceil(n / 2);
   for (let k = 0; k < n; k++)
     G.parts.push({
       k: 'mist',

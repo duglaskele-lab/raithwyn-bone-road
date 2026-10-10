@@ -377,40 +377,26 @@ test('Lucy: 20% less health, and her luck: a finishing blow may leave her on 10%
   assert.equal(P.hp, 0);
 });
 
-test('Lucy: her new run, a dodge now and then, her big gun for the super, and a drink when she wins', async () => {
+test('Lucy: her new run, no dodging by luck, her big gun for the super, and a drink when she wins', async () => {
   const { FR } = await import('../src/lucy-frames.js');
-  const { FIGHTER_ANIM, LUCK } = await import('../src/config.js');
+  const { FIGHTER_ANIM } = await import('../src/config.js');
   const { newRun } = await import('../src/replay.js');
   const { hitPlayer } = await import('../src/combat.js');
   assert.equal(FR.run.length, 6, 'her drawn run');
   assert.equal(FR.run2.length, 8, 'her second run is kept too');
   assert.equal(FR.run1.length, 8, 'the first run is kept in the atlas');
-  assert.deepEqual([FR.evade1.length, FR.evade2.length, FR.evade3.length], [7, 7, 6]);
   assert.equal(FR.super.length, 12);
   const d = FIGHTER_ANIM.lucy.drink;
   assert.equal(FR.drink.length, d.intro + d.loop);
   newRun(7, 1, 'lucy');
-  // a blow on her feet: now and then she dodges it, with one of her three dodges
-  let dodged = 0;
-  const kinds = new Set();
-  for (let i = 0; i < 400; i++) {
+  // a blow on her feet always lands: no dodging it by chance any more
+  for (let i = 0; i < 200; i++) {
     Object.assign(P, { state: 'idle', inv: 0, z: 0, hp: 90 });
     G.state = 'play';
-    hitPlayer(5, 1, false);
-    if (P.state === 'evade') {
-      dodged++;
-      kinds.add(P.ev);
-      assert.equal(P.hp, 90, 'a dodged blow does no harm');
-    }
+    assert.equal(hitPlayer(5, 1, false), true);
+    assert.equal(P.hp, 85);
   }
-  assert.ok(Math.abs(dodged / 400 - LUCK.evade) < 0.04, `about one in ten (${dodged})`);
-  assert.equal(kinds.size, 3, 'all three dodges');
   G.freeze = 0;
-  Object.assign(P, { state: 'evade', ev: 2, t: 0, inv: 0 });
-  update(DT);
-  assert.equal(P.an[0], 'evade2');
-  for (let t = 0; t < 0.6; t += DT) update(DT);
-  assert.equal(P.state, 'idle', 'back on guard');
   // the win: she sits down and then drinks on and on, the last frames back and forth
   Object.assign(P, { state: 'win', t: 0 });
   const seen = new Set(),
