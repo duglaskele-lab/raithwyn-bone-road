@@ -76,6 +76,14 @@ export function hurtEnemy(e, dmg, dir, knock, src, launch = false) {
     F.immune?.(e)
   )
     return false;
+  // its own defence first: a blow it blocks does no harm at all (a shield), or it takes less
+  if (F.block?.(e, dir, knock, src, crush)) {
+    G.lastFoe = e;
+    G.lastFoeT = 3;
+    G.freeze = Math.max(G.freeze, 0.04);
+    return true;
+  }
+  dmg *= F.soak?.(e, knock, src, crush) ?? 1;
   e.hp -= dmg;
   e.flash = 0.12;
   G.lastFoe = e;
@@ -300,7 +308,9 @@ export function finale(e) {
         o.dead = true;
         shatter(o, o.x < e.x ? -1 : 1);
       }
-    G.projs = G.projs.filter((p) => !['ebone', 'ehado', 'acid', 'plasma', 'shell'].includes(p.k));
+    G.projs = G.projs.filter(
+      (p) => !['ebone', 'ehado', 'acid', 'plasma', 'shell', 'quake'].includes(p.k),
+    );
     G.pools = [];
     G.shocks = [];
   }
@@ -355,6 +365,24 @@ export function grabPlayer(e) {
   SFX.grab();
   Object.assign(p, { state: 'grabbed', t: 0, grabber: e, hold: ZOMBIE.hold, buf: null });
   p.face = e.x >= p.x ? 1 : -1;
+  return true;
+}
+/** A wail that stuns: the heroine on her feet reels for `dur` seconds, taking `dmg`. */
+export function stunPlayer(dmg, dur) {
+  const p = P;
+  if (
+    p.inv > 0 ||
+    p.z > 8 ||
+    APP.state !== 'play' ||
+    !['idle', 'walk', 'run', 'atk1', 'atk2', 'throw', 'gunFin', 'nade', 'bigGun', 'hado'].includes(
+      p.state,
+    )
+  )
+    return false;
+  p.hp = Math.max(1, p.hp - dmg);
+  styleBreak();
+  SFX.hurt();
+  Object.assign(p, { state: 'dazed', t: 0, dazeT: dur, buf: null });
   return true;
 }
 export function breakProp(e) {

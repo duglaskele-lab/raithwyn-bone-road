@@ -588,6 +588,59 @@ export const TYPES = {
     eye: '#fff36a',
     score: 60,
   },
+  // the saloon strongman (STRONG): huge, his plain attack a grab
+  strongman: {
+    hp: 230,
+    scale: 1.42,
+    speed: 54,
+    dmg: 6, // the grab's squeeze; the throw is STRONG.throwDmg
+    reach: 78,
+    style: 'grab',
+    wind: 0.5,
+    act: 0.16,
+    rec: 0.7,
+    cd: [1.2, 2.2],
+    thick: 4,
+    weight: 'medium',
+    col: '#a3b48b',
+    dk: '#6f7f5c',
+    eye: '#fff36a',
+    score: 900,
+  },
+  // the banshee (BANSHEE): a ghost, light
+  banshee: {
+    hp: 44,
+    scale: 1,
+    speed: 70,
+    dmg: 4, // her wail (BANSHEE.dmg)
+    reach: 40,
+    style: 'other',
+    wind: 0.5,
+    act: 0.1,
+    rec: 0.4,
+    cd: [1, 2],
+    col: '#dff3ff',
+    dk: '#9fc7dd',
+    eye: '#7fe6ff',
+    score: 350,
+  },
+  // the shield bearer (SHIELD): a rusty shield in front, a spear
+  shield: {
+    hp: 52,
+    scale: 1.04,
+    speed: 66,
+    dmg: 10,
+    reach: 112,
+    style: 'punch',
+    wind: 0.45,
+    act: 0.14,
+    rec: 0.55,
+    cd: [1, 1.9],
+    col: '#e6dec4',
+    dk: '#b3a98c',
+    eye: '#ff8a3c',
+    score: 300,
+  },
   samurai: {
     hp: 80,
     scale: 1.08,
@@ -833,6 +886,51 @@ export const WAVES = [
 ];
 // How an ordinary fight is rolled. Each value given as [start, end] runs from the first fight
 // (lvl 0) to the last (lvl 1).
+// The shield bearer: its rusty shield stops every blow and shot from the front (blows from
+// behind, or over it, land); `heavy` heavy blows break it, or one crushing blow (that one goes
+// on through). It turns round only after the player has been behind it `turn` seconds.
+export const SHIELD = { heavy: 3, turn: 0.55 };
+// The saloon strongman (TYPES.strongman), a medium foe. His plain attack is a grab: held up
+// over his head (`lift` s), then thrown across the screen (`throwV`, `throwDmg`), bowling
+// over foes she flies into (`bowl` each); mashing buttons breaks free first (the hold lasts
+// `hold` s, each press takes ZOMBIE.mash off it). Now and then he flexes (`flex` s, at most
+// every `flexCd` s): blows do `soak` of their damage and do not stop him, a crushing blow
+// throws him. His ground slam (wind-up `slamWind` s) sends a shock wave along the ground to
+// the edge of the screen (`waveSpeed`), across the whole depth of the road: jump over it.
+export const STRONG = {
+  lift: 1.05,
+  hold: 1.6,
+  throwV: 900,
+  throwDmg: 14,
+  bowl: 16,
+  flex: 2,
+  flexCd: [11, 16],
+  soak: 0.1,
+  slamWind: 0.7,
+  slamCd: [5, 8],
+  waveSpeed: 560,
+  waveDmg: 12,
+};
+// The banshee (TYPES.banshee): a ghost that drifts about see-through (`ghost` of her
+// opacity), passing through everyone, and nothing can touch her then; for `drift` seconds she
+// keeps `keep` px off the player, then shows herself (`show` s, now she can be hit) and wails
+// (`wail` s): a cone `range` px long in front of her, `w0` to `w1` px deep either way, stuns
+// whoever is in it on the ground for `stun` s (`dmg`); step out of its depth to get away.
+// Then she fades again (`fade` s).
+export const BANSHEE = {
+  ghost: 0.3,
+  drift: [2, 3.4],
+  keep: 230,
+  speed: 70,
+  show: 0.75,
+  wail: 0.6,
+  fade: 0.45,
+  range: 320,
+  w0: 18,
+  w1: 70,
+  stun: 0.5,
+  dmg: 4,
+};
 export const WAVEGEN = {
   count: [6, 12], // enemies in the fight (give or take one)
   hard: [0.06, 0.36], // share of strong ones
@@ -842,7 +940,7 @@ export const WAVEGEN = {
   // who may come, and how often relative to the others of the same group
   pools: {
     easy: { grunt: 3, zombie: 4, monkey: 1.4 },
-    mid: { thrower: 1, necro: 1, biker: 0.8 },
+    mid: { thrower: 1, necro: 1, biker: 0.8, shield: 1 },
     hard: { brute: 1, fat: 1, samurai: 1.2 },
   },
 };

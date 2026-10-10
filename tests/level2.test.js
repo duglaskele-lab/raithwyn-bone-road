@@ -315,12 +315,19 @@ test('the minigun: spin-up, then bullets land close in front first and further o
   assert.ok(['ko', 'down', 'getup'].includes(P.state) || g.hits >= 3);
 });
 
-test('rolled fights of Old Quarry never bring more than two power armours', () => {
+test('rolled fights of Old Quarry: at most two power armours, one strongman, two banshees', () => {
+  const kinds = ['miner', 'zombie', 'dynamite', 'lizard', 'armor', 'strongman', 'banshee'],
+    seen = new Set();
   for (let i = 0; i < 300; i++) {
-    const w = rollWave(1, WAVEGEN2);
-    assert.ok(w.filter((s) => s[0] === 'armor').length <= 2);
-    assert.ok(w.every((s) => ['miner', 'zombie', 'dynamite', 'lizard', 'armor'].includes(s[0])));
+    const w = rollWave(1, WAVEGEN2),
+      n = (k) => w.filter((s) => s[0] === k).length;
+    assert.ok(n('armor') <= 2);
+    assert.ok(n('strongman') <= 1);
+    assert.ok(n('banshee') <= 2);
+    assert.ok(w.every((s) => kinds.includes(s[0])));
+    for (const s of w) seen.add(s[0]);
   }
+  assert.ok(seen.has('strongman') && seen.has('banshee'), 'the new ones do come');
 });
 
 test('the slime: plain hits do not stop its roll, a heavy blow does, a second one sends it back', () => {

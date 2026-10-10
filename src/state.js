@@ -69,6 +69,8 @@ function freshPlayer() {
     styT: 0,
     styPop: 0,
     acidT: 0,
+    thrown: null, // thrown by the strongman: the foes she has bowled over on the way
+    thrower: null,
     landed: false, // the punch under way has struck something
     finT: 0, // how long K still makes Lucy's heavy shot (J J K)
     fireT: 0.1,

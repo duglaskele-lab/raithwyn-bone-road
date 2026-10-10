@@ -287,6 +287,18 @@ export const SFX = {
       noise(0.09, 0.08, 1400, 700, 1.5, at);
     }
   },
+  // a banshee's wail: high, hollow voices sliding down and wavering, a hiss of breath
+  wail() {
+    for (const [f, d] of [
+      [1180, 0],
+      [1420, 0.03],
+      [880, 0.06],
+    ]) {
+      tone('sine', f, f * 0.55, 0.7, 0.07, d);
+      tone('triangle', f * 1.01, f * 0.6, 0.6, 0.04, d + 0.05);
+    }
+    noise(0.7, 0.12, 3200, 1400, 3);
+  },
   rise() {
     noise(0.5, 0.2, 200, 700, 1.2);
   },

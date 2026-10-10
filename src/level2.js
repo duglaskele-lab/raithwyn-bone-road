@@ -114,11 +114,11 @@ export const WAVEGEN2 = {
   gap: [0.95, 0.5],
   pools: {
     easy: { miner: 4, zombie: 3 },
-    mid: { dynamite: 1 },
-    hard: { lizard: 1.4, armor: 0.6 },
+    mid: { dynamite: 1, banshee: 0.8 },
+    hard: { lizard: 1.4, armor: 0.6, strongman: 0.7 },
   },
   // never more than this many of a kind in one fight
-  cap: { armor: 2 },
+  cap: { armor: 2, strongman: 1, banshee: 2 },
 };
 
 // Breakable things on the way: [x, depth into the floor, kind, drop]. Barrels break and may
