@@ -2,7 +2,7 @@
 // until a hit knocks him off; on foot he throws a chain that pulls the player in.
 import { CHAIN, FONT, GB, GT, HOG, OL, RW, TAU, W } from '../config.js';
 import { clamp, fxRandom, fxRnd, rnd } from '../util.js';
-import { G, P } from '../state.js';
+import { APP, G, P } from '../state.js';
 import { SFX } from '../audio.js';
 import { hitPlayer, killEnemy } from '../combat.js';
 import { defineFoe } from './registry.js';
@@ -235,7 +235,7 @@ export default defineFoe('biker', {
         s.ady < 22 &&
         P.z < 70 &&
         P.inv <= 0 &&
-        G.state === 'play' &&
+        APP.state === 'play' &&
         !['ko', 'down', 'getup', 'dead', 'win', 'pulled'].includes(P.state)
       ) {
         Object.assign(P, { state: 'pulled', puller: e, t: 0, z: 0, vz: 0, buf: null });

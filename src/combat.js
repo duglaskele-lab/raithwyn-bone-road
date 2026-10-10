@@ -15,7 +15,7 @@ import {
   ZOMBIE,
 } from './config.js';
 import { fxRnd, random, rnd } from './util.js';
-import { G, P } from './state.js';
+import { APP, G, P } from './state.js';
 import { SFX } from './audio.js';
 import { motes, shatter, spark } from './fx.js';
 import { spawn } from './enemies.js';
@@ -235,7 +235,7 @@ export function grabPlayer(e) {
   if (
     p.inv > 0 ||
     p.z > 6 ||
-    G.state !== 'play' ||
+    APP.state !== 'play' ||
     !['idle', 'walk', 'run', 'atk1', 'atk2', 'throw'].includes(p.state)
   )
     return false;
@@ -345,7 +345,7 @@ export function headBonus(e, zone) {
 }
 export function hitPlayer(dmg, dir, knock) {
   const p = P;
-  if (p.inv > 0 || G.state !== 'play' || ['ko', 'down', 'getup', 'dead', 'win'].includes(p.state))
+  if (p.inv > 0 || APP.state !== 'play' || ['ko', 'down', 'getup', 'dead', 'win'].includes(p.state))
     return false;
   p.hp = Math.max(0, p.hp - dmg);
   // Lucy's luck: the blow that would finish her may not; she still goes down
@@ -408,7 +408,7 @@ export function superNova() {
 // death follow.
 export function acidBite(dmg, fire = false) {
   const p = P;
-  if (p.inv > 0 || G.state !== 'play' || ['ko', 'down', 'getup', 'dead', 'win'].includes(p.state))
+  if (p.inv > 0 || APP.state !== 'play' || ['ko', 'down', 'getup', 'dead', 'win'].includes(p.state))
     return false;
   if (p.hp <= dmg) return hitPlayer(dmg, p.face, false);
   p.hp -= dmg;

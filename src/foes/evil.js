@@ -18,7 +18,7 @@
 // Otherwise she takes blows as a light enemy: a hit stops her, a heavy one throws her.
 import { EVIL, GB, GT, PURPLE, TAU, W } from '../config.js';
 import { clamp, ease, fxRandom, fxRnd, lerp, random, rnd } from '../util.js';
-import { G, P } from '../state.js';
+import { APP, G, P } from '../state.js';
 import { SFX } from '../audio.js';
 import { dust, motes } from '../fx.js';
 import { finale, hitPlayer, hurtEnemy } from '../combat.js';
@@ -388,7 +388,7 @@ export function drawEvil(e, whole = true) {
 
 /** Violet bats wheeling round a spot on the ground, closing in and rising as they go. */
 function batSwirl(x, y, n, life) {
-  if (G.lowFx) n = Math.ceil(n / 2); // (the look only: fxRandom, not the game's chance)
+  if (APP.lowFx) n = Math.ceil(n / 2); // (the look only: fxRandom, not the game's chance)
   for (let k = 0; k < n; k++)
     G.parts.push({
       k: 'bat',
@@ -408,7 +408,7 @@ function batSwirl(x, y, n, life) {
 }
 /** Bats bursting out of her, scattering up and away. */
 function batBurst(x, y, n) {
-  if (G.lowFx) n = Math.ceil(n / 2);
+  if (APP.lowFx) n = Math.ceil(n / 2);
   for (let k = 0; k < n; k++) {
     const a = fxRnd(-Math.PI * 0.95, -Math.PI * 0.05),
       v = fxRnd(220, 420);
@@ -428,7 +428,7 @@ function batBurst(x, y, n) {
 }
 /** Puffs of violet mist round a spot, from the ground up to her height. */
 function mist(x, y, n, spread = 70) {
-  if (G.lowFx) n = Math.ceil(n / 2);
+  if (APP.lowFx) n = Math.ceil(n / 2);
   for (let k = 0; k < n; k++)
     G.parts.push({
       k: 'mist',

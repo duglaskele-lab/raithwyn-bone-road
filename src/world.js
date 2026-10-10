@@ -19,7 +19,7 @@ import {
   PROS,
 } from './config.js';
 import { clamp, fxRandom, fxRnd, random, rnd } from './util.js';
-import { G, P } from './state.js';
+import { APP, G, P } from './state.js';
 import { SFX } from './audio.js';
 import { keys, pressed } from './input.js';
 import { dust, floatTxt, motes } from './fx.js';
@@ -74,7 +74,7 @@ export function updWaves(dt) {
         P.state = 'win';
         P.t = 0;
         P.z = 0;
-        G.state = 'win';
+        APP.state = 'win';
         G.endT = 0;
         P.score += P.lives * 1000 + Math.round(P.hp) * 10;
       }
@@ -158,9 +158,9 @@ function stageWarp(dt) {
 export function update(dt) {
   G.time += dt;
   // the Bone Road won: a moment of triumph, then on to Old Quarry (J, or by itself)
-  if (G.state === 'win' && G.level === 1 && G.endT > 2.4 && (pressed.atk || G.endT > 7)) {
+  if (APP.state === 'win' && G.level === 1 && G.endT > 2.4 && (pressed.atk || G.endT > 7)) {
     startLevel(2);
-    G.state = 'play';
+    APP.state = 'play';
     return;
   }
   if (G.banner) {

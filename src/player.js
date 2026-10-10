@@ -21,7 +21,7 @@ import {
   ZOMBIE,
 } from './config.js';
 import { clamp, fxRandom, fxRnd, random, tl } from './util.js';
-import { G, P } from './state.js';
+import { APP, G, P } from './state.js';
 import { keys, pressed } from './input.js';
 import { SFX } from './audio.js';
 import { dust, motes } from './fx.js';
@@ -99,12 +99,12 @@ export function updPlayer(dt) {
         p.seq = [];
       }
     }
-  if (!mx) G.runLatch = false;
+  if (!mx) APP.runLatch = false;
   switch (p.state) {
     case 'idle':
     case 'walk':
     case 'run': {
-      const run = (keys.run || G.runLatch) && mx !== 0,
+      const run = (keys.run || APP.runLatch) && mx !== 0,
         sp = run ? 435 : 180;
       if (mx) p.face = mx;
       p.x += mx * sp * dt;
@@ -541,7 +541,7 @@ export function updPlayer(dt) {
             p.t = 0;
           } else {
             p.state = 'dead';
-            G.state = 'over';
+            APP.state = 'over';
             G.endT = 0;
           }
         } else {

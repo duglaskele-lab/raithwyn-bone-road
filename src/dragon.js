@@ -21,7 +21,7 @@
 // and the leap cannot be stopped at all.
 import { GB, GT, TAU, W } from './config.js';
 import { clamp, ease, fxRandom, fxRnd, lerp, random, rnd } from './util.js';
-import { G, P } from './state.js';
+import { APP, G, P } from './state.js';
 import { SFX, growl } from './audio.js';
 import { dust } from './fx.js';
 import { hitPlayer } from './combat.js';
@@ -661,7 +661,7 @@ function step(e, dt) {
         e.cd = Math.max(e.cd, 0.35);
         break;
       }
-      if (e.cd <= 0 && !pdown() && G.state === 'play') {
+      if (e.cd <= 0 && !pdown() && APP.state === 'play') {
         const a = choose(e);
         if (a) {
           start(e, a);

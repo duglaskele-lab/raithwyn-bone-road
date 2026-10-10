@@ -1,7 +1,7 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { ACID, DECOR, TYPES } from '../src/config.js';
-import { G, P } from '../src/state.js';
+import { APP, G, P } from '../src/state.js';
 import { pressed } from '../src/input.js';
 import { hitPlayer, hurtEnemy, killEnemy, strike } from '../src/combat.js';
 import { spawn } from '../src/enemies.js';
@@ -137,25 +137,25 @@ test('the acid ball arcs down and leaves a puddle that bites without staggering'
 });
 
 test('Esc pauses the fight; the pause menu resumes, opens settings, returns to the menu', () => {
-  G.state = 'pause';
-  G.menu = 0;
+  APP.state = 'pause';
+  APP.menu = 0;
   pressed.start = true;
   pauseStep();
-  assert.equal(G.state, 'play');
+  assert.equal(APP.state, 'play');
 
-  G.state = 'pause';
+  APP.state = 'pause';
   pressed.tap = [PAUSE_BOX[1][0] + 10, PAUSE_BOX[1][1] + 10];
   pauseStep();
-  assert.equal(G.state, 'settings');
+  assert.equal(APP.state, 'settings');
   delete pressed.tap;
   pressed.tap = [SET_BOX.at(-1)[0] + 10, SET_BOX.at(-1)[1] + 10];
   menuStep(DT);
-  assert.equal(G.state, 'pause', 'Back from settings returns to the pause menu');
+  assert.equal(APP.state, 'pause', 'Back from settings returns to the pause menu');
   delete pressed.tap;
 
   P.score = 500;
   pressed.tap = [PAUSE_BOX[2][0] + 10, PAUSE_BOX[2][1] + 10];
   pauseStep();
-  assert.equal(G.state, 'title');
+  assert.equal(APP.state, 'title');
   assert.equal(P.score, 0, 'the run is reset');
 });

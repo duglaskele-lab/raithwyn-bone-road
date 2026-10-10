@@ -2,7 +2,7 @@
 // screen. `menuStep` handles input (and runs in tests), `drawMenu` draws the current screen.
 import { FONT, H, PURPLE, W } from './config.js';
 import { clamp, mulberry } from './util.js';
-import { G, reset } from './state.js';
+import { APP, G, reset } from './state.js';
 import { pressed, touch } from './input.js';
 import { SFX } from './audio.js';
 import { CHARS, LEVEL, LOCKED, SLOTS, STATS } from './characters.js';
@@ -40,34 +40,34 @@ const inBox = (p, b) =>
   p && p[0] >= b[0] && p[0] <= b[0] + b[2] && p[1] >= b[1] && p[1] <= b[1] + b[3];
 const hit = (boxes) => boxes.findIndex((b) => inBox(pressed.tap, b));
 const go = (state, menu = 0) => {
-  G.state = state;
-  G.menu = menu;
-  G.msgT = 0;
+  APP.state = state;
+  APP.menu = menu;
+  APP.msgT = 0;
 };
 
 function startFight() {
-  const c = CHARS[G.sel];
+  const c = CHARS[APP.sel];
   if (c && c.playable) {
-    G.fighter = c.id;
+    APP.fighter = c.id;
     newRun();
   } else {
     SFX.deny();
-    G.msgT = 1.8;
+    APP.msgT = 1.8;
   }
 }
 function mainStep() {
   const i = hit(MAIN_BOX);
-  if (i >= 0) G.menu = i;
+  if (i >= 0) APP.menu = i;
   else if (pressed.tap) return;
-  if (pressed.u) G.menu = (G.menu + 2) % 3;
-  if (pressed.d) G.menu = (G.menu + 1) % 3;
+  if (pressed.u) APP.menu = (APP.menu + 2) % 3;
+  if (pressed.d) APP.menu = (APP.menu + 1) % 3;
   if (i < 0 && !pressed.start && !pressed.atk) return;
-  const item = MAIN_ITEMS[G.menu];
+  const item = MAIN_ITEMS[APP.menu];
   if (item === 'start') {
     go('select');
-    G.sel = 0;
+    APP.sel = 0;
   } else if (item === 'settings') {
-    G.from = 'title';
+    APP.from = 'title';
     go('settings');
   } else {
     go('bye');
@@ -79,20 +79,20 @@ function mainStep() {
   }
 }
 // Settings are reached from the main menu or from the pause menu and return there.
-const leaveSettings = () => go(G.from === 'pause' ? 'pause' : 'title', 1);
+const leaveSettings = () => go(APP.from === 'pause' ? 'pause' : 'title', 1);
 function settingsStep() {
   if (pressed.pause) return leaveSettings();
   const i = hit(SET_BOX);
-  if (i >= 0) G.menu = i;
+  if (i >= 0) APP.menu = i;
   else if (pressed.tap) return;
   const N = SET_ITEMS.length;
-  if (pressed.u) G.menu = (G.menu + N - 1) % N;
-  if (pressed.d) G.menu = (G.menu + 1) % N;
+  if (pressed.u) APP.menu = (APP.menu + N - 1) % N;
+  if (pressed.d) APP.menu = (APP.menu + 1) % N;
   const change = i >= 0 || pressed.start || pressed.atk || pressed.l || pressed.r;
   if (!change) return;
-  const item = SET_ITEMS[G.menu];
+  const item = SET_ITEMS[APP.menu];
   if (item === 'lang') nextLang();
-  else if (item === 'sound') G.muted = !G.muted;
+  else if (item === 'sound') APP.muted = !APP.muted;
   else if (item === 'fps') toggleFps();
   else if (item === 'cap') stepCap(pressed.l ? -1 : 1);
   else if (i >= 0 || pressed.start || pressed.atk) leaveSettings();
@@ -103,31 +103,31 @@ function selectStep() {
   const i = hit(SLOT_BOX);
   if (i >= 0) {
     // a second tap on the chosen fighter starts the fight
-    if (i === G.sel && CHARS[i]?.playable) return startFight();
-    G.sel = i;
+    if (i === APP.sel && CHARS[i]?.playable) return startFight();
+    APP.sel = i;
     return;
   }
   if (pressed.tap) return;
-  const col = G.sel % 4,
-    row = Math.floor(G.sel / 4);
-  if (pressed.l) G.sel = row * 4 + ((col + 3) % 4);
-  if (pressed.r) G.sel = row * 4 + ((col + 1) % 4);
-  if (pressed.u || pressed.d) G.sel = (G.sel + 4) % SLOTS;
+  const col = APP.sel % 4,
+    row = Math.floor(APP.sel / 4);
+  if (pressed.l) APP.sel = row * 4 + ((col + 3) % 4);
+  if (pressed.r) APP.sel = row * 4 + ((col + 1) % 4);
+  if (pressed.u || pressed.d) APP.sel = (APP.sel + 4) % SLOTS;
   if (pressed.start || pressed.atk) startFight();
 }
 /** The pause menu (Esc during the fight): resume, settings, back to the main menu. */
 export function pauseStep() {
   if (pressed.pause) return go('play');
   const i = hit(PAUSE_BOX);
-  if (i >= 0) G.menu = i;
+  if (i >= 0) APP.menu = i;
   else if (pressed.tap) return;
-  if (pressed.u) G.menu = (G.menu + 2) % 3;
-  if (pressed.d) G.menu = (G.menu + 1) % 3;
+  if (pressed.u) APP.menu = (APP.menu + 2) % 3;
+  if (pressed.d) APP.menu = (APP.menu + 1) % 3;
   if (i < 0 && !pressed.start && !pressed.atk) return;
-  const item = PAUSE_ITEMS[G.menu];
+  const item = PAUSE_ITEMS[APP.menu];
   if (item === 'resume') go('play');
   else if (item === 'settings') {
-    G.from = 'pause';
+    APP.from = 'pause';
     go('settings');
   } else {
     reset();
@@ -144,17 +144,17 @@ export function drawPause() {
   overlay(0.62);
   txt(t('pause'), W / 2, 190, 54, '#ece5cb', 'center', 8);
   const labels = [t('resume'), t('menuSettings'), t('toMainMenu')];
-  labels.forEach((s, i) => item(s, PAUSE_BOX[i], G.menu === i));
+  labels.forEach((s, i) => item(s, PAUSE_BOX[i], APP.menu === i));
   if (!touch) txt(t('pauseHint'), W / 2, 470, 13, '#9bb0ac', 'center', 3);
 }
 /** Handles one frame of input on the menu screens. */
 export function menuStep(dt) {
   G.time += dt;
-  G.msgT = Math.max(0, G.msgT - dt);
-  if (G.state === 'title') mainStep();
-  else if (G.state === 'settings') settingsStep();
-  else if (G.state === 'select') selectStep();
-  else if (G.state === 'bye' && (pressed.tap || pressed.start || pressed.atk || pressed.pause))
+  APP.msgT = Math.max(0, APP.msgT - dt);
+  if (APP.state === 'title') mainStep();
+  else if (APP.state === 'settings') settingsStep();
+  else if (APP.state === 'select') selectStep();
+  else if (APP.state === 'bye' && (pressed.tap || pressed.start || pressed.atk || pressed.pause))
     go('title', 2);
 }
 
@@ -162,7 +162,7 @@ export function menuStep(dt) {
 let brick = null;
 // The game title in yellow bricks: drawn once into an offscreen canvas, then reused.
 function brickTitle(text, y, size) {
-  const K = G.K,
+  const K = APP.K,
     key = `${K}|${text}|${size}`;
   if (!brick || brick.key !== key) {
     const h = size * 1.5,
@@ -260,11 +260,11 @@ function drawMain() {
   brickTitle('Ai RAGE', 150, 116);
   txt(t('gameSub'), W / 2, 200, 26, '#d2a8ff', 'center', 6);
   const labels = [t('menuStart'), t('menuSettings'), t('menuExit')];
-  labels.forEach((s, i) => item(s, MAIN_BOX[i], G.menu === i));
+  labels.forEach((s, i) => item(s, MAIN_BOX[i], APP.menu === i));
   txt(touch ? t('mainHintTouch') : t('mainHint'), 600, 520, 13, '#9bb0ac', 'center', 3);
 }
 function drawSettings() {
-  if (G.from === 'pause') {
+  if (APP.from === 'pause') {
     // over the paused fight: the world stays where it is
     drawWorld();
     drawHUD();
@@ -273,13 +273,13 @@ function drawSettings() {
   txt(t('settings'), W / 2, 72, 38, '#ece5cb', 'center', 7);
   const labels = [
     `${t('menuLang')}:  ◂ ${STR[lang].langName} ▸`,
-    `${t('menuSound')}:  ◂ ${G.muted ? t('soundOff') : t('soundOn')} ▸`,
+    `${t('menuSound')}:  ◂ ${APP.muted ? t('soundOff') : t('soundOn')} ▸`,
     `${t('menuFps')}:  ◂ ${fps.show ? t('soundOn') : t('soundOff')} ▸`,
     `${t('menuCap')}:  ◂ ${fps.cap || t('capNone')} ▸`,
     t('back'),
   ];
-  labels.forEach((s, i) => item(s, SET_BOX[i], G.menu === i));
-  const help = Object.values(helpFor(G.fighter)),
+  labels.forEach((s, i) => item(s, SET_BOX[i], APP.menu === i));
+  const help = Object.values(helpFor(APP.fighter)),
     rows = Math.ceil(help.length / 2),
     px = 120,
     py = 322,
@@ -311,7 +311,7 @@ function frame(b, col, width) {
 function drawSlot(i) {
   const b = SLOT_BOX[i],
     c = CHARS[i],
-    on = G.sel === i;
+    on = APP.sel === i;
   ctx.save();
   rr(b[0], b[1], b[2], b[3], 10);
   ctx.fillStyle = '#15121c';
@@ -362,7 +362,7 @@ function button(b, label, enabled, col) {
   txt(label, b[0] + b[2] / 2, b[1] + b[3] / 2 + 8, 21, enabled ? '#fff' : '#9a93a6', 'center', 5);
 }
 function drawPanel() {
-  const c = CHARS[G.sel],
+  const c = CHARS[APP.sel],
     [x, y, w, h] = PANEL;
   ctx.fillStyle = 'rgba(16,14,24,.86)';
   rr(x, y, w, h, 12);
@@ -398,11 +398,11 @@ function drawSelect() {
   txt(t('chooseFighter'), W / 2, 56, 32, '#ece5cb', 'center', 6);
   for (let i = 0; i < SLOTS; i++) drawSlot(i);
   drawPanel();
-  const c = CHARS[G.sel];
+  const c = CHARS[APP.sel];
   button(PLAY_BOX, t('play') + ' ▶', !!(c && c.playable), '#7a3fb0');
   button(BACK_BOX, t('back'), true, 'rgba(40,36,52,.9)');
-  if (G.msgT > 0) {
-    ctx.globalAlpha = clamp(G.msgT, 0, 1);
+  if (APP.msgT > 0) {
+    ctx.globalAlpha = clamp(APP.msgT, 0, 1);
     txt(t('onlyRaith'), GX + 254, 452, 16, '#ff8a8a', 'center', 4);
     ctx.globalAlpha = 1;
   }
@@ -420,5 +420,5 @@ function drawBye() {
 }
 export const MENU_STATES = ['title', 'settings', 'select', 'bye'];
 export function drawMenu() {
-  ({ title: drawMain, settings: drawSettings, select: drawSelect, bye: drawBye })[G.state]();
+  ({ title: drawMain, settings: drawSettings, select: drawSelect, bye: drawBye })[APP.state]();
 }
