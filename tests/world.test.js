@@ -240,11 +240,28 @@ test('Lucy keeps firing while K is held, aiming and firing in turn, each shot pa
   P.who = 'raithwyn';
 });
 
+test('a press in the hit-stop after a blow is not lost: it is done as the world moves again', () => {
+  for (const [b, state] of [
+    ['atk', 'atk1'],
+    ['jump', 'jump'],
+  ]) {
+    freshGame();
+    G.props = [];
+    G.freeze = 0.1; // a blow has just landed
+    pressed[b] = true;
+    update(DT);
+    delete pressed[b];
+    assert.equal(P.state, 'idle', 'the world stands still');
+    while (G.freeze > 0) update(DT);
+    for (let i = 0; i < 3 && P.state === 'idle'; i++) update(DT);
+    assert.equal(P.state, state, `then the ${b} press is done`);
+  }
+});
+
 test('Lucy: J J K, buckshot straight from the aim: all in a short spread knocked down, three times the damage', async () => {
   const { BULLET, D, LUCY } = await import('../src/config.js');
   const press = (b) => {
-    // (not in the hit-stop after a blow: the world, and so she, waits it out)
-    while (G.freeze > 0) update(DT);
+    // (also in the hit-stop after a blow: the press is kept for when the world moves again)
     pressed[b] = true;
     update(DT);
     delete pressed[b];
