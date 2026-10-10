@@ -26,7 +26,7 @@ import { keys, pressed } from './input.js';
 import { SFX } from './audio.js';
 import { dust, motes } from './fx.js';
 import { floorClamp, viewClamp } from './level.js';
-import { hadoLevel, strike, superNova } from './combat.js';
+import { buckshot, hadoLevel, strike, superNova } from './combat.js';
 
 // The idle pose at time t: the poses are held for hold[i] 24ths of a second each.
 export function idlePose(t, hold = IDLE_HOLD) {
@@ -315,8 +315,8 @@ export function updPlayer(dt) {
       break;
     }
     case 'gunFin': {
-      // the pistol comes up already aimed (her third and fourth frames): one heavy shot, and
-      // no more however long K is held
+      // the pistol comes up already aimed (her third and fourth frames): one heavy shot of
+      // buckshot at close range, and no more however long K is held
       const i = tl(D.gunFin, p.t);
       if (i < 0) {
         toIdle();
@@ -349,17 +349,7 @@ export function updPlayer(dt) {
             col: k % 3 ? '#ffd24a' : '#ffffff',
           });
         }
-        G.projs.push({
-          k: 'bullet',
-          fin: true,
-          dmg: BULLET.dmg * LUCY.fin,
-          x: mx,
-          y: p.y,
-          z: BULLET.z,
-          vx: p.face * BULLET.speed,
-          rot: 0,
-          life: BULLET.life,
-        });
+        buckshot();
       }
       break;
     }

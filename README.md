@@ -21,13 +21,16 @@ it holds seven rounds (shown under her rage bar) and costs no rage; a shot does 
 the middle of it (`BULLET` in `src/config.js`), and with `K` held she keeps firing, aiming and
 firing in turn. Out of rounds, `K` only clicks. After two punches, `J J K` is her heavy
 shot — only up close: the second punch must land on something, and `K` must come before
-0.25 s have passed since it ended (`LUCY.finWin`; otherwise it is her plain shot): the pistol comes up already aimed (straight to her third and fourth frames), and one
-bullet goes off at once with a golden trail; it knocks down as the last punch of a chain does,
-does three times a shot's damage (27, `LUCY.fin`) and strikes in a golden burst of sparks with a
-ring, under a comic "BOOM!" that pops up over the enemy. It takes a round (with none, it only clicks) and does not go on into a run of shots
-however long `K` is held. Her punches are 20% weaker than Raithwyn's, but
+0.25 s have passed since it ended (`LUCY.finWin`; otherwise it is her plain shot): the
+pistol comes up already aimed (straight to her third and fourth frames) and fires at once a
+load of buckshot. It does not fly: everyone (and every barrel) in a short spread in front of
+her — 170 px ahead, 40 px either way in depth (`LUCY.buck`) — is hit at once, knocked down as
+by the last punch of a chain, for three times a shot's damage (27, `LUCY.fin`), in golden
+sparks with a ring; pellets fan out from the muzzle in a cone of fire. It takes a round (with
+none, it only clicks) and does not go on into a run of shots however long `K` is held. Her punches are 20% weaker than Raithwyn's, but
 while she is short of rounds a punch that lands knocks a pistol magazine out of the enemy one
-time in seven (14%), unless one is already about; it bounces back off the screen's edges, lies
+time in seven (14%), and an enemy she kills (not a boss) drops one one time in twenty (5%,
+`LUCY.dropKill`), unless one is already about; it bounces back off the screen's edges, lies
 there three seconds (blinking at the end) and is gone; picked up, it fills the gun again
 (`LUCY`). Each pistol hit in a row raises the chance of a critical shot by 10%, up to 60%: twice
 the damage, under a small red neon "crit!" (0.63 s); a miss, or a second without a shot, ends the run. A pistol bullet that meets her own grenade in

@@ -22,7 +22,7 @@ import { clamp, fxRandom, fxRnd, random, rnd } from './util.js';
 import { APP, G, P } from './state.js';
 import { SFX } from './audio.js';
 import { keys, pressed } from './input.js';
-import { dust, floatTxt, motes, spark } from './fx.js';
+import { dust, floatTxt, motes } from './fx.js';
 import { t } from './i18n.js';
 import { acidBite, addRage, headBonus, hitPlayer, hurtEnemy } from './combat.js';
 import { DRAGON, dragonZone, plasmaBlast, updShocks } from './dragon.js';
@@ -155,31 +155,6 @@ function stageWarp(dt) {
   G.shake = 10;
   SFX.nova();
 }
-/** Where Lucy's shot after two punches strikes: a golden burst, a ring and a spray of sparks. */
-function finSparks(x, y, d) {
-  spark(x, y, '#ffd24a', true);
-  // and a comic "BOOM!" over it
-  G.parts.push({ k: 'boomTxt', x, y: y - 46, t: 0, life: 0.75, rot: fxRnd(-0.22, 0.22) });
-  G.parts.push({ k: 'gring', x, y, t: 0, life: 0.3, s: 46, col: '#ffcf4a' });
-  for (let k = 0; k < 16; k++) {
-    const a = (d > 0 ? 0 : Math.PI) + fxRnd(-1.1, 1.1),
-      v = fxRnd(200, 520);
-    G.parts.push({
-      k: 'dot',
-      x,
-      y,
-      vx: Math.cos(a) * v,
-      vy: Math.sin(a) * v - 60,
-      g: 600,
-      t: 0,
-      life: fxRnd(0.25, 0.45),
-      s: fxRnd(2.5, 4.5),
-      col: k % 3 ? '#ffd24a' : '#fff6d0',
-    });
-  }
-  G.shake = Math.max(G.shake, 7);
-}
-
 export function update(dt) {
   G.time += dt;
   // the Bone Road won: a moment of triumph, then on to Old Quarry (J, or by itself)
@@ -322,11 +297,10 @@ export function update(dt) {
               dmgMult() *
               headBonus(e, zone),
             Math.sign(q.vx),
-            !!q.big || !!q.fin, // (her shot after two punches knocks down, as a finisher does)
+            !!q.big,
             q.big ? 'punch' : 'bone',
           )
         ) {
-          if (q.fin) finSparks(at, q.y - q.z, s);
           if (!e.isProp) {
             addRage(RAGE.bone);
             styleGain(8);
