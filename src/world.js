@@ -158,6 +158,8 @@ function stageWarp(dt) {
 /** Where Lucy's shot after two punches strikes: a golden burst, a ring and a spray of sparks. */
 function finSparks(x, y, d) {
   spark(x, y, '#ffd24a', true);
+  // and a comic "BOOM!" over it
+  G.parts.push({ k: 'boomTxt', x, y: y - 46, t: 0, life: 0.75, rot: fxRnd(-0.22, 0.22) });
   G.parts.push({ k: 'gring', x, y, t: 0, life: 0.3, s: 46, col: '#ffcf4a' });
   for (let k = 0; k < 16; k++) {
     const a = (d > 0 ? 0 : Math.PI) + fxRnd(-1.1, 1.1),

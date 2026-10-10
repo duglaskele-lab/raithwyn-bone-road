@@ -20,10 +20,11 @@ frame, and she plays with Raithwyn's moves for now. Her `K` is a pistol instead 
 it holds seven rounds (shown under her rage bar) and costs no rage; a shot does 9 damage, the bullet flies at 2400 px/s and hits the first enemy or barrel in its way, going out in
 the middle of it (`BULLET` in `src/config.js`), and with `K` held she keeps firing, aiming and
 firing in turn. Out of rounds, `K` only clicks. After two punches, `J J K` is her heavy
-shot: the pistol comes up already aimed (straight to her third and fourth frames), and one
+shot — only up close: the second punch must land on something, and `K` must come before
+0.25 s have passed since it ended (`LUCY.finWin`; otherwise it is her plain shot): the pistol comes up already aimed (straight to her third and fourth frames), and one
 bullet goes off at once with a golden trail; it knocks down as the last punch of a chain does,
 does three times a shot's damage (27, `LUCY.fin`) and strikes in a golden burst of sparks with a
-ring. It takes a round (with none, it only clicks) and does not go on into a run of shots
+ring, under a comic "BOOM!" that pops up over the enemy. It takes a round (with none, it only clicks) and does not go on into a run of shots
 however long `K` is held. Her punches are 20% weaker than Raithwyn's, but
 while she is short of rounds a punch that lands knocks a pistol magazine out of the enemy one
 time in seven (14%), unless one is already about; it bounces back off the screen's edges, lies

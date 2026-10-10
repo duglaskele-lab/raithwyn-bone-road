@@ -69,6 +69,8 @@ function freshPlayer() {
     styT: 0,
     styPop: 0,
     acidT: 0,
+    landed: false, // the punch under way has struck something
+    finT: 0, // how long K still makes Lucy's heavy shot (J J K)
     fireT: 0.1,
     shots: 0,
     grabber: null,
