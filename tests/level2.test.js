@@ -266,10 +266,15 @@ test('the lizard hops back from a blow it sees coming, then lunges', () => {
   for (let i = 0; i < 60 && e.state === 'lzwind'; i++) updEnemy(e, DT, { n: 0 });
   assert.equal(e.state, 'lzlunge');
   assert.equal(LIZARD.lwind > 0.3, true);
-  // a light enemy: any hit stops the lunge
+  // a medium enemy: a plain hit does not stop the lunge, a heavy one breaks it, and a second
+  // heavy one in time knocks it down
+  assert.equal(TYPES.lizard.weight, 'medium');
   hurtEnemy(e, 1, 1, false, 'punch');
+  assert.equal(e.state, 'lzlunge');
+  hurtEnemy(e, 1, 1, true, 'punch');
   assert.equal(e.state, 'hurt');
-  assert.equal(TYPES.lizard.weight, undefined);
+  hurtEnemy(e, 1, 1, true, 'punch');
+  assert.equal(e.state, 'air');
 });
 
 test('the power armour shrugs off blows, only crushing ones knock it back', () => {

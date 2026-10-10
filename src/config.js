@@ -600,7 +600,8 @@ export const TYPES = {
     act: 0.16,
     rec: 0.7,
     cd: [1.2, 2.2],
-    thick: 4,
+    thick: 6,
+    armK: 1.08,
     weight: 'medium',
     col: '#a3b48b',
     dk: '#6f7f5c',
@@ -624,7 +625,7 @@ export const TYPES = {
     eye: '#7fe6ff',
     score: 350,
   },
-  // the shield bearer (SHIELD): a rusty shield in front, a spear
+  // the shield bearer (SHIELD): a rusty tower shield in front, a spear
   shield: {
     hp: 52,
     scale: 1.04,
@@ -693,7 +694,7 @@ export const TYPES = {
     eye: '#ff9a3a',
     score: 240,
   },
-  // a big mutant lizard: fast, hops back from blows and lunges (see LIZARD); light
+  // a big mutant lizard: fast, hops back from blows and lunges (see LIZARD); medium
   lizard: {
     hp: 130,
     scale: 1, // a fifth smaller than the first 1.25
@@ -706,6 +707,7 @@ export const TYPES = {
     rec: 0.45,
     cd: [0.7, 1.4],
     shadow: 52,
+    weight: 'medium',
     col: '#6b7a3e',
     dk: '#4a5628',
     eye: '#b6ff3a',
@@ -916,7 +918,11 @@ export const STRONG = {
 // keeps `keep` px off the player, then shows herself (`show` s, now she can be hit) and wails
 // (`wail` s): a cone `range` px long in front of her, `w0` to `w1` px deep either way, stuns
 // whoever is in it on the ground for `stun` s (`dmg`); step out of its depth to get away.
-// Then she fades again (`fade` s).
+// Then she fades again (`fade` s). From further off (`cast` px or more) she may instead
+// conjure: every `castCd` s she shows herself (fully in `castShow` s, and can be hit) for
+// `castWind` s, a skull of ghost fire swelling between her hands, then lets it fly at the
+// player, `skullSpeed` px/s, slow enough to step out of its way (`skullDmg`, knocks down);
+// she stays shown `castRec` s more, then fades.
 export const BANSHEE = {
   ghost: 0.3,
   drift: [2, 3.4],
@@ -930,6 +936,13 @@ export const BANSHEE = {
   w1: 70,
   stun: 0.5,
   dmg: 4,
+  cast: 200,
+  castCd: [5, 8],
+  castShow: 0.35,
+  castWind: 0.9,
+  castRec: 0.6,
+  skullSpeed: 170,
+  skullDmg: 10,
 };
 export const WAVEGEN = {
   count: [6, 12], // enemies in the fight (give or take one)

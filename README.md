@@ -213,8 +213,8 @@ up again, a little lower each time, and gives style points.
 
 | Class | Who | How it takes hits |
 | --- | --- | --- |
-| light (default) | Skeleton, Bone Thrower, Bonebreaker, Rocker, Bone Monkey, Necromancer, Zombie, Skeleton Samurai, Zombie Miner, Dynamite Zombie, Mutant Lizard | any hit interrupts its attack, a heavy hit knocks it back, easy to launch and juggle |
-| medium | Fatso | ordinary hits do not interrupt its attack, a heavy hit does (it flinches); knocking back or launching takes two heavy hits within 3 seconds or one crushing hit; juggles like a light enemy in the air |
+| light (default) | Skeleton, Bone Thrower, Bonebreaker, Rocker, Bone Monkey, Necromancer, Zombie, Skeleton Samurai, Zombie Miner, Dynamite Zombie, Shield Bearer, Banshee | any hit interrupts its attack, a heavy hit knocks it back, easy to launch and juggle |
+| medium | Fatso, Saloon Strongman, Mutant Lizard | ordinary hits do not interrupt its attack, a heavy hit does (it flinches); knocking back or launching takes two heavy hits within 3 seconds or one crushing hit; juggles like a light enemy in the air |
 | heavy | Power Armor Zombie, the Prospector | its attacks are not interrupted; only a crushing hit knocks it back; not juggled in the air |
 | bosses | Grave Baron, Bone Dragon, Radioactive Slime | their own rules (in their files in `src/foes`); the Slime's attacks are interrupted by the medium rules |
 
@@ -260,7 +260,8 @@ pipes, a horned skull for a headlight and a ram of bone spikes. It hits along it
 so it is harder to dodge.
 
 **The Shield Bearer** (`TYPES.shield`, `SHIELD`, mid pool of the Bone Road) is a skeleton in an
-iron cap behind a rusty round shield, with a spear it pokes from a little further off than a
+iron cap behind a rusty tower shield held low, covering it from the shins up to the chest
+(planks in an iron rim, riveted bands, a skull boss), with a spear it pokes from a little further off than a
 plain skeleton punches. Every blow and shot from the front only clangs on the shield in a spray
 of sparks (bullets glance off it). From behind it is a plain skeleton, and it turns round only
 after the heroine has been behind it for 0.55 s, so go round it in depth or jump over it. Heavy
@@ -436,8 +437,9 @@ breaks wooden barrels and a moment later sets off red ones nearby.
 **Old Quarry's enemies** (numbers are in `TYPES`, `MINER`, `DYNAMITE`, `LIZARD`, `ARMOR`,
 `SLIME`, `PROS`, `STRONG`, `BANSHEE`):
 
-- **Saloon Strongman** (medium, at most one per fight) — a huge zombie circus strongman in a
-  striped leotard, with a waxed moustache and a kettlebell on his shoulder.
+- **Saloon Strongman** (medium, at most one per fight) — a huge, bulging zombie in army
+  camouflage trousers and boots and a tight white T-shirt (pecs and abs pressing through it),
+  with a crew cut, dog tags and a kettlebell on his shoulder.
   - His plain attack is a grab: he hoists the heroine over his head for about a second and
     hurls her across the screen, bowling over the foes she flies into. Mashing buttons breaks
     free before the throw.
@@ -445,11 +447,17 @@ breaks wooden barrels and a moment later sets off red ones nearby.
     glow. Blows do a tenth of their damage and do not stop him; a crushing blow throws him.
   - From a distance he slams the ground, and a shock wave runs along the ground to the edge of
     the screen, across the whole depth of the road. Jump over it.
-- **Banshee** (light) — a ghost in a tattered gown with long black hair and hollow eyes.
+- **Banshee** (light) — a gaunt, corpse-grey ghost in a shredded shroud, a wild black mane
+  writhing as if under water, a skull-like face with black sockets and burning green eyes, long
+  bony arms ending in claws.
   - She drifts about see-through, passing through everyone, and nothing can touch her then.
   - After a while she shows herself and can be hit. Her wail's reach is marked faintly on the
     ground, then she wails: a cone in front of her stuns whoever is in it on the ground for
     0.5 s. Step out of its depth (up or down the road) to get away.
+  - From further off (every 5–8 s at most) she conjures instead: she shows herself (and can be
+    hit) while a skull of ghost fire swells between her claws for 0.9 s, then lets it fly at
+    the player. It flies slowly (170 px/s), so step out of its line; it knocks down and hurts
+    (10). Raithwyn's dark ball burns it away on the way.
   - Then she fades again. She dies dissolving into the air.
 
 - **Zombie Miner** — the main enemy: a helmet with a lamp, a checked shirt with braces, a
@@ -462,7 +470,8 @@ breaks wooden barrels and a moment later sets off red ones nearby.
   lies on the ground and explodes, hurting both the heroine and enemies; a blast sets off the
   sticks lying near it a moment later. Hit or kill it while it
   holds a lit stick and the stick drops at its feet and blows up there.
-- **Mutant Lizard** — a light enemy (any hit interrupts its attack; about player size), like a Fallout deathclaw:
+- **Mutant Lizard** — a medium enemy (a plain hit does not stop its lunge, a heavy one does;
+  knocking it down takes two heavy hits or one crushing; about player size), like a Fallout deathclaw:
   hunched, horned, with long claws and glowing radioactive spots. Runs fast, sees the heroine's
   hits coming and leaps back (invulnerable at the start of the leap), and on landing lunges
   forward with a strike that knocks her down. Up close it claws. It is not a skeleton: killed, it
@@ -643,7 +652,7 @@ What is checked:
 - `newfoes.test.js` — the shield bearer's shield (front and back, cracking, crushing blows, its
   slow turn), the strongman (grab, hoist, throw bowling foes over, mashing free, the flex, the
   ground slam's wave), the banshee (untouchable while drifting, her wail's stun and its cone,
-  dissolving).
+  the conjured skull: open to blows while casting, knocking down or dodged, dissolving).
 - `samurai.test.js` — the stance and creeping up, the arc cut, the stun from a distant attack,
   the close-range counter, the kick, 3 seconds on screen before the stance, taking the stance
   again.
