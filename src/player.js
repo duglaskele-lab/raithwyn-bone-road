@@ -580,17 +580,6 @@ export function updPlayer(dt) {
         }
       } else p.an = ['laugh', [0, 1, 2, 1, 2, 1, 2, 1][Math.floor(p.t / 0.13) % 8]]; // never frame 3
       break;
-    case 'evade': {
-      // Lucy dodges a blow: one of her three dodges, then back on guard
-      const n = [7, 7, 6][p.ev - 1],
-        i = Math.floor(p.t / FIGHTER_ANIM.lucy.evade);
-      if (i >= n) {
-        toIdle();
-        break;
-      }
-      p.an = ['evade' + p.ev, i];
-      break;
-    }
   }
   if (G.level === 2) {
     // Old Quarry: on the floor and on screen (the camera comes along between fights)

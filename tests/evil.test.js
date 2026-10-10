@@ -1,6 +1,6 @@
-import test, { afterEach, beforeEach } from 'node:test';
+import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { EVIL, GB, GT, LUCK, TYPES, WAVES, W } from '../src/config.js';
+import { EVIL, GB, GT, TYPES, WAVES, W } from '../src/config.js';
 import { G, P } from '../src/state.js';
 import { spawn, updEnemy } from '../src/enemies.js';
 import { hurtEnemy } from '../src/combat.js';
@@ -11,13 +11,7 @@ import { FOES } from '../src/foes/index.js';
 import { evilFrame, evilShown, orbSpot, stageOf } from '../src/foes/evil.js';
 import { DT, freshGame } from './helpers.js';
 
-// Lucy's luck could have her dodge a blow at random: these tests are about Raithwyn's blows
-const evade = LUCK.evade;
-beforeEach(() => {
-  freshGame();
-  LUCK.evade = 0;
-});
-afterEach(() => (LUCK.evade = evade));
+beforeEach(freshGame);
 
 const step = (seconds, each) => {
   for (let i = 0; i < seconds / DT; i++) {
