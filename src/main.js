@@ -1,5 +1,5 @@
 import { H, PURPLE, W } from './config.js';
-import { G, P, reset } from './state.js';
+import { APP, G, P, reset } from './state.js';
 import { atlas, ctx, cv, initGfx, loadPortraits, lucyAtlas, txt } from './gfx.js';
 import { initInput, keys, pressed, touch } from './input.js';
 import { initTouch, syncTouch, turnPage } from './touch.js';
@@ -53,10 +53,10 @@ function fit() {
   cv.style.width = w + 'px';
   cv.style.height = h + 'px';
   // phones: a sharp picture, but not more pixels than they can fill in time (see lowFx)
-  const kMax = G.lowFx ? 1 : touch ? 2 : 2.5;
-  G.K = Math.max(1, Math.min(kMax, (w * (window.devicePixelRatio || 1)) / W));
-  cv.width = Math.round(W * G.K);
-  cv.height = Math.round(H * G.K);
+  const kMax = APP.lowFx ? 1 : touch ? 2 : 2.5;
+  APP.K = Math.max(1, Math.min(kMax, (w * (window.devicePixelRatio || 1)) / W));
+  cv.width = Math.round(W * APP.K);
+  cv.height = Math.round(H * APP.K);
 }
 // The HTML around the canvas: page title, the key list under the game, touch button labels.
 function applyLang() {
@@ -66,8 +66,8 @@ function applyLang() {
   cv.setAttribute('aria-label', S.canvasLabel);
   const help = document.getElementById('help');
   help.replaceChildren();
-  shownFor = G.fighter;
-  for (const [name, keyText] of Object.values(helpFor(G.fighter))) {
+  shownFor = APP.fighter;
+  for (const [name, keyText] of Object.values(helpFor(APP.fighter))) {
     const span = document.createElement('span'),
       b = document.createElement('b'),
       kbd = document.createElement('kbd');
@@ -77,25 +77,25 @@ function applyLang() {
     help.append(span, ' ');
   }
   for (const btn of document.querySelectorAll('#btns button'))
-    btn.textContent = padFor(G.fighter)[btn.dataset.a];
+    btn.textContent = padFor(APP.fighter)[btn.dataset.a];
 }
 let shownFor = null; // the fighter the key list and the touch buttons are named for
 function frame(dt) {
   if (touch) syncTouch();
-  if (G.fighter !== shownFor) applyLang(); // another fighter: her own names for the moves
+  if (APP.fighter !== shownFor) applyLang(); // another fighter: her own names for the moves
   // (dt is replaced by the recorded one while a replay plays)
-  ctx.setTransform(G.K, 0, 0, G.K, 0, 0);
+  ctx.setTransform(APP.K, 0, 0, APP.K, 0, 0);
   ctx.imageSmoothingEnabled = true;
   if (pressed.mute) {
-    G.muted = !G.muted;
+    APP.muted = !APP.muted;
   }
   if (pressed.record) toggleRecording(cv);
   if (pressed.fps) toggleFps();
   if (pressed.saverun && lastRun()) saveRun();
   let started = false;
   // F7: watch the last run again (not in the middle of one)
-  if (pressed.watch && !replaying() && G.state !== 'play' && startReplay(lastRun())) {
-    G.replayDone = false;
+  if (pressed.watch && !replaying() && APP.state !== 'play' && startReplay(lastRun())) {
+    APP.replayDone = false;
     started = true;
   }
   if (replaying()) {
@@ -107,18 +107,18 @@ function frame(dt) {
       const rdt = replayFrame();
       if (rdt === null) {
         stopReplay();
-        G.replayDone = true;
+        APP.replayDone = true;
       } else dt = rdt;
     }
-  } else if (G.replayDone) {
+  } else if (APP.replayDone) {
     // the replay has ended on its last frame; any key goes back to the menu
     dt = 0;
     if (pressed.start || pressed.pause || pressed.atk || pressed.tap) toTitle();
   }
-  if (MENU_STATES.includes(G.state)) {
+  if (MENU_STATES.includes(APP.state)) {
     menuStep(dt);
     // the step may have started the fight; the next frame draws it
-    if (MENU_STATES.includes(G.state)) drawMenu();
+    if (MENU_STATES.includes(APP.state)) drawMenu();
   } else {
     const tap = pressed.tap,
       pauseTap =
@@ -128,28 +128,28 @@ function frame(dt) {
         tap[0] <= PAUSE_BTN[0] + PAUSE_BTN[2] &&
         tap[1] >= PAUSE_BTN[1] &&
         tap[1] <= PAUSE_BTN[1] + PAUSE_BTN[3];
-    if (G.state === 'play' && !G.replayDone && (pressed.pause || pauseTap)) {
-      G.state = 'pause';
-      G.menu = 0;
-    } else if (G.state === 'pause') pauseStep();
-    if (G.replayDone);
-    else if (G.state === 'play') {
+    if (APP.state === 'play' && !APP.replayDone && (pressed.pause || pauseTap)) {
+      APP.state = 'pause';
+      APP.menu = 0;
+    } else if (APP.state === 'pause') pauseStep();
+    if (APP.replayDone);
+    else if (APP.state === 'play') {
       recordFrame(dt);
       update(dt);
-    } else if (G.state === 'over' || G.state === 'win') {
+    } else if (APP.state === 'over' || APP.state === 'win') {
       G.endT += dt;
       // the Bone Road won: on a touch screen a tap anywhere goes on (as Hit does)
-      if (touch && pressed.tap && G.state === 'win' && G.level === 1) pressed.atk = true;
+      if (touch && pressed.tap && APP.state === 'win' && G.level === 1) pressed.atk = true;
       recordFrame(dt);
       update(dt);
       // on a touch screen the buttons are hidden here: the two items are tapped instead
-      const ends = touch && pressed.tap && endBoxes(G.state === 'over' ? END_Y.over : END_Y.win),
+      const ends = touch && pressed.tap && endBoxes(APP.state === 'over' ? END_Y.over : END_Y.win),
         tapped = (i) => ends && inBox(ends[i], pressed.tap);
       if (replaying());
-      else if (G.state === 'play'); // update() has just gone on to the next stage
-      else if (G.state === 'win' && G.level === 1); // the next stage follows (see world.js)
+      else if (APP.state === 'play'); // update() has just gone on to the next stage
+      else if (APP.state === 'win' && G.level === 1); // the next stage follows (see world.js)
       else if (G.endT > 1.5 && (tapped(0) || (!touch && pressed.start) || pressed.atk))
-        newRun(undefined, G.state === 'over' ? G.level : 1); // a lost stage is tried again
+        newRun(undefined, APP.state === 'over' ? G.level : 1); // a lost stage is tried again
       else if (G.endT > 1.5 && (pressed.pause || tapped(1))) toTitle();
     }
     ctx.fillStyle = '#0c1218';
@@ -163,8 +163,8 @@ function frame(dt) {
       ctx.fillRect(0, 0, W, H);
     }
     drawHUD();
-    if (G.state === 'pause') drawPause();
-    if (G.state === 'over') {
+    if (APP.state === 'pause') drawPause();
+    if (APP.state === 'over') {
       overlay(Math.min(0.66, G.endT * 0.5));
       txt(t('overTitle'), W / 2, 250, 50, '#ff4a5e', 'center', 8);
       // Lucy does not take it lying down
@@ -176,7 +176,7 @@ function frame(dt) {
       if (G.endT > 1.5 && !touch && !replaying())
         txt(t('replayHint'), W / 2, 398, 14, '#9bb0ac', 'center', 3);
     }
-    if (G.state === 'win' && G.level === 1 && G.endT > 1.2) {
+    if (APP.state === 'win' && G.level === 1 && G.endT > 1.2) {
       // the Bone Road is done: Old Quarry is next
       overlay(Math.min(0.5, (G.endT - 1.2) * 0.5));
       txt(t('stageClear'), W / 2, 210, 54, '#f0e9ff', 'center', 8);
@@ -184,7 +184,7 @@ function frame(dt) {
       txt(t('nextStage'), W / 2, 292, 22, '#f2b664', 'center', 4);
       if (G.endT > 2.4)
         txt(touch ? t('nextTouch') : t('nextKey'), W / 2, 330, 17, '#ece5cb', 'center', 4);
-    } else if (G.state === 'win' && G.endT > 1.2) {
+    } else if (APP.state === 'win' && G.endT > 1.2) {
       overlay(Math.min(0.5, (G.endT - 1.2) * 0.5));
       ctx.save();
       ctx.shadowColor = PURPLE;
@@ -198,23 +198,23 @@ function frame(dt) {
       if (G.endT > 2.4 && !touch && !replaying())
         txt(t('replayHint'), W / 2, 348, 14, '#9bb0ac', 'center', 3);
     }
-    if (replaying() || G.replayDone) drawReplayBadge();
+    if (replaying() || APP.replayDone) drawReplayBadge();
   }
-  if (G.note) {
+  if (APP.note) {
     // a short message over everything (a replay file that could not be read...)
-    G.note.t -= dt || 1 / 60;
-    txt(t(G.note.key), W / 2, 40, 16, '#ff8f9d', 'center', 4);
-    if (G.note.t <= 0) G.note = null;
+    APP.note.t -= dt || 1 / 60;
+    txt(t(APP.note.key), W / 2, 40, 16, '#ff8f9d', 'center', 4);
+    if (APP.note.t <= 0) APP.note = null;
   }
   // the frame counter (the settings), between the HUD's buttons and the score
   if (fps.show) txt(`${fps.now} FPS`, 470, 36, 15, '#9fe08a', 'left', 3);
   for (const k in pressed) delete pressed[k];
 }
 function toTitle() {
-  G.replayDone = false;
+  APP.replayDone = false;
   reset();
-  G.state = 'title';
-  G.menu = 0;
+  APP.state = 'title';
+  APP.menu = 0;
   for (const k in pressed) delete pressed[k]; // the key that got us here does not choose an item
 }
 // While a replay plays: a badge at the bottom, how far it has got, and how to leave.
@@ -223,13 +223,13 @@ function drawReplayBadge() {
     y = H - 62;
   ctx.fillStyle = 'rgba(12,18,24,.72)';
   ctx.fillRect(W / 2 - 120, y, 240, 50);
-  const label = t(G.replayDone ? 'replayOver' : 'replay');
-  txt((blink || G.replayDone ? '▶ ' : '   ') + label, W / 2, y + 22, 18, '#f0cf4f', 'center', 3);
+  const label = t(APP.replayDone ? 'replayOver' : 'replay');
+  txt((blink || APP.replayDone ? '▶ ' : '   ') + label, W / 2, y + 22, 18, '#f0cf4f', 'center', 3);
   ctx.fillStyle = '#2a2532';
   ctx.fillRect(W / 2 - 100, y + 30, 200, 5);
   ctx.fillStyle = '#f0cf4f';
-  ctx.fillRect(W / 2 - 100, y + 30, 200 * (G.replayDone ? 1 : replayProgress()), 5);
-  txt(t(G.replayDone ? 'replayBack' : 'replayStop'), W / 2, y + 46, 10, '#9bb0ac', 'center', 2);
+  ctx.fillRect(W / 2 - 100, y + 30, 200 * (APP.replayDone ? 1 : replayProgress()), 5);
+  txt(t(APP.replayDone ? 'replayBack' : 'replayStop'), W / 2, y + 46, 10, '#9bb0ac', 'center', 2);
 }
 // A saved replay dropped on the page plays at once.
 function dropReplay(e) {
@@ -239,10 +239,10 @@ function dropReplay(e) {
   f.text()
     .then((text) => {
       if (replaying()) stopReplay();
-      G.replayDone = false;
+      APP.replayDone = false;
       startReplay(runFromText(text));
     })
-    .catch(() => (G.note = { key: 'replayBad', t: 3 }));
+    .catch(() => (APP.note = { key: 'replayBad', t: 3 }));
 }
 // A device that cannot keep up (frames slower than SLOW for a couple of seconds of a fight)
 // gets a lighter picture: fewer pixels, no glow blur, plain outlines. Only the look changes.
@@ -252,7 +252,7 @@ const slowAt = () => (fps.cap ? Math.max(SLOW, 1.25 / fps.cap) : SLOW);
 let slowT = 0,
   slowN = 0;
 function watchSpeed(real) {
-  if (G.lowFx || G.state !== 'play' || real <= 0 || real > 1) return;
+  if (APP.lowFx || APP.state !== 'play' || real <= 0 || real > 1) return;
   slowT += real;
   slowN++;
   if (slowT < 2.5) return;
@@ -260,7 +260,7 @@ function watchSpeed(real) {
   slowT = slowN = 0;
 }
 function lighten() {
-  G.lowFx = true;
+  APP.lowFx = true;
   // blur is the dearest thing a canvas draws: from now on it is simply not drawn
   Object.defineProperty(ctx, 'shadowBlur', { get: () => 0, set: () => {}, configurable: true });
   fit();
@@ -296,7 +296,7 @@ function boot() {
   addEventListener('drop', dropReplay);
   fit();
   reset();
-  G.state = 'title';
+  APP.state = 'title';
   requestAnimationFrame(loop);
 }
 // The single-file build injects the atlas as a data URI through window.__ATLAS__.

@@ -1,6 +1,6 @@
 // Keyboard and touch input. `keys` holds what is held down, `pressed` what went down this frame.
 import { H, W } from './config.js';
-import { G } from './state.js';
+import { APP } from './state.js';
 import { audioInit } from './audio.js';
 
 export const keys = {},
@@ -56,7 +56,7 @@ export function setKey(a, v) {
     pressed[a] = true;
     if (a === 'l' || a === 'r') {
       const n = performance.now();
-      if (n - (lastTap[a] || 0) < 260) G.runLatch = true;
+      if (n - (lastTap[a] || 0) < 260) APP.runLatch = true;
       lastTap[a] = n;
     }
   }
@@ -91,6 +91,6 @@ export function initInput(canvas) {
     pressed.start = true;
   });
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden && G.state === 'play') G.state = 'pause';
+    if (document.hidden && APP.state === 'play') APP.state = 'pause';
   });
 }

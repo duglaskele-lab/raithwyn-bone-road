@@ -167,16 +167,21 @@ How it works: all the randomness of the simulation comes from one seeded generat
 in `src/util.js`), and from the outside the simulation only gets the time step (in whole
 milliseconds) and the buttons. A run is the seed plus, for each frame, the step and the pressed
 buttons (`src/replay.js`). Screen shake and synth noise take their randomness elsewhere and do
-not affect the game. Three rules keep it so (and tests check them):
+not affect the game. The look of things has a generator of its own, so it is kept apart (and
+tests check it):
 
-- Drawing never draws on the game's generator nor changes the world: a frame drawn or not, at
-  any frame rate, the run goes the same way.
-- The light picture (`G.lowFx`, switched on by itself on a slow device, maybe in the middle of
-  a run) only changes the look: never how many particles there are or anything else in the
-  world.
-- A new run and a replay start from the same numbers: `reset()` clears all a run may leave
-  behind (the clock, a hit-stop, shake, a burn under way, a grab...), so a replay watched right
-  after a run plays it exactly.
+- The game's generator (`random()`) is only for what happens in the game. Everything that only
+  shapes the look — particles, bone debris, sparks, smoke, dust, whether a puff appears at all —
+  comes from a second generator, `fxRandom()` (seeded with the run too). Nothing in the game
+  reads particles, so the light picture (`APP.lowFx`, switched on by itself on a slow device,
+  maybe in the middle of a run) is free to make fewer of them (it does: Raithwyn's bats and
+  mist), and drawing a frame or not, at any frame rate, changes nothing.
+- The state is in two parts (`src/state.js`): `APP`, the application, which lives as long as
+  the page (the screen that is up, the menus, who the next run is played as, sound, the
+  picture, notes on screen), and `G` and `P`, one run: the world and the heroine. `reset()`
+  builds the run anew from scratch for every run and every replay (the old objects are emptied
+  first, every field), so nothing a run leaves behind — the clock, a hit-stop, a burn under way,
+  or a field added one day and forgotten — can carry over into the next one or into a replay.
 
 ## Readability and juggling
 
@@ -512,7 +517,7 @@ src/
   level2.js               Old Quarry: floor, camera path, waves, barrels
   bg2.js                  Old Quarry's procedural backdrop
   blast.js                barrel and dynamite explosions
-  state.js                shared world state (G), the player (P), reset()
+  state.js                the application (APP); one run: the world (G), the player (P), reset()
   util.js                 small pure functions
   input.js                keyboard and pointer input
   touch.js                touch controls: stick, buttons, gestures
@@ -594,8 +599,10 @@ What is checked:
   the close-range counter, the kick, 3 seconds on screen before the stance, taking the stance
   again.
 - `replay.test.js` — the same seed and buttons give the same run; a recorded run (and the same
-  run from a file) replays exactly, even right after another run that left things behind;
-  drawing every frame, and the light picture, change nothing in a fight with every kind of foe.
+  run from a file) replays exactly, even right after another run that left things behind; a new
+  run carries nothing over (even a field nobody knew of) while the application keeps its own;
+  drawing every frame, and the light picture (with fewer particles), change nothing in a fight
+  with every kind of foe.
 - `skeleton.test.js` — every enemy has a valid pose in every state.
 - `util.test.js` — helper functions.
 

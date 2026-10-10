@@ -4,7 +4,7 @@ import { mulberry } from './util.js';
 
 // Synth wobble is not part of the game: it has its own chance, apart from the seeded one.
 const rnd = (a = 1, b) => (b === undefined ? Math.random() * a : a + Math.random() * (b - a));
-import { G } from './state.js';
+import { APP, G } from './state.js';
 import { songTick, songsAttach } from './songs.js';
 import { levelWaves } from './level.js';
 
@@ -60,7 +60,7 @@ export function audioAwake(awake) {
 /** The state of the sound: 'none' before the first touch, else the context's (for tests). */
 export const audioState = () => AC?.state ?? 'none';
 export function tone(type, f0, f1, dur, vol, delay = 0, lp = 0) {
-  if (!AC || G.muted) return;
+  if (!AC || APP.muted) return;
   const t = AC.currentTime + delay,
     o = AC.createOscillator(),
     g = AC.createGain();
@@ -83,7 +83,7 @@ export function tone(type, f0, f1, dur, vol, delay = 0, lp = 0) {
   o.stop(t + dur + 0.03);
 }
 export function noise(dur, vol, f0, f1, q = 1, delay = 0, type = 'bandpass') {
-  if (!AC || G.muted) return;
+  if (!AC || APP.muted) return;
   const t = AC.currentTime + delay,
     s = AC.createBufferSource(),
     f = AC.createBiquadFilter(),
@@ -105,7 +105,7 @@ export function noise(dur, vol, f0, f1, q = 1, delay = 0, type = 'bandpass') {
 // A rough, throaty growl: detuned saws and a sub, their pitch shaken by a fast LFO (a vocal
 // fry), pushed through a band-pass that opens and closes, with a breathy rasp on top.
 export function growl(dur, f0, f1, vol, delay = 0) {
-  if (!AC || G.muted) return;
+  if (!AC || APP.muted) return;
   const t = AC.currentTime + delay,
     bp = AC.createBiquadFilter(),
     g = AC.createGain(),
@@ -952,11 +952,11 @@ export function music() {
     playing = null;
   setInterval(() => {
     if (!AC) return;
-    const theme = themeFor(G.state),
-      song = songTick(theme, G.state === 'pause', G.muted); // a recorded song has the floor
+    const theme = themeFor(APP.state),
+      song = songTick(theme, APP.state === 'pause', APP.muted); // a recorded song has the floor
     if (next < AC.currentTime) next = AC.currentTime + 0.05;
     while (next < AC.currentTime + 0.25) {
-      const id = G.muted || song ? null : theme;
+      const id = APP.muted || song ? null : theme;
       if (id !== playing) {
         playing = id;
         n = 0; // every theme starts from its first bar

@@ -1,7 +1,7 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { CHAIN_GAP, HADO, RAGE, RL, TYPES, W, WAVES } from '../src/config.js';
-import { G, P } from '../src/state.js';
+import { APP, G, P } from '../src/state.js';
 import { keys, pressed } from '../src/input.js';
 import { spawn } from '../src/enemies.js';
 import { update } from '../src/world.js';
@@ -114,7 +114,7 @@ test('the level can be finished: clearing all ten fights ends in victory', () =>
     for (const e of G.enemies) if (e.state !== 'rise') e.dead = true;
   });
   assert.equal(G.waveI, WAVES.length);
-  assert.equal(G.state, 'win');
+  assert.equal(APP.state, 'win');
 });
 
 test('a chained wave starts right where the last one ended, with no walk in between', () => {
@@ -353,7 +353,7 @@ test('Lucy: 20% less health, and her luck: a finishing blow may leave her on 10%
     let saved = 0;
     for (let i = 0; i < 600; i++) {
       Object.assign(P, { state: 'atk1', inv: 0, z: 0, hp: 5, lucky: 0, sty: rank * 100 + 50 });
-      G.state = 'play';
+      APP.state = 'play';
       hitPlayer(30, 1, false);
       if (P.hp > 0) {
         saved++;
@@ -372,7 +372,7 @@ test('Lucy: 20% less health, and her luck: a finishing blow may leave her on 10%
   newRun(5, 1, 'raithwyn');
   assert.equal(P.maxHp, 100);
   Object.assign(P, { state: 'idle', inv: 0, hp: 5 });
-  G.state = 'play';
+  APP.state = 'play';
   hitPlayer(30, 1, false);
   assert.equal(P.hp, 0);
 });
@@ -392,7 +392,7 @@ test('Lucy: her new run, no dodging by luck, her big gun for the super, and a dr
   // a blow on her feet always lands: no dodging it by chance any more
   for (let i = 0; i < 200; i++) {
     Object.assign(P, { state: 'idle', inv: 0, z: 0, hp: 90 });
-    G.state = 'play';
+    APP.state = 'play';
     assert.equal(hitPlayer(5, 1, false), true);
     assert.equal(P.hp, 85);
   }

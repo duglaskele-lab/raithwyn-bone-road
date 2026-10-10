@@ -3,7 +3,7 @@
 // of reach, then lunges in claws first; up close it rakes with its claws. A medium enemy:
 // plain hits do not stop it (see WEIGHT).
 import { CORPSE_T, LIZARD, OL, TAU } from '../config.js';
-import { clamp, ease, random, rnd } from '../util.js';
+import { clamp, ease, fxRandom, random, rnd } from '../util.js';
 import { G, P } from '../state.js';
 import { SFX } from '../audio.js';
 import { dust } from '../fx.js';
@@ -485,7 +485,7 @@ export default defineFoe('lizard', {
         e.x += e.cdir * LIZARD.lunge * dt;
         e.moving = true;
         e.walkT += dt * 20;
-        if (random() < 0.4) dust(e.x - e.face * 24, e.y, 1);
+        if (fxRandom() < 0.4) dust(e.x - e.face * 24, e.y, 1);
         if (!e.hitDone && inFront(e, 10, 90, 26, 110)) {
           e.hitDone = true;
           hitPlayer(LIZARD.lungeDmg, e.face, true);

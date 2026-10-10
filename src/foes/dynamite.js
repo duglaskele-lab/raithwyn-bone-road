@@ -3,7 +3,7 @@
 // stick lies on the ground until it blows up (BLAST.dynamite), hurting anyone near it. Hit it
 // while it holds a lit stick, and the stick drops at its feet.
 import { DYNAMITE, OL, TAU } from '../config.js';
-import { clamp, random, rnd } from '../util.js';
+import { clamp, fxRandom, fxRnd } from '../util.js';
 import { G, P } from '../state.js';
 import { SFX } from '../audio.js';
 import { ctx } from '../gfx.js';
@@ -137,13 +137,13 @@ export default defineFoe('dynamite', {
         e.fuse = DYNAMITE.fuse;
         SFX.fuse();
       }
-      if (random() < 0.5)
+      if (fxRandom() < 0.5)
         G.parts.push({
           k: 'dot',
           x: e.x - e.face * 20,
           y: e.y - 150 * e.T.scale,
-          vx: rnd(-40, 40),
-          vy: rnd(-120, -60),
+          vx: fxRnd(-40, 40),
+          vy: fxRnd(-120, -60),
           g: 300,
           t: 0,
           life: 0.25,

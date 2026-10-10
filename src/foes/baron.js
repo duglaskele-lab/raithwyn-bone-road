@@ -3,7 +3,7 @@
 // phase and spits acid. His charge, summon, roar and breath cannot be interrupted, and two
 // interrupted combos in a row make him shrug off combos for a while.
 import { ACID, BOSS, FONT, GB, GT, OL, PURPLE, TAU, W } from '../config.js';
-import { clamp, random, rnd } from '../util.js';
+import { clamp, fxRandom, fxRnd, random, rnd } from '../util.js';
 import { G, P } from '../state.js';
 import { SFX } from '../audio.js';
 import { dust } from '../fx.js';
@@ -29,13 +29,13 @@ const drip = (x, y) => ({
   k: 'dot',
   x,
   y,
-  vx: rnd(-15, 15),
-  vy: rnd(20, 60),
+  vx: fxRnd(-15, 15),
+  vy: fxRnd(20, 60),
   g: 700,
   t: 0,
-  life: rnd(0.3, 0.5),
-  s: rnd(2.5, 4),
-  col: random() < 0.5 ? '#9dff4a' : '#4fd12a',
+  life: fxRnd(0.3, 0.5),
+  s: fxRnd(2.5, 4),
+  col: fxRandom() < 0.5 ? '#9dff4a' : '#4fd12a',
 });
 
 export default defineFoe('boss', {
@@ -228,7 +228,7 @@ export default defineFoe('boss', {
   },
   states: {
     roar(e) {
-      if (random() < 0.4) dust(e.x + rnd(-60, 60), e.y, 1);
+      if (fxRandom() < 0.4) dust(e.x + fxRnd(-60, 60), e.y, 1);
       if (e.t > BOSS.roar) go(e, 'chase');
     },
     summon(e) {
@@ -255,7 +255,7 @@ export default defineFoe('boss', {
         e.y += clamp(s.dy, -1, 1) * 40 * dt;
         e.moving = true;
         e.walkT += dt * 17;
-        if (random() < 0.5) dust(e.x - e.face * 20, e.y, 1);
+        if (fxRandom() < 0.5) dust(e.x - e.face * 20, e.y, 1);
         if (!e.hitDone && s.adx < 64 && s.ady < 26) {
           e.hitDone = true;
           hitPlayer(e.T.dmg, e.face, true);
@@ -267,9 +267,9 @@ export default defineFoe('boss', {
     bwind(e, dt, s) {
       // 0.7 s to get out of the way: head back, acid drooling from the jaws
       if (e.t < 0.2) e.face = s.dx >= 0 ? 1 : -1;
-      if (random() < 0.5) {
+      if (fxRandom() < 0.5) {
         const [mx, my] = mouth(e);
-        G.parts.push(drip(mx + rnd(-4, 4), my + 4));
+        G.parts.push(drip(mx + fxRnd(-4, 4), my + 4));
       }
       if (e.t > BOSS.breathWind) {
         go(e, 'breath', 0, { tick: 0 });
@@ -281,9 +281,9 @@ export default defineFoe('boss', {
       // front of him, which is where it burns
       const [mx, my] = mouth(e);
       for (let i = 0; i < 5; i++) {
-        const life = rnd(0.35, 0.6),
-          reach = BOSS.breathLen * Math.sqrt(rnd(0.04, 1)),
-          side = rnd(-1, 1) * (BOSS.breathW0 + reach * BOSS.breathSpread),
+        const life = fxRnd(0.35, 0.6),
+          reach = BOSS.breathLen * Math.sqrt(fxRnd(0.04, 1)),
+          side = fxRnd(-1, 1) * (BOSS.breathW0 + reach * BOSS.breathSpread),
           g = 900,
           gy = e.y + side;
         G.parts.push({
@@ -295,24 +295,24 @@ export default defineFoe('boss', {
           g,
           t: 0,
           life,
-          s: rnd(3, 7),
+          s: fxRnd(3, 7),
           col: i % 3 ? '#9dff4a' : '#4fd12a',
         });
       }
       // drops splashing where they land
       for (let i = 0; i < 2; i++) {
-        const reach = BOSS.breathLen * rnd(0.15, 1),
-          side = rnd(-1, 1) * (BOSS.breathW0 + reach * BOSS.breathSpread);
+        const reach = BOSS.breathLen * fxRnd(0.15, 1),
+          side = fxRnd(-1, 1) * (BOSS.breathW0 + reach * BOSS.breathSpread);
         G.parts.push({
           k: 'dot',
           x: e.x + e.face * (reach + 20),
           y: e.y + side - 2,
-          vx: rnd(-50, 50),
-          vy: rnd(-140, -50),
+          vx: fxRnd(-50, 50),
+          vy: fxRnd(-140, -50),
           g: 700,
           t: 0,
-          life: rnd(0.2, 0.3),
-          s: rnd(2, 4),
+          life: fxRnd(0.2, 0.3),
+          s: fxRnd(2, 4),
           col: '#b9ff7a',
         });
       }

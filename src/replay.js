@@ -8,7 +8,7 @@
 //
 // F7 watches the last run again (or a loaded one), F8 saves it to a file, and a saved file
 // dropped on the page plays it. A replay is tied to the version of the game it was made with.
-import { G, P, reset } from './state.js';
+import { APP, P, reset } from './state.js';
 import { LUCY, MAX_HP } from './config.js';
 import { keys, pressed } from './input.js';
 import { seedRandom } from './util.js';
@@ -53,19 +53,19 @@ function setFighter(who) {
   P.streak = 0;
 }
 /** Start a fresh run: a new seed, a fresh world (at stage `level`), and a new recording. */
-export function newRun(seed = (Math.random() * 2 ** 32) >>> 0, level = 1, who = G.fighter) {
+export function newRun(seed = (Math.random() * 2 ** 32) >>> 0, level = 1, who = APP.fighter) {
   play = null;
   seedRandom(seed);
   reset();
   setFighter(who);
   if (level !== 1) startLevel(level);
-  G.state = 'play';
+  APP.state = 'play';
   rec = { v: REPLAY_VERSION, seed, level, who: P.who, frames: [] };
 }
 /** Note this frame's input, just before the world is updated with `dt`. */
 export function recordFrame(dt) {
   if (!rec || play) return;
-  const f = [1, dt, mask(keys), mask(pressed), G.runLatch ? 1 : 0],
+  const f = [1, dt, mask(keys), mask(pressed), APP.runLatch ? 1 : 0],
     last = rec.frames[rec.frames.length - 1];
   if (last && last[1] === f[1] && last[2] === f[2] && last[3] === f[3] && last[4] === f[4])
     last[0]++;
@@ -88,7 +88,7 @@ export function startReplay(run = rec) {
   reset();
   setFighter(run.who);
   if (run.level > 1) startLevel(run.level);
-  G.state = 'play';
+  APP.state = 'play';
   return true;
 }
 /**
@@ -100,7 +100,7 @@ export function replayFrame() {
   if (!f) return null;
   unmask(f[2], keys);
   unmask(f[3], pressed);
-  G.runLatch = !!f[4];
+  APP.runLatch = !!f[4];
   play.done++;
   if (++play.n >= f[0]) {
     play.i++;

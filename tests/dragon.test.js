@@ -1,7 +1,7 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { DECOR, SUPER_HOLD, TYPES, WAVES } from '../src/config.js';
-import { G, P } from '../src/state.js';
+import { APP, G, P } from '../src/state.js';
 import { pressed } from '../src/input.js';
 import { hurtEnemy, strike } from '../src/combat.js';
 import { spawn, updEnemy } from '../src/enemies.js';
@@ -218,7 +218,7 @@ test('killing the dragon wins the level', () => {
       G.debris.some((p) => p.k === 'dpart' && p.part === part),
       `${part} lies on the ground`,
     );
-  assert.equal(G.state, 'win');
+  assert.equal(APP.state, 'win');
 });
 
 test('the super attack charges in one second; big graves burst into big slabs', () => {

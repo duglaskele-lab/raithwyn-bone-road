@@ -1,6 +1,6 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { G, P } from '../src/state.js';
+import { APP, G, P, reset } from '../src/state.js';
 import { keys, pressed } from '../src/input.js';
 import { update } from '../src/world.js';
 import { mulberry, random, seedRandom } from '../src/util.js';
@@ -46,7 +46,7 @@ function playFor(frames, seed, heal = true) {
     keys.d = bot() < 0.2;
     for (const b of ['atk', 'jump', 'bone', 'hado']) if (bot() < 0.08) pressed[b] = true;
     const dt = Math.round(1000 / 60 + (bot() - 0.5) * 2) / 1000; // like the game's own steps
-    if (G.state === 'play') {
+    if (APP.state === 'play') {
       if (heal && P.hp < 40) P.hp = 100; // (the test keeps the run going)
       recordFrame(dt);
       update(dt);
@@ -69,7 +69,7 @@ test('the same seed and the same inputs give the same run', () => {
 
 test('a recorded run plays back exactly, also from a saved file', () => {
   newRun(77);
-  playFor(2400, 3);
+  playFor(2400, 3, false); // (no healing by the test: a replay would not have it)
   const end = snapshot(),
     run = lastRun();
   assert.ok(run.frames.length < 2400, 'repeated frames are folded together');
@@ -92,7 +92,7 @@ test('a file that is not a replay is refused', () => {
 
 test('a replay plays back exactly even after a run that left things behind', () => {
   newRun(55, 2);
-  playFor(2400, 5, false);
+  playFor(2400, 5, false); // (no healing by the test: a replay would not have it)
   const end = snapshot(),
     run = lastRun();
   // another run left its marks: a clock far on, a hit-stop, a burn under way, a grab...
@@ -117,7 +117,7 @@ test("drawing, and the light picture, never touch the game's chance nor its cour
     // every kind of foe at once, in the last arena, and a player mashing buttons
     const fight = (draw, lowFx) => {
       newRun(99, 1, 'lucy');
-      G.lowFx = lowFx;
+      APP.lowFx = lowFx;
       G.waveI = 99;
       G.cam = WAVES.at(-1).x;
       Object.assign(P, { x: G.cam + 300, y: 440 });
@@ -132,7 +132,7 @@ test("drawing, and the light picture, never touch the game's chance nor its cour
         for (const b of ['atk', 'jump', 'bone', 'hado', 'super'])
           if (bot() < 0.06) pressed[b] = true;
         P.hp = Math.max(P.hp, 50);
-        G.state = 'play';
+        APP.state = 'play';
         update(1 / 60);
         if (draw) {
           drawWorld();
@@ -146,6 +146,21 @@ test("drawing, and the light picture, never touch the game's chance nor its cour
     assert.equal(fight(true, true), plain, 'drawn light');
   } finally {
     restore();
-    G.lowFx = false;
+    APP.lowFx = false;
   }
+});
+
+test('a new run carries nothing over from the last one; the application keeps its own', () => {
+  Object.assign(G, { leftover: 1, freeze: 0.3, time: 99 });
+  Object.assign(P, { leftover: 2, fireT: 0.01 });
+  APP.muted = true;
+  APP.lowFx = true;
+  reset();
+  assert.equal(G.leftover, undefined, 'even a field nobody knew of is gone');
+  assert.equal(P.leftover, undefined);
+  assert.deepEqual([G.freeze, G.time, P.fireT], [0, 0, 0.1]);
+  assert.equal(APP.muted, true, 'the application state lives on');
+  assert.equal(APP.lowFx, true);
+  APP.muted = false;
+  APP.lowFx = false;
 });

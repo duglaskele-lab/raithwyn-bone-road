@@ -3,7 +3,7 @@
 // touches into the same buttons the keyboard presses (keys / pressed in input.js), so the
 // game, its replays and its tests do not care where the input came from.
 import { H, W } from './config.js';
-import { G } from './state.js';
+import { APP } from './state.js';
 import { audioInit } from './audio.js';
 import { keys, pagePoint, pageRect, pressed, setKey, turned } from './input.js';
 import { replaying } from './replay.js';
@@ -23,7 +23,7 @@ const FS_BOX = [416, 12, 36, 36];
 
 /** A short buzz, where the device can (Android; iPhones have no web vibration). */
 export function buzz(ms) {
-  if (G.vibrate === false) return;
+  if (APP.vibrate === false) return;
   try {
     globalThis.navigator?.vibrate?.(ms);
   } catch {
@@ -170,7 +170,7 @@ export function initTouch(canvas) {
   // --- the secrets: hold the portrait or the score ------------------------------------------
   const holds = new Map();
   canvas.addEventListener('pointerdown', (e) => {
-    if (G.state !== 'play') return;
+    if (APP.state !== 'play') return;
     const r = pageRect(canvas),
       [px, py] = pagePoint(e),
       x = ((px - r.left) / r.width) * W,
@@ -232,8 +232,8 @@ export function turnPage() {
 export function syncTouch() {
   const pad = document.getElementById('pad'),
     zone = document.getElementById('zone'),
-    playing = G.state === 'play',
-    shown = playing && !replaying() && !G.replayDone;
+    playing = APP.state === 'play',
+    shown = playing && !replaying() && !APP.replayDone;
   if (pad.classList.contains('off') === shown) {
     pad.classList.toggle('off', !shown);
     if (!shown) letGo();

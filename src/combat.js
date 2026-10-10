@@ -14,8 +14,8 @@ import {
   WEIGHT,
   ZOMBIE,
 } from './config.js';
-import { random, rnd } from './util.js';
-import { G, P } from './state.js';
+import { fxRnd, random, rnd } from './util.js';
+import { APP, G, P } from './state.js';
 import { SFX } from './audio.js';
 import { motes, shatter, spark } from './fx.js';
 import { spawn } from './enemies.js';
@@ -83,7 +83,7 @@ export function hurtEnemy(e, dmg, dir, knock, src, launch = false) {
   G.shake = Math.max(G.shake, knock ? 7 : 3);
   spark(
     e.x - dir * 8,
-    e.y - e.z - 100 * e.T.scale + rnd(-14, 14),
+    e.y - e.z - 100 * e.T.scale + fxRnd(-14, 14),
     knock ? '#fff2a8' : '#ffffff',
     knock,
   );
@@ -205,10 +205,10 @@ export function popHead(e, dir) {
     x: e.x,
     gy: e.y + 2,
     z: e.z + 150 * e.T.scale,
-    vx: dir * rnd(140, 260),
-    vz: rnd(320, 460),
+    vx: dir * fxRnd(140, 260),
+    vz: fxRnd(320, 460),
     rot: 0,
-    vr: dir * rnd(8, 14),
+    vr: dir * fxRnd(8, 14),
     len: 12 * e.T.scale,
     col: e.T.col,
     eye: e.T.eye,
@@ -219,12 +219,12 @@ export function popHead(e, dir) {
       k: 'dot',
       x: e.x,
       y: e.y - 150 * e.T.scale,
-      vx: rnd(-120, 120),
-      vy: rnd(-220, -60),
+      vx: fxRnd(-120, 120),
+      vy: fxRnd(-220, -60),
       g: 700,
       t: 0,
-      life: rnd(0.3, 0.5),
-      s: rnd(3, 5),
+      life: fxRnd(0.3, 0.5),
+      s: fxRnd(3, 5),
       col: '#5f7a3a',
     });
   SFX.clack();
@@ -235,7 +235,7 @@ export function grabPlayer(e) {
   if (
     p.inv > 0 ||
     p.z > 6 ||
-    G.state !== 'play' ||
+    APP.state !== 'play' ||
     !['idle', 'walk', 'run', 'atk1', 'atk2', 'throw'].includes(p.state)
   )
     return false;
@@ -261,14 +261,14 @@ export function breakProp(e) {
   for (let i = 0; i < (D ? 11 : 7); i++)
     G.debris.push({
       k: 'shard',
-      x: e.x + rnd(-8, 8),
-      gy: e.y + rnd(-4, 6),
-      z: rnd(8, 40),
-      vx: rnd(-160, 160),
-      vz: rnd(150, 340),
-      rot: rnd(TAU),
-      vr: rnd(-12, 12),
-      len: rnd(6, 11) * (D ? 1.3 : 1),
+      x: e.x + fxRnd(-8, 8),
+      gy: e.y + fxRnd(-4, 6),
+      z: fxRnd(8, 40),
+      vx: fxRnd(-160, 160),
+      vz: fxRnd(150, 340),
+      rot: fxRnd(TAU),
+      vr: fxRnd(-12, 12),
+      len: fxRnd(6, 11) * (D ? 1.3 : 1),
       col: D ? D.col : '#6f8b8f',
       life: 2.2,
     });
@@ -278,14 +278,14 @@ export function breakProp(e) {
     for (let i = 0; i < 9; i++)
       G.debris.push({
         k: 'shard',
-        x: e.x + rnd(-24, 24),
-        gy: e.y + rnd(-6, 8),
-        z: rnd(20, 90),
-        vx: rnd(-220, 220),
-        vz: rnd(220, 420),
-        rot: rnd(TAU),
-        vr: rnd(-8, 8),
-        len: rnd(18, 30),
+        x: e.x + fxRnd(-24, 24),
+        gy: e.y + fxRnd(-6, 8),
+        z: fxRnd(20, 90),
+        vx: fxRnd(-220, 220),
+        vz: fxRnd(220, 420),
+        rot: fxRnd(TAU),
+        vr: fxRnd(-8, 8),
+        len: fxRnd(18, 30),
         col: i % 3 ? D.col : '#566266',
         life: 3,
       });
@@ -345,7 +345,7 @@ export function headBonus(e, zone) {
 }
 export function hitPlayer(dmg, dir, knock) {
   const p = P;
-  if (p.inv > 0 || G.state !== 'play' || ['ko', 'down', 'getup', 'dead', 'win'].includes(p.state))
+  if (p.inv > 0 || APP.state !== 'play' || ['ko', 'down', 'getup', 'dead', 'win'].includes(p.state))
     return false;
   p.hp = Math.max(0, p.hp - dmg);
   // Lucy's luck: the blow that would finish her may not; she still goes down
@@ -408,7 +408,7 @@ export function superNova() {
 // death follow.
 export function acidBite(dmg, fire = false) {
   const p = P;
-  if (p.inv > 0 || G.state !== 'play' || ['ko', 'down', 'getup', 'dead', 'win'].includes(p.state))
+  if (p.inv > 0 || APP.state !== 'play' || ['ko', 'down', 'getup', 'dead', 'win'].includes(p.state))
     return false;
   if (p.hp <= dmg) return hitPlayer(dmg, p.face, false);
   p.hp -= dmg;
@@ -417,14 +417,14 @@ export function acidBite(dmg, fire = false) {
   for (let i = 0; i < 4; i++)
     G.parts.push({
       k: 'dot',
-      x: p.x + rnd(-18, 18),
-      y: p.y - rnd(4, 30),
-      vx: rnd(-40, 40),
-      vy: rnd(-120, -60),
+      x: p.x + fxRnd(-18, 18),
+      y: p.y - fxRnd(4, 30),
+      vx: fxRnd(-40, 40),
+      vy: fxRnd(-120, -60),
       g: 300,
       t: 0,
-      life: rnd(0.3, 0.5),
-      s: rnd(3, 5),
+      life: fxRnd(0.3, 0.5),
+      s: fxRnd(3, 5),
       col: fire ? '#ff8a2a' : '#9dff4a',
     });
   return true;

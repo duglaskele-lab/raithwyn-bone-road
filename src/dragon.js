@@ -20,8 +20,8 @@
 // claw, the kick, the plasma or the pounce staggers it; then it shrugs off interrupts for a few seconds. The laser
 // and the leap cannot be stopped at all.
 import { GB, GT, TAU, W } from './config.js';
-import { clamp, ease, lerp, random, rnd } from './util.js';
-import { G, P } from './state.js';
+import { clamp, ease, fxRandom, fxRnd, lerp, random, rnd } from './util.js';
+import { APP, G, P } from './state.js';
 import { SFX, growl } from './audio.js';
 import { dust } from './fx.js';
 import { hitPlayer } from './combat.js';
@@ -374,8 +374,8 @@ export function plasmaBlast(q) {
   G.parts.push({ k: 'blast', x: q.x, y: q.y, t: 0, life: 0.5, s: Q.rx * 1.1 });
   G.parts.push({ k: 'gring', x: q.x, y: q.y, t: 0, life: 0.35, s: Q.rx, col: '#e7c8ff' });
   for (let i = 0; i < 22; i++) {
-    const a = rnd(0, TAU),
-      v = rnd(100, 320);
+    const a = fxRnd(0, TAU),
+      v = fxRnd(100, 320);
     G.parts.push({
       k: 'glow',
       x: q.x,
@@ -384,8 +384,8 @@ export function plasmaBlast(q) {
       vy: Math.sin(a) * v * 0.6 - 90,
       g: 300,
       t: 0,
-      life: rnd(0.3, 0.55),
-      s: rnd(3, 7),
+      life: fxRnd(0.3, 0.55),
+      s: fxRnd(3, 7),
       col: i % 3 ? '#d7a8ff' : '#ffffff',
     });
   }
@@ -446,7 +446,7 @@ function breakApart(e) {
         k: 'dpart',
         part,
         x: e.x + f * dx,
-        gy: e.y + rnd(-6, 6),
+        gy: e.y + fxRnd(-6, 6),
         z,
         vx,
         vz,
@@ -458,24 +458,24 @@ function breakApart(e) {
         life: 14,
         ...extra,
       });
-  piece('skull', 175, 16, f * rnd(70, 130), 150, f * rnd(0.2, 0.4));
-  piece('ribs', 0, 10, rnd(-20, 20), 110, rnd(-0.3, 0.3));
-  piece('wing', -10, 70, -f * rnd(60, 110), 160, -f * 0.6);
-  piece('wing', 20, 90, -f * rnd(10, 50), 210, f * 0.4, { back: 1 });
-  piece('tail', -170, 8, -f * rnd(30, 60), 90, -f * 0.25);
+  piece('skull', 175, 16, f * fxRnd(70, 130), 150, f * fxRnd(0.2, 0.4));
+  piece('ribs', 0, 10, fxRnd(-20, 20), 110, fxRnd(-0.3, 0.3));
+  piece('wing', -10, 70, -f * fxRnd(60, 110), 160, -f * 0.6);
+  piece('wing', 20, 90, -f * fxRnd(10, 50), 210, f * 0.4, { back: 1 });
+  piece('tail', -170, 8, -f * fxRnd(30, 60), 90, -f * 0.25);
   for (const dx of [-90, -60, 80, 110])
-    piece('leg', dx, 30, rnd(-110, 110), rnd(160, 260), rnd(-5, 5));
+    piece('leg', dx, 30, fxRnd(-110, 110), fxRnd(160, 260), fxRnd(-5, 5));
   for (let i = 0; i < 8; i++)
     G.debris.push({
       k: 'bone',
-      x: e.x + rnd(-120, 120),
-      gy: e.y + rnd(-10, 10),
-      z: rnd(10, 60),
-      vx: rnd(-160, 160),
-      vz: rnd(150, 300),
-      rot: rnd(0, TAU),
-      vr: rnd(-10, 10),
-      len: rnd(16, 26),
+      x: e.x + fxRnd(-120, 120),
+      gy: e.y + fxRnd(-10, 10),
+      z: fxRnd(10, 60),
+      vx: fxRnd(-160, 160),
+      vz: fxRnd(150, 300),
+      rot: fxRnd(0, TAU),
+      vr: fxRnd(-10, 10),
+      len: fxRnd(16, 26),
       col: T.col,
       life: 12,
     });
@@ -590,19 +590,19 @@ function step(e, dt) {
   e.moving = false;
   const f = (P.x - e.x) * e.face;
   // acid dripping from the jaws
-  if (random() < dt * 9) {
+  if (fxRandom() < dt * 9) {
     const [hx, hy] = headPoint(e);
     G.parts.push({
       k: 'dot',
-      x: hx + e.face * rnd(30, 52),
+      x: hx + e.face * fxRnd(30, 52),
       y: hy + 14,
-      vx: rnd(-10, 10),
-      vy: rnd(10, 40),
+      vx: fxRnd(-10, 10),
+      vy: fxRnd(10, 40),
       g: 600,
       t: 0,
-      life: rnd(0.35, 0.6),
-      s: rnd(2.5, 4.5),
-      col: random() < 0.5 ? '#9dff4a' : '#5fd12a',
+      life: fxRnd(0.35, 0.6),
+      s: fxRnd(2.5, 4.5),
+      col: fxRandom() < 0.5 ? '#9dff4a' : '#5fd12a',
     });
   }
   switch (e.state) {
@@ -621,7 +621,7 @@ function step(e, dt) {
       if (e.t > 2.2) finish(e);
       break;
     case 'roar':
-      if (random() < 0.5) dust(e.x + rnd(-120, 120), e.y, 1);
+      if (fxRandom() < 0.5) dust(e.x + fxRnd(-120, 120), e.y, 1);
       G.shake = Math.max(G.shake, 4);
       if (e.t > C.roar) finish(e);
       break;
@@ -661,7 +661,7 @@ function step(e, dt) {
         e.cd = Math.max(e.cd, 0.35);
         break;
       }
-      if (e.cd <= 0 && !pdown() && G.state === 'play') {
+      if (e.cd <= 0 && !pdown() && APP.state === 'play') {
         const a = choose(e);
         if (a) {
           start(e, a);
@@ -750,11 +750,11 @@ function step(e, dt) {
         hx = e.x + e.face * 25,
         hy = e.laserY - e.z - 108;
       if (e.t < L.wind) heartSparks(hx, hy, dt, e.t / L.wind);
-      if (e.t < L.wind && random() < 0.3 + e.t) {
+      if (e.t < L.wind && fxRandom() < 0.3 + e.t) {
         // sparks drawn into the heart as it charges
-        const a = rnd(0, TAU),
-          r = rnd(70, 130),
-          life = rnd(0.25, 0.4);
+        const a = fxRnd(0, TAU),
+          r = fxRnd(70, 130),
+          life = fxRnd(0.25, 0.4);
         G.parts.push({
           k: 'glow',
           x: hx + Math.cos(a) * r,
@@ -764,23 +764,23 @@ function step(e, dt) {
           g: 0,
           t: 0,
           life,
-          s: rnd(2, 4),
+          s: fxRnd(2, 4),
           col: '#f0dcff',
         });
       }
-      if (e.t > L.wind && e.t < L.wind + fire && random() < 0.8) {
+      if (e.t > L.wind && e.t < L.wind + fire && fxRandom() < 0.8) {
         // sparks thrown off the beam
-        const x = hx + e.face * rnd(40, W);
+        const x = hx + e.face * fxRnd(40, W);
         G.parts.push({
           k: 'glow',
           x,
-          y: hy + rnd(-20, 20),
-          vx: e.face * rnd(100, 300),
-          vy: rnd(-120, 120),
+          y: hy + fxRnd(-20, 20),
+          vx: e.face * fxRnd(100, 300),
+          vy: fxRnd(-120, 120),
           g: 0,
           t: 0,
-          life: rnd(0.15, 0.3),
-          s: rnd(2, 4),
+          life: fxRnd(0.15, 0.3),
+          s: fxRnd(2, 4),
           col: '#ffffff',
         });
       }
@@ -814,7 +814,7 @@ function step(e, dt) {
       const D = C.death;
       e.z = Math.max(0, e.z - 700 * dt);
       if (e.t < D.roar) G.shake = Math.max(G.shake, 5);
-      else if (e.t < D.roar + D.fall && random() < 0.5) dust(e.x + rnd(-120, 120), e.y, 1);
+      else if (e.t < D.roar + D.fall && fxRandom() < 0.5) dust(e.x + fxRnd(-120, 120), e.y, 1);
       if (e.t > D.roar + D.fall && !e.broken) {
         e.broken = true;
         breakApart(e);
@@ -831,9 +831,9 @@ function step(e, dt) {
 /** White sparks flying out of the heart while a beam charges (more of them as it fills). */
 function heartSparks(hx, hy, dt, u) {
   const n = dt * (25 + 60 * u);
-  for (let i = 0; i < n || (i === 0 && random() < n); i++) {
-    const a = rnd(0, TAU),
-      v = rnd(140, 320);
+  for (let i = 0; i < n || (i === 0 && fxRandom() < n); i++) {
+    const a = fxRnd(0, TAU),
+      v = fxRnd(140, 320);
     G.parts.push({
       k: 'glow',
       x: hx + Math.cos(a) * 8,
@@ -842,8 +842,8 @@ function heartSparks(hx, hy, dt, u) {
       vy: Math.sin(a) * v - 40,
       g: 260,
       t: 0,
-      life: rnd(0.25, 0.45),
-      s: rnd(2, 3.5),
+      life: fxRnd(0.25, 0.45),
+      s: fxRnd(2, 3.5),
       col: '#ffffff',
     });
   }
@@ -924,18 +924,18 @@ function sky(e, dt) {
     if (!e.hitDone && P.z < 160)
       if (beams.some((b) => Math.abs(P.x - b.x) < S.hit && Math.abs(P.y - b.y) < skyBand(e)))
         if (hitPlayer(S.dmg, e.face, true)) e.hitDone = true;
-    if (random() < 0.95) {
-      const b = beams[Math.floor(random() * beams.length)];
+    if (fxRandom() < 0.95) {
+      const b = beams[Math.floor(fxRandom() * beams.length)];
       G.parts.push({
         k: 'glow',
-        x: b.x + rnd(-10, 10),
-        y: b.y - rnd(0, 20),
-        vx: rnd(-160, 160),
-        vy: rnd(-220, -60),
+        x: b.x + fxRnd(-10, 10),
+        y: b.y - fxRnd(0, 20),
+        vx: fxRnd(-160, 160),
+        vy: fxRnd(-220, -60),
         g: 500,
         t: 0,
-        life: rnd(0.2, 0.4),
-        s: rnd(2, 4),
+        life: fxRnd(0.2, 0.4),
+        s: fxRnd(2, 4),
         col: '#ffffff',
       });
     }
@@ -1174,8 +1174,8 @@ export function updShocks(dt) {
   const S = DRAGON.shock;
   for (const w of G.shocks) {
     w.r += S.speed * dt;
-    if (random() < 0.9) {
-      const a = rnd(0, TAU);
+    if (fxRandom() < 0.9) {
+      const a = fxRnd(0, TAU);
       dust(w.x + Math.cos(a) * w.r, w.y + Math.sin(a) * w.r * S.depth, 1);
     }
     const d = Math.hypot(P.x - w.x, (P.y - w.y) / S.depth);

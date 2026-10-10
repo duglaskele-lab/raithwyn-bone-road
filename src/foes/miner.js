@@ -2,7 +2,7 @@
 // swings the pick from above; now and then it raises the pick for a moment (MINER.wind) and
 // runs straight ahead to ram the player down.
 import { MINER, OL, TAU, W } from '../config.js';
-import { random, rnd } from '../util.js';
+import { fxRandom, random, rnd } from '../util.js';
 import { G, P } from '../state.js';
 import { SFX } from '../audio.js';
 import { dust } from '../fx.js';
@@ -195,7 +195,7 @@ export default defineFoe('miner', {
         e.x += e.cdir * MINER.speed * dt;
         e.moving = true;
         e.walkT += dt * 18;
-        if (random() < 0.45) dust(e.x - e.face * 18, e.y, 1);
+        if (fxRandom() < 0.45) dust(e.x - e.face * 18, e.y, 1);
         if (!e.hitDone && inFront(e, 10, 60, 24, 110)) {
           e.hitDone = true;
           hitPlayer(MINER.dmg, e.face, true);

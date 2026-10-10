@@ -20,8 +20,8 @@ import {
   WAVES,
   ZOMBIE,
 } from './config.js';
-import { clamp, random, rnd, tl } from './util.js';
-import { G, P } from './state.js';
+import { clamp, fxRandom, fxRnd, random, tl } from './util.js';
+import { APP, G, P } from './state.js';
 import { keys, pressed } from './input.js';
 import { SFX } from './audio.js';
 import { dust, motes } from './fx.js';
@@ -99,12 +99,12 @@ export function updPlayer(dt) {
         p.seq = [];
       }
     }
-  if (!mx) G.runLatch = false;
+  if (!mx) APP.runLatch = false;
   switch (p.state) {
     case 'idle':
     case 'walk':
     case 'run': {
-      const run = (keys.run || G.runLatch) && mx !== 0,
+      const run = (keys.run || APP.runLatch) && mx !== 0,
         sp = run ? 435 : 180;
       if (mx) p.face = mx;
       p.x += mx * sp * dt;
@@ -361,14 +361,14 @@ export function updPlayer(dt) {
         for (let k = 0; k < 18; k++)
           G.parts.push({
             k: 'dot',
-            x: p.x + p.face * (BIG_GUN.x + rnd(-4, 10)),
-            y: p.y - BIG_GUN.z + rnd(-8, 8),
-            vx: p.face * rnd(80, 520),
-            vy: rnd(-260, 120),
+            x: p.x + p.face * (BIG_GUN.x + fxRnd(-4, 10)),
+            y: p.y - BIG_GUN.z + fxRnd(-8, 8),
+            vx: p.face * fxRnd(80, 520),
+            vy: fxRnd(-260, 120),
             g: 600,
             t: 0,
-            life: rnd(0.2, 0.45),
-            s: rnd(2, 4.5),
+            life: fxRnd(0.2, 0.45),
+            s: fxRnd(2, 4.5),
             col: k % 3 ? '#ffd76a' : '#ff8a3a',
           });
         G.projs.push({
@@ -418,7 +418,7 @@ export function updPlayer(dt) {
         break;
       }
       p.an = ['hado', i];
-      if (i >= 1 && i <= 3 && random() < 0.6)
+      if (i >= 1 && i <= 3 && fxRandom() < 0.6)
         motes(p.x + p.face * (i === 1 ? 40 : 150), p.y - 102, 1, 90);
       if (i >= 4 && !p.sw) {
         p.sw = 1;
@@ -451,7 +451,8 @@ export function updPlayer(dt) {
         p.sup = Math.min(1, p.t / SUPER_HOLD);
         // Lucy draws her big gun as it charges; Raithwyn gathers a dark orb
         p.an = [p.who === 'lucy' ? 'super' : 'orb', Math.min(5, Math.floor(p.sup * 6))];
-        if (random() < 0.3 + 0.6 * p.sup) motes(p.x + p.face * 52, p.y - 112, 1, 60 + 140 * p.sup);
+        if (fxRandom() < 0.3 + 0.6 * p.sup)
+          motes(p.x + p.face * 52, p.y - 112, 1, 60 + 140 * p.sup);
         if (p.t >= SUPER_HOLD) {
           p.sw = 1;
           p.t = 0;
@@ -497,7 +498,7 @@ export function updPlayer(dt) {
       p.face = d >= 0 ? 1 : -1;
       p.x += Math.sign(d) * Math.min(Math.abs(d), 740 * dt);
       p.y += clamp(e.y - p.y, -220 * dt, 220 * dt);
-      if (random() < 0.5) dust(p.x, p.y, 1);
+      if (fxRandom() < 0.5) dust(p.x, p.y, 1);
       if (Math.abs(e.x - p.x) < 82) {
         p.puller = null;
         toIdle();
@@ -540,7 +541,7 @@ export function updPlayer(dt) {
             p.t = 0;
           } else {
             p.state = 'dead';
-            G.state = 'over';
+            APP.state = 'over';
             G.endT = 0;
           }
         } else {

@@ -13,7 +13,7 @@ import {
   WAVES,
   WEIGHT,
 } from '../src/config.js';
-import { G, P } from '../src/state.js';
+import { APP, G, P } from '../src/state.js';
 import { keys, pressed } from '../src/input.js';
 import { spawn, updEnemy } from '../src/enemies.js';
 import { hurtEnemy } from '../src/combat.js';
@@ -77,14 +77,14 @@ test('holding Z and 2 for two seconds on the first screen takes the player to Ol
 
 test('winning the Bone Road leads on to Old Quarry, keeping score and lives', () => {
   G.waveI = WAVES.length;
-  G.state = 'win';
+  APP.state = 'win';
   G.endT = 3;
   P.score = 1234;
   P.lives = 1;
   pressed.atk = true;
   update(DT);
   assert.equal(G.level, 2);
-  assert.equal(G.state, 'play');
+  assert.equal(APP.state, 'play');
   assert.equal(P.score, 1234);
   assert.equal(P.lives, 1);
 });

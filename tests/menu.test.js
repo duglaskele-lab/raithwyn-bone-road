@@ -1,6 +1,6 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { G } from '../src/state.js';
+import { APP } from '../src/state.js';
 import { pressed } from '../src/input.js';
 import { CHARS, LEVEL, SLOTS, STATS } from '../src/characters.js';
 import {
@@ -18,9 +18,9 @@ import { freshGame } from './helpers.js';
 
 beforeEach(() => {
   freshGame();
-  G.state = 'title';
-  G.menu = 0;
-  G.muted = false;
+  APP.state = 'title';
+  APP.menu = 0;
+  APP.muted = false;
   setLang('en');
 });
 
@@ -35,46 +35,46 @@ const step = (...actions) => {
 
 test('main menu: start, settings and exit', () => {
   step('start');
-  assert.equal(G.state, 'select');
+  assert.equal(APP.state, 'select');
   step('pause');
-  assert.equal(G.state, 'title');
+  assert.equal(APP.state, 'title');
   step('d');
   step('start');
-  assert.equal(G.state, 'settings');
+  assert.equal(APP.state, 'settings');
   step('pause');
   step('d');
   step('start');
-  assert.equal(G.state, 'bye');
+  assert.equal(APP.state, 'bye');
   step('atk');
-  assert.equal(G.state, 'title');
+  assert.equal(APP.state, 'title');
 });
 
 test('main menu items respond to taps', () => {
   step(MAIN_BOX[1]);
-  assert.equal(G.state, 'settings');
+  assert.equal(APP.state, 'settings');
 });
 
 test('settings switch the language and the sound', () => {
-  G.state = 'settings';
+  APP.state = 'settings';
   step(SET_BOX[0]);
   assert.equal(lang, 'ru');
   step('r');
   assert.equal(lang, 'en');
   step('d');
   step('start');
-  assert.equal(G.muted, true);
+  assert.equal(APP.muted, true);
   step('d');
   step('d');
   step('d');
   step('start');
-  assert.equal(G.state, 'title');
+  assert.equal(APP.state, 'title');
 });
 
 test('settings: the FPS counter and the frame limit (30 60 90 none, 60 by default)', () => {
   assert.deepEqual(CAPS, [30, 60, 90, 0]);
   assert.equal(fps.cap, 60);
   assert.equal(fps.show, false);
-  G.state = 'settings';
+  APP.state = 'settings';
   step(SET_BOX[2]);
   assert.equal(fps.show, true);
   step(SET_BOX[2]);
@@ -90,7 +90,7 @@ test('settings: the FPS counter and the frame limit (30 60 90 none, 60 by defaul
   step('l');
   step('l');
   assert.equal(fps.cap, 60);
-  assert.equal(G.state, 'settings');
+  assert.equal(APP.state, 'settings');
 });
 
 test('the frame limit: 60 on 144 Hz, 90 on 144 Hz, 30 on 60 Hz, none draws every frame', () => {
@@ -122,34 +122,34 @@ test('the roster: four fighters, four locked slots, Raithwyn and Lucy playable',
 });
 
 test('other fighters can be viewed but not played', () => {
-  G.state = 'select';
-  G.sel = 0;
+  APP.state = 'select';
+  APP.sel = 0;
   for (const slot of [2, 3, 4, 7]) {
     step(SLOT_BOX[slot]);
-    assert.equal(G.sel, slot);
+    assert.equal(APP.sel, slot);
     step(PLAY_BOX);
-    assert.equal(G.state, 'select', `slot ${slot} must not start`);
-    assert.ok(G.msgT > 0);
+    assert.equal(APP.state, 'select', `slot ${slot} must not start`);
+    assert.ok(APP.msgT > 0);
   }
   step('r'); // 7 -> 4 wraps within the row
-  assert.equal(G.sel, 4);
+  assert.equal(APP.sel, 4);
   step('u');
-  assert.equal(G.sel, 0);
+  assert.equal(APP.sel, 0);
   step('start');
-  assert.equal(G.state, 'play');
+  assert.equal(APP.state, 'play');
 });
 
 test('a second tap on Raithwyn starts the fight, Back returns to the menu', () => {
-  G.state = 'select';
-  G.sel = 1;
+  APP.state = 'select';
+  APP.sel = 1;
   step(SLOT_BOX[0]);
-  assert.equal(G.state, 'select');
+  assert.equal(APP.state, 'select');
   step(SLOT_BOX[0]);
-  assert.equal(G.state, 'play');
+  assert.equal(APP.state, 'play');
 
-  G.state = 'select';
+  APP.state = 'select';
   step(BACK_BOX);
-  assert.equal(G.state, 'title');
+  assert.equal(APP.state, 'title');
 });
 
 test('the laugh never shows its last frame', () => {
@@ -161,11 +161,11 @@ test('Lucy can be chosen: the run is hers, and so is its replay', async () => {
   const { lastRun, startReplay } = await import('../src/replay.js');
   const { fighterFrame } = await import('../src/gfx.js');
   const { FR } = await import('../src/lucy-frames.js');
-  G.state = 'select';
-  G.sel = 0;
+  APP.state = 'select';
+  APP.sel = 0;
   step(SLOT_BOX[1]);
   step(PLAY_BOX);
-  assert.equal(G.state, 'play');
+  assert.equal(APP.state, 'play');
   assert.equal(P.who, 'lucy');
   P.x += 1;
   const run = lastRun() ?? { seed: 1, level: 1, who: 'lucy', frames: [[1, 0.016, 0, 0, 0]] };
@@ -184,5 +184,5 @@ test('Lucy can be chosen: the run is hers, and so is its replay', async () => {
   assert.equal(A.walk[1], FR.walk.length);
   assert.equal(A.run[1], FR.run.length);
   assert.ok(FR.punch1.length === 5 && FR.punch2.length === 5 && FR.stand.length === 1);
-  G.fighter = 'raithwyn';
+  APP.fighter = 'raithwyn';
 });

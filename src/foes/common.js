@@ -1,7 +1,7 @@
 // The states every skeleton shares: climbing out of the ground, chasing the player (with the
 // foe's own moves tried first), the plain wind-up / attack / recover, and taking hits.
 import { G, P } from '../state.js';
-import { random, rnd } from '../util.js';
+import { fxRandom, fxRnd, rnd } from '../util.js';
 import { SFX } from '../audio.js';
 import { dust } from '../fx.js';
 import { hitPlayer } from '../combat.js';
@@ -10,17 +10,17 @@ import { faceP, go, inFront, moveTo } from './kit.js';
 import { CORPSE_T, W } from '../config.js';
 
 defineState('rise', (e) => {
-  if (random() < 0.5)
+  if (fxRandom() < 0.5)
     G.parts.push({
       k: 'dust',
-      x: e.x + rnd(-22, 22),
-      y: e.y + rnd(-2, 4),
-      vx: rnd(-50, 50),
-      vy: rnd(-110, -30),
+      x: e.x + fxRnd(-22, 22),
+      y: e.y + fxRnd(-2, 4),
+      vx: fxRnd(-50, 50),
+      vy: fxRnd(-110, -30),
       g: 260,
       t: 0,
-      life: rnd(0.3, 0.5),
-      s: rnd(3, 7),
+      life: fxRnd(0.3, 0.5),
+      s: fxRnd(3, 7),
       col: '#4d6661',
     });
   faceP(e);

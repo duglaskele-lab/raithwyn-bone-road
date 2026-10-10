@@ -1,4 +1,4 @@
-import { G, reset } from '../src/state.js';
+import { APP, G, reset } from '../src/state.js';
 import { keys, pressed } from '../src/input.js';
 import { seedRandom } from '../src/util.js';
 import { setCtx } from '../src/gfx.js';
@@ -11,7 +11,7 @@ export function freshGame() {
   for (const k in keys) delete keys[k];
   for (const k in pressed) delete pressed[k];
   reset();
-  G.state = 'play';
+  APP.state = 'play';
   G.freeze = G.shake = G.flash = G.slow = 0;
 }
 

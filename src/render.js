@@ -22,7 +22,7 @@ import {
 } from './config.js';
 import { clamp, ease } from './util.js';
 import { FR } from './atlas-frames.js';
-import { G, P } from './state.js';
+import { APP, G, P } from './state.js';
 import { atlas, ctx, fighterFrame, portraits, ready, rr, setCtx, sprite, txt } from './gfx.js';
 import { STR, foeName, lang, t } from './i18n.js';
 import { touch } from './input.js';
@@ -688,14 +688,14 @@ function outlined(draw, e) {
   return (e) => {
     const main = ctx,
       m = main.getTransform();
-    // the layers cover the whole screen; in a light picture (G.lowFx) only a box round the
+    // the layers cover the whole screen; in a light picture (APP.lowFx) only a box round the
     // enemy, so the outline costs little there too (the dragon, too big for a box, gets a
     // blinking red tint instead)
     let ox = 0,
       oy = 0,
       w = main.canvas.width,
       h = main.canvas.height;
-    if (G.lowFx) {
+    if (APP.lowFx) {
       if (e.T.dragon) {
         draw(e);
         if (Math.floor(G.time * 12) % 2) return;
@@ -875,10 +875,8 @@ export function drawPart(p) {
       ctx.restore();
       break;
     case 'bat': {
-      // a violet bat: wheeling round its spot (closing in and rising), or flying off (in a
-      // light picture every other one is left out: only the look changes, never how many
-      // there are, which would change the game's chance and so its replays)
-      if (p.t < 0 || (G.lowFx && p.ph < Math.PI)) break;
+      // a violet bat: wheeling round its spot (closing in and rising), or flying off
+      if (p.t < 0) break;
       let bx = x,
         by = y,
         dir = Math.sign(p.vx ?? 1) || 1;
@@ -924,7 +922,6 @@ export function drawPart(p) {
     }
     case 'mist': {
       // a puff of violet mist: it swells, drifts up a little, thins out
-      if (G.lowFx && p.s < 36) break;
       const r = p.s * (0.6 + 0.8 * u),
         a = Math.sin(Math.PI * Math.min(1, u * 1.15)) * 0.5,
         g = ctx.createRadialGradient(x, y, 1, x, y, r);
@@ -1107,7 +1104,7 @@ export function drawWorld() {
   for (const q of G.projs)
     if (q.k !== 'bullet')
       shadow(q.x, q.y, q.z, q.k === 'hado' ? 26 * q.lv : q.k === 'plasma' ? 20 : 10);
-  if (G.state !== 'title') shadow(P.x, P.y, P.z, 40);
+  if (APP.state !== 'title') shadow(P.x, P.y, P.z, 40);
   const list = [];
   for (const d of G.debris) list.push([d.gy - 1, drawDebris, d]);
   for (const u of G.props) list.push([u.y, u.decor ? drawDecor : drawUrn, u]);
@@ -1115,7 +1112,7 @@ export function drawWorld() {
     list.push([e.y, outlined(FOES[e.type]?.draw ?? (e.T.dragon ? drawDragon : drawSkel), e), e]);
   for (const it of G.items) list.push([it.y, drawItem, it]);
   for (const q of G.projs) list.push([q.y + 1, drawProj, q]);
-  if (G.state !== 'title') list.push([P.y, drawPlayer, null]);
+  if (APP.state !== 'title') list.push([P.y, drawPlayer, null]);
   list.sort((a, b) => a[0] - b[0]);
   for (const l of list) l[1](l[2]);
   for (const e of G.enemies) if (e.T.dragon) drawDragonBeam(e);
@@ -1396,7 +1393,7 @@ export function drawHUD() {
     txt(s(G.banner.b), W / 2 - off, 166, 17, '#d2a8ff', 'center', 4);
     ctx.globalAlpha = 1;
   }
-  if (G.muted) txt(t('muted'), W - 20, H - 14, 12, '#9bb0ac', 'right', 3);
+  if (APP.muted) txt(t('muted'), W - 20, H - 14, 12, '#9bb0ac', 'right', 3);
 }
 export function overlay(a) {
   ctx.fillStyle = `rgba(12,10,20,${a})`;
