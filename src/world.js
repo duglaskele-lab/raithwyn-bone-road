@@ -1,22 +1,23 @@
 // One simulation step: player, enemies, projectiles, pickups, debris, wave script.
 import {
+  ACID,
   BIG_GUN,
   BULLET,
-  LUCY,
-  GRENADE,
-  ACID,
   CHAIN_GAP,
   DYNAMITE,
   GB,
+  GRENADE,
   GT,
   HADO,
+  LUCY,
+  PROS,
   PURPLE,
   RAGE,
   SECRET_HOLD,
   STAGE_HOLD,
+  STRONG,
   W,
   ZOMBIE,
-  PROS,
 } from './config.js';
 import { clamp, fxRandom, fxRnd, random, rnd } from './util.js';
 import { APP, G, P } from './state.js';
@@ -31,6 +32,7 @@ import { bufferPresses, updPlayer } from './player.js';
 import { spawn, updEnemy } from './enemies.js';
 import { waveSpawns } from './waves.js';
 import { dandies, evilHitP, evilHurt } from './foes/evil.js';
+import { roadBand } from './foes/strongman.js';
 import { explode, updFuses } from './blast.js';
 import { camTo, floorClamp, followPath, levelWaves, pathAt, pathPx, startLevel } from './level.js';
 
@@ -155,6 +157,18 @@ function stageWarp(dt) {
   G.shake = 10;
   SFX.nova();
 }
+/** The strongman's shock wave along the ground: across the whole depth of the road, out to
+ *  the edge of the screen; it throws whoever is on the ground where it passes (jump over it). */
+function quakeWave(q) {
+  if (q.x < G.cam - 40 || q.x > G.cam + W + 40) {
+    q.life = 0;
+    return;
+  }
+  const [y0, y1] = roadBand(q.x);
+  if (fxRandom() < 0.8) dust(q.x + fxRnd(-12, 12), fxRnd(y0, y1), 1);
+  if (!q.hit && Math.abs(P.x - q.x) < 28 && P.z < 16)
+    if (hitPlayer(STRONG.waveDmg, Math.sign(q.vx) || 1, true)) q.hit = true;
+}
 export function update(dt) {
   G.time += dt;
   // the Bone Road won: a moment of triumph, then on to Old Quarry (J, or by itself)
@@ -209,6 +223,10 @@ export function update(dt) {
   for (const q of G.projs) {
     q.life -= dt;
     q.x += q.vx * dt;
+    if (q.k === 'quake') {
+      quakeWave(q);
+      continue;
+    }
     if (q.k === 'bone') {
       q.rot += dt * 24 * Math.sign(q.vx);
       if (q.life < 0.25) q.z -= 260 * dt;

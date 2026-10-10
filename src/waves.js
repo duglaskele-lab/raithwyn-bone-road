@@ -32,23 +32,23 @@ export function rollWave(lvl, G = WAVEGEN) {
     maxHard = Math.round(at(G.maxHard, lvl)),
     types = [];
   let strong = 0;
-  // a strong one of a kind that has reached its cap is rolled again (an easy one if need be)
+  // one of a kind that has reached its cap is rolled again (an easy one if need be)
   const count = (k) => types.filter((x) => x === k).length,
-    pickHard = () => {
+    pickIn = (pool) => {
       for (let i = 0; i < 6; i++) {
-        const k = pick(G.pools.hard);
+        const k = pick(pool);
         if (count(k) < (cap[k] ?? Infinity)) return k;
       }
       return null;
-    };
+    },
+    pickHard = () => pickIn(G.pools.hard);
   for (let i = 0; i < n; i++) {
     const r = random(),
       h = r < hard && strong < maxHard ? pickHard() : null;
     if (h) {
       types.push(h);
       strong++;
-    } else if (r < hard + mid) types.push(pick(G.pools.mid));
-    else types.push(pick(G.pools.easy));
+    } else types.push((r < hard + mid && pickIn(G.pools.mid)) || pick(G.pools.easy));
   }
   // past the middle of the road a fight always has at least one strong enemy
   if (lvl >= 0.5 && strong === 0) types[n - 1] = pickHard() ?? types[n - 1];

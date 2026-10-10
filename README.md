@@ -259,6 +259,14 @@ Every second Rocker rides a long chopper of black iron and bone: spiked wheels, 
 pipes, a horned skull for a headlight and a ram of bone spikes. It hits along its whole length,
 so it is harder to dodge.
 
+**The Shield Bearer** (`TYPES.shield`, `SHIELD`, mid pool of the Bone Road) is a skeleton in an
+iron cap behind a rusty round shield, with a spear it pokes from a little further off than a
+plain skeleton punches. Every blow and shot from the front only clangs on the shield in a spray
+of sparks (bullets glance off it). From behind it is a plain skeleton, and it turns round only
+after the heroine has been behind it for 0.55 s, so go round it in depth or jump over it. Heavy
+blows wear the shield down (it cracks), and the third one splinters it. So does a single
+crushing blow, which also goes on through and hurts.
+
 **The Skeleton Samurai** is a medium-strength elite: white hakama, a bare ribcage, a red
 headband and a katana. From afar it takes a ready stance (its eyes light up and leave a glowing
 trail) and walks slowly towards the heroine. It only takes the stance after 3 seconds on screen
@@ -426,7 +434,23 @@ once. The blast hits everyone in a large radius, enemies and the heroine (if she
 breaks wooden barrels and a moment later sets off red ones nearby.
 
 **Old Quarry's enemies** (numbers are in `TYPES`, `MINER`, `DYNAMITE`, `LIZARD`, `ARMOR`,
-`SLIME`, `PROS`):
+`SLIME`, `PROS`, `STRONG`, `BANSHEE`):
+
+- **Saloon Strongman** (medium, at most one per fight) — a huge zombie circus strongman in a
+  striped leotard, with a waxed moustache and a kettlebell on his shoulder.
+  - His plain attack is a grab: he hoists the heroine over his head for about a second and
+    hurls her across the screen, bowling over the foes she flies into. Mashing buttons breaks
+    free before the throw.
+  - Now and then (every 11–16 s at most) he flexes for 2 s, with a glint in his eye and a warm
+    glow. Blows do a tenth of their damage and do not stop him; a crushing blow throws him.
+  - From a distance he slams the ground, and a shock wave runs along the ground to the edge of
+    the screen, across the whole depth of the road. Jump over it.
+- **Banshee** (light) — a ghost in a tattered gown with long black hair and hollow eyes.
+  - She drifts about see-through, passing through everyone, and nothing can touch her then.
+  - After a while she shows herself and can be hit. Her wail's reach is marked faintly on the
+    ground, then she wails: a cone in front of her stuns whoever is in it on the ground for
+    0.5 s. Step out of its depth (up or down the road) to get away.
+  - Then she fades again. She dies dissolving into the air.
 
 - **Zombie Miner** — the main enemy: a helmet with a lamp, a checked shirt with braces, a
   pickaxe. Strikes down with the pickaxe. Now and then raises the pickaxe over its head (0.7 s
@@ -616,6 +640,10 @@ What is checked:
   death.
 - `waves.test.js` — random fights: few enemies and rarely strong ones at first, crowds of every
   kind at the end, difficulty rising along the road, a replay giving the same enemies.
+- `newfoes.test.js` — the shield bearer's shield (front and back, cracking, crushing blows, its
+  slow turn), the strongman (grab, hoist, throw bowling foes over, mashing free, the flex, the
+  ground slam's wave), the banshee (untouchable while drifting, her wail's stun and its cone,
+  dissolving).
 - `samurai.test.js` — the stance and creeping up, the arc cut, the stun from a distant attack,
   the close-range counter, the kick, 3 seconds on screen before the stance, taking the stance
   again.

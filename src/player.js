@@ -18,6 +18,8 @@ import {
   SUPER_HOLD,
   W,
   WAVES,
+  STRONG,
+  TAU,
   ZOMBIE,
 } from './config.js';
 import { clamp, fxRandom, fxRnd, random, tl } from './util.js';
@@ -26,7 +28,7 @@ import { keys, pressed } from './input.js';
 import { SFX } from './audio.js';
 import { dust, motes } from './fx.js';
 import { floorClamp, viewClamp } from './level.js';
-import { buckshot, hadoLevel, strike, superNova } from './combat.js';
+import { buckshot, hadoLevel, hurtEnemy, strike, superNova } from './combat.js';
 
 // The idle pose at time t: the poses are held for hold[i] 24ths of a second each.
 export function idlePose(t, hold = IDLE_HOLD) {
@@ -556,11 +558,14 @@ export function updPlayer(dt) {
       p.buf = null;
       for (const a of ['atk', 'jump', 'bone', 'hado', 'l', 'r'])
         if (pressed[a]) p.hold -= ZOMBIE.mash;
-      if (!e || e.dead || e.state !== 'grab' || p.t > p.hold) {
+      if (!e || e.dead || !['grab', 'lift'].includes(e.state) || p.t > p.hold) {
+        // free (held up by the strongman: she drops back to her feet)
         p.grabber = null;
+        if (p.z > 0) dust(p.x, p.y, 5);
+        p.z = 0;
         toIdle();
         p.inv = Math.max(p.inv, 0.5);
-        if (e && !e.dead && e.state === 'grab') {
+        if (e && !e.dead && ['grab', 'lift'].includes(e.state)) {
           e.state = 'recover';
           e.t = 0;
           e.x -= e.face * 20;
@@ -589,6 +594,23 @@ export function updPlayer(dt) {
       }
       break;
     }
+    case 'dazed': {
+      // stunned by a wail: she reels, stars round her head
+      p.an = ['hurt', 1];
+      if (fxRandom() < 0.25)
+        G.parts.push({
+          k: 'star',
+          x: p.x + fxRnd(-26, 26),
+          y: p.y - fxRnd(150, 185),
+          t: 0,
+          life: 0.25,
+          s: fxRnd(10, 16),
+          col: '#bff3ff',
+          rot: fxRnd(TAU),
+        });
+      if (p.t > p.dazeT) toIdle();
+      break;
+    }
     case 'hurt':
       p.x += p.vx * dt;
       p.vx *= Math.pow(0.02, dt);
@@ -599,9 +621,19 @@ export function updPlayer(dt) {
       p.vz -= 1500 * dt;
       p.z += p.vz * dt;
       p.x += p.vx * dt;
+      // thrown by the strongman: she bowls over the foes she flies into
+      if (p.thrown)
+        for (const o of G.enemies) {
+          if (o.dead || o.dying || o === p.thrower || p.thrown.has(o)) continue;
+          if (Math.abs(o.x - p.x) < 55 && Math.abs(o.y - p.y) < 30 && o.z < 150) {
+            p.thrown.add(o);
+            hurtEnemy(o, STRONG.bowl, Math.sign(p.vx) || 1, true, 'punch');
+          }
+        }
       p.an = ['ko', p.t < 0.08 ? 0 : p.vz > 0 ? 1 : 2];
       if (p.z <= 0 && p.vz < 0) {
         p.z = 0;
+        p.thrown = null;
         p.state = 'down';
         p.t = 0;
         SFX.thud();

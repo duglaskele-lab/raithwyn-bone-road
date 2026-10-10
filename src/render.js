@@ -34,6 +34,7 @@ import { levelWaves, roadDir } from './level.js';
 import { hadoLevel } from './combat.js';
 import { boneShape, drawAura, drawSkel } from './skeleton.js';
 import { drawBike } from './foes/bikes.js';
+import { roadBand } from './foes/strongman.js';
 import { FOES } from './foes/registry.js';
 import { stick } from './foes/dynamite.js';
 import { drawHelmetDebris } from './foes/prospector.js';
@@ -616,6 +617,30 @@ export function drawProj(q) {
     ctx.fill();
     return;
   }
+  if (q.k === 'quake') {
+    // the strongman's shock wave: a ridge of rock spikes heaving up across the road
+    const [y0, y1] = roadBand(q.x),
+      d = Math.sign(q.vx) || 1;
+    ctx.save();
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = OL;
+    ctx.lineWidth = 2.4;
+    for (let yy = y0, k = 0; yy <= y1; yy += 16, k++) {
+      const h = 20 + 10 * Math.abs(Math.sin(G.time * 30 + k * 1.7)),
+        xx = x + Math.sin(k * 2.3) * 6;
+      ctx.fillStyle = k % 2 ? '#7a6250' : '#8f765f';
+      ctx.beginPath();
+      ctx.moveTo(xx - d * 18, yy);
+      ctx.lineTo(xx - d * 2, yy - h);
+      ctx.lineTo(xx + d * 8, yy - h * 0.55);
+      ctx.lineTo(xx + d * 14, yy);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
+    return;
+  }
   if (q.k === 'bullet') {
     // a streak of light along its path
     const d = Math.sign(q.vx) || q.d,
@@ -1102,7 +1127,7 @@ export function drawWorld() {
       );
   for (const it of G.items) shadow(it.x, it.y, it.z, 12);
   for (const q of G.projs)
-    if (q.k !== 'bullet')
+    if (q.k !== 'bullet' && q.k !== 'quake')
       shadow(q.x, q.y, q.z, q.k === 'hado' ? 26 * q.lv : q.k === 'plasma' ? 20 : 10);
   if (APP.state !== 'title') shadow(P.x, P.y, P.z, 40);
   const list = [];
