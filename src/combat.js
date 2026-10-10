@@ -312,7 +312,9 @@ export function strike(o) {
       p.hit.add(e);
       // Lucy's fists are weaker than Raithwyn's
       const dmg = o.dmg * (p.who === 'lucy' ? LUCY.melee : 1) * dmgMult() * headBonus(e, zone);
-      if (hurtEnemy(e, dmg, p.face, o.knock, src, o.launch) && !e.isProp) {
+      const landed = hurtEnemy(e, dmg, p.face, o.knock, src, o.launch);
+      if (landed) p.landed = true; // (Lucy's J J K needs a punch that lands)
+      if (landed && !e.isProp) {
         addRage(o.rage);
         styleGain(10);
         buzz(o.knock ? 22 : 10);

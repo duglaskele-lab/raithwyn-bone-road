@@ -858,6 +858,44 @@ export function drawPart(p) {
       ctx.restore();
       break;
     }
+    case 'boomTxt': {
+      // Lucy's J J K: a comic "BOOM!" on a spiky yellow burst; it pops in, then fades rising
+      const pop = u < 0.12 ? 1.35 * ease(u / 0.12) : 1.35 - 0.3 * Math.min(1, (u - 0.12) / 0.15),
+        a = Math.min(1, (1 - u) / 0.3);
+      ctx.save();
+      ctx.translate(x, y - u * 22);
+      ctx.rotate(p.rot);
+      ctx.scale(pop, pop);
+      ctx.globalAlpha = a;
+      ctx.lineJoin = 'round';
+      for (const [r0, r1, col] of [
+        [58, 38, '#ff6a1a'],
+        [48, 31, '#ffd23a'],
+      ]) {
+        ctx.beginPath();
+        for (let k = 0; k < 24; k++) {
+          const ang = (k / 24) * TAU,
+            r = k % 2 ? r1 : r0 * (k % 4 === 0 ? 1 : 0.86);
+          ctx.lineTo(Math.cos(ang) * r * 1.25, Math.sin(ang) * r * 0.8);
+        }
+        ctx.closePath();
+        ctx.fillStyle = col;
+        ctx.fill();
+        ctx.strokeStyle = OL;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+      ctx.font = `900 27px ${FONT}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = 7;
+      ctx.strokeStyle = OL;
+      ctx.strokeText('BOOM!', 0, 1);
+      ctx.fillStyle = '#e8261c';
+      ctx.fillText('BOOM!', 0, 1);
+      ctx.restore();
+      break;
+    }
     case 'neon':
       // a critical shot: a red neon "crit!" over the one it hit, rising a little
       neon(x, y - u * 13, 'crit!', 14, 'red', Math.min(1, (1 - u) * 3), p.t);

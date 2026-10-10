@@ -44,6 +44,7 @@ function startFinShot() {
   const p = P;
   p.buf = null;
   p.combo = 0;
+  p.finT = 0;
   if (p.ammo <= 0) {
     SFX.deny();
     return false;
@@ -62,6 +63,8 @@ export function startAtk(mx) {
   p.state = fin ? 'atk2' : 'atk1';
   p.t = 0;
   p.hit = new Set();
+  p.landed = false;
+  p.finT = 0;
   p.sw = 0;
   p.combo = fin ? 0 : p.combo + 1;
   p.comboT = 0.7;
@@ -86,6 +89,7 @@ export function updPlayer(dt) {
   p.t += dt;
   if (p.inv > 0) p.inv -= dt;
   p.comboT -= dt;
+  p.finT -= dt;
   p.boneCd -= dt;
   if (p.lucky > 0) p.lucky -= dt;
   // Lucy's run of pistol hits ends when she stops shooting
@@ -152,7 +156,7 @@ export function updPlayer(dt) {
         p.airT = null;
         p.airUsed = 0;
       } else if (b === 'atk') startAtk(mx);
-      else if (b === 'bone' && p.who === 'lucy' && p.combo >= 2 && p.comboT > 0) startFinShot();
+      else if (b === 'bone' && p.who === 'lucy' && p.finT > 0) startFinShot();
       else if (b === 'bone' && p.who === 'lucy') {
         // Lucy's K: she draws her pistol and fires, if she has a round left
         p.buf = null;
@@ -255,6 +259,8 @@ export function updPlayer(dt) {
     case 'atk1': {
       const i = tl(D.atk1, p.t);
       if (i < 0) {
+        // Lucy's second punch landed: for a moment K is her heavy shot (J J K)
+        if (p.who === 'lucy' && p.combo >= 2 && p.landed) p.finT = LUCY.finWin;
         toIdle();
         break;
       }
@@ -268,7 +274,14 @@ export function updPlayer(dt) {
         strike({ x0: 0, x1: 100, dy: 27, dmg: 8, knock: false, rage: RAGE.punch });
       }
       // Lucy, two punches in: K now is her heavy shot instead of a third punch
-      if (i >= 3 && p.who === 'lucy' && p.combo >= 2 && p.buf === 'bone' && p.bufT > 0) {
+      if (
+        i >= 3 &&
+        p.who === 'lucy' &&
+        p.combo >= 2 &&
+        p.landed &&
+        p.buf === 'bone' &&
+        p.bufT > 0
+      ) {
         if (!startFinShot()) toIdle();
         break;
       }

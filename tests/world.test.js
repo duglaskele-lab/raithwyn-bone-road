@@ -240,33 +240,47 @@ test('Lucy keeps firing while K is held, aiming and firing in turn, each shot pa
   P.who = 'raithwyn';
 });
 
-test('Lucy: J J K, a heavy shot straight from the aim: it knocks down, three times the damage, one round', async () => {
+test('Lucy: J J K, a heavy shot straight from the aim: it knocks down, three times the damage, a BOOM', async () => {
   const { BULLET, D, LUCY } = await import('../src/config.js');
-  // J, J (two punches), then K: the pistol comes up already aimed
-  const jjk = (holdK = false) => {
-    for (const b of ['atk', 'atk']) {
-      pressed[b] = true;
-      update(DT);
-      delete pressed[b];
-      for (let i = 0; i < 0.12 / DT; i++) update(DT);
-    }
-    pressed.bone = true;
-    if (holdK) keys.bone = true;
+  const press = (b) => {
+    // (not in the hit-stop after a blow: the world, and so she, waits it out)
+    while (G.freeze > 0) update(DT);
+    pressed[b] = true;
     update(DT);
-    delete pressed.bone;
-    for (let i = 0; i < 0.3 / DT && P.state !== 'gunFin'; i++) update(DT);
+    delete pressed[b];
   };
-  const setup = () => {
+  const wait = (s) => {
+    for (let i = 0; i < s / DT; i++) update(DT);
+  };
+  // J, J (two punches), then K `late` seconds after the second punch is over
+  const jjk = (late = -1, holdK = false) => {
+    press('atk');
+    wait(0.12);
+    press('atk');
+    if (late < 0) wait(0.12);
+    else {
+      while (P.state === 'atk1') update(DT);
+      wait(late);
+    }
+    if (holdK) keys.bone = true;
+    press('bone');
+    for (let i = 0; i < 0.3 / DT && !['gunFin', 'throw'].includes(P.state); i++) update(DT);
+  };
+  // Lucy, a skeleton right in front of her (or, `far`, out of reach of her fists)
+  const setup = (far = false) => {
     freshGame();
     Object.assign(P, { who: 'lucy', x: 300, y: 450, ammo: LUCY.ammo, streak: 0 });
     G.props = [];
     G.items = [];
+    const e = spawn('grunt', 1, far ? 800 : 370, 450);
+    Object.assign(e, { state: 'chase', hp: 500, cd: 99 });
+    return e;
   };
-  setup();
-  const e = spawn('grunt', 1, 800, 450);
-  Object.assign(e, { state: 'chase', hp: 500 });
+  assert.equal(LUCY.finWin, 0.25);
+  const e = setup();
   jjk();
-  assert.equal(P.state, 'gunFin', 'her shot after two punches');
+  assert.equal(P.state, 'gunFin', 'her shot after two punches that landed');
+  const hp = e.hp;
   let shot = null;
   for (let t = 0; t <= D.gunFin[0] + DT && !shot; t += DT) {
     update(DT);
@@ -277,18 +291,34 @@ test('Lucy: J J K, a heavy shot straight from the aim: it knocks down, three tim
   assert.ok(shot && shot.fin, 'fired at once');
   assert.equal(shot.dmg, BULLET.dmg * 3, 'three times the pistol');
   assert.equal(P.ammo, LUCY.ammo - 1, 'one round');
-  const hp = e.hp;
   for (let i = 0; i < 0.3 / DT && e.hp === hp; i++) update(DT);
-  assert.ok(e.hp < hp);
+  assert.ok(hp - e.hp >= BULLET.dmg * 3 - 1e-9, `three times the damage (${hp - e.hp})`);
   assert.ok(['air', 'down'].includes(e.state), `it knocks down (${e.state})`);
   assert.ok(
     G.parts.some((p) => p.k === 'gring' && p.col === '#ffcf4a'),
     'golden sparks of its own',
   );
+  assert.ok(
+    G.parts.some((p) => p.k === 'boomTxt'),
+    'and a BOOM!',
+  );
+
+  // within the moment after the punch: still her heavy shot
+  setup();
+  jjk(LUCY.finWin - 0.08);
+  assert.equal(P.state, 'gunFin', 'in time');
+  // too late: a plain shot
+  setup();
+  jjk(LUCY.finWin + 0.1);
+  assert.equal(P.state, 'throw', 'too late: her plain shot');
+  // punches in the air from afar: a plain shot
+  setup(true);
+  jjk();
+  assert.equal(P.state, 'throw', 'the punch before it must land');
 
   // K held: still one shot, no run of shots after it
   setup();
-  jjk(true);
+  jjk(-1, true);
   for (let t = 0; t < 0.8; t += DT) update(DT);
   keys.bone = false;
   assert.equal(P.ammo, LUCY.ammo - 1, 'one shot only');
@@ -300,13 +330,6 @@ test('Lucy: J J K, a heavy shot straight from the aim: it knocks down, three tim
   jjk();
   assert.notEqual(P.state, 'gunFin');
   assert.equal(G.projs.filter((q) => q.k === 'bullet').length, 0);
-
-  // K alone is her plain shot
-  setup();
-  pressed.bone = true;
-  update(DT);
-  delete pressed.bone;
-  assert.equal(P.state, 'throw');
   P.who = 'raithwyn';
 });
 
