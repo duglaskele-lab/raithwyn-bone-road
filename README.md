@@ -194,6 +194,10 @@ tests check it):
 
 ## Readability and juggling
 
+A blow that lands stops the world for a split second (a hit-stop). A button pressed in it is
+not lost: it goes into the heroine's buffer and is done as soon as the world moves again, so a
+chain (and Lucy's `J J K`) keeps up with quick fingers.
+
 An enemy doing an attack that cannot be interrupted has a red outline: the last third of
 Fatso's jump, the Baron's charge and acid breath, the Samurai's katana strike, the Dragon's beam
 and jump, and the Dragon's attacks for a while after it has been stunned. Glows round an enemy

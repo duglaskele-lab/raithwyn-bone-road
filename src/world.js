@@ -27,7 +27,7 @@ import { t } from './i18n.js';
 import { acidBite, addRage, headBonus, hitPlayer, hurtEnemy } from './combat.js';
 import { DRAGON, dragonZone, plasmaBlast, updShocks } from './dragon.js';
 import { dmgMult, styleGain, updStyle } from './style.js';
-import { updPlayer } from './player.js';
+import { bufferPresses, updPlayer } from './player.js';
 import { spawn, updEnemy } from './enemies.js';
 import { waveSpawns } from './waves.js';
 import { dandies, evilHitP, evilHurt } from './foes/evil.js';
@@ -172,7 +172,9 @@ export function update(dt) {
   G.lastFoeT -= dt;
   G.goT -= dt;
   if (G.freeze > 0) {
+    // the hit-stop: the world stands still, but a press now is kept for when it moves again
     G.freeze -= dt;
+    bufferPresses();
     return;
   }
   if (G.slow > 0) {

@@ -84,20 +84,13 @@ function throwHado(p) {
   p.sw = 0;
   p.inv = Math.max(p.inv, 0.35);
 }
-export function updPlayer(dt) {
+/**
+ * This frame's presses go into her buffer (each kept 0.2 s of her own time). Also called in the
+ * hit-stop after a blow, when the world stands still: a press then is not lost, it is done as
+ * soon as the world moves again.
+ */
+export function bufferPresses() {
   const p = P;
-  p.t += dt;
-  if (p.inv > 0) p.inv -= dt;
-  p.comboT -= dt;
-  p.finT -= dt;
-  p.boneCd -= dt;
-  if (p.lucky > 0) p.lucky -= dt;
-  // Lucy's run of pistol hits ends when she stops shooting
-  if (p.streak && (p.streakT += dt) > LUCY.keep) p.streak = 0;
-  p.bufT -= dt;
-  p.hpLag += (p.hp - p.hpLag) * Math.min(1, dt * 3);
-  const mx = (keys.r ? 1 : 0) - (keys.l ? 1 : 0),
-    my = (keys.d ? 1 : 0) - (keys.u ? 1 : 0);
   // the last direction presses, for the hidden dark ball motion (see HADO)
   for (const a of ['u', 'd', 'l', 'r'])
     if (pressed[a]) p.seq = [...p.seq, { a, t: G.time }].slice(-3);
@@ -117,7 +110,24 @@ export function updPlayer(dt) {
         p.seq = [];
       }
     }
+}
+export function updPlayer(dt) {
+  const p = P;
+  p.t += dt;
+  if (p.inv > 0) p.inv -= dt;
+  p.comboT -= dt;
+  p.finT -= dt;
+  p.boneCd -= dt;
+  if (p.lucky > 0) p.lucky -= dt;
+  // Lucy's run of pistol hits ends when she stops shooting
+  if (p.streak && (p.streakT += dt) > LUCY.keep) p.streak = 0;
+  p.bufT -= dt;
+  p.hpLag += (p.hp - p.hpLag) * Math.min(1, dt * 3);
+  const mx = (keys.r ? 1 : 0) - (keys.l ? 1 : 0),
+    my = (keys.d ? 1 : 0) - (keys.u ? 1 : 0);
+  bufferPresses();
   if (!mx) APP.runLatch = false;
+
   switch (p.state) {
     case 'idle':
     case 'walk':
