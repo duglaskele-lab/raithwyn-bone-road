@@ -29,6 +29,9 @@
 //   pose / look              skeletal animation and costume (see anim.js and skeleton.js)
 //   draw(e, aura)            draws it instead of the skeleton rig (a creature of its own)
 //   over(e)                  drawn over everyone after it (its flame), outside its red outline
+//   aura(e) / glow(e)        drawn just behind / just over it, outside its red outline (glows
+//                            that the outline would turn into solid red)
+//   hidden(e)                not there at all right now (no shadow either)
 //   ground(e)                drawn on the ground, under everyone (warning marks)
 //   corpse                   it dies by falling down and lying still, not into bones
 //   walksIn                  it never climbs out of the ground, it comes in from a side

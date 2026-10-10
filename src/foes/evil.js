@@ -12,6 +12,9 @@
 // it and empties her rage, but not in the third stage), it rises over the arena and for five
 // seconds three beams from it run over the ground along their own paths, burning it, while she
 // only walks about and leaps away. At half health she calls up the dandy skeleton (dandy.js).
+// She comes with pomp: violet bats wheel round the spot, a violet mist gathers, and she steps
+// out of it laughing; from the second stage she vanishes the same way now and then (mist and
+// bats burst from her) and comes back somewhere else, out of bats and mist (EVIL.intro, tele).
 // Otherwise she takes blows as a light enemy: a hit stops her, a heavy one throws her.
 import { EVIL, GB, GT, PURPLE, TAU, W } from '../config.js';
 import { clamp, ease, lerp, random, rnd } from '../util.js';
@@ -222,9 +225,17 @@ export function evilFrame(e) {
   const t = e.t,
     C = EVIL.combo;
   switch (e.state) {
-    case 'eintro':
+    case 'eintro': {
+      // laughing from the moment she steps out of her mist
+      const I = EVIL.intro,
+        u = Math.max(0, t - I.bats - I.mist + 0.35);
+      return ['laugh', [0, 1, 2, 1, 2, 1, 2, 1][Math.floor(u / 0.13) % 8]];
+    }
     case 'ecall':
+    case 'tin':
       return ['laugh', [0, 1, 2, 1, 2, 1, 2, 1][Math.floor(t / 0.13) % 8]];
+    case 'tout':
+      return ['laugh', 0];
     case 'c0':
       return ['punch1', 0];
     case 'c1':
@@ -280,33 +291,76 @@ export function evilFrame(e) {
   if (e.moving) return ['walk', Math.floor(e.walkT * 1.5) % 8];
   return ['idle', Math.floor(e.anim / 0.12) % 11];
 }
-export function drawEvil(e) {
+/** How much of her is there (0 to 1): nothing while the bats wheel before her coming or while
+ *  she is gone, and the fades into and out of the mist. */
+export function evilShown(e) {
+  const I = EVIL.intro,
+    T = EVIL.tele;
+  switch (e.state) {
+    case 'eintro':
+      return clamp((e.t - I.bats - I.mist + 0.35) / 0.35, 0, 1);
+    case 'tout':
+      return clamp(1 - e.t / T.out, 0, 1);
+    case 'tgone':
+      return 0;
+    case 'tin':
+      return clamp(e.t / T.in, 0, 1);
+  }
+  return 1;
+}
+/** Steadied by a flurry of blows: a dark glow round her (a faint red while medium, a strong red
+ *  when heavy). Behind her, and never inside her red outline (it would turn solid red there). */
+function evilAura(e) {
+  if (!e.weight) return;
+  const x = e.x - G.cam,
+    y = e.y - e.z + 2,
+    heavy = e.weight === 'heavy',
+    g = ctx.createRadialGradient(x, y - 90, 8, x, y - 90, 120),
+    c = '255,50,70';
+  g.addColorStop(
+    0,
+    `rgba(${c},${((heavy ? 0.5 : 0.16) + (heavy ? 0.12 : 0.05) * Math.sin(G.time * 12)) * evilShown(e)})`,
+  );
+  g.addColorStop(1, `rgba(${c},0)`);
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = g;
+  ctx.fillRect(x - 120, y - 210, 240, 240);
+  ctx.restore();
+}
+/** The dark ball gathering in her hand: a glow round it, the bigger the stronger. */
+function ballGlow(e) {
+  if (e.state !== 'eball') return;
+  const u = clamp(e.t / EVIL.ball.wind[e.lv - 1], 0, 1),
+    [bx, by] = ballAt(e),
+    R = (8 + 12 * e.lv) * (0.4 + 0.6 * u) * (1 + 0.1 * Math.sin(G.time * 30)),
+    hx = bx - G.cam,
+    hy = by - e.z,
+    g = ctx.createRadialGradient(hx, hy, 1, hx, hy, R + 1);
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  g.addColorStop(0, 'rgba(255,255,255,.9)');
+  g.addColorStop(0.4, 'rgba(176,92,255,.7)');
+  g.addColorStop(1, 'rgba(176,92,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(hx - R - 1, hy - R - 1, 2 * R + 2, 2 * R + 2);
+  ctx.restore();
+}
+/** Her, and (unless `whole` is false: inside her red outline) the glows round her. */
+export function drawEvil(e, whole = true) {
+  const shown = evilShown(e);
+  if (whole) evilAura(e);
+  if (shown <= 0) return;
   const [name, i] = evilFrame(e),
     x = e.x - G.cam,
     y = e.y - e.z + 2,
     a =
-      e.state === 'edie'
+      shown *
+      (e.state === 'edie'
         ? clamp((3 - e.t) / 0.6, 0, 1)
         : e.flash > 0 && Math.floor(G.time * 30) % 2
           ? 0.55
-          : 1;
-  // steadied by a flurry of blows: a dark glow round her
-  // (a faint red while medium, a strong red when heavy)
-  if (e.weight) {
-    const heavy = e.weight === 'heavy',
-      g = ctx.createRadialGradient(x, y - 90, 8, x, y - 90, 120),
-      c = '255,50,70';
-    g.addColorStop(
-      0,
-      `rgba(${c},${(heavy ? 0.5 : 0.16) + (heavy ? 0.12 : 0.05) * Math.sin(G.time * 12)})`,
-    );
-    g.addColorStop(1, `rgba(${c},0)`);
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.fillStyle = g;
-    ctx.fillRect(x - 120, y - 210, 240, 240);
-    ctx.restore();
-  }
+          : 1);
   sprite(name, i, x, y, e.face < 0, 1, a);
   // the glint in her eyes before her chain of punches
   if (e.state === 'c0') {
@@ -327,23 +381,92 @@ export function drawEvil(e) {
     ctx.fill();
     ctx.restore();
   }
-  // the dark ball gathering in her hand: a glow round it, the bigger the stronger
-  if (e.state === 'eball') {
-    const u = clamp(e.t / EVIL.ball.wind[e.lv - 1], 0, 1),
-      [bx, by] = ballAt(e),
-      R = (8 + 12 * e.lv) * (0.4 + 0.6 * u) * (1 + 0.1 * Math.sin(G.time * 30)),
-      hx = bx - G.cam,
-      hy = by - e.z,
-      g = ctx.createRadialGradient(hx, hy, 1, hx, hy, R + 1);
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    g.addColorStop(0, 'rgba(255,255,255,.9)');
-    g.addColorStop(0.4, 'rgba(176,92,255,.7)');
-    g.addColorStop(1, 'rgba(176,92,255,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(hx - R - 1, hy - R - 1, 2 * R + 2, 2 * R + 2);
-    ctx.restore();
+  if (whole) ballGlow(e);
+}
+
+// --- her bats and her mist ---------------------------------------------------------------------
+
+/** Violet bats wheeling round a spot on the ground, closing in and rising as they go. */
+function batSwirl(x, y, n, life) {
+  if (G.lowFx) n = Math.ceil(n / 2);
+  for (let k = 0; k < n; k++)
+    G.parts.push({
+      k: 'bat',
+      x,
+      y,
+      t: -rnd(0, life * 0.3),
+      life,
+      a0: (k / n) * TAU + rnd(-0.3, 0.3),
+      w: (random() < 0.5 ? 1 : -1) * rnd(5, 8),
+      r0: rnd(90, 140),
+      r1: rnd(14, 30),
+      h0: rnd(20, 80),
+      h1: rnd(70, 150),
+      s: rnd(10, 15),
+      ph: rnd(TAU),
+    });
+}
+/** Bats bursting out of her, scattering up and away. */
+function batBurst(x, y, n) {
+  if (G.lowFx) n = Math.ceil(n / 2);
+  for (let k = 0; k < n; k++) {
+    const a = rnd(-Math.PI * 0.95, -Math.PI * 0.05),
+      v = rnd(220, 420);
+    G.parts.push({
+      k: 'bat',
+      x: x + rnd(-20, 20),
+      y: y - rnd(50, 150),
+      vx: Math.cos(a) * v,
+      vy: Math.sin(a) * v * 0.6,
+      g: -60,
+      t: 0,
+      life: rnd(0.5, 0.8),
+      s: rnd(10, 15),
+      ph: rnd(TAU),
+    });
   }
+}
+/** Puffs of violet mist round a spot, from the ground up to her height. */
+function mist(x, y, n, spread = 70) {
+  if (G.lowFx) n = Math.ceil(n / 2);
+  for (let k = 0; k < n; k++)
+    G.parts.push({
+      k: 'mist',
+      x: x + rnd(-spread, spread),
+      y: y - rnd(0, 150),
+      vx: rnd(-25, 25),
+      vy: rnd(-30, -5),
+      t: 0,
+      life: rnd(0.6, 1.1),
+      s: rnd(26, 46),
+      gy: y,
+    });
+}
+/** Where she comes back to: on screen, well away from the player, often behind her. */
+function teleSpot(e) {
+  const T = EVIL.tele,
+    lo = G.cam + 90,
+    hi = G.cam + W - 90;
+  let best = null;
+  for (let k = 0; k < 12; k++) {
+    const behind = random() < 0.5,
+      side = behind ? -P.face || 1 : P.x >= e.x ? -1 : 1,
+      x = clamp(P.x + side * rnd(T.min, T.min + 200), lo, hi),
+      y = rnd(GT + 12, GB - 12);
+    best = [x, y];
+    if (Math.abs(x - P.x) >= T.min && Math.abs(x - e.x) > 120) break;
+  }
+  return best;
+}
+/** She vanishes in mist and bats (see EVIL.tele). */
+function teleport(e) {
+  faceP(e);
+  const [tx, ty] = teleSpot(e);
+  go(e, 'tout', 0, { engage: false, tx, ty, teleCd: rnd(...EVIL.tele.cd), swirled: false });
+  mist(e.x, e.y, 10, 40);
+  batBurst(e.x, e.y, 16);
+  SFX.bats();
+  SFX.warp();
 }
 
 // --- behaviour ---------------------------------------------------------------------------------
@@ -445,15 +568,18 @@ export default defineFoe('evil', {
     jumpCd: [1, 2],
     runCd: [1, 2],
     rushCd: [3, 5],
+    teleCd: [3, 5],
   },
-  timers: ['comboCd', 'ballCd', 'boneCd', 'jumpCd', 'runCd', 'rushCd'],
+  timers: ['comboCd', 'ballCd', 'boneCd', 'jumpCd', 'runCd', 'rushCd', 'teleCd'],
   spawn(e, side, placed) {
     if (!placed) {
       e.x = G.cam + W - 260;
       e.y = (GT + GB) / 2;
     }
     Object.assign(e, { state: 'eintro', face: -1, w: 22, stage: 1, rage: 0, orb: null });
-    SFX.boss();
+    // her coming (EVIL.intro): first only bats wheeling round the spot, then the mist, then her
+    batSwirl(e.x, e.y, 24, EVIL.intro.bats + EVIL.intro.mist * 0.6);
+    SFX.bats();
     G.banner = { a: '@evil', b: 'evilBanner', t: 0 };
   },
   engageCap: Infinity,
@@ -481,6 +607,16 @@ export default defineFoe('evil', {
         go(e, 'scharge', 0, { engage: false });
         SFX.charge();
       },
+    },
+    {
+      // from the second stage: gone in mist and bats, and back somewhere else (EVIL.tele) —
+      // now and then, or (more often) to get away from blows up close
+      when: (e, s, dt) =>
+        e.stage >= 2 &&
+        e.teleCd <= 0 &&
+        onScreen(e) &&
+        random() < dt * (s.adx < 140 && attacking() ? 4 : EVIL.tele.rate),
+      go: teleport,
     },
     {
       // the player attacks close by: a leap back
@@ -566,13 +702,24 @@ export default defineFoe('evil', {
     'rrun',
     'rjump',
     'rland',
+    'tout',
+    'tgone',
+    'tin',
   ],
   // nothing stops her gathering her ball from the second stage on, nor her orb in the third
   unstoppable: (e) =>
     (e.state === 'eball' && e.lv >= 2) ||
     (e.state === 'scharge' && e.stage >= 3) ||
     e.state === 'ecall',
-  immune: (e) => e.state === 'eintro',
+  // nothing hurts her while she comes, nor while she is (all but) gone in her mist
+  immune: (e) =>
+    e.state === 'eintro' ||
+    e.state === 'tgone' ||
+    (e.state === 'tout' && e.t > EVIL.tele.out * 0.4) ||
+    (e.state === 'tin' && e.t < EVIL.tele.in * 0.6),
+  hidden: (e) => evilShown(e) <= 0,
+  aura: evilAura,
+  glow: ballGlow,
   // otherwise she takes blows as a light enemy does: a hit stops her, a heavy one throws her
   guard(e, knock, src, dir) {
     evilRage(e, EVIL.rage.hurt);
@@ -620,9 +767,45 @@ export default defineFoe('evil', {
     faceWay(e, dt);
   },
   states: {
-    eintro(e) {
+    eintro(e, dt) {
+      const I = EVIL.intro;
       faceP(e);
-      if (e.t > 1.3) toChase(e);
+      // the mist gathers where the bats wheel; she steps out of it, laughing
+      if (e.t > I.bats * 0.7 && e.t < I.bats + I.mist + 0.2 && random() < dt * 30)
+        mist(e.x, e.y, 1, 55);
+      if (e.t >= I.bats + I.mist && !e.came) {
+        e.came = true;
+        mist(e.x, e.y, 8, 50);
+        G.flash = Math.max(G.flash ?? 0, 0.12);
+        SFX.boss();
+        SFX.laugh();
+      }
+      if (e.t > I.bats + I.mist + I.laugh) toChase(e);
+    },
+    tout(e) {
+      if (e.t >= EVIL.tele.out) go(e, 'tgone', 0);
+    },
+    tgone(e, dt) {
+      const T = EVIL.tele;
+      if (!e.swirled) {
+        // gone: she is already where she will come back (nobody can touch her meanwhile)
+        e.swirled = true;
+        e.x = e.tx;
+        e.y = e.ty;
+        e.px = e.x;
+        batSwirl(e.tx, e.ty, 16, T.gone + T.in * 0.5);
+        SFX.bats();
+      }
+      if (e.t > T.gone * 0.45 && random() < dt * 30) mist(e.tx, e.ty, 1, 45);
+      if (e.t >= T.gone) {
+        faceP(e);
+        mist(e.x, e.y, 6, 40);
+        go(e, 'tin', 0);
+      }
+    },
+    tin(e) {
+      faceP(e);
+      if (e.t >= EVIL.tele.in) toChase(e);
     },
     ecall(e) {
       faceP(e);

@@ -144,7 +144,8 @@ fingers do turns into the same presses as the keyboard's, so replays are shared.
   game can be installed on the home screen like an app.
 - **Vibration** (Android) on hits, on taking a hit and from explosions.
 - **Slow devices:** if a couple of seconds of fighting run below ~42 frames per second, the
-  picture lightens itself: fewer pixels, no blurred glow, a plain red outline.
+  picture lightens itself: fewer pixels, no blurred glow, and the red outline is drawn on a
+  small layer round the enemy only (no longer a blinking red oval over it).
 
 ## Style
 
@@ -173,7 +174,9 @@ not affect the game.
 
 An enemy doing an attack that cannot be interrupted has a red outline: the last third of
 Fatso's jump, the Baron's charge and acid breath, the Samurai's katana strike, the Dragon's beam
-and jump, and the Dragon's attacks for a while after it has been stunned.
+and jump, and the Dragon's attacks for a while after it has been stunned. Glows round an enemy
+(Raithwyn's red one when blows have steadied her, her gathering dark ball) are drawn apart from
+the outline, so they never turn into a solid red disc round her.
 
 The third hit of the chain with "up" (`W`) held is a launcher: a light enemy flies up almost
 vertically instead of sideways, ready to be finished in the air. Without "up" the third hit
@@ -308,6 +311,14 @@ change. She walks and runs at the heroine's own pace (180 and 435 px/s): in the 
 mostly walks and only now and then runs to close in or to get away, later more often. Like the heroine she
 mostly faces the way she walks or runs, even away from the player (once she has kept going one
 way for a moment); now and then she steps back near the player still facing her (`EVIL.face`).
+- **Her coming** (`EVIL.intro`): violet bats wheel round the spot where she will stand (1.2 s),
+  a violet mist gathers there (0.7 s), and she steps out of it laughing (1.3 s); nothing hurts
+  her meanwhile, and until she is out there is not even a shadow.
+- **Vanishing** (`EVIL.tele`), from the second stage: mist and bats burst from her and she is gone
+  (0.35 s); for 0.7 s bats wheel and mist gathers somewhere else, at least 260 px from the
+  player and often behind her, and she steps out of it (0.4 s). Nothing touches her while she
+  is (all but) gone. She does it now and then (every 4.5–7.5 s at most), and more readily to
+  get away from blows up close.
 - **Chain of punches** up close: a red glint in her eyes (0.28 s), then three hits (8, 8, 14),
   the last one knocking down; then she stands open for 0.6 s.
 - **Running jump kick**: far off and lined up, she runs straight at the player, gathering speed,
@@ -545,7 +556,8 @@ What is checked:
 - `extras.test.js` — music themes, style from scenery, the secret combo.
 - `evil.test.js` — Raithwyn as the boss: who meets her, her music, her stages, her dark ball and
   bones by stage, her chain of punches, her walk and run, her running jump kick, how blows take
-  her, her leap back, her rage, her super and its orb, the dandy.
+  her, her leap back, her rage, her super and its orb, the dandy, her coming out of bats and mist,
+  her vanishing and coming back somewhere else.
 - `dragon.test.js` — the end of the stage, the Dragon's unstoppable attacks, choosing an attack
   that reaches, the bite and the ×1.5 head, the beam and dodging it, the widening second-phase
   beam, the hind-leg kick, plasma balls, the second-phase jump, the longer beam charge with sparks, the

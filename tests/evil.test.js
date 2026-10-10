@@ -1,6 +1,6 @@
-import test, { beforeEach } from 'node:test';
+import test, { afterEach, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { EVIL, GB, GT, TYPES, WAVES, W } from '../src/config.js';
+import { EVIL, GB, GT, LUCK, TYPES, WAVES, W } from '../src/config.js';
 import { G, P } from '../src/state.js';
 import { spawn, updEnemy } from '../src/enemies.js';
 import { hurtEnemy } from '../src/combat.js';
@@ -8,10 +8,16 @@ import { update } from '../src/world.js';
 import { waveSpawns } from '../src/waves.js';
 import { themeFor } from '../src/audio.js';
 import { FOES } from '../src/foes/index.js';
-import { evilFrame, orbSpot, stageOf } from '../src/foes/evil.js';
+import { evilFrame, evilShown, orbSpot, stageOf } from '../src/foes/evil.js';
 import { DT, freshGame } from './helpers.js';
 
-beforeEach(freshGame);
+// Lucy's luck could have her dodge a blow at random: these tests are about Raithwyn's blows
+const evade = LUCK.evade;
+beforeEach(() => {
+  freshGame();
+  LUCK.evade = 0;
+});
+afterEach(() => (LUCK.evade = evade));
 
 const step = (seconds, each) => {
   for (let i = 0; i < seconds / DT; i++) {
@@ -429,4 +435,60 @@ test('like the heroine, she mostly faces the way she walks, even away from the p
     if (f.face === -1) facing++;
   }
   assert.equal(facing, 30, 'backpedalling, she keeps her eyes on the player');
+});
+
+test('her coming: bats wheel round the spot, a mist gathers, then she steps out laughing', () => {
+  P.who = 'lucy';
+  G.waveI = 99;
+  G.cam = WAVES.at(-1).x;
+  Object.assign(P, { x: G.cam + 200, y: (GT + GB) / 2 });
+  const e = spawn('evil', 1);
+  const I = EVIL.intro;
+  assert.equal(e.state, 'eintro');
+  assert.ok(G.parts.filter((p) => p.k === 'bat').length >= 8, 'bats wheel round the spot');
+  assert.equal(evilShown(e), 0);
+  assert.ok(FOES.evil.hidden(e), 'no one there yet (not even a shadow)');
+  step(I.bats);
+  assert.equal(evilShown(e), 0, 'still only bats and mist');
+  assert.ok(
+    G.parts.some((p) => p.k === 'mist'),
+    'the mist gathers',
+  );
+  assert.equal(hurtEnemy(e, 50, 1, true, 'punch'), false, 'nothing hurts her meanwhile');
+  step(I.mist + 0.05);
+  assert.equal(evilShown(e), 1, 'she is out of the mist');
+  assert.equal(evilFrame(e)[0], 'laugh');
+  assert.equal(e.state, 'eintro');
+  step(I.laugh);
+  assert.notEqual(e.state, 'eintro');
+  assert.equal(e.hp, e.T.hp);
+});
+
+test('from the second stage she vanishes in mist and bats and comes back somewhere else', (t) => {
+  const rate = EVIL.tele.rate;
+  EVIL.tele.rate = 1000;
+  t.after(() => (EVIL.tele.rate = rate));
+  const e = arena(300, { teleCd: 0, rushCd: 99, runCd: 99 });
+  step(0.5, () => hold(e));
+  assert.notEqual(e.state, 'tout', 'not in the first stage');
+  e.hp = e.T.hp * 0.6;
+  Object.assign(e, { state: 'chase', t: 0, teleCd: 0 });
+  step(DT * 2, () => hold(e));
+  assert.equal(e.state, 'tout');
+  const x0 = e.x,
+    T = EVIL.tele;
+  assert.ok(G.parts.some((p) => p.k === 'bat') && G.parts.some((p) => p.k === 'mist'));
+  step(T.out + DT * 2, () => hold(e));
+  assert.equal(e.state, 'tgone');
+  assert.ok(FOES.evil.hidden(e), 'gone');
+  assert.equal(hurtEnemy(e, 50, 1, true, 'punch'), false, 'and nothing can touch her');
+  step(T.gone, () => hold(e));
+  assert.equal(e.state, 'tin');
+  assert.ok(Math.abs(e.x - P.x) >= T.min - 1, `well away from the player (${e.x - P.x})`);
+  assert.ok(Math.abs(e.x - x0) > 100, 'somewhere else');
+  assert.ok(e.x > G.cam + 60 && e.x < G.cam + W - 60, 'on screen');
+  step(T.in + DT * 2, () => hold(e));
+  assert.equal(evilShown(e), 1);
+  assert.ok(!['tout', 'tgone', 'tin'].includes(e.state));
+  assert.ok(e.teleCd >= T.cd[0] - T.in - T.gone - T.out - 0.1, 'and not again for a while');
 });

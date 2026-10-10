@@ -349,6 +349,15 @@ export const EVIL = {
     keep: 300,
   },
   summon: 0.5,
+  // her coming: violet bats wheel round the spot for `bats` seconds, a violet mist gathers
+  // there for `mist` seconds, then she steps out of it laughing (`laugh` seconds); nothing
+  // hurts her meanwhile
+  intro: { bats: 1.2, mist: 0.7, laugh: 1.3 },
+  // from the second stage, her vanishing: mist and bats burst from her and she is gone in `out`
+  // seconds; for `gone` seconds bats wheel at the spot she comes back to (at least `min` px from
+  // the player, often behind her) and mist gathers there; she steps out of it in `in` seconds.
+  // Every `cd` seconds at most, at random (`rate` a second) or to get away from blows up close
+  tele: { out: 0.35, gone: 0.7, in: 0.4, cd: [4.5, 7.5], min: 260, rate: 0.35 },
   // she faces the way she walks once she has kept it `turn` seconds (moving at least `min` px
   // a second along the road); `backpedal` of the time, near the player (`near`), she steps
   // back still facing her instead (chosen anew every `every` seconds)
