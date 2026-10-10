@@ -9,7 +9,7 @@
 // falls down dead rather than into bones.
 // Heavy: only crushing blows move it.
 import { ARMOR, CORPSE_T, DECOR, OL, TAU, W } from '../config.js';
-import { clamp, ease, random, rnd } from '../util.js';
+import { clamp, ease, fxRandom, fxRnd, random, rnd } from '../util.js';
 import { G, P } from '../state.js';
 import { SFX } from '../audio.js';
 import { dust } from '../fx.js';
@@ -486,27 +486,27 @@ export function jetTrail(e, dt) {
   for (let i = 0; i < dt * 60; i++) {
     G.parts.push({
       k: 'glow',
-      x: x + rnd(-6, 6),
-      y: y + rnd(0, 12),
-      vx: rnd(-40, 40),
-      vy: rnd(160, 320),
+      x: x + fxRnd(-6, 6),
+      y: y + fxRnd(0, 12),
+      vx: fxRnd(-40, 40),
+      vy: fxRnd(160, 320),
       g: 0,
       t: 0,
-      life: rnd(0.15, 0.3),
-      s: rnd(3, 6),
-      col: random() < 0.5 ? '#ffcf5a' : '#ff7a2a',
+      life: fxRnd(0.15, 0.3),
+      s: fxRnd(3, 6),
+      col: fxRandom() < 0.5 ? '#ffcf5a' : '#ff7a2a',
     });
-    if (random() < 0.5)
+    if (fxRandom() < 0.5)
       G.parts.push({
         k: 'smoke',
-        x: x + rnd(-6, 6),
-        y: y + rnd(10, 30),
-        vx: rnd(-20, 20),
-        vy: rnd(-30, 10),
+        x: x + fxRnd(-6, 6),
+        y: y + fxRnd(10, 30),
+        vx: fxRnd(-20, 20),
+        vy: fxRnd(-30, 10),
         g: 0,
         t: 0,
-        life: rnd(0.6, 1),
-        s: rnd(8, 14),
+        life: fxRnd(0.6, 1),
+        s: fxRnd(8, 14),
       });
   }
 }
@@ -840,28 +840,28 @@ export function drawArmor(e, aura = true) {
 
 /** One bullet: it lands at the aim point, kicking up dust; on the player it hurts. */
 function bullet(e) {
-  const x = e.x + e.face * e.reachD + rnd(-14, 14),
-    y = e.aimY + rnd(-10, 10),
+  const x = e.x + e.face * e.reachD + fxRnd(-14, 14),
+    y = e.aimY + fxRnd(-10, 10),
     [mx, my] = muzzle(e);
   G.parts.push({ k: 'tracer', x: mx, y: my, x2: x, y2: y, t: 0, life: 0.06 });
   G.parts.push({
     k: 'dust',
     x,
     y,
-    vx: rnd(-40, 40),
-    vy: rnd(-90, -30),
+    vx: fxRnd(-40, 40),
+    vy: fxRnd(-90, -30),
     g: 120,
     t: 0,
-    life: rnd(0.25, 0.4),
-    s: rnd(4, 8),
+    life: fxRnd(0.25, 0.4),
+    s: fxRnd(4, 8),
     col: '#d9b88a',
   });
   G.parts.push({
     k: 'dot',
     x,
     y: y - 2,
-    vx: rnd(-80, 80),
-    vy: rnd(-200, -80),
+    vx: fxRnd(-80, 80),
+    vy: fxRnd(-200, -80),
     g: 600,
     t: 0,
     life: 0.2,
@@ -869,16 +869,16 @@ function bullet(e) {
     col: '#ffe9a0',
   });
   // spent casings fly from the gun
-  if (random() < 0.4)
+  if (fxRandom() < 0.4)
     G.debris.push({
       k: 'shard',
       x: e.x + e.face * 40,
       gy: e.y + 2,
       z: 110 * e.T.scale,
-      vx: -e.face * rnd(60, 160),
-      vz: rnd(120, 260),
-      rot: rnd(TAU),
-      vr: rnd(-20, 20),
+      vx: -e.face * fxRnd(60, 160),
+      vz: fxRnd(120, 260),
+      rot: fxRnd(TAU),
+      vr: fxRnd(-20, 20),
       len: 5,
       col: '#d8b04a',
       life: 0.8,
@@ -1018,7 +1018,7 @@ export default defineFoe('armor', {
     },
     spin(e, dt) {
       e.spinA = (e.spinA + dt * 40 * Math.min(1, e.t / ARMOR.spin)) % TAU;
-      if (random() < 0.3) dust(e.x - e.face * 10, e.y, 1);
+      if (fxRandom() < 0.3) dust(e.x - e.face * 10, e.y, 1);
       if (e.t > ARMOR.spin) {
         go(e, 'fire', 0, { reachD: ARMOR.reach0, aimY: e.y, shot: 0, hits: 0 });
       }
@@ -1039,13 +1039,13 @@ export default defineFoe('armor', {
     },
     cool(e, dt) {
       e.spinA = (e.spinA + dt * 40 * (1 - e.t / ARMOR.cool)) % TAU;
-      if (random() < 0.3)
+      if (fxRandom() < 0.3)
         G.parts.push({
           k: 'smoke',
           x: muzzle(e)[0],
           y: muzzle(e)[1],
-          vx: rnd(-10, 10),
-          vy: rnd(-50, -20),
+          vx: fxRnd(-10, 10),
+          vy: fxRnd(-50, -20),
           g: 0,
           t: 0,
           life: 0.8,

@@ -18,7 +18,7 @@ import {
   ZOMBIE,
   PROS,
 } from './config.js';
-import { clamp, random, rnd } from './util.js';
+import { clamp, fxRandom, fxRnd, random, rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
 import { keys, pressed } from './input.js';
@@ -114,7 +114,7 @@ function secretWarp(dt) {
     return;
   }
   G.secretT = (G.secretT || 0) + dt;
-  if (random() < G.secretT * 0.3) motes(P.x, P.y - 90, 1, 80);
+  if (fxRandom() < G.secretT * 0.3) motes(P.x, P.y - 90, 1, 80);
   if (G.secretT < SECRET_HOLD) return;
   G.secretDone = true;
   const WAVES = levelWaves(),
@@ -147,7 +147,7 @@ function stageWarp(dt) {
     return;
   }
   G.stageT = (G.stageT || 0) + dt;
-  if (random() < G.stageT * 0.4) motes(P.x, P.y - 90, 1, 80);
+  if (fxRandom() < G.stageT * 0.4) motes(P.x, P.y - 90, 1, 80);
   if (G.stageT < STAGE_HOLD) return;
   G.stageT = 0;
   startLevel(2);
@@ -319,13 +319,13 @@ export function update(dt) {
               G.parts.push({
                 k: 'dot',
                 x: at,
-                y: q.y - q.z + rnd(-8, 8),
-                vx: s * rnd(-120, 260),
-                vy: rnd(-220, 80),
+                y: q.y - q.z + fxRnd(-8, 8),
+                vx: s * fxRnd(-120, 260),
+                vy: fxRnd(-220, 80),
                 g: 500,
                 t: 0,
-                life: rnd(0.2, 0.4),
-                s: rnd(2.5, 4.5),
+                life: fxRnd(0.2, 0.4),
+                s: fxRnd(2.5, 4.5),
                 col: k % 2 ? '#ffe9a0' : '#ffb34a',
               });
             if (q.power > 1e-6) continue; // on it goes
@@ -341,8 +341,8 @@ export function update(dt) {
               k: 'dot',
               x: q.x,
               y: q.y - q.z,
-              vx: -s * rnd(40, 200),
-              vy: rnd(-160, 60),
+              vx: -s * fxRnd(40, 200),
+              vy: fxRnd(-160, 60),
               g: 500,
               t: 0,
               life: 0.25,
@@ -355,17 +355,17 @@ export function update(dt) {
       // gone without hitting anything: a miss, and the run of hits is over
       if (!q.big && !q.spent && q.life <= 0) P.streak = 0;
     } else if (q.k === 'hado') {
-      if (random() < 0.9)
+      if (fxRandom() < 0.9)
         G.parts.push({
           k: 'glow',
-          x: q.x - Math.sign(q.vx) * rnd(10, 40),
-          y: q.y - q.z + rnd(-18, 18),
+          x: q.x - Math.sign(q.vx) * fxRnd(10, 40),
+          y: q.y - q.z + fxRnd(-18, 18),
           vx: -q.vx * 0.15,
-          vy: rnd(-30, 30),
+          vy: fxRnd(-30, 30),
           g: 0,
           t: 0,
-          life: rnd(0.2, 0.4),
-          s: rnd(2, 5),
+          life: fxRnd(0.2, 0.4),
+          s: fxRnd(2, 5),
           col: PURPLE,
         });
       for (const e of G.enemies.concat(G.props)) {
@@ -430,17 +430,17 @@ export function update(dt) {
       q.y += q.vy * dt;
       q.vz -= DRAGON.plasma.g * dt;
       q.z += q.vz * dt;
-      if (random() < 0.8)
+      if (fxRandom() < 0.8)
         G.parts.push({
           k: 'glow',
-          x: q.x - Math.sign(q.vx) * rnd(4, 14),
-          y: q.y - q.z + rnd(-6, 6),
+          x: q.x - Math.sign(q.vx) * fxRnd(4, 14),
+          y: q.y - q.z + fxRnd(-6, 6),
           vx: -q.vx * 0.1,
-          vy: rnd(-20, 20),
+          vy: fxRnd(-20, 20),
           g: 0,
           t: 0,
-          life: rnd(0.2, 0.35),
-          s: rnd(2, 5),
+          life: fxRnd(0.2, 0.35),
+          s: fxRnd(2, 5),
           col: '#d7a8ff',
         });
       if (q.z <= 0) {
@@ -481,17 +481,17 @@ export function update(dt) {
       q.z = q.z0 * (1 - u) + 4 * q.h * u * (1 - u);
       // nose along its flight, on screen
       q.rot = Math.atan2(q.z0 - 4 * q.h * (1 - 2 * u), q.tx - q.x0 || 1);
-      if (random() < 0.5)
+      if (fxRandom() < 0.5)
         G.parts.push({
           k: 'smoke',
           x: q.x,
           y: q.y - q.z,
-          vx: rnd(-15, 15),
-          vy: rnd(-30, 0),
+          vx: fxRnd(-15, 15),
+          vy: fxRnd(-30, 0),
           g: 0,
           t: 0,
-          life: rnd(0.4, 0.7),
-          s: rnd(5, 8),
+          life: fxRnd(0.4, 0.7),
+          s: fxRnd(5, 8),
         });
       if (u >= 1) {
         q.life = 0;
@@ -513,13 +513,13 @@ export function update(dt) {
         }
       } else q.vx *= Math.pow(0.02, dt);
       floorClamp(q);
-      if (random() < 0.6)
+      if (fxRandom() < 0.6)
         G.parts.push({
           k: 'dot',
           x: q.x + Math.cos(q.rot) * 14,
           y: q.y - q.z - 6 + Math.sin(q.rot) * 14,
-          vx: rnd(-50, 50),
-          vy: rnd(-120, -40),
+          vx: fxRnd(-50, 50),
+          vy: fxRnd(-120, -40),
           g: 300,
           t: 0,
           life: 0.25,
@@ -536,17 +536,17 @@ export function update(dt) {
       q.y += q.vy * dt;
       q.vz -= ACID.g * dt;
       q.z += q.vz * dt;
-      if (random() < 0.6)
+      if (fxRandom() < 0.6)
         G.parts.push({
           k: 'dot',
           x: q.x,
           y: q.y - q.z,
-          vx: rnd(-40, 40),
-          vy: rnd(10, 60),
+          vx: fxRnd(-40, 40),
+          vy: fxRnd(10, 60),
           g: 600,
           t: 0,
           life: 0.4,
-          s: rnd(3, 5),
+          s: fxRnd(3, 5),
           col: '#9dff4a',
         });
       if (!q.hitP && Math.abs(P.x - q.x) < 30 && Math.abs(P.y - q.y) < 22 && q.z < 130 && P.z < 110)
@@ -565,17 +565,17 @@ export function update(dt) {
       q.y += q.vy * dt;
       q.vz -= ACID.g * dt;
       q.z += q.vz * dt;
-      if (random() < 0.5)
+      if (fxRandom() < 0.5)
         G.parts.push({
           k: 'dot',
-          x: q.x - Math.sign(q.vx) * rnd(6, 16),
-          y: q.y - q.z + rnd(-6, 6),
+          x: q.x - Math.sign(q.vx) * fxRnd(6, 16),
+          y: q.y - q.z + fxRnd(-6, 6),
           vx: -q.vx * 0.1,
-          vy: rnd(10, 60),
+          vy: fxRnd(10, 60),
           g: 300,
           t: 0,
-          life: rnd(0.2, 0.4),
-          s: rnd(2, 4),
+          life: fxRnd(0.2, 0.4),
+          s: fxRnd(2, 4),
           col: '#9dff4a',
         });
       // a hit splashes the player, but the ball keeps falling and still leaves its puddle
@@ -594,12 +594,12 @@ export function update(dt) {
               k: 'dot',
               x: P.x,
               y: P.y - 100,
-              vx: rnd(-200, 200),
-              vy: rnd(-260, -40),
+              vx: fxRnd(-200, 200),
+              vy: fxRnd(-260, -40),
               g: 700,
               t: 0,
-              life: rnd(0.3, 0.55),
-              s: rnd(3, 6),
+              life: fxRnd(0.3, 0.55),
+              s: fxRnd(3, 6),
               col: i % 2 ? '#9dff4a' : '#4fd12a',
             });
         }
@@ -613,29 +613,29 @@ export function update(dt) {
             k: 'dot',
             x: q.x,
             y: q.y - 4,
-            vx: rnd(-160, 160),
-            vy: rnd(-220, -60),
+            vx: fxRnd(-160, 160),
+            vy: fxRnd(-220, -60),
             g: 700,
             t: 0,
-            life: rnd(0.3, 0.5),
-            s: rnd(3, 5),
+            life: fxRnd(0.3, 0.5),
+            s: fxRnd(3, 5),
             col: '#9dff4a',
           });
       }
       if (q.x < G.cam - 100 || q.x > G.cam + W + 100) q.life = 0;
     } else if (q.k === 'ehado') {
       // Raithwyn's own dark ball (the boss): it hurts the player, and her skeleton too
-      if (random() < 0.9)
+      if (fxRandom() < 0.9)
         G.parts.push({
           k: 'glow',
-          x: q.x - Math.sign(q.vx) * rnd(10, 40),
-          y: q.y - q.z + rnd(-18, 18),
+          x: q.x - Math.sign(q.vx) * fxRnd(10, 40),
+          y: q.y - q.z + fxRnd(-18, 18),
           vx: -q.vx * 0.15,
-          vy: rnd(-30, 30),
+          vy: fxRnd(-30, 30),
           g: 0,
           t: 0,
-          life: rnd(0.2, 0.4),
-          s: rnd(2, 5),
+          life: fxRnd(0.2, 0.4),
+          s: fxRnd(2, 5),
           col: PURPLE,
         });
       const r = [34, 50, 74][q.lv - 1],
@@ -754,13 +754,13 @@ export function update(dt) {
       d.x += d.vx * dt;
       d.vx *= Math.pow(0.07, dt);
       d.tilt = Math.min(1, d.tilt + dt * 2.4);
-      if (Math.abs(d.vx) > 90 && random() < 0.5)
+      if (Math.abs(d.vx) > 90 && fxRandom() < 0.5)
         G.parts.push({
           k: 'dot',
           x: d.x,
           y: d.gy - 4,
-          vx: -d.vx * 0.3 + rnd(-60, 60),
-          vy: rnd(-160, -40),
+          vx: -d.vx * 0.3 + fxRnd(-60, 60),
+          vy: fxRnd(-160, -40),
           g: 500,
           t: 0,
           life: 0.3,

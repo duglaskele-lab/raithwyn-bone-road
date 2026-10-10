@@ -69,7 +69,7 @@ test('the same seed and the same inputs give the same run', () => {
 
 test('a recorded run plays back exactly, also from a saved file', () => {
   newRun(77);
-  playFor(2400, 3);
+  playFor(2400, 3, false); // (no healing by the test: a replay would not have it)
   const end = snapshot(),
     run = lastRun();
   assert.ok(run.frames.length < 2400, 'repeated frames are folded together');
@@ -92,7 +92,7 @@ test('a file that is not a replay is refused', () => {
 
 test('a replay plays back exactly even after a run that left things behind', () => {
   newRun(55, 2);
-  playFor(2400, 5, false);
+  playFor(2400, 5, false); // (no healing by the test: a replay would not have it)
   const end = snapshot(),
     run = lastRun();
   // another run left its marks: a clock far on, a hit-stop, a burn under way, a grab...

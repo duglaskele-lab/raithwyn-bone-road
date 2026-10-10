@@ -5,7 +5,7 @@
 // blow breaks one, two heavy blows within WEIGHT.window seconds (or one crushing blow) send it
 // sliding back. It leaves no puddles.
 import { ACID, SLIME, TAU, W, WEIGHT } from '../config.js';
-import { clamp, lerp, random, rnd } from '../util.js';
+import { clamp, fxRandom, fxRnd, lerp, random, rnd } from '../util.js';
 import { G, P } from '../state.js';
 import { SFX } from '../audio.js';
 import { finale, hitPlayer } from '../combat.js';
@@ -23,15 +23,15 @@ function splash(x, y, n, v = 300) {
   for (let i = 0; i < n; i++)
     G.parts.push({
       k: 'dot',
-      x: x + rnd(-30, 30),
-      y: y - rnd(10, 60),
-      vx: rnd(-v, v),
-      vy: rnd(-v * 1.2, -60),
+      x: x + fxRnd(-30, 30),
+      y: y - fxRnd(10, 60),
+      vx: fxRnd(-v, v),
+      vy: fxRnd(-v * 1.2, -60),
       g: 800,
       t: 0,
-      life: rnd(0.4, 0.8),
-      s: rnd(4, 8),
-      col: random() < 0.5 ? '#9dff4a' : '#4fd12a',
+      life: fxRnd(0.4, 0.8),
+      s: fxRnd(4, 8),
+      col: fxRandom() < 0.5 ? '#9dff4a' : '#4fd12a',
     });
 }
 // --- drawing ----------------------------------------------------------------------------------
@@ -311,7 +311,7 @@ export default defineFoe('slime', {
         e.x += e.cdir * SLIME.roll * dt;
         e.y += clamp(s.dy, -1, 1) * 30 * dt;
         e.rollA += e.cdir * dt * 7;
-        if (random() < 0.5) splash(e.x - e.cdir * 60, e.y, 1, 80);
+        if (fxRandom() < 0.5) splash(e.x - e.cdir * 60, e.y, 1, 80);
         if (!e.hitDone && s.adx < 80 && s.ady < 40 && P.z < 100) {
           e.hitDone = true;
           hitPlayer(e.T.dmg, e.cdir, true);
@@ -392,7 +392,7 @@ export default defineFoe('slime', {
       tick(e, dt) {
         e.x += e.vx * dt;
         e.vx *= Math.pow(0.02, dt);
-        if (random() < 0.4) splash(e.x, e.y, 1, 100);
+        if (fxRandom() < 0.4) splash(e.x, e.y, 1, 100);
         if (e.t > 0.8) go(e, 'chase', 0, { cd: 0.4 });
       },
     },

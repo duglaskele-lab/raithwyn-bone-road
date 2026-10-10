@@ -10,7 +10,7 @@
 // Heavy: only crushing blows move it, and its flame, mortars, jump and the loss of its helmet
 // go on through anything (a red outline).
 import { CORPSE_T, OL, PROS, TAU, W } from '../config.js';
-import { clamp, ease, random, rnd } from '../util.js';
+import { clamp, ease, fxRandom, fxRnd, random, rnd } from '../util.js';
 import { G, P } from '../state.js';
 import { SFX } from '../audio.js';
 import { dust } from '../fx.js';
@@ -986,38 +986,38 @@ function burn(e, dmg) {
   for (let i = 0; i < 5; i++)
     G.parts.push({
       k: 'glow',
-      x: P.x + rnd(-18, 18),
-      y: P.y - rnd(10, 90),
-      vx: rnd(-40, 40),
-      vy: rnd(-160, -60),
+      x: P.x + fxRnd(-18, 18),
+      y: P.y - fxRnd(10, 90),
+      vx: fxRnd(-40, 40),
+      vy: fxRnd(-160, -60),
       g: 0,
       t: 0,
-      life: rnd(0.25, 0.45),
-      s: rnd(4, 7),
-      col: random() < 0.5 ? '#ffcf5a' : '#ff6a2a',
+      life: fxRnd(0.25, 0.45),
+      s: fxRnd(4, 7),
+      col: fxRandom() < 0.5 ? '#ffcf5a' : '#ff6a2a',
     });
 }
 /** Steam out of its joints: a puff now and then, more once it has lost its helmet. */
 function steam(e, dt) {
   const s = e.T.scale;
-  if (e.dying || random() > dt * (e.phase2 ? 7 : 3)) return;
+  if (e.dying || fxRandom() > dt * (e.phase2 ? 7 : 3)) return;
   const spots = [
     [-30, 60],
     [10, 62],
     [-20, 150],
     [26, 140],
   ];
-  const [dx, h] = spots[Math.floor(random() * spots.length)];
+  const [dx, h] = spots[Math.floor(fxRandom() * spots.length)];
   G.parts.push({
     k: 'smoke',
     x: e.x + e.face * dx * s,
     y: e.y - e.z - h * s,
-    vx: rnd(-30, 30) - e.face * 20,
-    vy: rnd(-90, -50),
+    vx: fxRnd(-30, 30) - e.face * 20,
+    vy: fxRnd(-90, -50),
     g: 0,
     t: 0,
-    life: rnd(0.5, 0.8),
-    s: rnd(6, 10),
+    life: fxRnd(0.5, 0.8),
+    s: fxRnd(6, 10),
     col: '#e4ecef',
   });
 }
@@ -1046,14 +1046,14 @@ function shell(e, i, tx, ty) {
   for (let k = 0; k < 4; k++)
     G.parts.push({
       k: 'smoke',
-      x: mx + rnd(-6, 6),
-      y: my + rnd(-6, 6),
-      vx: rnd(-30, 30),
-      vy: rnd(-80, -30),
+      x: mx + fxRnd(-6, 6),
+      y: my + fxRnd(-6, 6),
+      vx: fxRnd(-30, 30),
+      vy: fxRnd(-80, -30),
       g: 0,
       t: 0,
-      life: rnd(0.6, 1),
-      s: rnd(8, 12),
+      life: fxRnd(0.6, 1),
+      s: fxRnd(8, 12),
     });
   e.shotI = i;
   e.kick = 1;
@@ -1087,10 +1087,10 @@ function unmask(e) {
     x: e.x,
     gy: e.y + 2,
     z: e.z + 250 * s,
-    vx: -e.face * rnd(140, 220),
-    vz: rnd(460, 560),
+    vx: -e.face * fxRnd(140, 220),
+    vz: fxRnd(460, 560),
     rot: 0,
-    vr: -e.face * rnd(6, 10),
+    vr: -e.face * fxRnd(6, 10),
     s,
     life: 14,
   });
@@ -1099,12 +1099,12 @@ function unmask(e) {
       k: i % 2 ? 'dot' : 'smoke',
       x: e.x + e.face * 10 * s,
       y: e.y - 240 * s,
-      vx: rnd(-160, 160),
-      vy: rnd(-260, -60),
+      vx: fxRnd(-160, 160),
+      vy: fxRnd(-260, -60),
       g: i % 2 ? 700 : 0,
       t: 0,
-      life: rnd(0.4, 0.9),
-      s: i % 2 ? rnd(3, 5) : rnd(10, 16),
+      life: fxRnd(0.4, 0.9),
+      s: i % 2 ? fxRnd(3, 5) : fxRnd(10, 16),
       col: i % 2 ? '#ffe9a0' : '#e4ecef',
     });
   G.shake = Math.max(G.shake, 10);
@@ -1120,9 +1120,9 @@ function pour(e, L, dt, down) {
     [mx, my] = nozzleAt(e),
     fdy = e.fdy ?? 0;
   for (let i = 0; i < 4; i++) {
-    const life = rnd(0.3, 0.5),
-      reach = L * Math.sqrt(rnd(0.05, 1)),
-      gy = e.y + fdy * (reach / F.len) + rnd(-1, 1) * (F.w0 + reach * F.spread) * 0.6;
+    const life = fxRnd(0.3, 0.5),
+      reach = L * Math.sqrt(fxRnd(0.05, 1)),
+      gy = e.y + fdy * (reach / F.len) + fxRnd(-1, 1) * (F.w0 + reach * F.spread) * 0.6;
     G.parts.push({
       k: 'glow',
       x: mx,
@@ -1132,21 +1132,21 @@ function pour(e, L, dt, down) {
       g: 0,
       t: 0,
       life,
-      s: rnd(5, 10),
-      col: random() < 0.5 ? '#ffcf5a' : '#ff6a2a',
+      s: fxRnd(5, 10),
+      col: fxRandom() < 0.5 ? '#ffcf5a' : '#ff6a2a',
     });
   }
-  if (random() < 0.5)
+  if (fxRandom() < 0.5)
     G.parts.push({
       k: 'smoke',
-      x: mx + e.face * rnd(20, Math.max(30, L)),
-      y: e.y + fdy - rnd(60, 110),
-      vx: rnd(-20, 20),
-      vy: rnd(-70, -30),
+      x: mx + e.face * fxRnd(20, Math.max(30, L)),
+      y: e.y + fdy - fxRnd(60, 110),
+      vx: fxRnd(-20, 20),
+      vy: fxRnd(-70, -30),
       g: 0,
       t: 0,
-      life: rnd(0.8, 1.2),
-      s: rnd(12, 20),
+      life: fxRnd(0.8, 1.2),
+      s: fxRnd(12, 20),
     });
   // the road catches fire under it, behind the flame's front
   if ((e.fireT = (e.fireT ?? 0) - dt) <= 0 && L > 40) {
@@ -1360,7 +1360,7 @@ export default defineFoe('prospector', {
       if (s.adx > PROS.flame.from * 0.7)
         moveTo(e, P.x, P.y, Wk.speed * (e.phase2 ? PROS.fast : 1), dt);
       pour(e, e.flen, dt, true);
-      if (random() < 0.3) dust(e.x - e.face * 10, e.y, 1);
+      if (fxRandom() < 0.3) dust(e.x - e.face * 10, e.y, 1);
       if (e.t > Wk.time) {
         go(e, 'chase', 0, { walkCd: cd(e, Wk.cd), flen: 0, cd: Math.max(e.cd, 0.5) });
         e.flameCd = Math.max(e.flameCd, 1.5);
@@ -1390,19 +1390,19 @@ export default defineFoe('prospector', {
         e.face = s.dx >= 0 ? 1 : -1;
         e.rend = ramEnd(e);
       }
-      if (random() < 0.4) dust(e.x - e.face * 30, e.y, 1);
-      if (random() < 0.3 + 0.6 * (e.t / R.wind))
+      if (fxRandom() < 0.4) dust(e.x - e.face * 30, e.y, 1);
+      if (fxRandom() < 0.3 + 0.6 * (e.t / R.wind))
         G.parts.push({
           k: 'glow',
           x: e.x - e.face * 90 * e.T.scale,
-          y: e.y - 105 * e.T.scale + rnd(-15, 15),
-          vx: -e.face * rnd(120, 280),
-          vy: rnd(-60, 20),
+          y: e.y - 105 * e.T.scale + fxRnd(-15, 15),
+          vx: -e.face * fxRnd(120, 280),
+          vy: fxRnd(-60, 20),
           g: 0,
           t: 0,
-          life: rnd(0.15, 0.3),
-          s: rnd(3, 6),
-          col: random() < 0.5 ? '#ffcf5a' : '#ff7a2a',
+          life: fxRnd(0.15, 0.3),
+          s: fxRnd(3, 6),
+          col: fxRandom() < 0.5 ? '#ffcf5a' : '#ff7a2a',
         });
       if (e.t > R.wind) {
         go(e, 'ram', 0, { x0: e.x, hitDone: false });
@@ -1414,18 +1414,18 @@ export default defineFoe('prospector', {
       const R = PROS.ram;
       e.x += e.face * R.speed * dt;
       dust(e.x - e.face * 30, e.y, 1);
-      if (random() < 0.6)
+      if (fxRandom() < 0.6)
         G.parts.push({
           k: 'glow',
           x: e.x - e.face * 50 * e.T.scale,
-          y: e.y - 150 * e.T.scale + rnd(-10, 10),
-          vx: -e.face * rnd(150, 300),
-          vy: rnd(-40, 40),
+          y: e.y - 150 * e.T.scale + fxRnd(-10, 10),
+          vx: -e.face * fxRnd(150, 300),
+          vy: fxRnd(-40, 40),
           g: 0,
           t: 0,
-          life: rnd(0.15, 0.3),
-          s: rnd(4, 7),
-          col: random() < 0.5 ? '#ffcf5a' : '#ff7a2a',
+          life: fxRnd(0.15, 0.3),
+          s: fxRnd(4, 7),
+          col: fxRandom() < 0.5 ? '#ffcf5a' : '#ff7a2a',
         });
       // in the second phase it leaves a wide cone of fire behind it, dying down fast
       if (e.phase2 && (e.trailT = (e.trailT ?? 0) - dt) <= 0) {
@@ -1460,7 +1460,7 @@ export default defineFoe('prospector', {
       }
     },
     rstop(e) {
-      if (e.t < 0.3 && random() < 0.6) dust(e.x + e.face * 20, e.y, 1);
+      if (e.t < 0.3 && fxRandom() < 0.6) dust(e.x + e.face * 20, e.y, 1);
       if (e.t > PROS.ram.stop)
         go(e, 'chase', 0, { ramCd: cd(e, PROS.ram.cd), cd: Math.max(e.cd, 0.4) });
     },
@@ -1485,7 +1485,7 @@ export default defineFoe('prospector', {
         e.roared = true;
         SFX.boss();
       }
-      if (random() < 0.4) dust(e.x + rnd(-50, 50), e.y, 1);
+      if (fxRandom() < 0.4) dust(e.x + fxRnd(-50, 50), e.y, 1);
       if (e.t > PROS.unmask) go(e, 'chase', 0, { cd: 0.4 });
     },
   },

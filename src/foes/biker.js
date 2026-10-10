@@ -1,7 +1,7 @@
 // The rocker rides across the screen on a motorcycle (every second one on the long chopper)
 // until a hit knocks him off; on foot he throws a chain that pulls the player in.
 import { CHAIN, FONT, GB, GT, HOG, OL, RW, TAU, W } from '../config.js';
-import { clamp, random, rnd } from '../util.js';
+import { clamp, fxRandom, fxRnd, rnd } from '../util.js';
 import { G, P } from '../state.js';
 import { SFX } from '../audio.js';
 import { hitPlayer, killEnemy } from '../combat.js';
@@ -184,17 +184,17 @@ export default defineFoe('biker', {
         return;
       }
       e.x += e.rdir * 560 * dt;
-      if (random() < 0.7)
+      if (fxRandom() < 0.7)
         G.parts.push({
           k: 'dust',
           x: e.x - e.rdir * (e.bike === 'hog' ? 100 : 58),
-          y: e.y - 26 + rnd(-4, 4),
+          y: e.y - 26 + fxRnd(-4, 4),
           vx: -e.rdir * 70,
           vy: -30,
           g: -40,
           t: 0,
           life: 0.4,
-          s: rnd(4, 8),
+          s: fxRnd(4, 8),
           col: '#d5dcdc',
         });
       // the hit box runs the length of the bike, the chopper's ram included

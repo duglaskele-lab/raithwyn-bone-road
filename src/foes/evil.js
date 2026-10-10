@@ -17,7 +17,7 @@
 // bats burst from her) and comes back somewhere else, out of bats and mist (EVIL.intro, tele).
 // Otherwise she takes blows as a light enemy: a hit stops her, a heavy one throws her.
 import { EVIL, GB, GT, PURPLE, TAU, W } from '../config.js';
-import { clamp, ease, lerp, random, rnd } from '../util.js';
+import { clamp, ease, fxRandom, fxRnd, lerp, random, rnd } from '../util.js';
 import { G, P } from '../state.js';
 import { SFX } from '../audio.js';
 import { dust, motes } from '../fx.js';
@@ -109,18 +109,18 @@ function updOrb(e, dt) {
         d.beamT = G.time + O.again;
         evilHurt(d, O.hit, d.x >= x ? 1 : -1, false);
       }
-    if (random() < 0.5)
+    if (fxRandom() < 0.5)
       G.parts.push({
         k: 'glow',
-        x: x + rnd(-8, 8),
-        y: y - rnd(0, 16),
-        vx: rnd(-120, 120),
-        vy: rnd(-200, -60),
+        x: x + fxRnd(-8, 8),
+        y: y - fxRnd(0, 16),
+        vx: fxRnd(-120, 120),
+        vy: fxRnd(-200, -60),
         g: 500,
         t: 0,
-        life: rnd(0.2, 0.4),
-        s: rnd(2, 4),
-        col: random() < 0.5 ? '#ffffff' : '#c58bff',
+        life: fxRnd(0.2, 0.4),
+        s: fxRnd(2, 4),
+        col: fxRandom() < 0.5 ? '#ffffff' : '#c58bff',
       });
   });
   if (o.burnT <= 0) o.burnT = O.every;
@@ -388,54 +388,57 @@ export function drawEvil(e, whole = true) {
 
 /** Violet bats wheeling round a spot on the ground, closing in and rising as they go. */
 function batSwirl(x, y, n, life) {
+  if (G.lowFx) n = Math.ceil(n / 2); // (the look only: fxRandom, not the game's chance)
   for (let k = 0; k < n; k++)
     G.parts.push({
       k: 'bat',
       x,
       y,
-      t: -rnd(0, life * 0.3),
+      t: -fxRnd(0, life * 0.3),
       life,
-      a0: (k / n) * TAU + rnd(-0.3, 0.3),
-      w: (random() < 0.5 ? 1 : -1) * rnd(5, 8),
-      r0: rnd(90, 140),
-      r1: rnd(14, 30),
-      h0: rnd(20, 80),
-      h1: rnd(70, 150),
-      s: rnd(10, 15),
-      ph: rnd(TAU),
+      a0: (k / n) * TAU + fxRnd(-0.3, 0.3),
+      w: (fxRandom() < 0.5 ? 1 : -1) * fxRnd(5, 8),
+      r0: fxRnd(90, 140),
+      r1: fxRnd(14, 30),
+      h0: fxRnd(20, 80),
+      h1: fxRnd(70, 150),
+      s: fxRnd(10, 15),
+      ph: fxRnd(TAU),
     });
 }
 /** Bats bursting out of her, scattering up and away. */
 function batBurst(x, y, n) {
+  if (G.lowFx) n = Math.ceil(n / 2);
   for (let k = 0; k < n; k++) {
-    const a = rnd(-Math.PI * 0.95, -Math.PI * 0.05),
-      v = rnd(220, 420);
+    const a = fxRnd(-Math.PI * 0.95, -Math.PI * 0.05),
+      v = fxRnd(220, 420);
     G.parts.push({
       k: 'bat',
-      x: x + rnd(-20, 20),
-      y: y - rnd(50, 150),
+      x: x + fxRnd(-20, 20),
+      y: y - fxRnd(50, 150),
       vx: Math.cos(a) * v,
       vy: Math.sin(a) * v * 0.6,
       g: -60,
       t: 0,
-      life: rnd(0.5, 0.8),
-      s: rnd(10, 15),
-      ph: rnd(TAU),
+      life: fxRnd(0.5, 0.8),
+      s: fxRnd(10, 15),
+      ph: fxRnd(TAU),
     });
   }
 }
 /** Puffs of violet mist round a spot, from the ground up to her height. */
 function mist(x, y, n, spread = 70) {
+  if (G.lowFx) n = Math.ceil(n / 2);
   for (let k = 0; k < n; k++)
     G.parts.push({
       k: 'mist',
-      x: x + rnd(-spread, spread),
-      y: y - rnd(0, 150),
-      vx: rnd(-25, 25),
-      vy: rnd(-30, -5),
+      x: x + fxRnd(-spread, spread),
+      y: y - fxRnd(0, 150),
+      vx: fxRnd(-25, 25),
+      vy: fxRnd(-30, -5),
       t: 0,
-      life: rnd(0.6, 1.1),
-      s: rnd(26, 46),
+      life: fxRnd(0.6, 1.1),
+      s: fxRnd(26, 46),
       gy: y,
     });
 }
@@ -475,9 +478,9 @@ function ballSparks(e) {
   const [bx, by] = ballAt(e),
     n = [1, 2, 4][e.lv - 1];
   for (let k = 0; k < n; k++)
-    if (random() < [0.4, 0.8, 1][e.lv - 1]) {
-      const a = rnd(TAU),
-        v = rnd(60, 120 + 90 * e.lv);
+    if (fxRandom() < [0.4, 0.8, 1][e.lv - 1]) {
+      const a = fxRnd(TAU),
+        v = fxRnd(60, 120 + 90 * e.lv);
       G.parts.push({
         k: 'glow',
         x: bx,
@@ -486,9 +489,9 @@ function ballSparks(e) {
         vy: Math.sin(a) * v - 40,
         g: 200,
         t: 0,
-        life: rnd(0.2, 0.35 + 0.1 * e.lv),
-        s: rnd(2, 3 + e.lv),
-        col: random() < 0.4 ? '#ffffff' : PURPLE,
+        life: fxRnd(0.2, 0.35 + 0.1 * e.lv),
+        s: fxRnd(2, 3 + e.lv),
+        col: fxRandom() < 0.4 ? '#ffffff' : PURPLE,
       });
     }
 }
@@ -768,7 +771,7 @@ export default defineFoe('evil', {
       const I = EVIL.intro;
       faceP(e);
       // the mist gathers where the bats wheel; she steps out of it, laughing
-      if (e.t > I.bats * 0.7 && e.t < I.bats + I.mist + 0.2 && random() < dt * 30)
+      if (e.t > I.bats * 0.7 && e.t < I.bats + I.mist + 0.2 && fxRandom() < dt * 30)
         mist(e.x, e.y, 1, 55);
       if (e.t >= I.bats + I.mist && !e.came) {
         e.came = true;
@@ -793,7 +796,7 @@ export default defineFoe('evil', {
         batSwirl(e.tx, e.ty, 16, T.gone + T.in * 0.5);
         SFX.bats();
       }
-      if (e.t > T.gone * 0.45 && random() < dt * 30) mist(e.tx, e.ty, 1, 45);
+      if (e.t > T.gone * 0.45 && fxRandom() < dt * 30) mist(e.tx, e.ty, 1, 45);
       if (e.t >= T.gone) {
         faceP(e);
         mist(e.x, e.y, 6, 40);
@@ -902,7 +905,7 @@ export default defineFoe('evil', {
     scharge(e) {
       const O = EVIL.orb,
         u = e.t / O.charge;
-      if (random() < 0.3 + 0.6 * u) motes(e.x + e.face * 52, e.y - 112, 1, 60 + 140 * u);
+      if (fxRandom() < 0.3 + 0.6 * u) motes(e.x + e.face * 52, e.y - 112, 1, 60 + 140 * u);
       if (e.t >= O.charge) {
         e.rage = 0;
         e.orb = {
@@ -943,7 +946,7 @@ export default defineFoe('evil', {
       e.x += e.rdir * R.speed * dt;
       e.y += clamp(P.y - e.y, -60 * dt, 60 * dt) * (e.toward ? 1 : 0);
       e.moving = true;
-      if (random() < 0.3) dust(e.x - e.rdir * 20, e.y, 1);
+      if (fxRandom() < 0.3) dust(e.x - e.rdir * 20, e.y, 1);
       const edge = e.x < G.cam + 60 || e.x > G.cam + W - 60;
       if (e.t > e.dur || edge || (e.toward ? s.adx < 140 : s.adx > 330)) {
         e.x = clamp(e.x, G.cam + 60, G.cam + W - 60);
@@ -957,7 +960,7 @@ export default defineFoe('evil', {
       e.face = e.rdir;
       e.x += e.rdir * sp * dt;
       e.moving = true;
-      if (random() < 0.5) dust(e.x - e.rdir * 20, e.y, 1);
+      if (fxRandom() < 0.5) dust(e.x - e.rdir * 20, e.y, 1);
       const ahead = (P.x - e.x) * e.rdir,
         edge = e.x < G.cam + 60 || e.x > G.cam + W - 60;
       if ((ahead < R.stop && e.t > R.accel) || e.t > R.run || edge) {

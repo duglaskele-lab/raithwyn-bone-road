@@ -1,7 +1,7 @@
 // Explosions of Old Quarry: red barrels and sticks of dynamite. A blast hurts everyone near it,
 // the player and the enemies alike, sets off other red barrels around it and breaks barrels.
 import { BLAST, TAU } from './config.js';
-import { rnd } from './util.js';
+import { fxRnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
 import { breakProp, hitPlayer, hurtEnemy } from './combat.js';
@@ -21,32 +21,32 @@ export function explode(x, y, k = 'barrel', z = 0) {
   G.parts.push({ k: 'boom', x, y, z, t: 0, life: 0.55, s: B.r });
   G.parts.push({ k: 'gring', x, y, t: 0, life: 0.4, s: B.r * 1.1, col: '#ffb24a' });
   for (let i = 0; i < 16; i++) {
-    const a = rnd(TAU),
-      v = rnd(120, 420);
+    const a = fxRnd(TAU),
+      v = fxRnd(120, 420);
     G.parts.push({
       k: 'dot',
-      x: x + rnd(-10, 10),
-      y: y - z - rnd(10, 60),
+      x: x + fxRnd(-10, 10),
+      y: y - z - fxRnd(10, 60),
       vx: Math.cos(a) * v,
       vy: -Math.abs(Math.sin(a)) * v - 80,
       g: 700,
       t: 0,
-      life: rnd(0.35, 0.7),
-      s: rnd(3, 6),
+      life: fxRnd(0.35, 0.7),
+      s: fxRnd(3, 6),
       col: i % 3 ? '#ffcf5a' : '#ff6a2a',
     });
   }
   for (let i = 0; i < 7; i++)
     G.parts.push({
       k: 'smoke',
-      x: x + rnd(-B.r * 0.4, B.r * 0.4),
-      y: y - z - rnd(20, 70),
-      vx: rnd(-30, 30),
-      vy: rnd(-70, -30),
+      x: x + fxRnd(-B.r * 0.4, B.r * 0.4),
+      y: y - z - fxRnd(20, 70),
+      vx: fxRnd(-30, 30),
+      vy: fxRnd(-70, -30),
       g: 0,
       t: 0,
-      life: rnd(0.9, 1.5),
-      s: rnd(18, 34),
+      life: fxRnd(0.9, 1.5),
+      s: fxRnd(18, 34),
     });
   // the player: knocked down, unless already out of reach in the air
   if (B.dmgP && within(x, y, P.x, P.y, B.r) && P.z < 140)
