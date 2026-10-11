@@ -39,6 +39,7 @@ import { drawBike } from './foes/bikes.js';
 import { roadBand } from './foes/strongman.js';
 import { drawSkull } from './foes/banshee.js';
 import { drawDecor3, drawFallingSign } from './props3.js';
+import { drawBolt } from './foes/robot.js';
 import { FOES } from './foes/registry.js';
 import { stick } from './foes/dynamite.js';
 import { drawHelmetDebris } from './foes/prospector.js';
@@ -631,6 +632,10 @@ export function drawProj(q) {
   }
   if (q.k === 'fsign') {
     drawFallingSign(q, x, y);
+    return;
+  }
+  if (q.k === 'rbolt') {
+    drawBolt(q, x, y);
     return;
   }
   if (q.k === 'skull') {

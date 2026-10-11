@@ -554,9 +554,10 @@ finale.
 
 A city of the future with an eastern soul, built by the Jawacorp corporation, whose robots walk
 its streets. It comes after Old Quarry once it is finished; for now it is reached by its
-secret (below). Done so far: the road, its scenery, things to break and the rules below; to
-come: the robots, the big-armed android in the metro, the mech samurai at the top of the
-tower, the music. Until the robots are in, the Bone Road's skeletons stand in for them.
+secret (below). Done so far: the road, its scenery, things to break, the first robots and the
+rules below; to come: the other robots (the omnic monk, the turret, the barrier heavy, the
+hacked noodle chef), the big-armed android in the metro, the mech samurai at the top of the
+tower, the music. Until then the Bone Road's strong skeletons stand in for the strong robots.
 
 **The scenery** (`src/bg3.js`, all drawn in code): the slums of corrugated shacks stacked two
 or three high, tangled cables, laundry, paper lanterns and neon signs in the city's own script,
@@ -593,6 +594,27 @@ fell from, 15% of her health the poorer and untouchable for a moment (`PIT` in
   (150 px, 46 to the robots, 16 to the heroine if she is still close), a shot sets it off at
   once, and a blast sets off the cells around it.
 - **Holographic projector** on the roofs — one blow, the hologram of Jawacorp's sign goes out.
+
+**Jawacorp's robots** (`TYPES`, `ROBOT`, `DRONE`, `NINJA`; `src/foes/robot.js` and one file
+each). They are the skeleton rig in metal armour (plates on the limbs, a chest plate with a
+glowing core and the maker's sign), and a destroyed one bursts into plates, bolts, sparks and
+smoke, not bones.
+
+- **Android Guard** (light, the main one) — white armour, a blue visor, an electric baton: its
+  blow stuns the heroine for 0.3 s.
+- **Android Guardess** (light, rarer) — slimmer, a helmet with cat's ears and a pink visor, a
+  cable plait, a plasma rifle. She keeps her distance; a red laser sight shows where she aims
+  (0.75 s), then a plasma bolt flies along the road.
+- **Watcher Drone** (light, counts as half an enemy) — a saucer with two rotors and a red eye. It
+  hovers out of reach of a blow from the ground: only a jump attack or a shot reaches it, and a
+  hit only makes it wobble. It marks a spot on the ground under the heroine, follows her with it
+  for 0.9 s, holds it still 0.35 s and fires its laser there: step off the mark. Destroyed, it
+  spins down and bursts on the ground.
+- **Cyber Ninja** (light, an elite) — slim dark armour with green lines, a red scarf, a glowing
+  katana. From a distance it crouches (a green line glows on the ground ahead) and dashes
+  600 px straight through the heroine, cutting her down (14). When a shot flies its way it takes
+  a stance for 1.3 s and turns Lucy's bullets and Raithwyn's bones back at the shooter; a blow up
+  close breaks the stance.
 
 **Where robots come from.** They never climb out of the ground: they walk in from the left or
 the right, step out of a door in a building (the door slides open, lit inside), or drop down
@@ -698,6 +720,9 @@ What is checked:
   first stage, where enemies come from, barrels and blasts, the Miner, Dynamite, the Lizard, the
   Power Armor, its gun and its jump onto a marked spot, no more than two armors per wave, the Slime and its zombies, the
   final fight against the Prospector alone, the `X` secret to it.
+- `robots.test.js` — Jawacorp's robots: in Neon Kyoto's fights, the guard's stun, the
+  guardess's bolt, the drone out of reach of a punch but not of a jump attack, its laser on the
+  marked spot, the ninja's dash and its stance turning shots back, parts instead of bones.
 - `level3.test.js` — Neon Kyoto: the `Z`+`3` and `X` secrets, the road (down into the metro, up
   to the avenue and onto the roofs), a gap on screen in every fight on the roofs, gaps that can
   be jumped (the widest only running), falling into a gap and climbing back hurt, not walking

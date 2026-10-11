@@ -23,4 +23,7 @@ import './baron.js';
 import './dragon.js';
 import './evil.js';
 import './dandy.js';
+import './guard.js';
+import './drone.js';
+import './ninja.js';
 export { FOES, STATES } from './registry.js';
