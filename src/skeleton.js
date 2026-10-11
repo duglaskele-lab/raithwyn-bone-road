@@ -312,3 +312,31 @@ export function boneShape(len, w, col) {
       }
   }
 }
+/**
+ * Where a point along an enemy's arm is in the world, as the rig would draw it now: the front
+ * arm (or the back one), `ext` px past the hand along the forearm (a gun's muzzle). Returns
+ * [x on the road, height above the floor].
+ */
+export function armPoint(e, back = false, ext = 0) {
+  const o = skelPose(e),
+    T = e.T,
+    s = T.scale,
+    lk = T.legK || 1,
+    ak = T.armK || 1,
+    TH = 36 * lk,
+    SH = 36 * lk,
+    UA = 27 * ak,
+    FA = 26 * ak,
+    lh = (l) => TH * Math.cos(l[0]) + SH * Math.cos(l[1]),
+    hipH = o.hipH != null ? o.hipH : Math.max(lh(o.lF), lh(o.lB)),
+    neck = [50 * Math.sin(o.lean), -50 * Math.cos(o.lean)],
+    a = back ? o.aB : o.aF,
+    p = [neck[0] * 0.9 + (back ? -3 : 3), neck[1] * 0.9],
+    m = [p[0] + UA * Math.sin(a[0]), p[1] + UA * Math.cos(a[0])],
+    h = [m[0] + (FA + ext) * Math.sin(a[1]), m[1] + (FA + ext) * Math.cos(a[1])],
+    c = Math.cos(o.rot),
+    sn = Math.sin(o.rot),
+    qx = h[0] * c - h[1] * sn,
+    qy = h[0] * sn + h[1] * c - hipH;
+  return [e.x + e.face * s * qx, e.z - s * qy];
+}

@@ -499,30 +499,40 @@ function koi(x, y, t, col) {
 }
 /** A door in a building: shut, or slid open (lit inside) while a robot steps out. */
 function door(i, x, y) {
+  // big enough for Jawacorp's largest robots (up to 1.3 times a man) to walk out upright
   const open = G.enemies.some((e) => e.state === 'door' && e.door === i);
-  box(x - 30, y - 104, 60, 104, '#16141c', 3);
+  const W = 116,
+    H = 236,
+    w = W - 12,
+    h = H - 10;
+  box(x - W / 2, y - H, W, H, '#16141c', 4);
   ctx.fillStyle = open ? '#ffd7a0' : '#2c2a36';
-  ctx.fillRect(x - 26, y - 98, 52, 98);
+  ctx.fillRect(x - w / 2, y - h, w, h);
   if (open) {
-    glow(T.warm, x, y - 50, 0.9, 1);
+    glow(T.warm, x, y - h / 2, 1.6, 1);
     ctx.fillStyle = '#3a3846';
-    ctx.fillRect(x - 26, y - 98, 7, 98);
-    ctx.fillRect(x + 19, y - 98, 7, 98);
+    ctx.fillRect(x - w / 2, y - h, 14, h);
+    ctx.fillRect(x + w / 2 - 14, y - h, 14, h);
   } else {
     ctx.strokeStyle = 'rgba(0,0,0,.6)';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(x, y - 98);
+    ctx.moveTo(x, y - h);
     ctx.lineTo(x, y);
+    // the hazard stripe across the leaves at knee height
+    ctx.moveTo(x - w / 2, y - 40);
+    ctx.lineTo(x + w / 2, y - 40);
     ctx.stroke();
     ctx.fillStyle = 'rgba(120,230,255,.25)';
-    ctx.fillRect(x - 20, y - 88, 14, 30);
-    ctx.fillRect(x + 6, y - 88, 14, 30);
+    ctx.fillRect(x - w / 2 + 10, y - h + 14, w / 2 - 18, 70);
+    ctx.fillRect(x + 8, y - h + 14, w / 2 - 18, 70);
+    ctx.fillStyle = 'rgba(255,200,40,.35)';
+    for (let k = 0; k < w; k += 16) ctx.fillRect(x - w / 2 + k, y - 34, 8, 10);
   }
-  // the light over it, and a little Jawacorp sign: their robots come out of here
+  // the light over it, and a Jawacorp sign: their robots come out of here
   ctx.fillStyle = open ? '#ff3b6b' : '#7a1f35';
-  ctx.fillRect(x - 12, y - 112, 24, 5);
-  jawaLogo(x + 44, y - 92, 9);
+  ctx.fillRect(x - 24, y - H - 12, 48, 7);
+  jawaLogo(x + W / 2 + 18, y - H + 20, 12);
 }
 
 // --- the sky ------------------------------------------------------------------------------------
@@ -932,11 +942,11 @@ function drawFire() {
 
 /** On a roof a door is in a little stairwell hut, a water tank beside it. */
 function hut(x, y) {
-  box(x - 60, y - 140, 120, 140, '#2e2c3a');
-  box(x - 70, y - 152, 140, 14, '#3a3848');
-  box(x + 80, y - 120, 60, 90, '#3b3f4a');
+  box(x - 90, y - 270, 180, 270, '#2e2c3a');
+  box(x - 102, y - 284, 204, 16, '#3a3848');
+  box(x + 112, y - 120, 60, 90, '#3b3f4a');
   ctx.fillStyle = '#2a2d36';
-  for (const lx of [x + 86, x + 130]) ctx.fillRect(lx, y - 30, 5, 30);
+  for (const lx of [x + 118, x + 162]) ctx.fillRect(lx, y - 30, 5, 30);
 }
 /** The things on the roofs: aerials, dishes, air-conditioner blocks, billboards on their
  *  frames, a low parapet along the back. */
@@ -1176,7 +1186,7 @@ export function drawBG3() {
   drawRoofs();
   drawGarden();
   DOORS.forEach(([x, y], i) => {
-    if (!view(x - 80, x + 150)) return;
+    if (!view(x - 110, x + 180)) return;
     if (x > FIRE[1]) hut(x, y);
     door(i, x, y);
   });

@@ -626,8 +626,13 @@ smoke, not bones.
   one robot at a time (0.8 s to cast, a thread of light to it): for 6 s that robot takes only
   35% of the harm of a blow; a crushing blow ends the shield. Beat the monk first.
 - **Turret Robot** (medium) — squat olive armour, a boxy head with one red eye, a rotary gun for
-  a front arm. From a distance, along the heroine's lane, it plants itself (0.6 s, the barrels
-  spinning up) and fires a stream of bolts down the lane for 2 s; step up or down the road.
+  a front arm. It fights in two modes. As a robot it walks, hits, and from mid range raises its
+  gun (0.45 s, a red sight) and fires a burst of three bolts out of the muzzle. From a distance,
+  along the heroine's lane, it becomes a turret (0.9 s): the legs splay into a tripod with
+  stabilizer struts, the head sinks under an armoured cowl, a shield plate closes over the chest
+  and a second gun comes up on the back arm. Then it fires bursts of six from both muzzles in
+  turn down the lane for 5 s, turning if she gets behind it, and takes only half the harm of a
+  blow, until it packs up again; step up or down the road.
 - **Barrier Heavy** (heavy) — broad blue armour, a domed head with a T-shaped visor, a
   projector on its forearm. It raises a wall of hard light in front of it for 4.5 s and keeps
   it as it walks: the heroine's shots (bullets, bones, a level I dark ball) stop on it, which
@@ -652,7 +657,7 @@ Its big moves cannot be stopped (a red outline); only crushing blows move it. At
 the arm glows white-hot, it is 1.3 times quicker and waits less between moves, and three
 fissures run side by side. Beaten, it bursts into parts, the fight is over and food drops.
 
-**The last boss: the Mech Samurai** (1700 health; `TYPES.mecha`, `MECHA`), in the garden on top
+**The last boss: the Mech Samurai** (1500 health; `TYPES.mecha`, `MECHA`), in the garden on top
 of the tower. A giant war machine in samurai armour of black lacquer and red lacing: a horned
 helmet with a golden crest, a snarling face mask with burning eyes, great shoulder plates, an
 armoured skirt, and a katana of red plasma. It drops from the sky, landing in a ring of shock.
@@ -672,7 +677,8 @@ Beaten, it sinks to one knee, its core and eyes dim, and it bursts in a shower o
 cherry petals.
 
 **Where robots come from.** They never climb out of the ground: they walk in from the left or
-the right, step out of a door in a building (the door slides open, lit inside), or drop down
+the right, step out of a door in a building (a tall door, big enough for the largest of them, slides
+open, lit inside), or drop down
 from above.
 
 **Secret.** On the first screen of the first stage, before the first fight, hold `Z` and `3`
