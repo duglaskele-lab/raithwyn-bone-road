@@ -470,6 +470,27 @@ export const BREAKER = {
   p2speed: 1.3,
   p2cd: 0.7,
 };
+// The mech samurai (Neon Kyoto's last boss). Its cut: `wind` s raised, then it sweeps `reach` px
+// ahead and `dy` px either way across the road (`dmg`). The iai: sunk in its stance `wind` s
+// (`wind3` in a run of them) as a line glows along her lane, then across the screen at
+// `speed` px/s, cutting whoever is on the line (`dy` either way, `dmg`); in a run, `breath` s
+// between. The counter stance: `t` s; a blow from the front rings off and it cuts back after
+// `cut` s (`dmg`). From `p2` of its health: `n` missiles on marks round her, `gap` s apart,
+// each landing `fall` s after its mark appears (`r` px round, BLAST.missile), every `cd` s;
+// and the leap (`wind`, `air`, `h`, `r`, `dmg`). From `p3`: its open core takes `core` times
+// the harm. Beaten, it kneels `dieT` s before it bursts.
+export const MECHA = {
+  arc: { wind: 0.55, reach: 230, dy: 70, dmg: 18 },
+  iai: { wind: 0.7, wind3: 0.4, speed: 2200, dy: 32, dmg: 22, breath: 0.35, cd: [3.5, 5.5] },
+  guard: { t: 1.3, cut: 0.15, dmg: 18, cd: [4, 6.5] },
+  mis: { n: 6, gap: 0.12, wind: 0.6, fall: 1.0, r: 62, cd: [5, 7.5] },
+  leap: { wind: 0.5, air: 0.9, h: 320, r: 230, dmg: 18, cd: [4.5, 7] },
+  p2: 0.5,
+  p3: 0.25,
+  core: 2,
+  rec: 0.55,
+  dieT: 2.6,
+};
 // Falling off a roof into a gap (Neon Kyoto): she drops for `time` s, then is back on the
 // roof she fell from, `dmg` of her full health the poorer, untouchable for `inv` s. A robot
 // knocked into a gap is gone (`time` s of falling) and counts as beaten.
@@ -507,6 +528,8 @@ export const BLAST = {
   mortar: { r: 115, dmgP: 16, dmgE: 0, chain: 0.14 },
   // a Jawacorp power cell (Neon Kyoto): a burst of lightning instead of fire
   cell: { r: 150, dmgP: 16, dmgE: 46, chain: 0.14, lit: 0.7, zap: 1 },
+  // a missile of the mech samurai: it hurts the player only
+  missile: { r: 62, dmgP: 12, dmgE: 0, chain: 0.14 },
 };
 // Lucy's grenade (I): costs `cost` rage; its blast is a crushing blow (BLAST `crush`); it leaves her hand `x` ahead and `z` up, flies in an
 // arc (`vx`, `vz` up, `g` down), spinning `spin` turns a second; on the ground it bounces
@@ -876,6 +899,27 @@ export const TYPES = {
     dk: '#34363e',
     eye: '#ffb02e',
     score: 5000,
+  },
+  // the last boss of Neon Kyoto: the mech samurai (MECHA)
+  mecha: {
+    hp: 1700,
+    scale: 1.65,
+    speed: 64,
+    dmg: 18,
+    reach: 170,
+    style: 'slash',
+    wind: 0.55,
+    act: 0.16,
+    rec: 0.6,
+    cd: [0.8, 1.4],
+    thick: 4,
+    bigBoss: 1,
+    weight: 'heavy',
+    shadow: 80,
+    col: '#4a4f5c',
+    dk: '#2e323b',
+    eye: '#ff3b5c',
+    score: 10000,
   },
   // the shield bearer (SHIELD): a rusty tower shield in front, a spear
   shield: {

@@ -550,13 +550,12 @@ trumpet, tremolo guitar, bells, choir and a whip crack) while walking, and "Show
 (D minor, 156 BPM, trumpet fanfares, driving bass, bells and choir) in the Slime's fight and the
 finale.
 
-## Stage 3: Neon Kyoto (in the making)
+## Stage 3: Neon Kyoto
 
 A city of the future with an eastern soul, built by the Jawacorp corporation, whose robots walk
-its streets. It comes after Old Quarry once it is finished; for now it is reached by its
-secret (below). Done so far: the road, its scenery, things to break, the robots, the breaker
-android in the metro and the rules below; to come: the mech samurai at the top of the tower (a
-power armour stands in for it for now), the music.
+its streets. It comes after Old Quarry (the same "Stage clear" screen leads on to it, keeping
+score and lives), and it is the last stage: beating its boss wins the game. Its own music is
+still to come (for now it plays the Bone Road's).
 
 **The scenery** (`src/bg3.js`, all drawn in code): the slums of corrugated shacks stacked two
 or three high, tangled cables, laundry, paper lanterns and neon signs in the city's own script,
@@ -644,6 +643,25 @@ shoulder, pistons, vents glowing orange, a fist like a block of iron. It never s
 Its big moves cannot be stopped (a red outline); only crushing blows move it. At half health
 the arm glows white-hot, it is 1.3 times quicker and waits less between moves, and three
 fissures run side by side. Beaten, it bursts into parts, the fight is over and food drops.
+
+**The last boss: the Mech Samurai** (1700 health; `TYPES.mecha`, `MECHA`), in the garden on top
+of the tower. A giant war machine in samurai armour of black lacquer and red lacing: a horned
+helmet with a golden crest, a snarling face mask with burning eyes, great shoulder plates, an
+armoured skirt, and a katana of red plasma. It drops from the sky, landing in a ring of shock.
+It never flinches.
+
+- **Phase 1:** wide cuts that sweep across the road's depth in front of it; the **iai** — it
+  sinks into its stance while a red line glows the length of the screen along her lane, then
+  it is across in a flash, cutting down whoever is on the line (step off it); the **counter
+  stance** — a blow from the front rings off the blade and it cuts back at once.
+- **Phase 2** (half health): its shoulder plates fall away and missile pods open on its back: a
+  salvo of six missiles comes down on red marks round her (one right under her), and it leaps
+  onto her, landing in a ring of shock.
+- **Phase 3** (a quarter): it overheats — its chest opens and the core blazes white: blows do
+  double harm. It strikes three to five iai cuts in a row, a breath between them.
+
+Beaten, it sinks to one knee, its core and eyes dim, and it bursts in a shower of sparks and
+cherry petals.
 
 **Where robots come from.** They never climb out of the ground: they walk in from the left or
 the right, step out of a door in a building (the door slides open, lit inside), or drop down
@@ -754,6 +772,10 @@ What is checked:
   marked spot, the ninja's dash and its stance turning shots back, parts instead of bones; the
   monk's shield (and a crushing blow ending it), the turret's stream down its lane, the barrier
   heavy's wall (shots and blows from the front, cracking, shattering), the chef's flurry.
+- `mecha.test.js` — the mech samurai: the last fight, dropping from the sky, the iai on the line
+  (and off it), the counter stance, never flinching, the missiles on the marks (sparing it), the
+  overheated core and the run of iai cuts, kneeling and bursting, the game won; winning Old
+  Quarry leads on to Neon Kyoto.
 - `breaker.test.js` — the breaker android: in the metro, the leap onto the marked spot and its
   shock, nothing stopping it in the air, the fissure along the lane (and out of it), three
   fissures and more speed at half health, the rocket fist, its end.
