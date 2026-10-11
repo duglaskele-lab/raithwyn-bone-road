@@ -292,3 +292,22 @@ test('a power cell crackles, then bursts into lightning that throws robots about
   assert.ok(G.parts.some((p) => p.k === 'zap') || e.hp < e.T.hp, 'lightning');
   assert.ok(e.hp <= e.T.hp - BLAST.cell.dmgE || e.dead, 'the robot is hurt');
 });
+
+test("Neon Kyoto's music: its walk, and its own theme in the boss fights", async () => {
+  const { THEMES, themeFor } = await import('../src/audio.js');
+  startLevel(3);
+  G.wave = null;
+  G.waveI = 0;
+  assert.equal(themeFor('play'), 'kyoto');
+  G.waveI = WAVES3.findIndex((w) => w.boss);
+  G.wave = { sp: [], t: 0 };
+  assert.equal(themeFor('play'), 'kyotoBoss', "the breaker's fight");
+  G.waveI = WAVES3.length - 1;
+  assert.equal(themeFor('play'), 'kyotoBoss', 'the duel on the tower');
+  // every step of both plays through (without sound in the tests)
+  for (const id of ['kyoto', 'kyotoBoss']) {
+    const th = THEMES[id];
+    assert.ok(th.step > 0);
+    for (let n = 0; n < 64 * 10; n++) th.play(n, 0);
+  }
+});
