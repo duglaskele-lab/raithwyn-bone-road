@@ -31,4 +31,5 @@ import './turret.js';
 import './barrier.js';
 import './chef.js';
 import './breaker.js';
+import './mecha.js';
 export { FOES, STATES } from './registry.js';

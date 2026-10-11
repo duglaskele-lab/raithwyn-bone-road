@@ -42,6 +42,7 @@ import {
   camTo,
   floorClamp,
   followPath,
+  LAST_LEVEL,
   level,
   levelWaves,
   pathAt,
@@ -188,9 +189,9 @@ function quakeWave(q) {
 }
 export function update(dt) {
   G.time += dt;
-  // the Bone Road won: a moment of triumph, then on to Old Quarry (J, or by itself)
-  if (APP.state === 'win' && G.level === 1 && G.endT > 2.4 && (pressed.atk || G.endT > 7)) {
-    startLevel(2);
+  // a stage won (not the last): a moment of triumph, then on to the next (J, or by itself)
+  if (APP.state === 'win' && G.level < LAST_LEVEL && G.endT > 2.4 && (pressed.atk || G.endT > 7)) {
+    startLevel(G.level + 1);
     APP.state = 'play';
     return;
   }

@@ -121,7 +121,7 @@ export const WAVES3 = [
   { s: at(ROOFS[2][1] - 560), lvl: 0.86 },
   { s: at(ROOFS[2][1] - 560), chain: 1, lvl: 0.92 },
   // the garden on the tower: the last fight
-  { s: at(END_X - 960), boss: 1, final: 1, sp: [['armor', 1, 0.8]] },
+  { s: at(END_X - 960), boss: 1, final: 1, sp: [['mecha', 1, 0.8]] },
 ];
 
 // Things to break on the way (see props3.js): [x, depth into the floor, kind, drop].

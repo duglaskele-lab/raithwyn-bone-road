@@ -25,12 +25,15 @@ export const LEVELS = {
     banner: ['stage3', 'subtitle3'],
     floor: L3.FLOOR,
     path: L3.PATH,
+    boss: ['@mecha', 'mechaBanner'],
     pits: L3.PITS,
     doors: L3.DOORS,
     robots: true,
   },
 };
 export const level = () => LEVELS[G.level] ?? LEVELS[1];
+/** The last stage: winning it wins the game; winning any other goes on to the next. */
+export const LAST_LEVEL = 3;
 export const levelWaves = () => level().waves;
 
 // --- the floor ---------------------------------------------------------------------------

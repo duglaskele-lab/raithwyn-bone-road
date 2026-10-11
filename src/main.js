@@ -18,7 +18,7 @@ import {
 } from './menu.js';
 import { PORTRAITS } from './characters.js';
 import { update } from './world.js';
-import { startLevel } from './level.js';
+import { LAST_LEVEL, startLevel } from './level.js';
 import { toggleRecording } from './recorder.js';
 import {
   lastRun,
@@ -138,8 +138,8 @@ function frame(dt) {
       update(dt);
     } else if (APP.state === 'over' || APP.state === 'win') {
       G.endT += dt;
-      // the Bone Road won: on a touch screen a tap anywhere goes on (as Hit does)
-      if (touch && pressed.tap && APP.state === 'win' && G.level === 1) pressed.atk = true;
+      // a stage won (not the last): on a touch screen a tap anywhere goes on (as Hit does)
+      if (touch && pressed.tap && APP.state === 'win' && G.level < LAST_LEVEL) pressed.atk = true;
       recordFrame(dt);
       update(dt);
       // on a touch screen the buttons are hidden here: the two items are tapped instead
@@ -147,7 +147,7 @@ function frame(dt) {
         tapped = (i) => ends && inBox(ends[i], pressed.tap);
       if (replaying());
       else if (APP.state === 'play'); // update() has just gone on to the next stage
-      else if (APP.state === 'win' && G.level === 1); // the next stage follows (see world.js)
+      else if (APP.state === 'win' && G.level < LAST_LEVEL); // the next stage follows (world.js)
       else if (G.endT > 1.5 && (tapped(0) || (!touch && pressed.start) || pressed.atk))
         newRun(undefined, APP.state === 'over' ? G.level : 1); // a lost stage is tried again
       else if (G.endT > 1.5 && (pressed.pause || tapped(1))) toTitle();
@@ -176,12 +176,12 @@ function frame(dt) {
       if (G.endT > 1.5 && !touch && !replaying())
         txt(t('replayHint'), W / 2, 398, 14, '#9bb0ac', 'center', 3);
     }
-    if (APP.state === 'win' && G.level === 1 && G.endT > 1.2) {
-      // the Bone Road is done: Old Quarry is next
+    if (APP.state === 'win' && G.level < LAST_LEVEL && G.endT > 1.2) {
+      // a stage is done: the next one follows
       overlay(Math.min(0.5, (G.endT - 1.2) * 0.5));
       txt(t('stageClear'), W / 2, 210, 54, '#f0e9ff', 'center', 8);
       txt(t('score') + P.score, W / 2, 252, 22, '#f0cf4f', 'center', 4);
-      txt(t('nextStage'), W / 2, 292, 22, '#f2b664', 'center', 4);
+      txt(t(G.level === 1 ? 'nextStage' : 'nextStage3'), W / 2, 292, 22, '#f2b664', 'center', 4);
       if (G.endT > 2.4)
         txt(touch ? t('nextTouch') : t('nextKey'), W / 2, 330, 17, '#ece5cb', 'center', 4);
     } else if (APP.state === 'win' && G.endT > 1.2) {
