@@ -157,28 +157,60 @@ test('the omnic monk puts a shield of light on a robot: blows barely hurt it, a 
   assert.equal(g.orbUntil, 0, 'a crushing blow ends it');
 });
 
-test('the turret plants itself and fires down its lane; out of the lane, she is safe', async () => {
+test('the turret transforms and fires down its lane from both guns; out of the lane, she is safe', async () => {
   const { TURRET } = await import('../src/config.js');
-  const e = foe('turret', 420, { gunCd: 0 });
-  e.cd = 99;
+  const { armPoint } = await import('../src/skeleton.js');
+  const e = foe('turret', 420, { modeCd: 0, burstCd: 99 });
   update(DT);
   assert.equal(e.state, 'tdeploy');
-  step(TURRET.deploy + 0.5);
+  step(TURRET.deploy + 0.6);
   assert.equal(e.state, 'tfire');
-  assert.ok(G.projs.filter((p) => p.k === 'rbolt').length >= 2, 'a stream of bolts');
-  // a light blow does not stop it (a medium foe)
-  hurtEnemy(e, 5, -1, false, 'punch');
+  assert.ok(e.tm > 0.9, 'in turret form');
+  const bolts = G.projs.filter((p) => p.k === 'rbolt');
+  assert.ok(bolts.length >= 2, 'a stream of bullets');
+  // they fly from the muzzles of its two guns
+  const muzzles = [armPoint(e, false, 60), armPoint(e, true, 60)];
+  for (const q of bolts.slice(-2)) {
+    const back = q.x - q.vx * (q.life < 3 ? 3 - q.life : 0);
+    assert.ok(
+      muzzles.some(([x, z]) => Math.abs(back - x) < 20 && Math.abs(q.z - z) < 20),
+      `from a muzzle (${back | 0},${q.z | 0} vs ${muzzles.map((m) => m.map(Math.round)).join(' ')})`,
+    );
+  }
+  // its armour takes half a blow, and a light blow does not stop it
+  const hp0 = e.hp;
+  hurtEnemy(e, 10, -1, false, 'punch');
+  assert.equal(e.hp, hp0 - 10 * TURRET.soak);
   assert.equal(e.state, 'tfire');
   const hp = P.hp;
-  step(0.6);
+  step(1.2);
   assert.ok(P.hp < hp, 'in the lane: hit');
-  Object.assign(e, { state: 'tfire', t: 0, shotT: 0 });
+  Object.assign(e, { state: 'tfire', t: 0, held: 0, burstLeft: TURRET.burst });
   G.projs = [];
   P.y -= 70;
   P.inv = 0;
   const hp2 = P.hp;
   step(1);
   assert.equal(P.hp, hp2, 'out of the lane');
+  // after a while it packs up and walks as a robot again
+  step(TURRET.hold + TURRET.deploy + 0.5);
+  assert.ok(!['tfire', 'tpack', 'tdeploy'].includes(e.state), e.state);
+  assert.ok(e.tm < 0.1, 'a robot again');
+});
+
+test('as a robot the turret raises its gun and fires a short burst from its muzzle', async () => {
+  const { TURRET } = await import('../src/config.js');
+  const e = foe('turret', 300, { modeCd: 99, burstCd: 0 });
+  P.inv = 99; // (the bullets fly on past her)
+  update(DT);
+  assert.equal(e.state, 'taim');
+  step(TURRET.aim + TURRET.rate * TURRET.rburst + 0.12);
+  const bolts = G.projs.filter((p) => p.k === 'rbolt');
+  assert.equal(bolts.length, TURRET.rburst);
+  assert.ok(
+    bolts.every((q) => Math.abs(q.x - q.vx * (3 - q.life) - e.x) < 200 && q.z > 60),
+    'from the gun, up at arm height',
+  );
 });
 
 test("the barrier heavy's wall stops shots and blows from the front; it cracks, and goes", async () => {

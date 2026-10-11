@@ -433,18 +433,27 @@ export const NINJA = {
 // `cast` s to put a shield on a robot that has none (not itself): `shieldT` s during which the
 // robot takes only `soak` of the harm of a blow (a crushing blow ends the shield).
 export const MONK = { keep: 340, cd: [3.5, 5.5], cast: 0.8, shieldT: 6, soak: 0.35 };
-// The turret robot: every `cd` s, `min`..`max` px off along her lane, it plants itself
-// (`deploy` s), fires a bolt every `rate` s for `fire` s straight down its lane (`dmg` each, at
-// `boltV` px/s), then packs up (`pack` s). Step up or down the road out of the lane.
+// The turret robot, in two modes. As a robot: every `rcd` s, `min`..520 px off along her lane,
+// it raises its gun (`aim` s, a red sight) and fires a burst of `rburst`. As a turret: every
+// `cd` s, from `min`..`max` px off, it transforms (`deploy` s), then for `hold` s fires
+// bursts of `burst` bullets `rate` s apart from both guns in turn, `gap` s between bursts,
+// turning after her (`turn` s) if she goes behind it, its armour taking `soak` of a blow's
+// harm; then it packs up (`deploy` s again). Bullets: `dmg` each at `boltV` px/s.
 export const TURRET = {
-  cd: [4, 6.5],
+  cd: [5, 8],
+  rcd: [2.2, 3.6],
   min: 230,
   max: 760,
-  deploy: 0.6,
-  fire: 2,
-  rate: 0.15,
-  pack: 0.5,
-  boltV: 640,
+  aim: 0.45,
+  rburst: 3,
+  deploy: 0.9,
+  hold: 5,
+  burst: 6,
+  rate: 0.11,
+  gap: 0.6,
+  turn: 0.8,
+  soak: 0.5,
+  boltV: 680,
   dmg: 4,
 };
 // The barrier heavy: every `cd` s it raises a wall of hard light in front of it for `up` s,
@@ -905,7 +914,7 @@ export const TYPES = {
   },
   // the last boss of Neon Kyoto: the mech samurai (MECHA)
   mecha: {
-    hp: 1700,
+    hp: 1500,
     scale: 1.65,
     speed: 64,
     dmg: 18,
