@@ -30,4 +30,5 @@ import './monk.js';
 import './turret.js';
 import './barrier.js';
 import './chef.js';
+import './breaker.js';
 export { FOES, STATES } from './registry.js';

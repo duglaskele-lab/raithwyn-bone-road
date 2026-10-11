@@ -554,9 +554,9 @@ finale.
 
 A city of the future with an eastern soul, built by the Jawacorp corporation, whose robots walk
 its streets. It comes after Old Quarry once it is finished; for now it is reached by its
-secret (below). Done so far: the road, its scenery, things to break, the robots and the rules
-below; to come: the big-armed android in the metro, the mech samurai at the top of the tower
-(a power armour stands in for both for now), the music.
+secret (below). Done so far: the road, its scenery, things to break, the robots, the breaker
+android in the metro and the rules below; to come: the mech samurai at the top of the tower (a
+power armour stands in for it for now), the music.
 
 **The scenery** (`src/bg3.js`, all drawn in code): the slums of corrugated shacks stacked two
 or three high, tangled cables, laundry, paper lanterns and neon signs in the city's own script,
@@ -629,6 +629,21 @@ smoke, not bones.
 - **Hacked Noodle Chef** (medium) — a kitchen robot gone wrong, a stained apron, a crooked hat,
   a glitching red eye, sparking wiring, a cleaver in each hand. Up close: a flurry of three
   cuts, both cleavers in turn; the last one knocks her down.
+
+**The mini-boss: the Breaker Android** (900 health; `TYPES.breaker`, `BREAKER`), in the metro's
+concourse. A hunched black robot with orange joints and one enormous mechanical arm: a heavy
+shoulder, pistons, vents glowing orange, a fist like a block of iron. It never stays still:
+
+- up close it brings the fist down in front of it, in a little ring of shock (knocks down);
+- from further off it crouches and leaps at the heroine, landing where she stood (the spot is
+  marked in orange) in a ring of shock 190 px round that throws her and smashes things nearby;
+- it raises the arm and punches the ground: a fissure of seven eruptions runs along her lane
+  (marked by a dashed line as it winds up) — step out of the lane or jump it;
+- it cocks the fist and fires it like a rocket, charging straight through her.
+
+Its big moves cannot be stopped (a red outline); only crushing blows move it. At half health
+the arm glows white-hot, it is 1.3 times quicker and waits less between moves, and three
+fissures run side by side. Beaten, it bursts into parts, the fight is over and food drops.
 
 **Where robots come from.** They never climb out of the ground: they walk in from the left or
 the right, step out of a door in a building (the door slides open, lit inside), or drop down
@@ -739,6 +754,9 @@ What is checked:
   marked spot, the ninja's dash and its stance turning shots back, parts instead of bones; the
   monk's shield (and a crushing blow ending it), the turret's stream down its lane, the barrier
   heavy's wall (shots and blows from the front, cracking, shattering), the chef's flurry.
+- `breaker.test.js` — the breaker android: in the metro, the leap onto the marked spot and its
+  shock, nothing stopping it in the air, the fissure along the lane (and out of it), three
+  fissures and more speed at half health, the rocket fist, its end.
 - `level3.test.js` — Neon Kyoto: the `Z`+`3` and `X` secrets, the road (down into the metro, up
   to the avenue and onto the roofs), a gap on screen in every fight on the roofs, gaps that can
   be jumped (the widest only running), falling into a gap and climbing back hurt, not walking

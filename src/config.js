@@ -454,6 +454,22 @@ export const BARRIER = { cd: [2.5, 4.5], up: 4.5, w: 70, d: 70, hp: 3 };
 // The noodle chef: every `cd` s, close up, a flurry of `hits` cuts `gap` s apart (`dmg` each,
 // the last one knocks her down).
 export const CHEF = { cd: [2.5, 4.5], hits: 3, gap: 0.2, dmg: 7 };
+// The breaker android (Neon Kyoto's mini-boss). Its plain blow lands `smash.at` px in front in a
+// ring `smash.r` round. The leap: from `leap.min` px off, crouched `wind` s, `air` s in the air
+// (`h` px high) to where she stood, a ring of shock `r` round (`dmg`), `rec` s to get up. The
+// fissure: arm up `wind` s, then `n` eruptions `step` px apart, `gap` s apart, along its lane
+// (`w` px wide; three lanes `lanes` px apart in the second phase). The rush: `wind` s cocked,
+// then the rocket fist at `speed` px/s. From `phase2` of its health it is `p2speed` times
+// quicker in its moves and waits `p2cd` as long between them.
+export const BREAKER = {
+  smash: { at: 100, r: 120 },
+  leap: { min: 230, wind: 0.45, air: 0.85, h: 260, r: 190, dmg: 18, rec: 0.6, cd: [3, 5] },
+  fissure: { wind: 0.7, n: 7, step: 100, gap: 0.09, w: 40, dmg: 14, lanes: 55, cd: [4, 6.5] },
+  rush: { wind: 0.5, speed: 820, dmg: 16, cd: [4, 6.5] },
+  phase2: 0.5,
+  p2speed: 1.3,
+  p2cd: 0.7,
+};
 // Falling off a roof into a gap (Neon Kyoto): she drops for `time` s, then is back on the
 // roof she fell from, `dmg` of her full health the poorer, untouchable for `inv` s. A robot
 // knocked into a gap is gone (`time` s of falling) and counts as beaten.
@@ -837,6 +853,29 @@ export const TYPES = {
     dk: '#757b84',
     eye: '#ff3b4b',
     score: 550,
+  },
+  // the mini-boss of Neon Kyoto: the breaker android with one enormous arm (BREAKER)
+  breaker: {
+    hp: 900,
+    scale: 1.3,
+    speed: 96,
+    dmg: 18,
+    reach: 112,
+    style: 'smash',
+    wind: 0.55,
+    act: 0.18,
+    rec: 0.7,
+    cd: [0.9, 1.5],
+    knock: 1,
+    thick: 3,
+    armK: 1.2,
+    bigBoss: 1,
+    weight: 'heavy',
+    shadow: 58,
+    col: '#5a5c66',
+    dk: '#34363e',
+    eye: '#ffb02e',
+    score: 5000,
   },
   // the shield bearer (SHIELD): a rusty tower shield in front, a spear
   shield: {
