@@ -124,6 +124,48 @@ export const WAVES3 = [
   { s: at(END_X - 960), boss: 1, final: 1, sp: [['armor', 1, 0.8]] },
 ];
 
+// Things to break on the way (see props3.js): [x, depth into the floor, kind, drop].
+const P = [
+  // the slums
+  [300, 30, 'paper', null],
+  [560, 120, 'post', null],
+  [780, 20, 'vend', 'hp'],
+  [1020, 140, 'cell', null],
+  [1200, 26, 'sign', 'rage'],
+  [1440, 110, 'post', null],
+  [1660, 18, 'paper', 'hp'],
+  [1920, 130, 'cell', null],
+  [2160, 24, 'vend', 'hp'],
+  [2460, 120, 'post', null],
+  // the metro
+  [3520, 24, 'vend', 'hp'],
+  [3820, 130, 'cell', null],
+  [4120, 20, 'sign', null],
+  [4400, 120, 'post', null],
+  [5320, 24, 'vend', 'rage'],
+  [5520, 140, 'cell', null],
+  // the avenue and the bridge
+  [6520, 30, 'paper', null],
+  [6820, 120, 'post', null],
+  [7060, 20, 'sign', 'hp'],
+  [7360, 140, 'cell', null],
+  [7620, 24, 'vend', 'hp'],
+  [7920, 120, 'post', null],
+  [8220, 26, 'paper', 'rage'],
+  [8620, 130, 'cell', null],
+  [8920, 22, 'sign', null],
+  // the roofs
+  [10120, 120, 'holo', null],
+  [10520, 30, 'cell', null],
+  [11060, 130, 'post', null],
+  [11420, 24, 'vend', 'hp'],
+  [12020, 30, 'holo', 'rage'],
+  [12360, 130, 'cell', null],
+  [12920, 120, 'post', null],
+  [13140, 24, 'vend', 'hp'],
+];
+export const PROPS3 = P.map(([x, d, k, drop]) => [x, topY(x) + d, k, drop]);
+
 // How an ordinary fight of Neon Kyoto is rolled (as WAVEGEN, config.js). For now the robots
 // are stood in for by the Bone Road's skeletons.
 export const WAVEGEN3 = {

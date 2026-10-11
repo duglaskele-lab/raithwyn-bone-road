@@ -38,6 +38,7 @@ import { boneShape, drawAura, drawSkel } from './skeleton.js';
 import { drawBike } from './foes/bikes.js';
 import { roadBand } from './foes/strongman.js';
 import { drawSkull } from './foes/banshee.js';
+import { drawDecor3, drawFallingSign } from './props3.js';
 import { FOES } from './foes/registry.js';
 import { stick } from './foes/dynamite.js';
 import { drawHelmetDebris } from './foes/prospector.js';
@@ -229,6 +230,12 @@ export function drawDecor(u) {
     D = DECOR[u.decor];
   ctx.save();
   ctx.translate(u.x - G.cam, u.y);
+  if (D.k3) {
+    // Neon Kyoto's (props3.js)
+    drawDecor3(u, fl);
+    ctx.restore();
+    return;
+  }
   ctx.lineJoin = 'round';
   ctx.lineWidth = 2.4;
   ctx.strokeStyle = OL;
@@ -622,6 +629,10 @@ export function drawProj(q) {
     ctx.fill();
     return;
   }
+  if (q.k === 'fsign') {
+    drawFallingSign(q, x, y);
+    return;
+  }
   if (q.k === 'skull') {
     drawSkull(x, y, 20, Math.sign(q.vx) || 1, q.rot);
     return;
@@ -902,6 +913,38 @@ export function drawPart(p) {
       ctx.restore();
       break;
     }
+    case 'zap': {
+      // a power cell's blast: a white-blue flash and forks of lightning out of it
+      const a = 1 - u,
+        r = p.s * (0.4 + 0.6 * ease(Math.min(1, u * 2)));
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const g = ctx.createRadialGradient(x, y - 40, 2, x, y - 40, r);
+      g.addColorStop(0, `rgba(240,255,255,${a})`);
+      g.addColorStop(0.4, `rgba(120,230,255,${0.8 * a})`);
+      g.addColorStop(1, 'rgba(40,120,255,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.ellipse(x, y - 40, r, r * 0.8, 0, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = `rgba(220,250,255,${a})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      for (let k = 0; k < 7; k++) {
+        const ang = k * 0.9 + p.x * 0.01;
+        let lx = x,
+          ly = y - 40;
+        ctx.moveTo(lx, ly);
+        for (let s = 1; s <= 4; s++) {
+          lx = x + Math.cos(ang + Math.sin(k * 7 + s * 3) * 0.4) * r * (s / 4);
+          ly = y - 40 + Math.sin(ang + Math.sin(k * 5 + s) * 0.4) * r * 0.6 * (s / 4);
+          ctx.lineTo(lx, ly);
+        }
+      }
+      ctx.stroke();
+      ctx.restore();
+      break;
+    }
     case 'neon':
       // a critical shot: a red neon "crit!" over the one it hit, rising a little
       neon(x, y - u * 13, 'crit!', 14, 'red', Math.min(1, (1 - u) * 3), p.t);
@@ -1153,7 +1196,13 @@ export function drawWorld() {
         q.x,
         q.y,
         q.z,
-        q.k === 'hado' ? 26 * q.lv : q.k === 'plasma' || q.k === 'skull' ? 20 : 10,
+        q.k === 'hado'
+          ? 26 * q.lv
+          : q.k === 'fsign'
+            ? 38
+            : q.k === 'plasma' || q.k === 'skull'
+              ? 20
+              : 10,
       );
   if (APP.state !== 'title') shadow(P.x, P.y, P.z, 40);
   const list = [];

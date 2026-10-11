@@ -554,8 +554,8 @@ finale.
 
 A city of the future with an eastern soul, built by the Jawacorp corporation, whose robots walk
 its streets. It comes after Old Quarry once it is finished; for now it is reached by its
-secret (below). Done so far: the road, its scenery and the rules below; to come: things to
-break, the robots, the big-armed android in the metro, the mech samurai at the top of the
+secret (below). Done so far: the road, its scenery, things to break and the rules below; to
+come: the robots, the big-armed android in the metro, the mech samurai at the top of the
 tower, the music. Until the robots are in, the Bone Road's skeletons stand in for them.
 
 **The scenery** (`src/bg3.js`, all drawn in code): the slums of corrugated shacks stacked two
@@ -581,6 +581,18 @@ widest one only with a running jump. She cannot walk off a roof's edge, but a ju
 short, or a blow that throws her, can land her in a gap: she falls, and is back on the roof she
 fell from, 15% of her health the poorer and untouchable for a moment (`PIT` in
 `src/config.js`). A robot thrown into a gap is gone at once and counts as beaten.
+
+**Things to break** (`DECOR`, `src/props3.js`; none in the last arena):
+
+- **Lamp post** (2 blows) — a neon sign hangs off its arm; break the post and the sign comes
+  down and crashes on whoever is under it (32, knocks down; it spares the heroine). Its shadow
+  shows where it will land: a way to drop it on the robots.
+- **Neon sign on a stand**, **paper lantern on a pole** — one blow, glass and sparks fly.
+- **Vending machine** (3 blows, cracks with each) — food (or rage) spills out.
+- **Jawacorp power cell** — a blow makes it crackle; 0.7 s later it bursts into lightning
+  (150 px, 46 to the robots, 16 to the heroine if she is still close), a shot sets it off at
+  once, and a blast sets off the cells around it.
+- **Holographic projector** on the roofs — one blow, the hologram of Jawacorp's sign goes out.
 
 **Where robots come from.** They never climb out of the ground: they walk in from the left or
 the right, step out of a door in a building (the door slides open, lit inside), or drop down
@@ -690,7 +702,8 @@ What is checked:
   to the avenue and onto the roofs), a gap on screen in every fight on the roofs, gaps that can
   be jumped (the widest only running), falling into a gap and climbing back hurt, not walking
   off an edge, a robot thrown into a gap, robots walking in, stepping out of doors, dropping
-  down.
+  down; the whole stage drawn; things to break on the floor, the lamp post's falling sign, the
+  vending machine's food, the power cell's lightning.
 - `prospector.test.js` — the Prospector: its health and size, what stops it and what does not,
   the slowly growing flame and the fire it leaves, the walking flame, the ram, the mortar shells
   (they spare it), the jump, the helmet coming off at half health and the second phase, its

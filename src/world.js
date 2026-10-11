@@ -34,6 +34,7 @@ import { waveSpawns } from './waves.js';
 import { dandies, evilHitP, evilHurt } from './foes/evil.js';
 import { roadBand } from './foes/strongman.js';
 import { skullBall, skullBurst } from './foes/banshee.js';
+import { fallSign } from './props3.js';
 import { explode, updFuses } from './blast.js';
 import {
   camTo,
@@ -243,6 +244,10 @@ export function update(dt) {
     }
     if (q.k === 'skull') {
       skullBall(q, dt);
+      continue;
+    }
+    if (q.k === 'fsign') {
+      fallSign(q, dt);
       continue;
     }
     if (q.k === 'bone') {

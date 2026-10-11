@@ -418,6 +418,15 @@ export const DECOR = {
   // Old Quarry: a wooden barrel (two hits) and a red barrel that blows up (see BLAST)
   barrel: { w: 26, hp: 2, col: '#8a5a32', score: 30 },
   tnt: { w: 24, hp: 1, col: '#b02a1e', score: 30, boom: 'barrel' },
+  // Neon Kyoto (see props3.js): a lamp post whose neon sign falls when it breaks, a neon sign
+  // on a stand, a paper lantern on a pole, a vending machine (three blows; food spills out),
+  // a Jawacorp power cell (an electric blast), a holographic projector
+  post: { w: 16, hp: 2, col: '#3a3f4c', score: 40, k3: 1 },
+  sign: { w: 26, hp: 1, col: '#ff4fb4', score: 30, k3: 1 },
+  paper: { w: 18, hp: 1, col: '#e8402f', score: 20, k3: 1 },
+  vend: { w: 34, hp: 3, col: '#c22f3a', score: 60, k3: 1 },
+  cell: { w: 22, hp: 1, col: '#4fe3ff', score: 30, boom: 'cell', k3: 1 },
+  holo: { w: 26, hp: 1, col: '#5fd0ff', score: 30, k3: 1 },
 };
 // Explosions: radius on the floor (an ellipse, 0.42 as deep as wide), damage to the player and
 // to enemies, and for a red barrel caught in a blast, the delay before it goes off too; a red
@@ -431,6 +440,8 @@ export const BLAST = {
   airburst: { r: 325, dmgP: 0, dmgE: 91, chain: 0.14, crush: 1 },
   // a shell of the Prospector's mortars: it hurts the player only
   mortar: { r: 115, dmgP: 16, dmgE: 0, chain: 0.14 },
+  // a Jawacorp power cell (Neon Kyoto): a burst of lightning instead of fire
+  cell: { r: 150, dmgP: 16, dmgE: 46, chain: 0.14, lit: 0.7, zap: 1 },
 };
 // Lucy's grenade (I): costs `cost` rage; its blast is a crushing blow (BLAST `crush`); it leaves her hand `x` ahead and `z` up, flies in an
 // arc (`vx`, `vz` up, `g` down), spinning `spin` turns a second; on the ground it bounces
