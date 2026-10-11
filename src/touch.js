@@ -9,10 +9,12 @@ import { keys, pagePoint, pageRect, pressed, setKey, turned } from './input.js';
 import { replaying } from './replay.js';
 
 // The hidden moves on the HUD (game pixels): hold the portrait for the X secret (the road to
-// the final boss), hold the score for the Z + 2 secret (on to Old Quarry).
+// the final boss), hold the score for the Z + 2 secret (on to Old Quarry), hold the name and
+// the health bar for the Z + 3 secret (on to Neon Kyoto).
 export const SECRET_BOXES = {
   secret: [14, 10, 70, 70],
   stage: [W - 220, 10, 210, 50],
+  stage3: [96, 10, 200, 50],
 };
 // How far a finger has to slide across the dark ball's button to throw the strong one.
 const SWIPE = 40;
@@ -179,7 +181,9 @@ export function initTouch(canvas) {
       ? ['secret']
       : inBox(SECRET_BOXES.stage, x, y)
         ? ['lvlZ', 'lvl2']
-        : null;
+        : inBox(SECRET_BOXES.stage3, x, y)
+          ? ['lvlZ', 'lvl3']
+          : null;
     if (!ks) return;
     holds.set(e.pointerId, ks);
     for (const k of ks) keys[k] = true;

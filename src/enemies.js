@@ -6,7 +6,16 @@ import { G, P } from './state.js';
 import { SFX } from './audio.js';
 import { FOES, STATES } from './foes/index.js';
 import { sense } from './foes/kit.js';
-import { entryPoint, floorClamp, groundPoint, inView, level } from './level.js';
+import {
+  entryPoint,
+  floorClamp,
+  groundPoint,
+  inView,
+  level,
+  overPit,
+  robotEntry,
+} from './level.js';
+import { scoreMult } from './style.js';
 import { random } from './util.js';
 
 export { inBreath } from './foes/baron.js';
@@ -19,7 +28,13 @@ export { bikeReach } from './foes/biker.js';
 export function spawn(type, side, x, y) {
   const T = TYPES[type],
     placed = x !== undefined;
-  if (!placed && level().floor) {
+  let entry = null;
+  if (!placed && level().robots) {
+    // Neon Kyoto: in from a side, out of a door, or down from above
+    entry = robotEntry(side, random);
+    ({ x, y } = entry);
+    if (entry.how !== 'walk') side = x > P.x ? 1 : -1;
+  } else if (!placed && level().floor) {
     // Old Quarry: from off the screen where the floor goes on, else out of the ground
     const F = FOES[type];
     // some never climb out of the ground: they always walk in from a side
@@ -75,6 +90,9 @@ export function spawn(type, side, x, y) {
     rev: 0,
   };
   const F = FOES[type];
+  if (entry?.how === 'door') Object.assign(e, { state: 'door', door: entry.door });
+  else if (entry?.how === 'drop')
+    Object.assign(e, { state: 'drop', z: e.y - G.camY + 120, vz: -200 });
   // its own countdowns start somewhere in a range
   for (const [k, [a, b]] of Object.entries(F.init ?? {})) e[k] = rnd(a, b);
   F.spawn?.(e, side, placed);
@@ -98,10 +116,25 @@ export function updEnemy(e, dt, ctxE) {
   e.moving = false;
   STATES[e.state]?.tick(e, dt, sense(e), ctxE);
   F.tick?.(e, dt);
-  floorClamp(e, 2, 0);
+  if (e.state === 'pitfall');
+  else if (level().pits && !e.T.bigBoss) {
+    // Neon Kyoto's roofs: thrown over a gap it may land in it, and is gone
+    const air = e.z > 0,
+      landed = e.wasAir && !air;
+    e.wasAir = air;
+    if (landed && overPit(e.x, e.y)) pitfall(e);
+    else floorClamp(e, 2, 0, air);
+  } else floorClamp(e, 2, 0);
   // flying, staggering or rushing about, an enemy stays on screen
   if (STATES[e.state]?.pin) {
     e.x = clamp(e.x, G.cam + 24, G.cam + W - 24);
     if (level().floor) e.y = clamp(e.y, G.camY + 200, G.camY + H - 6);
   }
+}
+/** Into a gap between the roofs: it falls out of the fight, and counts as beaten. */
+export function pitfall(e) {
+  if (!e.dying) P.score += Math.round(e.T.score * scoreMult());
+  Object.assign(e, { state: 'pitfall', t: 0, dying: true, engage: false, vx: 0 });
+  e.vz = Math.min(e.vz, 0);
+  SFX.fall();
 }

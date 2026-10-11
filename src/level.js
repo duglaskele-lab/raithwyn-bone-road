@@ -1,14 +1,34 @@
 // The stages: which one is played, its fights, its floor and how the camera follows the
 // player. The Bone Road (stage 1) is a straight strip (the GT..GB band, the camera only goes
-// right); Old Quarry (stage 2) has a floor of polygons and a camera path (see level2.js).
+// right); Old Quarry (stage 2) and Neon Kyoto (stage 3) have a floor of polygons and a camera
+// path (see level2.js, level3.js). Neon Kyoto's roofs also have gaps to fall into (`pits`),
+// doors robots step out of (`doors`), and its robots never climb out of the ground.
 import { DECOR, GB, GT, H, W, WAVEGEN, WAVES } from './config.js';
 import { clamp } from './util.js';
 import { G, P } from './state.js';
 import { FLOOR, PATH, PROPS2, WAVEGEN2, WAVES2 } from './level2.js';
+import * as L3 from './level3.js';
 
 export const LEVELS = {
   1: { waves: WAVES, gen: WAVEGEN, banner: ['stage1', 'subtitle'] },
-  2: { waves: WAVES2, gen: WAVEGEN2, banner: ['stage2', 'subtitle2'], floor: FLOOR, path: PATH },
+  2: {
+    waves: WAVES2,
+    gen: WAVEGEN2,
+    banner: ['stage2', 'subtitle2'],
+    boss: ['@prospector', 'prospectorBanner'],
+    floor: FLOOR,
+    path: PATH,
+  },
+  3: {
+    waves: L3.WAVES3,
+    gen: L3.WAVEGEN3,
+    banner: ['stage3', 'subtitle3'],
+    floor: L3.FLOOR,
+    path: L3.PATH,
+    pits: L3.PITS,
+    doors: L3.DOORS,
+    robots: true,
+  },
 };
 export const level = () => LEVELS[G.level] ?? LEVELS[1];
 export const levelWaves = () => level().waves;
@@ -54,20 +74,27 @@ export function onFloor(x, y) {
   if (!L.floor) return y >= GT && y <= GB;
   return L.floor.some((p) => inPoly(p, x, y));
 }
+/** Is (x, y) over a gap between the roofs (and not on a roof)? */
+export function overPit(x, y) {
+  const L = level();
+  return !!L.pits?.some((p) => inPoly(p, x, y)) && !onFloor(x, y);
+}
 /**
  * Keeps something on the floor. On the Bone Road only the depth is bounded (GT + top to
- * GB - bot); in Old Quarry it is moved to the nearest point of the floor.
+ * GB - bot); in Old Quarry it is moved to the nearest point of the floor. With `pits`, the
+ * gaps between the roofs count too (for whoever is up in the air over one).
  */
-export function floorClamp(o, top = 0, bot = 0) {
+export function floorClamp(o, top = 0, bot = 0, pits = false) {
   const L = level();
   if (!L.floor) {
     o.y = clamp(o.y, GT + top, GB - bot);
     return o;
   }
-  if (L.floor.some((p) => inPoly(p, o.x, o.y))) return o;
+  const F = pits && L.pits ? L.floor.concat(L.pits) : L.floor;
+  if (F.some((p) => inPoly(p, o.x, o.y))) return o;
   let best = null,
     bd = Infinity;
-  for (const p of L.floor) {
+  for (const p of F) {
     const [q, d] = nearestOnPoly(p, o.x, o.y);
     if (d < bd) {
       bd = d;
@@ -77,7 +104,7 @@ export function floorClamp(o, top = 0, bot = 0) {
   // a hair inside, so the next step starts on the floor
   o.x = best[0];
   o.y = best[1];
-  for (const p of L.floor)
+  for (const p of F)
     if (!inPoly(p, o.x, o.y)) {
       const cx = p.reduce((n, v) => n + v[0], 0) / p.length,
         cy = p.reduce((n, v) => n + v[1], 0) / p.length;
@@ -231,6 +258,28 @@ export function entryPoint(side, r) {
     }
   return tries[0] ?? null;
 }
+/**
+ * Where a robot of Neon Kyoto comes from (they never climb out of the ground): walking in
+ * from side `side` (mostly), stepping out of a door of a building on screen, or dropping
+ * down from above onto the floor. Returns { x, y, how: 'walk' | 'door' | 'drop' }.
+ */
+export function robotEntry(side, r) {
+  const L = level();
+  if (side !== 0 && r() < 0.7) {
+    const at = entryPoint(side, r);
+    if (at) return { x: at[0], y: at[1], how: 'walk' };
+  }
+  const doors = (L.doors ?? []).filter(
+    ([x, y]) => x > G.cam + 90 && x < G.cam + W - 90 && inView(x, y + 10) && onFloor(x, y + 10),
+  );
+  if (doors.length && r() < 0.6) {
+    const i = Math.floor(r() * doors.length),
+      [x, y] = doors[i];
+    return { x, y: y + 10, how: 'door', door: L.doors.indexOf(doors[i]) };
+  }
+  const [x, y] = groundPoint(r);
+  return { x, y, how: 'drop' };
+}
 /** A random spot of the floor on screen, away from the player (for something climbing out). */
 export function groundPoint(r) {
   const L = level();
@@ -245,7 +294,8 @@ export function groundPoint(r) {
 // --- starting a stage ----------------------------------------------------------------------
 
 /** Old Quarry's barrels, fresh. */
-export function levelProps() {
+export function levelProps(n = 2) {
+  if (n !== 2) return [];
   return PROPS2.map(([x, y, decor, drop]) => ({
     isProp: 1,
     decor,
@@ -272,9 +322,10 @@ export function startLevel(n) {
   // the secret works on each stage's first screen (X: straight to its boss)
   G.secretDone = false;
   G.secretT = 0;
-  G.props = n === 2 ? levelProps() : G.props;
+  G.props = n > 1 ? levelProps(n) : G.props;
   camTo(0);
   Object.assign(P, { x: 150, y: 450, z: 0, vz: 0, vx: 0, state: 'idle', t: 0, face: 1, inv: 1 });
+  Object.assign(P, { safe: null, wasAir: false });
   P.an = ['idle', 0];
   const [a, b] = level().banner;
   G.banner = { a, b, t: 0 };

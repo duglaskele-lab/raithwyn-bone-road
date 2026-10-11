@@ -18,6 +18,7 @@ import {
   SWIND,
   SWIND_LOCK,
   TAU,
+  PIT,
   W,
 } from './config.js';
 import { clamp, ease } from './util.js';
@@ -30,7 +31,8 @@ import { canFullScreen } from './touch.js';
 import { RANKS, STYLE_STEP, dmgMult, scoreMult, styleRank } from './style.js';
 import { drawBG, drawFog, drawVignette } from './background.js';
 import { drawBG2, drawFront2 } from './bg2.js';
-import { levelWaves, roadDir } from './level.js';
+import { drawBG3, drawFront3 } from './bg3.js';
+import { levelWaves, overPit, roadDir } from './level.js';
 import { hadoLevel } from './combat.js';
 import { boneShape, drawAura, drawSkel } from './skeleton.js';
 import { drawBike } from './foes/bikes.js';
@@ -48,6 +50,8 @@ import {
 } from './dragon.js';
 
 export function shadow(x, y, z, r) {
+  // none under whoever is falling into a gap, or over one
+  if (z < -2 || overPit(x, y)) return;
   const k = clamp(1 - z / 260, 0.45, 1);
   ctx.fillStyle = 'rgba(14,26,30,.34)';
   ctx.beginPath();
@@ -713,6 +717,17 @@ function canvasLayer(name, w, h) {
   x.clearRect(0, 0, w, h);
   return [c, x];
 }
+/** Whoever falls into a gap between the roofs fades away as it drops. */
+function fading(draw, o) {
+  const st = o === P ? 'plunge' : 'pitfall';
+  if (o.state !== st) return draw;
+  return (x) => {
+    ctx.save();
+    ctx.globalAlpha = clamp(1 - o.t / PIT.time, 0, 1);
+    draw(x);
+    ctx.restore();
+  };
+}
 function outlined(draw, e) {
   if (!FOES[e.type]?.unstoppable?.(e) || typeof document === 'undefined') return draw;
   return (e) => {
@@ -1090,6 +1105,7 @@ function shellMark(q) {
 }
 export function drawWorld() {
   if (G.level === 2) drawBG2();
+  else if (G.level === 3) drawBG3();
   else {
     drawBG();
     drawFog();
@@ -1144,10 +1160,14 @@ export function drawWorld() {
   for (const d of G.debris) list.push([d.gy - 1, drawDebris, d]);
   for (const u of G.props) list.push([u.y, u.decor ? drawDecor : drawUrn, u]);
   for (const e of G.enemies)
-    list.push([e.y, outlined(FOES[e.type]?.draw ?? (e.T.dragon ? drawDragon : drawSkel), e), e]);
+    list.push([
+      e.y,
+      fading(outlined(FOES[e.type]?.draw ?? (e.T.dragon ? drawDragon : drawSkel), e), e),
+      e,
+    ]);
   for (const it of G.items) list.push([it.y, drawItem, it]);
   for (const q of G.projs) list.push([q.y + 1, drawProj, q]);
-  if (APP.state !== 'title') list.push([P.y, drawPlayer, null]);
+  if (APP.state !== 'title') list.push([P.y, fading(drawPlayer, P), null]);
   list.sort((a, b) => a[0] - b[0]);
   for (const l of list) l[1](l[2]);
   for (const e of G.enemies) if (e.T.dragon) drawDragonBeam(e);
@@ -1176,6 +1196,7 @@ export function drawWorld() {
     }
   ctx.restore();
   if (G.level === 2) drawFront2();
+  if (G.level === 3) drawFront3();
 }
 /** A neon sign: a framed word that glows; `on` seconds since it lit (it flickers on). */
 const NEON = {

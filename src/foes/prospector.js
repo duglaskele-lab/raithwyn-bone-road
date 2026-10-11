@@ -974,7 +974,11 @@ export function drawHelmetDebris(d) {
 
 /** A lick of the flame: health off without a stagger (a bite that would kill knocks down). */
 function burn(e, dmg) {
-  if (P.inv > 0 || APP.state !== 'play' || ['ko', 'down', 'getup', 'dead', 'win'].includes(P.state))
+  if (
+    P.inv > 0 ||
+    APP.state !== 'play' ||
+    ['ko', 'down', 'getup', 'dead', 'win', 'plunge'].includes(P.state)
+  )
     return;
   if (P.hp <= dmg) {
     hitPlayer(dmg, P.x >= e.x ? 1 : -1, true);

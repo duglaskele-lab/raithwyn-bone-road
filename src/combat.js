@@ -73,6 +73,8 @@ export function hurtEnemy(e, dmg, dir, knock, src, launch = false) {
     e.state === 'down' ||
     (e.state === 'getup' && e.t < 0.25) ||
     (e.state === 'rise' && e.t < 0.45) ||
+    (e.state === 'door' && e.t < 0.35) ||
+    (e.state === 'drop' && e.z > 40) ||
     F.immune?.(e)
   )
     return false;
@@ -469,7 +471,11 @@ export function headBonus(e, zone) {
 }
 export function hitPlayer(dmg, dir, knock) {
   const p = P;
-  if (p.inv > 0 || APP.state !== 'play' || ['ko', 'down', 'getup', 'dead', 'win'].includes(p.state))
+  if (
+    p.inv > 0 ||
+    APP.state !== 'play' ||
+    ['ko', 'down', 'getup', 'dead', 'win', 'plunge'].includes(p.state)
+  )
     return false;
   p.hp = Math.max(0, p.hp - dmg);
   // Lucy's luck: the blow that would finish her may not; she still goes down
@@ -532,7 +538,11 @@ export function superNova() {
 // death follow.
 export function acidBite(dmg, fire = false) {
   const p = P;
-  if (p.inv > 0 || APP.state !== 'play' || ['ko', 'down', 'getup', 'dead', 'win'].includes(p.state))
+  if (
+    p.inv > 0 ||
+    APP.state !== 'play' ||
+    ['ko', 'down', 'getup', 'dead', 'win', 'plunge'].includes(p.state)
+  )
     return false;
   if (p.hp <= dmg) return hitPlayer(dmg, p.face, false);
   p.hp -= dmg;

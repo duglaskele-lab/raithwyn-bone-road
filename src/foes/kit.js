@@ -6,7 +6,7 @@ import { G, P } from '../state.js';
 import { level } from '../level.js';
 
 /** The player is on the ground or out of the fight: nobody should start an attack. */
-export const playerDown = () => ['ko', 'down', 'getup', 'dead', 'win'].includes(P.state);
+export const playerDown = () => ['ko', 'down', 'getup', 'dead', 'win', 'plunge'].includes(P.state);
 /** What an enemy sees of the player at the start of its frame. */
 export function sense(e) {
   const dx = P.x - e.x,

@@ -19,6 +19,7 @@ import {
   W,
   WAVES,
   STRONG,
+  PIT,
   TAU,
   ZOMBIE,
 } from './config.js';
@@ -27,7 +28,7 @@ import { APP, G, P } from './state.js';
 import { keys, pressed } from './input.js';
 import { SFX } from './audio.js';
 import { dust, motes } from './fx.js';
-import { floorClamp, viewClamp } from './level.js';
+import { floorClamp, level, overPit, viewClamp } from './level.js';
 import { buckshot, hadoLevel, hurtEnemy, strike, superNova } from './combat.js';
 
 // The idle pose at time t: the poses are held for hold[i] 24ths of a second each.
@@ -675,6 +676,13 @@ export function updPlayer(dt) {
     case 'dead':
       p.an = ['ko', 5];
       break;
+    case 'plunge':
+      // down into the gap between the roofs; then back on the roof, hurt
+      p.vz -= 1900 * dt;
+      p.z += p.vz * dt;
+      p.an = ['ko', 1];
+      if (p.t > PIT.time) climbBack(p);
+      break;
     case 'win':
       if (p.who === 'lucy') {
         // she sits down, takes out a bottle and drinks, on and on
@@ -696,14 +704,44 @@ export function updPlayer(dt) {
       } else p.an = ['laugh', [0, 1, 2, 1, 2, 1, 2, 1][Math.floor(p.t / 0.13) % 8]]; // never frame 3
       break;
   }
-  if (G.level === 2) {
-    // Old Quarry: on the floor and on screen (the camera comes along between fights)
-    floorClamp(p);
-    viewClamp(p);
-    floorClamp(p);
+  if (p.state === 'plunge');
+  else if (level().floor) {
+    // Old Quarry, Neon Kyoto: on the floor and on screen (the camera comes along between
+    // fights); up in the air she may be over a gap between the roofs, and lands in it (but
+    // she does not walk off a roof's edge)
+    const air = p.z > 0,
+      landed = p.wasAir && !air;
+    p.wasAir = air;
+    if (landed && overPit(p.x, p.y) && !['dead', 'win'].includes(p.state)) plunge(p);
+    else {
+      floorClamp(p, 0, 0, air);
+      viewClamp(p);
+      floorClamp(p, 0, 0, air);
+      if (!air && ['idle', 'walk', 'run'].includes(p.state)) p.safe = [p.x, p.y];
+    }
   } else {
     const maxX = G.wave || G.waveI >= WAVES.length ? G.cam + W - 30 : G.cam + W + 200;
     p.x = clamp(p.x, G.cam + 30, Math.min(maxX, WAVES[WAVES.length - 1].x + W - 30));
     p.y = clamp(p.y, GT, GB);
   }
+}
+/** She lands in a gap between the roofs (or is thrown into it): down she goes. */
+function plunge(p) {
+  Object.assign(p, { state: 'plunge', t: 0, vz: Math.min(p.vz, 0), vx: 0, buf: null });
+  p.grabber = null;
+  SFX.fall();
+}
+/** Back on the roof she fell from, a little poorer in health (and maybe out of it). */
+function climbBack(p) {
+  const [x, y] = p.safe ?? [p.x, p.y];
+  Object.assign(p, { x, y, z: 0, vz: 0, vx: 0, t: 0 });
+  p.hp = Math.max(0, p.hp - Math.round(p.maxHp * PIT.dmg));
+  p.streak = 0;
+  if (p.hp <= 0) p.state = 'down';
+  else {
+    toIdle();
+    p.inv = PIT.inv;
+  }
+  G.flash = Math.max(G.flash, 0.25);
+  SFX.hurt();
 }

@@ -32,6 +32,7 @@ export const BUTTONS = [
   'lvl2',
   'hadoL',
   'hadoR',
+  'lvl3', // new buttons go last: the older recordings keep their bits
 ];
 
 let rec = null, // the run being recorded, or the last one
