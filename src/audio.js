@@ -996,7 +996,8 @@ function neonBand(cfg) {
         if (b === 4 || b === 12) snare();
         noise(0.025, b % 2 ? 0.035 : 0.02, 9000, 7000, 2, d, 'highpass');
       } else if (sec.drums === 'taiko') {
-        if ([0, 3, 6, 8, 10, 11, 14].includes(b)) taiko(b % 8 === 0 ? 0.42 : 0.22, b % 8 ? 120 : 85);
+        if ([0, 3, 6, 8, 10, 11, 14].includes(b))
+          taiko(b % 8 === 0 ? 0.42 : 0.22, b % 8 ? 120 : 85);
         if (b === 4 || b === 12) snare(0.16);
         if (b % 2 === 0) noise(0.02, 0.03, 9000, 7000, 2, d, 'highpass');
       } else if (sec.drums === 'half') {
