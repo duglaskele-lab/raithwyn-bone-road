@@ -109,7 +109,7 @@ export const WAVES3 = [
   // the metro
   { s: at(STAIRS[1]), lvl: 0.3 },
   { s: at(STAIRS[1] + 700), lvl: 0.36 },
-  { s: at(L3.HALL_X - 480), boss: 1, sp: [['armor', 1, 0.6]] }, // the big-armed android
+  { s: at(L3.HALL_X - 480), boss: 1, sp: [['breaker', 1, 0.6]] }, // the breaker android
   // the avenue of arches and the bridge
   { s: at(ESCAL[1]), lvl: 0.45 },
   { s: at(ESCAL[1] + 760), lvl: 0.52 },

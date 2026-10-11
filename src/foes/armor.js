@@ -840,8 +840,9 @@ export function drawArmor(e, aura = true) {
 
 /** One bullet: it lands at the aim point, kicking up dust; on the player it hurts. */
 function bullet(e) {
-  const x = e.x + e.face * e.reachD + fxRnd(-14, 14),
-    y = e.aimY + fxRnd(-10, 10),
+  // (where it lands is the game's chance: it hurts and sets things off)
+  const x = e.x + e.face * e.reachD + rnd(-14, 14),
+    y = e.aimY + rnd(-10, 10),
     [mx, my] = muzzle(e);
   G.parts.push({ k: 'tracer', x: mx, y: my, x2: x, y2: y, t: 0, life: 0.06 });
   G.parts.push({
