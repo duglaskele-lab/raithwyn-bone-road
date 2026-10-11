@@ -293,10 +293,10 @@ export function groundPoint(r) {
 
 // --- starting a stage ----------------------------------------------------------------------
 
-/** Old Quarry's barrels, fresh. */
+/** A stage's things to break, fresh (Old Quarry's barrels, Neon Kyoto's signs and machines). */
 export function levelProps(n = 2) {
-  if (n !== 2) return [];
-  return PROPS2.map(([x, y, decor, drop]) => ({
+  const list = n === 2 ? PROPS2 : n === 3 ? L3.PROPS3 : [];
+  return list.map(([x, y, decor, drop]) => ({
     isProp: 1,
     decor,
     x,

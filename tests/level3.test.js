@@ -1,6 +1,6 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { PIT, STAGE_HOLD } from '../src/config.js';
+import { BLAST, DECOR, PIT, STAGE_HOLD } from '../src/config.js';
 import { G, P } from '../src/state.js';
 import { keys, pressed } from '../src/input.js';
 import { spawn } from '../src/enemies.js';
@@ -48,7 +48,10 @@ test('holding Z and 3 on the first screen of the Bone Road takes the player to N
   step(0.4);
   assert.equal(G.level, 3);
   assert.equal(G.waveI, 0);
-  assert.equal(G.props.length, 0, 'none of the graves of the Bone Road');
+  assert.ok(
+    G.props.length > 20 && G.props.every((u) => DECOR[u.decor].k3),
+    'its own things to break, none of the graves of the Bone Road',
+  );
   // Z and 2 still lead to Old Quarry
   freshGame();
   keys.lvlZ = keys.lvl2 = true;
@@ -226,4 +229,66 @@ test('the whole of Neon Kyoto can be drawn, rain, train, doors, gaps and garden'
     restore();
     APP.lowFx = false;
   }
+});
+
+test("Neon Kyoto's things to break all stand on the floor, none over a gap", async () => {
+  const { PROPS3 } = await import('../src/level3.js');
+  startLevel(3);
+  for (const [x, y, k] of PROPS3) {
+    assert.ok(onFloor(x, y), `${k} at ${x}`);
+    assert.ok(DECOR[k]?.k3, k);
+  }
+  const kinds = new Set(PROPS3.map((p) => p[2]));
+  for (const k of ['post', 'sign', 'paper', 'vend', 'cell', 'holo']) assert.ok(kinds.has(k), k);
+});
+
+test('break a lamp post and its sign comes down on whoever is under it', async () => {
+  const { FSIGN } = await import('../src/props3.js');
+  kyoto(0);
+  G.props = [];
+  const u = { isProp: 1, decor: 'post', x: 600, y: 440, z: 0, w: 16, hp: 2 };
+  G.props.push(u);
+  Object.assign(P, { x: 520, y: 440 });
+  hurtEnemy(u, 1, 1, false, 'punch');
+  assert.ok(!u.dead, 'two blows');
+  hurtEnemy(u, 1, 1, false, 'punch');
+  assert.ok(u.dead);
+  const q = G.projs.find((p) => p.k === 'fsign');
+  assert.ok(q && q.z > 100, 'the sign falls from high up');
+  const e = spawn('grunt', 1, q.x + 10, q.y);
+  e.state = 'chase';
+  const hp = e.hp,
+    php = P.hp;
+  step(1);
+  assert.ok(q.life <= 0, 'it landed');
+  assert.equal(e.hp, hp - FSIGN.dmg, 'on the robot');
+  assert.equal(P.hp, php, 'not on her');
+});
+
+test('a vending machine takes three blows, and food spills out', () => {
+  kyoto(0);
+  G.props = [];
+  const u = { isProp: 1, decor: 'vend', x: 600, y: 440, z: 0, w: 34, hp: 3, drop: 'hp' };
+  G.props.push(u);
+  for (let i = 0; i < 2; i++) hurtEnemy(u, 1, 1, false, 'punch');
+  assert.ok(!u.dead);
+  hurtEnemy(u, 1, 1, false, 'punch');
+  assert.ok(u.dead);
+  assert.ok(G.items.some((it) => it.kind === 'hp'));
+});
+
+test('a power cell crackles, then bursts into lightning that throws robots about', () => {
+  kyoto(0);
+  G.props = [];
+  const u = { isProp: 1, decor: 'cell', x: 600, y: 440, z: 0, w: 22, hp: 1 };
+  G.props.push(u);
+  Object.assign(P, { x: 300, y: 440 });
+  const e = spawn('grunt', 1, 640, 440);
+  e.state = 'chase';
+  hurtEnemy(u, 1, 1, false, 'punch');
+  assert.ok(!u.dead && u.fuseT > 0, 'lit');
+  step(BLAST.cell.lit + 0.1);
+  assert.ok(u.dead, 'gone off');
+  assert.ok(G.parts.some((p) => p.k === 'zap') || e.hp < e.T.hp, 'lightning');
+  assert.ok(e.hp <= e.T.hp - BLAST.cell.dmgE || e.dead, 'the robot is hurt');
 });

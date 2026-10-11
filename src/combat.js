@@ -21,6 +21,7 @@ import { SFX } from './audio.js';
 import { motes, shatter, spark } from './fx.js';
 import { spawn } from './enemies.js';
 import { explode } from './blast.js';
+import { dropSign } from './props3.js';
 import { buzz } from './touch.js';
 import { DRAGON, dragonZone, headPoint } from './dragon.js';
 import { FOES } from './foes/index.js';
@@ -48,7 +49,9 @@ export function hurtEnemy(e, dmg, dir, knock, src, launch = false) {
     if (DECOR[e.decor]?.boom) {
       // a red barrel: a blow lights its fuse (time to get away), a shot sets it off at once
       if (e.fuseT === undefined) {
-        e.fuseT = ['bone', 'hado', 'super', 'blast'].includes(src) ? 0.05 : BLAST.barrel.lit;
+        e.fuseT = ['bone', 'hado', 'super', 'blast'].includes(src)
+          ? 0.05
+          : BLAST[DECOR[e.decor].boom].lit;
         e.flashT = G.time + 0.15;
         spark(e.x - dir * 6, e.y - 30, '#ffcf5a', false);
         SFX.clack();
@@ -63,7 +66,7 @@ export function hurtEnemy(e, dmg, dir, knock, src, launch = false) {
       spark(e.x - dir * 6, e.y - 30, '#dfe9e2', false);
       SFX.clack();
       G.shake = Math.max(G.shake, 3);
-    } else breakProp(e);
+    } else breakProp(e, dir);
     return true;
   }
   const F = FOES[e.type];
@@ -311,7 +314,8 @@ export function finale(e) {
         shatter(o, o.x < e.x ? -1 : 1);
       }
     G.projs = G.projs.filter(
-      (p) => !['ebone', 'ehado', 'acid', 'plasma', 'shell', 'quake', 'skull'].includes(p.k),
+      (p) =>
+        !['ebone', 'ehado', 'acid', 'plasma', 'shell', 'quake', 'skull', 'fsign'].includes(p.k),
     );
     G.pools = [];
     G.shocks = [];
@@ -387,8 +391,10 @@ export function stunPlayer(dmg, dur) {
   Object.assign(p, { state: 'dazed', t: 0, dazeT: dur, buf: null });
   return true;
 }
-export function breakProp(e) {
+export function breakProp(e, dir = 1) {
   const D = DECOR[e.decor];
+  // a lamp post: its neon sign comes down
+  if (e.decor === 'post') dropSign(e, dir);
   e.dead = true;
   SFX.shatter();
   if (D) {

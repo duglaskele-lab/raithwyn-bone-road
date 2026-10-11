@@ -1,6 +1,7 @@
-// Explosions of Old Quarry: red barrels and sticks of dynamite. A blast hurts everyone near it,
-// the player and the enemies alike, sets off other red barrels around it and breaks barrels.
-import { BLAST, TAU } from './config.js';
+// Explosions: Old Quarry's red barrels and sticks of dynamite, Neon Kyoto's power cells (a
+// burst of lightning). A blast hurts everyone near it, the player and the enemies alike, sets
+// off other red barrels and cells around it and breaks barrels.
+import { BLAST, DECOR, TAU } from './config.js';
 import { fxRnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
@@ -18,8 +19,17 @@ export function explode(x, y, k = 'barrel', z = 0) {
   buzz(90);
   G.shake = Math.max(G.shake, 16);
   G.freeze = Math.max(G.freeze, 0.06);
-  G.parts.push({ k: 'boom', x, y, z, t: 0, life: 0.55, s: B.r });
-  G.parts.push({ k: 'gring', x, y, t: 0, life: 0.4, s: B.r * 1.1, col: '#ffb24a' });
+  // fire, or (a power cell) lightning
+  G.parts.push({ k: B.zap ? 'zap' : 'boom', x, y, z, t: 0, life: 0.55, s: B.r });
+  G.parts.push({
+    k: 'gring',
+    x,
+    y,
+    t: 0,
+    life: 0.4,
+    s: B.r * 1.1,
+    col: B.zap ? '#7fe9ff' : '#ffb24a',
+  });
   for (let i = 0; i < 16; i++) {
     const a = fxRnd(TAU),
       v = fxRnd(120, 420);
@@ -33,10 +43,10 @@ export function explode(x, y, k = 'barrel', z = 0) {
       t: 0,
       life: fxRnd(0.35, 0.7),
       s: fxRnd(3, 6),
-      col: i % 3 ? '#ffcf5a' : '#ff6a2a',
+      col: B.zap ? (i % 3 ? '#bff6ff' : '#4fe3ff') : i % 3 ? '#ffcf5a' : '#ff6a2a',
     });
   }
-  for (let i = 0; i < 7; i++)
+  for (let i = 0; i < (B.zap ? 2 : 7); i++)
     G.parts.push({
       k: 'smoke',
       x: x + fxRnd(-B.r * 0.4, B.r * 0.4),
@@ -61,7 +71,7 @@ export function explode(x, y, k = 'barrel', z = 0) {
   // other barrels: red ones go off a moment later, wooden ones burst
   for (const u of G.props)
     if (!u.dead && within(x, y, u.x, u.y, B.r * 1.05)) {
-      if (u.decor === 'tnt') u.fuseT ??= B.chain;
+      if (DECOR[u.decor]?.boom) u.fuseT ??= B.chain;
       else breakProp(u);
     }
 }
