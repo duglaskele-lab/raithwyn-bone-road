@@ -554,10 +554,21 @@ finale.
 
 A city of the future with an eastern soul, built by the Jawacorp corporation, whose robots walk
 its streets. It comes after Old Quarry once it is finished; for now it is reached by its
-secret (below). Done so far: the road itself, a rough backdrop and the rules below; to come:
-the full scenery (with Jawacorp's signs), things to break, the robots, the big-armed android
-in the metro, the mech samurai at the top of the tower, the music. Until the robots are in,
-the Bone Road's skeletons stand in for them.
+secret (below). Done so far: the road, its scenery and the rules below; to come: things to
+break, the robots, the big-armed android in the metro, the mech samurai at the top of the
+tower, the music. Until the robots are in, the Bone Road's skeletons stand in for them.
+
+**The scenery** (`src/bg3.js`, all drawn in code): the slums of corrugated shacks stacked two
+or three high, tangled cables, laundry, paper lanterns and neon signs in the city's own script,
+in the rain; the metro's entrance; the tiled metro with a train rushing past now and then, its
+ticket gates; the escalator's moving steps; the avenue of red torii arches with cherry trees,
+stone lanterns, holographic carp and glass footbridges between the towers; the cable-stayed
+bridge over the expressway; the fire stairs up a brick wall; the roofs with aerials, dishes
+and fans, the city far below the gaps; the garden on the tower top with a pagoda, petals
+drifting and a holographic moon. Jawacorp, who built the robots, is everywhere: its sign (a
+hood in a ring with two burning eyes) on billboards, posters, a tower over the whole city and
+over every door the robots come out of. In the light picture (`APP.lowFx`) there are fewer
+raindrops and petals and no glows.
 
 **The road** (`src/level3.js`, about 1.8 times as long as Old Quarry): the slums in the rain →
 the stairs down into the metro (the rain stops there) → the metro platform and its concourse →

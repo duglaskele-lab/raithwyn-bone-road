@@ -194,3 +194,36 @@ test('robots never climb out of the ground: they walk in, step out of doors, or 
   assert.notEqual(d.state, 'drop');
   assert.equal(level().robots, true);
 });
+
+test('the whole of Neon Kyoto can be drawn, rain, train, doors, gaps and garden', async () => {
+  const { stubCanvas } = await import('./helpers.js');
+  const { APP } = await import('../src/state.js');
+  const restore = stubCanvas();
+  try {
+    const { drawWorld } = await import('../src/render.js');
+    const { rainAt } = await import('../src/bg3.js');
+    for (const lowFx of [false, true]) {
+      APP.lowFx = lowFx;
+      startLevel(3);
+      const total = pathPx(PATH.length - 1, PATH);
+      for (let d = 0; d <= total; d += 300) {
+        camTo(d);
+        const c = pathAt(d, PATH);
+        Object.assign(P, { x: c.x, y: c.y });
+        G.time = d / 100;
+        const e = spawn('grunt', 1);
+        e.state = 'door';
+        e.door = 0;
+        drawWorld();
+        G.enemies = [];
+      }
+    }
+    camTo(0);
+    assert.ok(rainAt() > 0.9, 'rain in the slums');
+    camTo(pathPx(3, PATH));
+    assert.equal(rainAt(), 0, 'none past the metro stairs');
+  } finally {
+    restore();
+    APP.lowFx = false;
+  }
+});
