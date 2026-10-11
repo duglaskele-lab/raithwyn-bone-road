@@ -311,3 +311,35 @@ test("Neon Kyoto's music: its walk, and its own theme in the boss fights", async
     for (let n = 0; n < 64 * 10; n++) th.play(n, 0);
   }
 });
+
+test('a robot at the edge of a roof, the heroine across the gap: it leaps over', () => {
+  const [x0, x1] = [PITS[0][0][0], PITS[0][1][0]];
+  kyoto(roofAt(x0 - 300));
+  Object.assign(P, { x: x1 + 120, y: L3.Y_R + 80, state: 'idle', inv: 99 });
+  const e = spawn('guard', 1, x0 - 30, L3.Y_R + 80);
+  Object.assign(e, { state: 'chase', cd: 99 });
+  let hopped = false;
+  step(2.5, () => (hopped = hopped || e.state === 'gaphop'));
+  assert.ok(hopped, 'it leapt');
+  assert.ok(e.x > x1 && !e.dying, `over, on the next roof (${e.x | 0})`);
+  // a shooter keeps its side
+  const s = spawn('catguard', 1, x0 - 30, L3.Y_R + 80);
+  Object.assign(s, { state: 'chase', cd: 99 });
+  step(1.5);
+  assert.ok(s.x < x0 + 1, 'the guardess stays');
+});
+
+test('enemies jostling each other are never pushed off the floor', () => {
+  kyoto(roofAt(10200));
+  Object.assign(P, { x: 10300, y: L3.Y_R + 4, inv: 99 });
+  const foes = [];
+  for (let k = 0; k < 6; k++) {
+    const e = spawn('guard', 1, 10340 + k * 6, L3.Y_R + 2 + (k % 2));
+    Object.assign(e, { state: 'chase', cd: 99 });
+    foes.push(e);
+  }
+  for (let i = 0; i < 120; i++) {
+    update(1 / 60);
+    for (const e of foes) assert.ok(onFloor(e.x, e.y) || e.z > 0, `${e.x},${e.y}`);
+  }
+});

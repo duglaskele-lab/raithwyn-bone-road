@@ -235,6 +235,9 @@ export function update(dt) {
         const q = (dy >= 0 ? 1 : -1) * 24 * dt;
         a.y -= q;
         b.y += q;
+        // (never pushed off the floor, nor out over a gap between the roofs)
+        floorClamp(a, 2, 0);
+        floorClamp(b, 2, 0);
       }
     }
   // projectiles

@@ -411,7 +411,7 @@ export const ROBOT = { stun: 0.3, boltV: 560 };
 // The watcher drone: hovers `z` up (only a jump attack or a shot reaches it there), `keep` px
 // off the player; it marks a spot on the ground under her, follows her with it for `aim` s,
 // holds it still `lock` s, then fires its laser there (`r` px round) for `beam` s.
-export const DRONE = { z: 165, keep: 250, aim: 0.9, lock: 0.35, beam: 0.3, r: 44 };
+export const DRONE = { z: 165, keep: 190, aim: 0.9, lock: 0.35, beam: 0.3, r: 44 };
 // The cyber ninja: every `dashCd` s, from `dashMin`..`dashMax` px off, it crouches `tele` s (a
 // line glows on the ground ahead) and dashes `len` px at `speed` px/s, cutting through
 // whoever is in the way (`dmg`, knocks down). Every `guardCd` s, when a shot flies its way,
@@ -495,6 +495,9 @@ export const MECHA = {
 // roof she fell from, `dmg` of her full health the poorer, untouchable for `inv` s. A robot
 // knocked into a gap is gone (`time` s of falling) and counts as beaten.
 export const PIT = { time: 0.9, dmg: 0.15, inv: 1.5 };
+// A robot at a roof's edge, the player on the far side of the gap: it leaps across (`vx`, `vz`
+// px/s, gravity `g`: about 300 px), if there is a roof to land on there.
+export const GAPHOP = { vx: 420, vz: 650, g: 1800 };
 // Breakable scenery along the road: hits needed, colour of the pieces, score.
 export const DECOR = {
   bench: { w: 34, hp: 1, col: '#7a5638', score: 20 },
@@ -770,7 +773,7 @@ export const TYPES = {
   drone: {
     hp: 24,
     scale: 1,
-    speed: 120,
+    speed: 95,
     dmg: 10, // the laser (DRONE)
     reach: 40,
     style: 'other',
