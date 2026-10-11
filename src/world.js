@@ -35,7 +35,16 @@ import { dandies, evilHitP, evilHurt } from './foes/evil.js';
 import { roadBand } from './foes/strongman.js';
 import { skullBall, skullBurst } from './foes/banshee.js';
 import { explode, updFuses } from './blast.js';
-import { camTo, floorClamp, followPath, levelWaves, pathAt, pathPx, startLevel } from './level.js';
+import {
+  camTo,
+  floorClamp,
+  followPath,
+  level,
+  levelWaves,
+  pathAt,
+  pathPx,
+  startLevel,
+} from './level.js';
 
 // How full the screen is: zombies come in crowds and count as half an enemy each. The bodies
 // of the dead (a lizard or a power armour lying where it fell) do not count.
@@ -83,12 +92,13 @@ export function updWaves(dt) {
       }
     }
   } else if (G.waveI < WAVES.length) {
-    if (G.level === 2) {
+    if (level().path) {
       if (followPath(dt, WAVES[G.waveI].s)) {
         G.wave = { sp: waveSpawns(G.waveI), t: 0 };
         G.goT = 0;
-        if (WAVES[G.waveI].final) {
-          G.banner = { a: '@prospector', b: 'prospectorBanner', t: 0 };
+        if (WAVES[G.waveI].final && level().boss) {
+          const [a, b] = level().boss;
+          G.banner = { a, b, t: 0 };
           SFX.boss();
         }
       }
@@ -123,8 +133,8 @@ function secretWarp(dt) {
   const WAVES = levelWaves(),
     last = WAVES.length - 1;
   G.waveI = last;
-  if (G.level === 2) {
-    // Old Quarry: straight to the Prospector's arena, along the road
+  if (level().path) {
+    // Old Quarry, Neon Kyoto: straight to the last arena, along the road
     const d = pathPx(WAVES[last].s),
       c = pathAt(d);
     camTo(d);
@@ -142,18 +152,21 @@ function secretWarp(dt) {
   G.shake = 10;
   SFX.nova();
 }
-// The other secret: hold Z and 2 together for STAGE_HOLD seconds on the first screen of the
-// Bone Road, and the player is taken to the gates of Old Quarry.
+// The other secrets: hold Z and 2 (or Z and 3) together for STAGE_HOLD seconds on the first
+// screen of the Bone Road, and the player is taken to the gates of Old Quarry (of Neon Kyoto).
 function stageWarp(dt) {
-  if (!(keys.lvlZ && keys.lvl2)) {
+  const to = keys.lvlZ && keys.lvl2 ? 2 : keys.lvlZ && keys.lvl3 ? 3 : 0;
+  if (!to || (G.stageTo && G.stageTo !== to)) {
     G.stageT = 0;
+    G.stageTo = to;
     return;
   }
+  G.stageTo = to;
   G.stageT = (G.stageT || 0) + dt;
   if (fxRandom() < G.stageT * 0.4) motes(P.x, P.y - 90, 1, 80);
   if (G.stageT < STAGE_HOLD) return;
   G.stageT = 0;
-  startLevel(2);
+  startLevel(to);
   G.flash = 0.6;
   G.shake = 10;
   SFX.nova();

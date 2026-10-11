@@ -402,8 +402,13 @@ export const SLIME = {
 export const CORPSE_T = 1.6;
 // Secret: hold X this long right at the start of the level to skip straight to the final boss.
 export const SECRET_HOLD = 3;
-// The other secret: hold Z and 2 together this long on the first screen to go to stage 2.
+// The other secrets: hold Z and 2 (Z and 3) together this long on the first screen to go to
+// stage 2 (stage 3).
 export const STAGE_HOLD = 2;
+// Falling off a roof into a gap (Neon Kyoto): she drops for `time` s, then is back on the
+// roof she fell from, `dmg` of her full health the poorer, untouchable for `inv` s. A robot
+// knocked into a gap is gone (`time` s of falling) and counts as beaten.
+export const PIT = { time: 0.9, dmg: 0.15, inv: 1.5 };
 // Breakable scenery along the road: hits needed, colour of the pieces, score.
 export const DECOR = {
   bench: { w: 34, hp: 1, col: '#7a5638', score: 20 },

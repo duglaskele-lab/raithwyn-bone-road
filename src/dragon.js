@@ -220,7 +220,7 @@ export function headPoint(e) {
 }
 
 // ---- AI ----
-const pdown = () => ['ko', 'down', 'getup', 'dead', 'win'].includes(P.state);
+const pdown = () => ['ko', 'down', 'getup', 'dead', 'win', 'plunge'].includes(P.state);
 function choose(e) {
   const f = (P.x - e.x) * e.face,
     ady = Math.abs(P.y - e.y),

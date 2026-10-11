@@ -236,7 +236,7 @@ export default defineFoe('biker', {
         P.z < 70 &&
         P.inv <= 0 &&
         APP.state === 'play' &&
-        !['ko', 'down', 'getup', 'dead', 'win', 'pulled'].includes(P.state)
+        !['ko', 'down', 'getup', 'dead', 'win', 'pulled', 'plunge'].includes(P.state)
       ) {
         Object.assign(P, { state: 'pulled', puller: e, t: 0, z: 0, vz: 0, buf: null });
         go(e, 'pull', 0, { chCd: rnd(4, 6) });

@@ -146,7 +146,8 @@ fingers do turns into the same presses as the keyboard's, so replays are shared.
   without lifting. **Swipe across Magic to the left or right** for the strongest dark ball that
   way (like `S S A L` / `S S D L`); a plain tap throws the ordinary ball.
 - **Secrets:** hold the heroine's portrait for 3 s to go to the final boss (like `X`); hold the
-  score for 2 s on the first screen to go to the second stage (like `Z` + `2`).
+  score for 2 s on the first screen to go to the second stage (like `Z` + `2`); hold the name
+  and the health bar for 2 s there to go to the third stage (like `Z` + `3`).
 - **Full screen:** a button next to pause (Android; on iPhone use Share → Add to Home Screen and
   the game opens without the address bar). There is a `manifest.webmanifest` and an icon, so the
   game can be installed on the home screen like an app.
@@ -549,6 +550,35 @@ trumpet, tremolo guitar, bells, choir and a whip crack) while walking, and "Show
 (D minor, 156 BPM, trumpet fanfares, driving bass, bells and choir) in the Slime's fight and the
 finale.
 
+## Stage 3: Neon Kyoto (in the making)
+
+A city of the future with an eastern soul, built by the Jawacorp corporation, whose robots walk
+its streets. It comes after Old Quarry once it is finished; for now it is reached by its
+secret (below). Done so far: the road itself, a rough backdrop and the rules below; to come:
+the full scenery (with Jawacorp's signs), things to break, the robots, the big-armed android
+in the metro, the mech samurai at the top of the tower, the music. Until the robots are in,
+the Bone Road's skeletons stand in for them.
+
+**The road** (`src/level3.js`, about 1.8 times as long as Old Quarry): the slums in the rain →
+the stairs down into the metro (the rain stops there) → the metro platform and its concourse →
+the escalator up to the avenue of arches → the bridge over the expressway → the fire stairs up
+onto the roofs → four roofs with gaps between them → the garden on top of the tower, where the
+last fight is.
+
+**The roofs.** The gaps between them can be jumped: the narrow ones with a walking jump, the
+widest one only with a running jump. She cannot walk off a roof's edge, but a jump that falls
+short, or a blow that throws her, can land her in a gap: she falls, and is back on the roof she
+fell from, 15% of her health the poorer and untouchable for a moment (`PIT` in
+`src/config.js`). A robot thrown into a gap is gone at once and counts as beaten.
+
+**Where robots come from.** They never climb out of the ground: they walk in from the left or
+the right, step out of a door in a building (the door slides open, lit inside), or drop down
+from above.
+
+**Secret.** On the first screen of the first stage, before the first fight, hold `Z` and `3`
+together for 2 seconds and the heroine goes straight to Neon Kyoto. On its first screen, hold
+`X` for 3 seconds and she goes straight to the last fight.
+
 ## Layout
 
 ```
@@ -569,6 +599,8 @@ src/
   level.js                stages: floor, camera path, where enemies come from, transition
   level2.js               Old Quarry: floor, camera path, waves, barrels
   bg2.js                  Old Quarry's procedural backdrop
+  level3.js               Neon Kyoto: floor, gaps between the roofs, doors, camera path, waves
+  bg3.js                  Neon Kyoto's procedural backdrop and the rain
   blast.js                barrel and dynamite explosions
   state.js                the application (APP); one run: the world (G), the player (P), reset()
   util.js                 small pure functions
@@ -643,6 +675,11 @@ What is checked:
   first stage, where enemies come from, barrels and blasts, the Miner, Dynamite, the Lizard, the
   Power Armor, its gun and its jump onto a marked spot, no more than two armors per wave, the Slime and its zombies, the
   final fight against the Prospector alone, the `X` secret to it.
+- `level3.test.js` — Neon Kyoto: the `Z`+`3` and `X` secrets, the road (down into the metro, up
+  to the avenue and onto the roofs), a gap on screen in every fight on the roofs, gaps that can
+  be jumped (the widest only running), falling into a gap and climbing back hurt, not walking
+  off an edge, a robot thrown into a gap, robots walking in, stepping out of doors, dropping
+  down.
 - `prospector.test.js` — the Prospector: its health and size, what stops it and what does not,
   the slowly growing flame and the fire it leaves, the walking flame, the ram, the mortar shells
   (they spare it), the jump, the helmet coming off at half health and the second phase, its

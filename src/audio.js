@@ -302,6 +302,11 @@ export const SFX = {
   rise() {
     noise(0.5, 0.2, 200, 700, 1.2);
   },
+  // down into a gap between the roofs: a long whistle falling away, the wind
+  fall() {
+    tone('sine', 1300, 240, 0.8, 0.12);
+    noise(0.8, 0.14, 1800, 500, 1.4);
+  },
   rank() {
     tone('triangle', 520, 1040, 0.16, 0.16);
     tone('triangle', 780, 1560, 0.2, 0.12, 0.07);

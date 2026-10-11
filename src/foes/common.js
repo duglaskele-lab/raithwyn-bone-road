@@ -7,7 +7,7 @@ import { dust } from '../fx.js';
 import { hitPlayer } from '../combat.js';
 import { defineState, FOES } from './registry.js';
 import { faceP, go, inFront, moveTo } from './kit.js';
-import { CORPSE_T, W } from '../config.js';
+import { CORPSE_T, PIT, W } from '../config.js';
 
 defineState('rise', (e) => {
   if (fxRandom() < 0.5)
@@ -25,6 +25,36 @@ defineState('rise', (e) => {
     });
   faceP(e);
   if (e.t > (FOES[e.type].riseTime ?? 0.9)) go(e, 'chase');
+});
+
+// A robot of Neon Kyoto steps out of a door in a building (see robotEntry in level.js): the
+// door slides open, it comes out onto the street...
+defineState('door', (e, dt) => {
+  faceP(e);
+  if (e.t > 0.35) {
+    e.y += 80 * dt;
+    e.moving = true;
+  }
+  if (e.t > 0.85) go(e, 'chase');
+});
+// ...or drops from above, landing in a crouch.
+defineState('drop', (e, dt) => {
+  faceP(e);
+  e.vz -= 1800 * dt;
+  e.z += e.vz * dt;
+  if (e.z <= 0) {
+    e.z = 0;
+    dust(e.x, e.y, 8);
+    SFX.thud();
+    G.shake = Math.max(G.shake, 3);
+    go(e, 'recover');
+  }
+});
+// Thrown into a gap between the roofs: down and gone.
+defineState('pitfall', (e, dt) => {
+  e.vz -= 1500 * dt;
+  e.z += e.vz * dt;
+  if (e.t > PIT.time) e.dead = true;
 });
 
 defineState('chase', (e, dt, s, ctxE) => {
