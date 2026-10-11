@@ -405,6 +405,30 @@ export const SECRET_HOLD = 3;
 // The other secrets: hold Z and 2 (Z and 3) together this long on the first screen to go to
 // stage 2 (stage 3).
 export const STAGE_HOLD = 2;
+// Jawacorp's robots (Neon Kyoto). The guard's baton stuns for `stun` s; the guardess's plasma
+// bolts fly at `boltV`.
+export const ROBOT = { stun: 0.3, boltV: 560 };
+// The watcher drone: hovers `z` up (only a jump attack or a shot reaches it there), `keep` px
+// off the player; it marks a spot on the ground under her, follows her with it for `aim` s,
+// holds it still `lock` s, then fires its laser there (`r` px round) for `beam` s.
+export const DRONE = { z: 165, keep: 250, aim: 0.9, lock: 0.35, beam: 0.3, r: 44 };
+// The cyber ninja: every `dashCd` s, from `dashMin`..`dashMax` px off, it crouches `tele` s (a
+// line glows on the ground ahead) and dashes `len` px at `speed` px/s, cutting through
+// whoever is in the way (`dmg`, knocks down). Every `guardCd` s, when a shot flies its way,
+// it takes a stance for `guardT` s in which it turns shots back at the shooter (`back` dmg);
+// a blow up close breaks the stance.
+export const NINJA = {
+  dashCd: [3, 5.5],
+  dashMin: 220,
+  dashMax: 560,
+  tele: 0.5,
+  len: 600,
+  speed: 1400,
+  dmg: 14,
+  guardCd: [2.5, 4.5],
+  guardT: 1.3,
+  back: 9,
+};
 // Falling off a roof into a gap (Neon Kyoto): she drops for `time` s, then is back on the
 // roof she fell from, `dmg` of her full health the poorer, untouchable for `inv` s. A robot
 // knocked into a gap is gone (`time` s of falling) and counts as beaten.
@@ -640,6 +664,80 @@ export const TYPES = {
     dk: '#9fc7dd',
     eye: '#7fe6ff',
     score: 350,
+  },
+  // Neon Kyoto's robots (Jawacorp's; see foes/guard.js, drone.js, ninja.js)
+  // the android guard: an electric baton, its blow stuns for a moment (ROBOT.stun)
+  guard: {
+    hp: 40,
+    scale: 1.04,
+    speed: 80,
+    dmg: 7,
+    reach: 76,
+    style: 'punch',
+    wind: 0.4,
+    act: 0.14,
+    rec: 0.5,
+    cd: [1, 1.8],
+    thick: 1,
+    col: '#9aa3ad',
+    dk: '#6a727c',
+    eye: '#4fe3ff',
+    score: 120,
+  },
+  // the android guardess: cat's ears, a plasma rifle; keeps her distance and shoots
+  catguard: {
+    hp: 34,
+    scale: 1,
+    speed: 86,
+    dmg: 11, // a plasma bolt (ROBOT.boltV)
+    reach: 60,
+    keep: 300,
+    style: 'other',
+    wind: 0.75,
+    act: 0.12,
+    rec: 0.6,
+    cd: [1.8, 3],
+    col: '#a8a2b4',
+    dk: '#7a7488',
+    eye: '#ff4fb4',
+    score: 160,
+  },
+  // the watcher drone: hovers out of reach of a blow from the ground, lasers a marked spot
+  drone: {
+    hp: 24,
+    scale: 1,
+    speed: 120,
+    dmg: 10, // the laser (DRONE)
+    reach: 40,
+    style: 'other',
+    wind: 0.5,
+    act: 0.1,
+    rec: 0.4,
+    cd: [2.5, 4.5],
+    crowd: 0.5,
+    flyer: 1, // a blow from the ground misses it: a jump attack or a shot only
+    shadow: 30,
+    col: '#5c6370',
+    dk: '#3a3f4a',
+    eye: '#ff3b4b',
+    score: 140,
+  },
+  // the cyber ninja: a dashing cut through the player, a stance that turns shots back
+  ninja: {
+    hp: 60,
+    scale: 1.04,
+    speed: 125,
+    dmg: 10,
+    reach: 84,
+    style: 'slash',
+    wind: 0.3,
+    act: 0.12,
+    rec: 0.45,
+    cd: [0.8, 1.5],
+    col: '#4a4f5c',
+    dk: '#2e323b',
+    eye: '#7dff8a',
+    score: 450,
   },
   // the shield bearer (SHIELD): a rusty tower shield in front, a spear
   shield: {

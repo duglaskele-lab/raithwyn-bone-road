@@ -315,7 +315,9 @@ export function finale(e) {
       }
     G.projs = G.projs.filter(
       (p) =>
-        !['ebone', 'ehado', 'acid', 'plasma', 'shell', 'quake', 'skull', 'fsign'].includes(p.k),
+        !['ebone', 'ehado', 'acid', 'plasma', 'shell', 'quake', 'skull', 'fsign', 'rbolt'].includes(
+          p.k,
+        ),
     );
     G.pools = [];
     G.shocks = [];
@@ -449,7 +451,11 @@ export function strike(o) {
     const dx = (e.x - p.x) * p.face,
       zone = e.T?.dragon
         ? dragonZone(e, p.x + p.face * o.x0, p.x + p.face * o.x1, p.y, o.dy)
-        : dx > o.x0 - e.w && dx < o.x1 + e.w && Math.abs(e.y - p.y) < o.dy && e.z < 140
+        : dx > o.x0 - e.w &&
+            dx < o.x1 + e.w &&
+            Math.abs(e.y - p.y) < o.dy &&
+            // (a flying robot is out of reach of a blow from the ground)
+            (e.z < 140 || (e.T?.flyer && p.z > 20))
           ? 'body'
           : null;
     if (zone) {

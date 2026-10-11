@@ -35,6 +35,7 @@ import { dandies, evilHitP, evilHurt } from './foes/evil.js';
 import { roadBand } from './foes/strongman.js';
 import { skullBall, skullBurst } from './foes/banshee.js';
 import { fallSign } from './props3.js';
+import { boltFly } from './foes/robot.js';
 import { explode, updFuses } from './blast.js';
 import {
   camTo,
@@ -246,6 +247,10 @@ export function update(dt) {
       skullBall(q, dt);
       continue;
     }
+    if (q.k === 'rbolt') {
+      boltFly(q);
+      continue;
+    }
     if (q.k === 'fsign') {
       fallSign(q, dt);
       continue;
@@ -257,7 +262,7 @@ export function update(dt) {
         if (e.dead) continue;
         const zone = e.T?.dragon
           ? dragonZone(e, q.x - 16, q.x + 16, q.y, 22)
-          : Math.abs(e.x - q.x) < e.w + 16 && Math.abs(e.y - q.y) < 22 && e.z < 90
+          : Math.abs(e.x - q.x) < e.w + 16 && Math.abs(e.y - q.y) < 22 && (e.z < 90 || e.T?.flyer)
             ? 'body'
             : null;
         if (zone) {
@@ -296,7 +301,11 @@ export function update(dt) {
         .map((e) => {
           if (e.T?.dragon) return [e, dragonZone(e, q.x - 20, q.x + 20, q.y, 22), q.x];
           const ahead = (e.x - from) * s,
-            hit = Math.abs(e.y - q.y) < 22 && e.z < 120 && (q.x - e.x) * s >= 0 && ahead >= -e.w;
+            hit =
+              Math.abs(e.y - q.y) < 22 &&
+              (e.z < 120 || e.T?.flyer) &&
+              (q.x - e.x) * s >= 0 &&
+              ahead >= -e.w;
           return [e, hit ? 'body' : null, e.x];
         })
         .filter(([, zone]) => zone)

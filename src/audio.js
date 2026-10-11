@@ -245,6 +245,27 @@ export const SFX = {
     tone('sawtooth', 40, 260, 0.8, 0.08, 0, 900);
     noise(0.8, 0.06, 600, 2400, 2);
   },
+  // a plasma shot: a bright, falling zap
+  zap() {
+    tone('square', 1800, 400, 0.14, 0.07);
+    tone('sawtooth', 900, 200, 0.12, 0.05);
+    noise(0.08, 0.1, 6000, 2000, 2);
+  },
+  // a laser: a high, buzzing hum
+  beam() {
+    tone('sawtooth', 1400, 1300, 0.3, 0.06, 0, 3000);
+    tone('square', 700, 690, 0.3, 0.04);
+  },
+  // a ninja's dash: a sharp whoosh
+  dash() {
+    noise(0.22, 0.22, 2400, 6000, 2);
+    tone('sine', 300, 1200, 0.18, 0.06);
+  },
+  // an electric crackle (a stun baton)
+  crackle() {
+    noise(0.18, 0.18, 4500, 3000, 6);
+    tone('square', 220, 180, 0.12, 0.05);
+  },
   clang() {
     tone('square', 620, 540, 0.12, 0.1);
     tone('triangle', 1240, 1180, 0.2, 0.08);
