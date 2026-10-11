@@ -554,8 +554,14 @@ finale.
 
 A city of the future with an eastern soul, built by the Jawacorp corporation, whose robots walk
 its streets. It comes after Old Quarry (the same "Stage clear" screen leads on to it, keeping
-score and lives), and it is the last stage: beating its boss wins the game. Its own music is
-still to come (for now it plays the Bone Road's).
+score and lives), and it is the last stage: beating its boss wins the game.
+
+**Music** (synthesised, `THEMES` in `src/audio.js`, on the Japanese "in" scale D Eb G A C):
+"Neon Kyoto" (112 BPM) while walking — a synthwave groove (four-on-the-floor kick, a gated
+snare, an octave-leaping sixteenth bass, pads, an arpeggio) under a plucked koto tune and the
+breathy shakuhachi's answer, a gong in the bridge; "Steel Ronin" (148 BPM) in the fights of the
+breaker android and the mech samurai — taiko drums and a gong, a driving bass, a detuned saw
+riff and the koto's hook.
 
 **The scenery** (`src/bg3.js`, all drawn in code): the slums of corrugated shacks stacked two
 or three high, tangled cables, laundry, paper lanterns and neon signs in the city's own script,
@@ -783,7 +789,7 @@ What is checked:
   to the avenue and onto the roofs), a gap on screen in every fight on the roofs, gaps that can
   be jumped (the widest only running), falling into a gap and climbing back hurt, not walking
   off an edge, a robot thrown into a gap, robots walking in, stepping out of doors, dropping
-  down; the whole stage drawn; things to break on the floor, the lamp post's falling sign, the
+  down; the music (its walk, its boss theme); the whole stage drawn; things to break on the floor, the lamp post's falling sign, the
   vending machine's food, the power cell's lightning.
 - `prospector.test.js` — the Prospector: its health and size, what stops it and what does not,
   the slowly growing flame and the fire it leaves, the walking flame, the ram, the mortar shells

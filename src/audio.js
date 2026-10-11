@@ -959,6 +959,162 @@ THEMES.showdown = westernBand({
   },
   form: ['call', 'drive', 'A', 'B', 'drive', 'brk', 'A2', 'B'],
 });
+// Neon Kyoto's band: synthwave with an eastern soul. A section is four bars (64 sixteenths), a
+// chord per bar; its parts: drums ('four': a kick on every beat, a gated snare on two and four;
+// 'taiko': big drums in a pattern; 'half'), the bass ('arp': sixteenths leaping an octave;
+// 'drive': eighths; 'pedal'), pads, an arpeggio, and melodies — the koto (plucked, a little
+// bend into each note), the shakuhachi (breathy, with vibrato), a synth lead (a detuned saw) —
+// written out as in westernBand, on the Japanese "in" scale (D Eb G A C).
+function neonBand(cfg) {
+  return {
+    step: 60 / cfg.bpm / 4,
+    ...cfg,
+    at(n) {
+      const k = Math.floor(n / 64),
+        f = this.form,
+        idx = k < f.length ? k : 1 + ((k - f.length) % (f.length - 1));
+      return { sec: this.sections[f[idx]], s: n % 64 };
+    },
+    play(n, d) {
+      const st = this.step,
+        { sec, s } = this.at(n),
+        bar = Math.floor(s / 16),
+        b = s % 16,
+        c = this.chords[sec.ch[bar]];
+      // drums
+      const kick = (v = 0.45) => tone('sine', 150, 42, 0.18, v, d),
+        snare = (v = 0.2) => {
+          noise(0.26, v, 1800, 700, 0.7, d);
+          tone('triangle', 220, 160, 0.08, 0.08, d);
+        },
+        taiko = (v = 0.5, f = 90) => {
+          tone('sine', f, f * 0.45, 0.4, v, d);
+          noise(0.12, v * 0.4, 400, 120, 1, d);
+        };
+      if (sec.drums === 'four') {
+        if (b % 4 === 0) kick();
+        if (b === 4 || b === 12) snare();
+        noise(0.025, b % 2 ? 0.035 : 0.02, 9000, 7000, 2, d, 'highpass');
+      } else if (sec.drums === 'taiko') {
+        if ([0, 3, 6, 8, 10, 11, 14].includes(b)) taiko(b % 8 === 0 ? 0.42 : 0.22, b % 8 ? 120 : 85);
+        if (b === 4 || b === 12) snare(0.16);
+        if (b % 2 === 0) noise(0.02, 0.03, 9000, 7000, 2, d, 'highpass');
+      } else if (sec.drums === 'half') {
+        if (b === 0) kick(0.35);
+        if (b === 8) snare(0.14);
+      }
+      // the bass
+      if (sec.bass === 'arp') {
+        const f = hz(c.root + (b % 2 ? 12 : 0));
+        tone('sawtooth', f, f, st * 0.9, 0.11, d, 600);
+      } else if (sec.bass === 'drive' && b % 2 === 0) {
+        const f = hz(c.root + (b % 8 === 6 ? 12 : 0));
+        tone('sawtooth', f, f * 0.995, st * 1.6, 0.11, d, 700);
+      } else if (sec.bass === 'pedal' && b % 8 === 0) {
+        const f = hz(c.root);
+        tone('sawtooth', f, f, st * 7, 0.11, d, 450);
+      }
+      // the pad: the chord, two detuned voices, at every bar
+      if (sec.pad && b === 0)
+        for (const m of c.pad) {
+          tone('triangle', hz(m), hz(m), st * 15, 0.022, d, 1400);
+          tone('sawtooth', hz(m) * 1.004, hz(m) * 1.004, st * 15, 0.008, d, 900);
+        }
+      // the arpeggio: up the chord in sixteenths, an octave up
+      if (sec.arp) {
+        const m = c.pad[b % 3] + 12 + (b % 6 >= 3 ? 12 : 0);
+        tone('square', hz(m), hz(m), st * 0.6, 0.012, d, 3000);
+      }
+      // a gong at the head of the section
+      if (sec.gong && s === 0) {
+        const f = hz(c.root + 24);
+        for (const k of [1, 2.41, 3.73, 5.2]) tone('sine', f * k, f * k * 0.99, 2.6, 0.05 / k, d);
+        noise(1.2, 0.04, 900, 400, 1, d);
+      }
+      // melodies
+      for (const part of ['koto', 'flute', 'lead']) {
+        const mel = sec[part] && this[sec[part]];
+        if (!mel) continue;
+        const m = mel[s];
+        if (!m) continue;
+        let len = 1;
+        while (len < 8 && !mel[s + len] && s + len < 64) len++;
+        const f = hz(m + (sec.up || 0) * 12),
+          dur = st * len * 0.95;
+        if (part === 'koto') {
+          // plucked: a quick bend up into the note, a bright attack fading fast
+          tone('triangle', f * 0.97, f, Math.min(dur, 0.45), 0.06, d, 0);
+          tone('sawtooth', f * 2, f * 2, 0.12, 0.012, d, 3500);
+        } else if (part === 'flute') {
+          // the shakuhachi: a pure tone with a slow vibrato and a breath of noise
+          tone('sine', f, f * 1.004, dur, 0.05, d, 0);
+          tone('sine', f * 1.006, f * 1.002, dur, 0.02, d, 0);
+          noise(Math.min(dur, 0.3), 0.025, f * 2, f, 2, d);
+        } else {
+          tone('sawtooth', f, f, dur, 0.03, d, 2600);
+          tone('sawtooth', f * 1.008, f * 1.008, dur, 0.02, d, 2000);
+        }
+      }
+    },
+  };
+}
+const NEON = {
+  Dm: { root: 38, pad: [62, 65, 69] },
+  Bb: { root: 34, pad: [58, 62, 65] },
+  C: { root: 36, pad: [60, 64, 67] },
+  Am: { root: 33, pad: [57, 60, 64] },
+  Gm: { root: 31, pad: [55, 58, 62] },
+  Eb: { root: 39, pad: [63, 67, 70] },
+};
+// "Neon Kyoto": the walk through the city, in D at 112 BPM: a synthwave groove under a koto
+// tune and the shakuhachi's answer.
+THEMES.kyoto = neonBand({
+  bpm: 112,
+  chords: NEON,
+  tune: [
+    74, 0, 0, 75, 0, 0, 79, 0, 81, 0, 79, 0, 75, 0, 74, 0, 72, 0, 0, 74, 0, 0, 69, 0, 67, 0, 0, 0,
+    69, 0, 72, 0, 74, 0, 0, 75, 0, 0, 79, 0, 84, 0, 81, 0, 79, 0, 75, 0, 74, 0, 0, 0, 0, 0, 72, 0,
+    74, 0, 0, 0, 0, 0, 0, 0,
+  ],
+  breath: [
+    81, 0, 0, 0, 0, 0, 0, 0, 79, 0, 0, 0, 75, 0, 0, 0, 74, 0, 0, 0, 0, 0, 0, 0, 72, 0, 0, 0, 69, 0,
+    0, 0, 67, 0, 0, 0, 0, 0, 0, 0, 69, 0, 0, 0, 72, 0, 0, 0, 74, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0,
+  ],
+  sections: {
+    intro: { ch: ['Dm', 'Bb', 'C', 'Am'], pad: 1, koto: 'tune', bass: 'pedal' },
+    groove: { ch: ['Dm', 'Bb', 'C', 'Am'], drums: 'four', bass: 'arp', pad: 1, arp: 1 },
+    A: { ch: ['Dm', 'Bb', 'C', 'Am'], drums: 'four', bass: 'arp', pad: 1, koto: 'tune' },
+    B: { ch: ['Gm', 'Eb', 'Bb', 'Am'], drums: 'four', bass: 'arp', arp: 1, flute: 'breath' },
+    bridge: { ch: ['Eb', 'Dm', 'Eb', 'Am'], drums: 'half', bass: 'pedal', pad: 1, gong: 1 },
+    A2: { ch: ['Dm', 'Bb', 'C', 'Am'], drums: 'four', bass: 'arp', arp: 1, koto: 'tune', up: 1 },
+  },
+  form: ['intro', 'groove', 'A', 'B', 'groove', 'A2', 'bridge', 'B'],
+});
+// "Steel Ronin": the breaker android's fight and the duel on the tower, at 148 BPM: taiko drums
+// and a gong, a driving bass, a saw riff and the koto's hook over it.
+THEMES.kyotoBoss = neonBand({
+  bpm: 148,
+  chords: NEON,
+  riff: [
+    62, 0, 62, 63, 0, 62, 67, 0, 69, 0, 67, 0, 63, 0, 62, 0, 62, 0, 62, 63, 0, 62, 69, 0, 72, 0, 69,
+    0, 67, 0, 63, 0, 62, 0, 62, 63, 0, 62, 67, 0, 69, 0, 72, 0, 74, 0, 75, 0, 74, 0, 72, 0, 69, 0,
+    67, 0, 63, 0, 62, 0, 0, 0, 0, 0,
+  ],
+  hook: [
+    74, 0, 0, 0, 75, 0, 0, 0, 79, 0, 81, 0, 79, 0, 75, 0, 74, 0, 0, 0, 72, 0, 0, 0, 69, 0, 0, 0, 0,
+    0, 0, 0, 74, 0, 0, 0, 75, 0, 0, 0, 79, 0, 81, 0, 84, 0, 86, 0, 87, 0, 0, 0, 86, 0, 84, 0, 81, 0,
+    0, 0, 0, 0, 0, 0,
+  ],
+  sections: {
+    call: { ch: ['Dm', 'Dm', 'Eb', 'Dm'], drums: 'taiko', bass: 'pedal', gong: 1, pad: 1 },
+    drive: { ch: ['Dm', 'Bb', 'C', 'Am'], drums: 'taiko', bass: 'drive', lead: 'riff' },
+    A: { ch: ['Dm', 'Bb', 'C', 'Am'], drums: 'four', bass: 'drive', arp: 1, koto: 'hook' },
+    B: { ch: ['Gm', 'Eb', 'C', 'Am'], drums: 'taiko', bass: 'drive', lead: 'riff', up: 1 },
+    brk: { ch: ['Eb', 'Dm', 'Eb', 'Am'], drums: 'half', bass: 'pedal', pad: 1, gong: 1 },
+  },
+  form: ['call', 'drive', 'A', 'B', 'drive', 'brk', 'A'],
+});
 /** Which theme plays now: the night theme in the fight, the dragon's own theme in its fight
  * (its outro once it falls apart), the old theme on the menu. The western stays in THEMES
  * for later use. */
@@ -967,6 +1123,9 @@ export function themeFor(state, enemies = G.enemies, wave = G.wave) {
   if (state === 'play' && G.level === 2)
     // Old Quarry: its ride, and the showdown for the slime and the last fight
     return wave && levelWaves()[G.waveI]?.boss ? 'showdown' : 'frontier';
+  if (state === 'play' && G.level === 3)
+    // Neon Kyoto: its walk, and the fights of the breaker and of the mech samurai
+    return wave && levelWaves()[G.waveI]?.boss ? 'kyotoBoss' : 'kyoto';
   if (state === 'play') {
     // the Bone Dragon brings its own music, faster in its second phase
     // (and so does Raithwyn in its place, faster in her third stage)
