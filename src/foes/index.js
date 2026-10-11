@@ -26,4 +26,8 @@ import './dandy.js';
 import './guard.js';
 import './drone.js';
 import './ninja.js';
+import './monk.js';
+import './turret.js';
+import './barrier.js';
+import './chef.js';
 export { FOES, STATES } from './registry.js';

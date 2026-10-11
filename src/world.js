@@ -36,6 +36,7 @@ import { roadBand } from './foes/strongman.js';
 import { skullBall, skullBurst } from './foes/banshee.js';
 import { fallSign } from './props3.js';
 import { boltFly } from './foes/robot.js';
+import { wallStops } from './foes/barrier.js';
 import { explode, updFuses } from './blast.js';
 import {
   camTo,
@@ -239,6 +240,11 @@ export function update(dt) {
   for (const q of G.projs) {
     q.life -= dt;
     q.x += q.vx * dt;
+    // a barrier heavy's wall of light stops the player's shots
+    if (wallStops(q)) {
+      q.life = 0;
+      continue;
+    }
     if (q.k === 'quake') {
       quakeWave(q);
       continue;

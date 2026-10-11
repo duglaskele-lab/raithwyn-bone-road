@@ -39,7 +39,7 @@ import { drawBike } from './foes/bikes.js';
 import { roadBand } from './foes/strongman.js';
 import { drawSkull } from './foes/banshee.js';
 import { drawDecor3, drawFallingSign } from './props3.js';
-import { drawBolt } from './foes/robot.js';
+import { drawBolt, drawOrb } from './foes/robot.js';
 import { FOES } from './foes/registry.js';
 import { stick } from './foes/dynamite.js';
 import { drawHelmetDebris } from './foes/prospector.js';
@@ -1226,6 +1226,7 @@ export function drawWorld() {
   for (const l of list) l[1](l[2]);
   for (const e of G.enemies) if (e.T.dragon) drawDragonBeam(e);
   for (const e of G.enemies) FOES[e.type]?.over?.(e);
+  for (const e of G.enemies) if (e.orbUntil > G.time) drawOrb(e);
   for (const p of G.parts) drawPart(p);
   for (const f of G.floats) {
     ctx.globalAlpha = 1 - Math.max(0, f.t - 0.6) / 0.5;

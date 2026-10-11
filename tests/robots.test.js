@@ -35,7 +35,8 @@ function foe(type, dx = 160, extra = {}) {
 
 test("the robots come in Neon Kyoto's fights", () => {
   const all = Object.values(WAVEGEN3.pools).flatMap((p) => Object.keys(p));
-  for (const k of ['guard', 'catguard', 'drone', 'ninja']) assert.ok(all.includes(k), k);
+  for (const k of ['guard', 'catguard', 'drone', 'ninja', 'monk', 'turret', 'barrier', 'chef'])
+    assert.ok(all.includes(k), k);
   assert.ok(WAVEGEN3.pools.mid.catguard < WAVEGEN3.pools.mid.ninja, 'the guardess is rarer');
 });
 
@@ -137,4 +138,86 @@ test('a robot destroyed bursts into parts, not bones', () => {
     assert.ok(G.debris.length > 8);
     assert.ok(!G.debris.some((d) => d.k === 'bone' || d.k === 'skull'), t);
   }
+});
+
+test('the omnic monk puts a shield of light on a robot: blows barely hurt it, a crushing one ends it', async () => {
+  const { MONK } = await import('../src/config.js');
+  const m = foe('monk', 400, { state: 'mfloat', castCd: 0 }),
+    g = foe('guard', 150);
+  g.cd = 99;
+  update(DT);
+  assert.equal(m.state, 'mcast');
+  assert.equal(m.ward, g);
+  step(MONK.cast + 0.05);
+  assert.ok(g.orbUntil > G.time, 'shielded');
+  const hp = g.hp;
+  hurtEnemy(g, 10, 1, false, 'punch');
+  assert.ok(Math.abs(hp - g.hp - 10 * MONK.soak) < 1e-6, 'a third of the harm');
+  hurtEnemy(g, 10, 1, true, 'super');
+  assert.equal(g.orbUntil, 0, 'a crushing blow ends it');
+});
+
+test('the turret plants itself and fires down its lane; out of the lane, she is safe', async () => {
+  const { TURRET } = await import('../src/config.js');
+  const e = foe('turret', 420, { gunCd: 0 });
+  e.cd = 99;
+  update(DT);
+  assert.equal(e.state, 'tdeploy');
+  step(TURRET.deploy + 0.5);
+  assert.equal(e.state, 'tfire');
+  assert.ok(G.projs.filter((p) => p.k === 'rbolt').length >= 2, 'a stream of bolts');
+  // a light blow does not stop it (a medium foe)
+  hurtEnemy(e, 5, -1, false, 'punch');
+  assert.equal(e.state, 'tfire');
+  const hp = P.hp;
+  step(0.6);
+  assert.ok(P.hp < hp, 'in the lane: hit');
+  Object.assign(e, { state: 'tfire', t: 0, shotT: 0 });
+  G.projs = [];
+  P.y -= 70;
+  P.inv = 0;
+  const hp2 = P.hp;
+  step(1);
+  assert.equal(P.hp, hp2, 'out of the lane');
+});
+
+test("the barrier heavy's wall stops shots and blows from the front; it cracks, and goes", async () => {
+  const { BARRIER } = await import('../src/config.js');
+  const e = foe('barrier', 300, { barCd: 0 });
+  e.cd = 99;
+  step(0.5);
+  assert.ok(e.wallUntil > G.time, 'the wall is up');
+  // a bone at it stops on the wall, and so would one at a robot behind it
+  G.projs.push({ k: 'bone', x: P.x + 40, y: P.y, z: 100, vx: 700, rot: 0, life: 2 });
+  const hp = e.hp;
+  step(0.4);
+  assert.equal(e.hp, hp, 'no harm through the wall');
+  assert.ok(!G.projs.some((p) => p.k === 'bone' && p.life > 0));
+  // blows from the front ring off; heavy ones crack it, the third shatters it
+  assert.equal(hurtEnemy(e, 10, -e.face, false, 'punch'), true);
+  assert.equal(e.hp, hp);
+  for (let k = 0; k < BARRIER.hp; k++) hurtEnemy(e, 10, -e.face, true, 'punch');
+  assert.ok(!(e.wallUntil > G.time), 'shattered');
+  hurtEnemy(e, 10, -e.face, false, 'punch');
+  assert.ok(e.hp < hp, 'open now');
+});
+
+test("the noodle chef's flurry: three cuts, the last one knocks her down", async () => {
+  const { CHEF } = await import('../src/config.js');
+  const e = foe('chef', 70, { flurryCd: 0 });
+  e.cd = 0;
+  let hits = 0,
+    hp = P.hp;
+  update(DT);
+  assert.equal(e.state, 'cflurry');
+  for (let i = 0; i < 90 && e.state === 'cflurry'; i++) {
+    update(DT);
+    if (P.hp < hp) {
+      hits++;
+      hp = P.hp;
+      if (P.state !== 'ko') P.inv = 0;
+    }
+  }
+  assert.equal(hits, CHEF.hits);
+  assert.equal(P.state, 'ko');
 });
