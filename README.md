@@ -554,10 +554,9 @@ finale.
 
 A city of the future with an eastern soul, built by the Jawacorp corporation, whose robots walk
 its streets. It comes after Old Quarry once it is finished; for now it is reached by its
-secret (below). Done so far: the road, its scenery, things to break, the first robots and the
-rules below; to come: the other robots (the omnic monk, the turret, the barrier heavy, the
-hacked noodle chef), the big-armed android in the metro, the mech samurai at the top of the
-tower, the music. Until then the Bone Road's strong skeletons stand in for the strong robots.
+secret (below). Done so far: the road, its scenery, things to break, the robots and the rules
+below; to come: the big-armed android in the metro, the mech samurai at the top of the tower
+(a power armour stands in for both for now), the music.
 
 **The scenery** (`src/bg3.js`, all drawn in code): the slums of corrugated shacks stacked two
 or three high, tangled cables, laundry, paper lanterns and neon signs in the city's own script,
@@ -615,6 +614,21 @@ smoke, not bones.
   600 px straight through the heroine, cutting her down (14). When a shot flies its way it takes
   a stance for 1.3 s and turns Lucy's bullets and Raithwyn's bones back at the shooter; a blow up
   close breaks the stance.
+- **Omnic Monk** (light) — a robot in a saffron robe floating cross-legged, a ring of orbs round
+  its neck, blue lights on its brow. It keeps behind the others and puts a shield of light on
+  one robot at a time (0.8 s to cast, a thread of light to it): for 6 s that robot takes only
+  35% of the harm of a blow; a crushing blow ends the shield. Beat the monk first.
+- **Turret Robot** (medium) — squat olive armour, a boxy head with one red eye, a rotary gun for
+  a front arm. From a distance, along the heroine's lane, it plants itself (0.6 s, the barrels
+  spinning up) and fires a stream of bolts down the lane for 2 s; step up or down the road.
+- **Barrier Heavy** (heavy) — broad blue armour, a domed head with a T-shaped visor, a
+  projector on its forearm. It raises a wall of hard light in front of it for 4.5 s and keeps
+  it as it walks: the heroine's shots (bullets, bones, a level I dark ball) stop on it, which
+  shields the robots behind it too, and so do blows from the front; three heavy blows (or one
+  crushing) shatter it. From behind it is open; only crushing blows move it.
+- **Hacked Noodle Chef** (medium) — a kitchen robot gone wrong, a stained apron, a crooked hat,
+  a glitching red eye, sparking wiring, a cleaver in each hand. Up close: a flurry of three
+  cuts, both cleavers in turn; the last one knocks her down.
 
 **Where robots come from.** They never climb out of the ground: they walk in from the left or
 the right, step out of a door in a building (the door slides open, lit inside), or drop down
@@ -722,7 +736,9 @@ What is checked:
   final fight against the Prospector alone, the `X` secret to it.
 - `robots.test.js` — Jawacorp's robots: in Neon Kyoto's fights, the guard's stun, the
   guardess's bolt, the drone out of reach of a punch but not of a jump attack, its laser on the
-  marked spot, the ninja's dash and its stance turning shots back, parts instead of bones.
+  marked spot, the ninja's dash and its stance turning shots back, parts instead of bones; the
+  monk's shield (and a crushing blow ending it), the turret's stream down its lane, the barrier
+  heavy's wall (shots and blows from the front, cracking, shattering), the chef's flurry.
 - `level3.test.js` — Neon Kyoto: the `Z`+`3` and `X` secrets, the road (down into the metro, up
   to the avenue and onto the roofs), a gap on screen in every fight on the roofs, gaps that can
   be jumped (the widest only running), falling into a gap and climbing back hurt, not walking

@@ -167,7 +167,6 @@ const P = [
 export const PROPS3 = P.map(([x, d, k, drop]) => [x, topY(x) + d, k, drop]);
 
 // How an ordinary fight of Neon Kyoto is rolled (as WAVEGEN, config.js): Jawacorp's robots.
-// (The strong ones are still stood in for by the Bone Road's.)
 export const WAVEGEN3 = {
   count: [5, 10],
   hard: [0.06, 0.32],
@@ -176,8 +175,8 @@ export const WAVEGEN3 = {
   gap: [0.9, 0.5],
   pools: {
     easy: { guard: 4, drone: 1.3 },
-    mid: { ninja: 1, catguard: 0.5 },
-    hard: { brute: 1, samurai: 1 },
+    mid: { ninja: 1, catguard: 0.5, monk: 0.7 },
+    hard: { turret: 1, chef: 1, barrier: 0.6 },
   },
-  cap: { samurai: 1, ninja: 2, catguard: 2, drone: 3 },
+  cap: { ninja: 2, catguard: 2, drone: 3, monk: 1, turret: 2, barrier: 1 },
 };

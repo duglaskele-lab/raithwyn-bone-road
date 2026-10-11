@@ -3,6 +3,7 @@ import {
   BLAST,
   BULLET,
   DECOR,
+  MONK,
   JUGGLE,
   LUCK,
   LUCY,
@@ -89,6 +90,11 @@ export function hurtEnemy(e, dmg, dir, knock, src, launch = false) {
     return true;
   }
   dmg *= F.soak?.(e, knock, src, crush) ?? 1;
+  // an omnic monk's shield of light: most of the harm is turned away (a crushing blow ends it)
+  if (e.orbUntil > G.time) {
+    if (crush) e.orbUntil = 0;
+    else dmg *= MONK.soak;
+  }
   e.hp -= dmg;
   e.flash = 0.12;
   G.lastFoe = e;

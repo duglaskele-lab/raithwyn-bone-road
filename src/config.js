@@ -429,6 +429,31 @@ export const NINJA = {
   guardT: 1.3,
   back: 9,
 };
+// The omnic monk: keeps `keep` px off the player, behind the others; every `cd` s it takes
+// `cast` s to put a shield on a robot that has none (not itself): `shieldT` s during which the
+// robot takes only `soak` of the harm of a blow (a crushing blow ends the shield).
+export const MONK = { keep: 340, cd: [3.5, 5.5], cast: 0.8, shieldT: 6, soak: 0.35 };
+// The turret robot: every `cd` s, `min`..`max` px off along her lane, it plants itself
+// (`deploy` s), fires a bolt every `rate` s for `fire` s straight down its lane (`dmg` each, at
+// `boltV` px/s), then packs up (`pack` s). Step up or down the road out of the lane.
+export const TURRET = {
+  cd: [4, 6.5],
+  min: 230,
+  max: 760,
+  deploy: 0.6,
+  fire: 2,
+  rate: 0.15,
+  pack: 0.5,
+  boltV: 640,
+  dmg: 4,
+};
+// The barrier heavy: every `cd` s it raises a wall of hard light in front of it for `up` s,
+// `w` px out and `d` px deep either way: every shot of the player's (bullet, bone, a level I
+// dark ball) stops on it, and so do blows from the front, `hp` of the heavy ones break it.
+export const BARRIER = { cd: [2.5, 4.5], up: 4.5, w: 70, d: 70, hp: 3 };
+// The noodle chef: every `cd` s, close up, a flurry of `hits` cuts `gap` s apart (`dmg` each,
+// the last one knocks her down).
+export const CHEF = { cd: [2.5, 4.5], hits: 3, gap: 0.2, dmg: 7 };
 // Falling off a roof into a gap (Neon Kyoto): she drops for `time` s, then is back on the
 // roof she fell from, `dmg` of her full health the poorer, untouchable for `inv` s. A robot
 // knocked into a gap is gone (`time` s of falling) and counts as beaten.
@@ -738,6 +763,80 @@ export const TYPES = {
     dk: '#2e323b',
     eye: '#7dff8a',
     score: 450,
+  },
+  // the omnic monk: floats behind the others and puts shields on them (MONK)
+  monk: {
+    hp: 36,
+    scale: 1,
+    speed: 70,
+    dmg: 6,
+    reach: 60,
+    style: 'other',
+    wind: 0.5,
+    act: 0.1,
+    rec: 0.5,
+    cd: [1.5, 2.5],
+    col: '#b9a46a',
+    dk: '#857446',
+    eye: '#7fe6ff',
+    score: 300,
+  },
+  // the turret robot: walks, then plants itself and fires a stream down its lane (TURRET)
+  turret: {
+    hp: 150,
+    scale: 1.2,
+    speed: 52,
+    dmg: 11,
+    reach: 80,
+    style: 'punch',
+    wind: 0.5,
+    act: 0.15,
+    rec: 0.7,
+    cd: [1.3, 2.2],
+    thick: 3,
+    weight: 'medium',
+    col: '#6e7a5a',
+    dk: '#4b5440',
+    eye: '#ff3b4b',
+    score: 650,
+  },
+  // the barrier heavy: a wall of hard light in front of it (BARRIER); only crushing blows move it
+  barrier: {
+    hp: 280,
+    scale: 1.3,
+    speed: 42,
+    dmg: 16,
+    reach: 92,
+    style: 'smash',
+    wind: 0.6,
+    act: 0.16,
+    rec: 0.8,
+    cd: [1.4, 2.4],
+    thick: 4,
+    weight: 'heavy',
+    col: '#4f6a8a',
+    dk: '#344a63',
+    eye: '#5fd0ff',
+    score: 900,
+  },
+  // the hacked noodle chef: two cleavers, a quick flurry of cuts (CHEF)
+  chef: {
+    hp: 120,
+    scale: 1.1,
+    speed: 76,
+    dmg: 7,
+    reach: 78,
+    style: 'slash',
+    wind: 0.35,
+    act: 0.12,
+    rec: 0.5,
+    cd: [1, 1.8],
+    thick: 2,
+    weight: 'medium',
+    col: '#a7adb5',
+    dk: '#757b84',
+    eye: '#ff3b4b',
+    score: 550,
   },
   // the shield bearer (SHIELD): a rusty tower shield in front, a spear
   shield: {

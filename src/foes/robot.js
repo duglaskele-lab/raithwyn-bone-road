@@ -280,9 +280,9 @@ export function robotDie(e, dir) {
 }
 
 /** A plasma bolt from a robot's gun, flying straight along its lane. */
-export function fireBolt(e, x, z, speed, dmg, col = '#ff4fb4', knock = false) {
+export function fireBolt(e, x, z, speed, dmg, col = '#ff4fb4', knock = false, quiet = false) {
   G.projs.push({ k: 'rbolt', x, y: e.y, z, vx: e.face * speed, dmg, col, knock, life: 3 });
-  SFX.zap();
+  if (!quiet) SFX.zap();
 }
 /** The bolt flies on; it hurts the player it meets, and is gone off the screen. */
 export function boltFly(q) {
@@ -312,5 +312,48 @@ export function drawBolt(q, x, y) {
   ctx.beginPath();
   ctx.arc(x, y, 5, 0, TAU);
   ctx.fill();
+  ctx.restore();
+}
+
+/** Jawacorp's robots, by type. */
+const ROBOTS = new Set([
+  'guard',
+  'catguard',
+  'drone',
+  'ninja',
+  'monk',
+  'turret',
+  'barrier',
+  'chef',
+]);
+export const isRobot = (e) => ROBOTS.has(e.type);
+/** A shield of light put on a robot by an omnic monk: a bubble of hexagons round it, fading
+ *  and flickering in its last second. */
+export function drawOrb(e) {
+  const left = e.orbUntil - G.time;
+  if (!(left > 0) || e.dead) return;
+  const s = e.T.scale,
+    x = e.x - G.cam,
+    y = e.y - e.z - 92 * s,
+    r = 74 * s,
+    a = left < 1 && Math.floor(G.time * 14) % 2 ? 0.25 : 0.55;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = `rgba(110,220,255,${a * 0.25})`;
+  ctx.strokeStyle = `rgba(170,240,255,${a})`;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(x, y, r * 0.62, r, 0, 0, TAU);
+  ctx.fill();
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let k = -3; k <= 3; k++) {
+    const yy = y + k * r * 0.26,
+      w = r * 0.62 * Math.sqrt(Math.max(0, 1 - (k * 0.26) ** 2));
+    ctx.moveTo(x - w, yy);
+    ctx.lineTo(x + w, yy);
+  }
+  ctx.stroke();
   ctx.restore();
 }
