@@ -7,7 +7,7 @@ import { dust } from '../fx.js';
 import { hitPlayer } from '../combat.js';
 import { defineState, FOES } from './registry.js';
 import { faceP, go, inFront, moveTo } from './kit.js';
-import { CORPSE_T, PIT, W } from '../config.js';
+import { CORPSE_T, GAPHOP, PIT, W } from '../config.js';
 
 defineState('rise', (e) => {
   if (fxRandom() < 0.5)
@@ -48,6 +48,17 @@ defineState('drop', (e, dt) => {
     SFX.thud();
     G.shake = Math.max(G.shake, 3);
     go(e, 'recover');
+  }
+});
+// A gap between the roofs in its way, the player on the far side: it leaps across.
+defineState('gaphop', (e, dt) => {
+  e.x += e.vx * dt;
+  e.vz -= GAPHOP.g * dt;
+  e.z += e.vz * dt;
+  if (e.z <= 0) {
+    e.z = 0;
+    dust(e.x, e.y, 5);
+    go(e, 'chase');
   }
 });
 // Thrown into a gap between the roofs: down and gone.

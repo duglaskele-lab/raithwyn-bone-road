@@ -585,7 +585,9 @@ last fight is.
 widest one only with a running jump. She cannot walk off a roof's edge, but a jump that falls
 short, or a blow that throws her, can land her in a gap: she falls, and is back on the roof she
 fell from, 15% of her health the poorer and untouchable for a moment (`PIT` in
-`src/config.js`). A robot thrown into a gap is gone at once and counts as beaten.
+`src/config.js`). A robot thrown into a gap is gone at once and counts as beaten. A robot that
+fights up close, at the edge of a roof with her across the gap, leaps over it after her
+(`GAPHOP`); shooters and drones keep their side.
 
 **Things to break** (`DECOR`, `src/props3.js`; none in the last arena):
 
@@ -789,7 +791,8 @@ What is checked:
   to the avenue and onto the roofs), a gap on screen in every fight on the roofs, gaps that can
   be jumped (the widest only running), falling into a gap and climbing back hurt, not walking
   off an edge, a robot thrown into a gap, robots walking in, stepping out of doors, dropping
-  down; the music (its walk, its boss theme); the whole stage drawn; things to break on the floor, the lamp post's falling sign, the
+  down; the music (its walk, its boss theme); robots leaping a gap after her (shooters
+  staying); enemies never jostled off the floor; the whole stage drawn; things to break on the floor, the lamp post's falling sign, the
   vending machine's food, the power cell's lightning.
 - `prospector.test.js` — the Prospector: its health and size, what stops it and what does not,
   the slowly growing flame and the fire it leaves, the walking flame, the ram, the mortar shells

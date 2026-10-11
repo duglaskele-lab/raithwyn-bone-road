@@ -1,6 +1,6 @@
 // Spawning enemies and running their AI. What each enemy does lives in src/foes (one file per
 // type, see foes/registry.js); this file holds what they all share.
-import { GB, GT, H, W, TYPES } from './config.js';
+import { GAPHOP, GB, GT, H, W, TYPES } from './config.js';
 import { clamp, rnd } from './util.js';
 import { G, P } from './state.js';
 import { SFX } from './audio.js';
@@ -12,6 +12,7 @@ import {
   groundPoint,
   inView,
   level,
+  onFloor,
   overPit,
   robotEntry,
 } from './level.js';
@@ -116,6 +117,7 @@ export function updEnemy(e, dt, ctxE) {
   e.moving = false;
   STATES[e.state]?.tick(e, dt, sense(e), ctxE);
   F.tick?.(e, dt);
+  if (level().pits && e.state === 'chase') gapHop(e);
   if (e.state === 'pitfall');
   else if (level().pits && !e.T.bigBoss) {
     // Neon Kyoto's roofs: thrown over a gap it may land in it, and is gone
@@ -137,4 +139,19 @@ export function pitfall(e) {
   Object.assign(e, { state: 'pitfall', t: 0, dying: true, engage: false, vx: 0 });
   e.vz = Math.min(e.vz, 0);
   SFX.fall();
+}
+/** At the edge of a roof, the player across the gap: a robot that walks leaps over it (if the
+ *  far side is a roof). Flyers and shooters keep their side; bosses stay in their arena. */
+function gapHop(e) {
+  if (e.z > 0 || e.T.flyer || e.T.keep || e.T.bigBoss || P.state === 'plunge') return;
+  const dir = P.x >= e.x ? 1 : -1,
+    reach = (GAPHOP.vx * 2 * GAPHOP.vz) / GAPHOP.g;
+  if (
+    Math.abs(P.x - e.x) > 80 &&
+    overPit(e.x + dir * 40, e.y) &&
+    onFloor(e.x + dir * reach * 0.9, e.y)
+  ) {
+    Object.assign(e, { state: 'gaphop', t: 0, face: dir, vx: dir * GAPHOP.vx, vz: GAPHOP.vz });
+    e.engage = false;
+  }
 }
