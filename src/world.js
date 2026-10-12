@@ -245,8 +245,6 @@ export function update(dt) {
   for (const q of G.projs) {
     q.life -= dt;
     q.x += q.vx * dt;
-    // thrown from a jump: down to its usual height as it flies
-    if (q.zTo != null && q.z > q.zTo) q.z = Math.max(q.zTo, q.z - q.vzd * dt);
     // a barrier heavy's wall of light stops the player's shots
     if (wallStops(q)) {
       q.life = 0;
@@ -270,7 +268,15 @@ export function update(dt) {
     }
     if (q.k === 'bone') {
       q.rot += dt * 24 * Math.sign(q.vx);
-      if (q.life < 0.25) q.z -= 260 * dt;
+      if (q.vzd) {
+        // thrown from a jump: down at its angle, until it strikes the ground and breaks
+        q.z -= q.vzd * dt;
+        if (q.z <= 0) {
+          q.z = 0;
+          q.life = 0;
+          dust(q.x, q.y, 3);
+        }
+      } else if (q.life < 0.25) q.z -= 260 * dt;
       for (const e of G.enemies.concat(G.props)) {
         if (e.dead) continue;
         const zone = e.T?.dragon

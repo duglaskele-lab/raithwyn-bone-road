@@ -48,8 +48,9 @@ export const BONE_COST = MAXR * 0.05;
 // levels are worth saving for: more damage per point of rage, and wider.
 export const HADO = { motion: 0.8, dmg: [50, 110, 180] };
 // Raithwyn's bone (K) and dark ball (L) thrown in a jump: the throw takes `bone` (`hado`) s,
-// quicker than on the ground; what she throws flies down at `drop` px/s to its usual height.
-export const AIR_SHOT = { bone: 0.3, hado: 0.36, drop: 420 };
+// quicker than on the ground. The bone flies down at `angle` degrees below the level, straight,
+// until it strikes the ground and breaks; the ball flies straight on at the height she cast it.
+export const AIR_SHOT = { bone: 0.3, hado: 0.36, angle: 30 };
 // Super attack: hold I this long with a full rage bar; it hits everything on screen.
 export const SUPER_HOLD = 1.0,
   SUPER_DMG = 150;

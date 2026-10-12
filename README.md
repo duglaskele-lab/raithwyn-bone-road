@@ -126,10 +126,11 @@ ball, so saving up pays.
 
 **In a jump** Raithwyn can throw a bone (`K`) or a dark ball (`L`, the hidden combo works there
 too) at the same cost as on the ground: one move a jump, as the flying kick (`AIR_SHOT`). The
-throw is quicker than on the ground (0.3 s for the bone, 0.36 s for the ball); what she throws
-leaves her hand up where she is and flies down, as it goes, to the height it has when thrown
-from the ground (420 px/s), so it hits along her lane as usual. Landing before the throw is
-done, she lets it go as she lands. Lucy's `K` and `L` (her guns) stay on the ground.
+throw is quicker than on the ground (0.3 s for the bone, 0.36 s for the ball). The bone flies
+down at 30 degrees, straight, hitting whatever is along her lane on the way, until it strikes the
+ground and breaks (from the top of a jump, about 400 px on). The ball flies straight on at the
+height she cast it, as far as on the ground. Landing before the throw is done, she lets it go
+as she lands. Lucy's `K` and `L` (her guns) stay on the ground.
 
 The super attack only spends its rage when it strikes: if Raithwyn is
 hit while gathering it, or the key is let go too early, the rage stays.
@@ -806,7 +807,7 @@ What is checked:
 - `style.test.js` — style ranks D…SSS and their bonuses, scenery, the acid puddle, the pause menu.
 - `menu.test.js` — main menu, settings (FPS counter and limit), fighter select (Raithwyn and Lucy are
   playable).
-- `features.test.js` — translations, key layout, bone cost, the bone and the dark ball in a jump (Raithwyn only, one a jump), super attack, the unstoppable end of
+- `features.test.js` — translations, key layout, bone cost, the bone in a jump (down at 30 degrees, breaking on the ground) and the dark ball (straight on at her height; Raithwyn only, one a jump), super attack, the unstoppable end of
   Fatso's wind-up, the Necromancer.
 - `level2.test.js` — Old Quarry: the `Z`+`2` secret, the transition after the first stage, the
   floor and the camera path (two slants), fights only on the flat, about 30% longer than the
