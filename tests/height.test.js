@@ -1,6 +1,6 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { HEIGHT } from '../src/config.js';
+import { DECOR, HEIGHT } from '../src/config.js';
 import { G, P } from '../src/state.js';
 import { pressed } from '../src/input.js';
 import { strike } from '../src/combat.js';
@@ -152,4 +152,35 @@ test("the dragon's weak spot: its head held up high, reached only from a jump, d
   const body = hp2 - d.hp;
   assert.ok(body > 0);
   assert.ok(Math.abs(high / body - DRAGON.highMult) < 0.01, 'double on the head');
+});
+
+/** A thing to break `dx` in front of her. */
+function prop(decor, dx) {
+  const u = { isProp: 1, decor, x: P.x + dx, y: P.y, z: 0, w: DECOR[decor].w, hp: DECOR[decor].hp };
+  G.props.push(u);
+  return u;
+}
+
+test('things to break have heights: a bone flies over a barrel but breaks on a big grave', () => {
+  const barrel = prop('barrel', 200),
+    tomb = prop('tomb', 420);
+  assert.deepEqual(bodyBand(barrel), [0, DECOR.barrel.h]);
+  G.projs.push({ k: 'bone', x: P.x + 62, y: P.y, z: 116, vx: 650, rot: 0, life: 1.05 });
+  step(0.7);
+  assert.equal(barrel.hp, DECOR.barrel.hp, 'over the barrel');
+  assert.equal(tomb.hp, DECOR.tomb.hp - 1, 'into the grave');
+});
+
+test('a blow from the ground breaks a barrel; a flying kick from high up passes over it', () => {
+  const barrel = prop('barrel', 60);
+  Object.assign(P, { z: 100, hit: new Set() });
+  strike({ x0: 0, x1: 122, dy: 28, dmg: 12, knock: true, rage: 0, src: 'air' });
+  assert.equal(barrel.hp, DECOR.barrel.hp, 'over it');
+  Object.assign(P, { z: 0, hit: new Set() });
+  strike({ x0: 0, x1: 100, dy: 27, dmg: 8, knock: false, rage: 0 });
+  assert.equal(barrel.hp, DECOR.barrel.hp - 1, 'a punch');
+  // an urn, low on the ground, is reached by a blow but not by a dark ball
+  const urn = { isProp: 1, x: P.x + 250, y: P.y, z: 0, w: 16 };
+  assert.ok(reaches(urn, 40, 150));
+  assert.ok(!reaches(urn, 104 - 34, 104 + 34, true));
 });

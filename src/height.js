@@ -4,15 +4,17 @@
 // across its depth. So a dark ball cast at the top of a jump flies over a short enemy, a blow
 // from the ground misses a drone hovering up high, and the heroine can jump over a bone thrown
 // at her chest. See HEIGHT in config.js.
-import { HEIGHT } from './config.js';
+import { DECOR, HEIGHT } from './config.js';
 import { P } from './state.js';
 import { FOES } from './foes/registry.js';
 
 /** Lying on the ground (knocked down, getting up): a low band. */
 const LYING = ['down', 'getup'];
 
-/** The band of heights [lo, hi] an enemy fills now. */
+/** The band of heights [lo, hi] an enemy (or a thing to break) fills now. */
 export function bodyBand(e) {
+  // scenery: from the ground to its top (a barrel, a grave, an urn...)
+  if (e.isProp) return [0, e.decor ? DECOR[e.decor].h : HEIGHT.urn];
   const own = FOES[e.type]?.band?.(e);
   if (own) return own;
   const s = e.T?.scale ?? 1;
@@ -21,12 +23,10 @@ export function bodyBand(e) {
   return [e.z, e.z + Math.max(HEIGHT.min, (e.T?.height ?? HEIGHT.body) * s)];
 }
 /**
- * Does an attack covering heights lo..hi reach `e`? Scenery is reached at any height. A shot
- * (`shot`: a bone, a bullet, a dark ball) reaches a flying robot from the ground too: it is
- * aimed at it.
+ * Does an attack covering heights lo..hi reach `e`? A shot (`shot`: a bone, a bullet, a dark
+ * ball) reaches a flying robot from the ground too: it is aimed at it.
  */
 export function reaches(e, lo, hi, shot = false) {
-  if (e.isProp) return true;
   if (shot && e.T?.flyer) return true;
   const [a, b] = bodyBand(e);
   return lo < b && hi > a;
