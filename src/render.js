@@ -48,6 +48,7 @@ import {
   drawDragonBeam,
   drawDragonGround,
   drawDragonPart,
+  drawWeakSpot,
   drawShocks,
 } from './dragon.js';
 
@@ -1239,6 +1240,7 @@ export function drawWorld() {
   list.sort((a, b) => a[0] - b[0]);
   for (const l of list) l[1](l[2]);
   for (const e of G.enemies) if (e.T.dragon) drawDragonBeam(e);
+  for (const e of G.enemies) if (e.T.dragon) drawWeakSpot(e);
   for (const e of G.enemies) FOES[e.type]?.over?.(e);
   for (const e of G.enemies) if (e.orbUntil > G.time) drawOrb(e);
   for (const p of G.parts) drawPart(p);

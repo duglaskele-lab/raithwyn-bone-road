@@ -29,6 +29,12 @@ import { ctx } from './gfx.js';
 
 export const DRAGON = {
   headMult: 1.5, // damage multiplier on the lowered head
+  // its weak spot: the head held up high (from `high` px up), where only an attack from a jump
+  // reaches it (`headR` px either way of its height): `highMult` times the damage
+  high: 150,
+  headR: 40,
+  highMult: 2,
+  bodyH: 200, // how tall its body is (above that, an attack passes over it)
   phase2: 0.5,
   roar: 1.2,
   body: 120, // half-width of the body hit box
@@ -197,21 +203,45 @@ const isHeadDown = (e) => {
   const C = DRAGON.bite;
   return e.state === 'bite' && e.t > C.wind + C.strike * 0.6 && e.t < C.wind + C.strike + C.down;
 };
+/** How high the dragon's head is now (above the ground). */
+export const headHeight = (e) => e.z - dragonHead(e).y;
 /**
- * Which part of the dragon a hit covering world x0..x1 at depth y lands on:
- * 'head' (the lowered head, 1.5x damage), 'body' or null.
+ * Which part of the dragon a hit covering world x0..x1 at depth y, and the heights zLo..zHi,
+ * lands on: 'head' (the lowered head, 1.5x damage), 'high' (the head held up high: its weak
+ * spot, reached only from a jump, 2x), 'body' or null.
  */
-export function dragonZone(e, x0, x1, y, dy = 30) {
+export function dragonZone(e, x0, x1, y, dy = 30, zLo = 0, zHi = 9999) {
   const lo = Math.min(x0, x1),
-    hi = Math.max(x0, x1);
-  if (isHeadDown(e)) {
-    const hx = e.x + e.face * dragonHead(e).x;
-    if (hi > hx - 55 && lo < hx + 55 && Math.abs(y - e.y) < dy + 30) return 'head';
+    hi = Math.max(x0, x1),
+    hz = headHeight(e),
+    hx = e.x + e.face * dragonHead(e).x;
+  if (
+    hi > hx - 55 &&
+    lo < hx + 55 &&
+    Math.abs(y - e.y) < dy + 30 &&
+    zLo < hz + DRAGON.headR &&
+    zHi > hz - DRAGON.headR
+  ) {
+    if (isHeadDown(e)) return 'head';
+    if (hz >= DRAGON.high) return 'high';
   }
-  if (e.z > 120) return null;
+  if (e.z > 120 || zLo >= e.z + DRAGON.bodyH || zHi <= e.z) return null;
   if (hi > e.x - DRAGON.body && lo < e.x + DRAGON.body && Math.abs(y - e.y) < dy + 40)
     return 'body';
   return null;
+}
+/** Its weak spot shows: a pulsing green glint round the head while it is held up high. */
+export function drawWeakSpot(e) {
+  if (e.dying || e.state === 'dying' || headHeight(e) < DRAGON.high) return;
+  const [x, y] = headPoint(e),
+    p = 0.5 + 0.5 * Math.sin(G.time * 6);
+  ctx.save();
+  ctx.strokeStyle = `rgba(198,255,122,${0.25 + 0.35 * p})`;
+  ctx.lineWidth = 2 + p * 1.5;
+  ctx.beginPath();
+  ctx.arc(x - G.cam, y, 30 + p * 6, 0, TAU);
+  ctx.stroke();
+  ctx.restore();
 }
 /** World position (x, screen y) of the head, for sparks. */
 export function headPoint(e) {

@@ -220,6 +220,39 @@ vertically instead of sideways, ready to be finished in the air. Without "up" th
 knocks back as before. A light enemy in the air can be juggled: every hit in the air throws it
 up again, a little lower each time, and gives style points.
 
+**Heights** (`src/height.js`, `HEIGHT` in `src/config.js`). Besides the road and its depth, the
+fight has a third dimension. Every enemy fills a band of heights, from its feet (up in the air
+with it, when it is thrown or flies) to the top of its head: 160 px times its size (never under
+150), 50 lying on the ground; a type may set its own (`height` in `TYPES`). Every attack covers
+a band too, and reaches only what it meets:
+
+- a blow from the ground covers 40–150 px above her feet, a flying kick 0–130 above her feet up
+  in the jump (a drone up in the air is out of reach of a blow from the ground);
+- a bone covers 20 px either way of its height, a bullet 14, Lucy's heavy shot 40;
+- a dark ball covers its own size either way (34, 50, 74 px by level). From the ground it hits
+  everyone; cast from high in a jump (from some 90 px up) a level I ball flies over the
+  skeletons and zombies and hits only the tall (Fatso, the big robots, the bosses); a level III
+  ball is big enough to reach down to them all;
+- a shot reaches a flying robot from the ground too (it is aimed at it).
+
+Things to break stand as tall as they are drawn (`h` in `DECOR`): a bench 54 px, a stone cross 62,
+a big grave 114, a barrel (wooden or red) 56, an urn 50; in Midnight City a lamp post 215, a neon
+sign 104, a paper lantern 142, a vending machine 118, a power cell 72, a holographic projector
+120. So a bone or a level I dark ball from the ground flies over a barrel, a bench or an urn (a
+blow breaks them, or a bone thrown from a jump as it comes down), and breaks on a grave or a
+vending machine; a flying kick from high in a jump passes over the low ones; Lucy's pistol at her
+chest misses a barrel (a punch, her grenade or a blast nearby sets a red one off).
+
+The heroine fills 0–150 px, her legs tucked 40 px up in a jump. The enemies' missiles meet her
+by height too, so she can jump over them: a thrown bone, a zombie's head, the necromancer's
+acid, a robot's bolt, the turret's bullets, the banshee's skull, the evil Raithwyn's dark ball
+of level I. Shadows on the ground under the missiles (all but the quick bullets) show where they fly.
+
+**The Bone Dragon's weak spot** is its head held up high (above 150 px): only an attack from a
+jump reaches it there (a flying kick, a bone or a dark ball thrown from the jump), and it takes
+twice the harm. A pulsing green ring round the head shows it. The lowered head after a bite still
+takes 1.5 times the harm from the ground.
+
 **Enemy weight classes** (`weight` in `TYPES`, rules in `WEIGHT` in `src/config.js`):
 
 | Class | Who | How it takes hits |
@@ -807,6 +840,14 @@ What is checked:
 - `style.test.js` — style ranks D…SSS and their bonuses, scenery, the acid puddle, the pause menu.
 - `menu.test.js` — main menu, settings (FPS counter and limit), fighter select (Raithwyn and Lucy are
   playable).
+- `height.test.js` — heights: the bands of enemies (lying, in the air, never too short) and of
+  the heroine (her legs tucked in a jump), a dark ball from the top of a jump flying over a
+  skeleton into a tall enemy, from the ground (and a level III one from a jump) hitting it, a
+  bone from the ground hitting the smallest enemy, the drone out of reach of a blow from the
+  ground but not of a shot, jumping over a thrown bone and a robot's bolt, the dragon's raised
+  head reached only from a jump for double harm; things to break: a bone over a barrel and into
+  a grave, a punch breaking a barrel that a flying kick from high up passes over, an urn reached
+  by a blow but not by a dark ball.
 - `features.test.js` — translations, key layout, bone cost, the bone in a jump (down at 30 degrees, breaking on the ground) and the dark ball (straight on at her height; Raithwyn only, one a jump), super attack, the unstoppable end of
   Fatso's wind-up, the Necromancer.
 - `level2.test.js` — Old Quarry: the `Z`+`2` secret, the transition after the first stage, the

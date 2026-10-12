@@ -3,6 +3,7 @@ import {
   BLAST,
   BULLET,
   DECOR,
+  HEIGHT,
   MONK,
   JUGGLE,
   LUCK,
@@ -26,6 +27,7 @@ import { dropSign } from './props3.js';
 import { buzz } from './touch.js';
 import { DRAGON, dragonZone, headPoint } from './dragon.js';
 import { FOES } from './foes/index.js';
+import { blowBand, reaches } from './height.js';
 import { dmgMult, scoreMult, styleBreak, styleGain, styleKeep, styleRank } from './style.js';
 
 export function hadoLevel(rage) {
@@ -252,14 +254,16 @@ export function buckshot() {
   const p = P,
     B = LUCY.buck,
     mx = p.x + p.face * BULLET.x,
-    my = p.y - BULLET.z;
+    my = p.y - BULLET.z,
+    lo = p.z + BULLET.z - HEIGHT.buck,
+    hi = p.z + BULLET.z + HEIGHT.buck;
   let n = 0;
   for (const e of G.enemies.concat(G.props)) {
     if (e.dead || e.dying) continue;
     const dx = (e.x - p.x) * p.face,
       zone = e.T?.dragon
-        ? dragonZone(e, p.x, p.x + p.face * B.range, p.y, B.dy)
-        : dx > -10 && dx < B.range + e.w && Math.abs(e.y - p.y) < B.dy && e.z < 140
+        ? dragonZone(e, p.x, p.x + p.face * B.range, p.y, B.dy, lo, hi)
+        : dx > -10 && dx < B.range + e.w && Math.abs(e.y - p.y) < B.dy && reaches(e, lo, hi, true)
           ? 'body'
           : null;
     if (!zone) continue;
@@ -452,16 +456,14 @@ export function breakProp(e, dir = 1) {
 export function strike(o) {
   const p = P,
     src = o.src || 'punch';
+  // the heights the blow covers (a flying robot is out of reach of one from the ground)
+  const [lo, hi] = blowBand(src === 'air');
   for (const e of G.enemies.concat(G.props)) {
     if (p.hit.has(e) || e.dead) continue;
     const dx = (e.x - p.x) * p.face,
       zone = e.T?.dragon
-        ? dragonZone(e, p.x + p.face * o.x0, p.x + p.face * o.x1, p.y, o.dy)
-        : dx > o.x0 - e.w &&
-            dx < o.x1 + e.w &&
-            Math.abs(e.y - p.y) < o.dy &&
-            // (a flying robot is out of reach of a blow from the ground)
-            (e.z < 140 || (e.T?.flyer && p.z > 20))
+        ? dragonZone(e, p.x + p.face * o.x0, p.x + p.face * o.x1, p.y, o.dy, lo, hi)
+        : dx > o.x0 - e.w && dx < o.x1 + e.w && Math.abs(e.y - p.y) < o.dy && reaches(e, lo, hi)
           ? 'body'
           : null;
     if (zone) {
@@ -480,12 +482,13 @@ export function strike(o) {
     }
   }
 }
-/** A hit on the dragon's lowered head: 1.5x damage and a spark where it landed. */
+/** A hit on the dragon's head: 1.5x damage lowered, 2x held up high (its weak spot, reached
+ *  only from a jump), and a spark where it landed. */
 export function headBonus(e, zone) {
-  if (zone !== 'head') return 1;
+  if (zone !== 'head' && zone !== 'high') return 1;
   const [x, y] = headPoint(e);
   spark(x, y, '#c6ff7a', true);
-  return DRAGON.headMult;
+  return zone === 'high' ? DRAGON.highMult : DRAGON.headMult;
 }
 export function hitPlayer(dmg, dir, knock) {
   const p = P;

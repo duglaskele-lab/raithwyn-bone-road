@@ -51,6 +51,25 @@ export const HADO = { motion: 0.8, dmg: [50, 110, 180] };
 // quicker than on the ground. The bone flies down at `angle` degrees below the level, straight,
 // until it strikes the ground and breaks; the ball flies straight on at the height she cast it.
 export const AIR_SHOT = { bone: 0.3, hado: 0.36, angle: 30 };
+// Heights (see height.js): a standing enemy is `body` px tall (times its scale; TYPES `height`
+// for one that is not), never less than `min`, one lying on the ground `down`; a thing to break
+// stands DECOR `h` tall, an urn `urn`; the heroine is `player` tall, her legs tucked `tuck` px
+// up in a jump. Her blow from the ground covers the heights `punch` (above her feet), her flying
+// kick `kick` (above her feet, up in the air); a bone `bone` px either way of its height, a
+// bullet `bullet`, a dark ball its own size (34, 50, 74 by level).
+export const HEIGHT = {
+  body: 160,
+  min: 150,
+  down: 50,
+  urn: 50,
+  player: 150,
+  tuck: 40,
+  punch: [40, 150],
+  kick: [0, 130],
+  bone: 20,
+  bullet: 14,
+  buck: 40,
+};
 // Super attack: hold I this long with a full rage bar; it hits everything on screen.
 export const SUPER_HOLD = 1.0,
   SUPER_DMG = 150;
@@ -569,23 +588,24 @@ export const PIT = { time: 0.9, dmg: 0.15, inv: 1.5 };
 // px/s, gravity `g`: about 300 px), if there is a roof to land on there.
 export const GAPHOP = { vx: 420, vz: 650, g: 1800 };
 // Breakable scenery along the road: hits needed, colour of the pieces, score.
+// `h`: how tall it stands (see HEIGHT: an attack passing over it misses it).
 export const DECOR = {
-  bench: { w: 34, hp: 1, col: '#7a5638', score: 20 },
-  cross: { w: 14, hp: 1, col: '#8b8f84', score: 20 },
+  bench: { w: 34, h: 54, hp: 1, col: '#7a5638', score: 20 },
+  cross: { w: 14, h: 62, hp: 1, col: '#8b8f84', score: 20 },
   // a big grave: three hits; a zombie or a skeleton may climb out of it
-  tomb: { w: 40, hp: 3, col: '#6f7c80', score: 50, big: 1 },
+  tomb: { w: 40, h: 114, hp: 3, col: '#6f7c80', score: 50, big: 1 },
   // Old Quarry: a wooden barrel (two hits) and a red barrel that blows up (see BLAST)
-  barrel: { w: 26, hp: 2, col: '#8a5a32', score: 30 },
-  tnt: { w: 24, hp: 1, col: '#b02a1e', score: 30, boom: 'barrel' },
+  barrel: { w: 26, h: 56, hp: 2, col: '#8a5a32', score: 30 },
+  tnt: { w: 24, h: 56, hp: 1, col: '#b02a1e', score: 30, boom: 'barrel' },
   // Midnight City (see props3.js): a lamp post whose neon sign falls when it breaks, a neon sign
   // on a stand, a paper lantern on a pole, a vending machine (three blows; food spills out),
   // a Jawacorp power cell (an electric blast), a holographic projector
-  post: { w: 16, hp: 2, col: '#3a3f4c', score: 40, k3: 1 },
-  sign: { w: 26, hp: 1, col: '#ff4fb4', score: 30, k3: 1 },
-  paper: { w: 18, hp: 1, col: '#e8402f', score: 20, k3: 1 },
-  vend: { w: 34, hp: 3, col: '#c22f3a', score: 60, k3: 1 },
-  cell: { w: 22, hp: 1, col: '#4fe3ff', score: 30, boom: 'cell', k3: 1 },
-  holo: { w: 26, hp: 1, col: '#5fd0ff', score: 30, k3: 1 },
+  post: { w: 16, h: 215, hp: 2, col: '#3a3f4c', score: 40, k3: 1 },
+  sign: { w: 26, h: 104, hp: 1, col: '#ff4fb4', score: 30, k3: 1 },
+  paper: { w: 18, h: 142, hp: 1, col: '#e8402f', score: 20, k3: 1 },
+  vend: { w: 34, h: 118, hp: 3, col: '#c22f3a', score: 60, k3: 1 },
+  cell: { w: 22, h: 72, hp: 1, col: '#4fe3ff', score: 30, boom: 'cell', k3: 1 },
+  holo: { w: 26, h: 120, hp: 1, col: '#5fd0ff', score: 30, k3: 1 },
 };
 // Explosions: radius on the floor (an ellipse, 0.42 as deep as wide), damage to the player and
 // to enemies, and for a red barrel caught in a blast, the delay before it goes off too; a red
