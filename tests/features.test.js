@@ -76,6 +76,64 @@ test('a bone throw costs 5% of the rage bar and is refused without it', () => {
   assert.equal(P.rage, BONE_COST - 1);
 });
 
+/** Raithwyn up in a jump (near its top), `press` pressed then. */
+function jumpAndPress(press) {
+  P.who = 'raithwyn';
+  pressed.jump = true;
+  step(0.3);
+  assert.equal(P.state, 'jump');
+  assert.ok(P.z > 90, 'up in the air');
+  pressed[press] = true;
+}
+
+test('Raithwyn throws a bone in a jump (K): from up high, down to its usual height', () => {
+  P.rage = 50;
+  jumpAndPress('bone');
+  const z0 = P.z;
+  step(0.25);
+  const q = G.projs.find((p) => p.k === 'bone');
+  assert.ok(q, 'a bone');
+  assert.equal(P.rage, 50 - BONE_COST, 'it costs what it costs on the ground');
+  assert.ok(q.z > 116 && q.z < z0 + 116 + 1, 'from up where she is');
+  step(0.4);
+  assert.equal(q.z, 116, 'down to its usual height');
+  // and the bone hits an enemy on the ground along her lane
+  freshGame();
+  P.rage = 50;
+  const e = spawn('grunt', 1, P.x + 300, P.y);
+  Object.assign(e, { state: 'chase', cd: 99 });
+  const hp = e.hp;
+  jumpAndPress('bone');
+  step(0.8);
+  assert.ok(e.hp < hp, 'it hits');
+});
+
+test('Raithwyn casts the dark ball in a jump (L); one move a jump; Lucy keeps her guns on the ground', () => {
+  P.rage = MAXR;
+  jumpAndPress('hado');
+  step(0.4);
+  const q = G.projs.find((p) => p.k === 'hado');
+  assert.ok(q, 'a dark ball');
+  assert.equal(q.lv, 1, 'a plain L: level I');
+  assert.ok(P.rage < MAXR);
+  // a second move in the same jump is not done
+  const rage = P.rage;
+  pressed.bone = true;
+  step(0.05);
+  assert.equal(P.rage, rage, 'one move a jump');
+  step(0.6);
+  assert.notEqual(P.state, 'jump', 'landed');
+  // Lucy: K in the air does nothing (her pistol is drawn on the ground)
+  freshGame();
+  P.who = 'lucy';
+  P.ammo = 6;
+  pressed.jump = true;
+  step(0.25);
+  pressed.bone = true;
+  step(0.3);
+  assert.equal(G.projs.filter((p) => p.k === 'bullet').length, 0);
+});
+
 test('the super attack needs a full rage bar', () => {
   P.rage = MAXR - 1;
   pressed.super = keys.super = true;

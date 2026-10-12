@@ -84,8 +84,8 @@ npm run build      # dist/raithwyn.html — opens from disk, works offline
 | Punch (a three-hit chain; in the air, a flying kick); hold it to keep punching on your own | `J` |
 | Launcher: the third hit of the chain with "up" held throws the enemy up for juggling | `W` + `J` |
 | Jump | `Space` |
-| Throw a bone (costs 15 rage, 5% of the bar); Lucy fires her pistol, held to keep firing (seven rounds) | `K` |
-| Dark ball (level I); Lucy: her big gun, shot after shot while held (60 rage a shot), each bullet through a whole line | `L` |
+| Throw a bone (costs 15 rage, 5% of the bar), on the ground or in a jump; Lucy fires her pistol, held to keep firing (seven rounds) | `K` |
+| Dark ball (level I), on the ground or in a jump; Lucy: her big gun, shot after shot while held (60 rage a shot), each bullet through a whole line | `L` |
 | Super attack: hold for 1 s with a full rage bar, hits everyone on screen; Lucy throws a grenade (100 rage) | hold `I` |
 | Pause menu (resume, settings, main menu) / sound | `Esc` or `P` / `M` |
 | Record video: start / stop and download the file | `F9` |
@@ -122,7 +122,16 @@ hits (+3), taking a hit (+6) and rage pickups (+75); after losing a life at leas
 ball to the right, `S` `S` `A` `L` to the left (within 0.8 s of the first `S`). It throws the
 strongest ball the rage pays for: III with a full bar, II with two steps. Nothing on screen
 hints at the combo. The higher the level, the more damage per point of rage and the wider the
-ball, so saving up pays. The super attack only spends its rage when it strikes: if Raithwyn is
+ball, so saving up pays.
+
+**In a jump** Raithwyn can throw a bone (`K`) or a dark ball (`L`, the hidden combo works there
+too) at the same cost as on the ground: one move a jump, as the flying kick (`AIR_SHOT`). The
+throw is quicker than on the ground (0.3 s for the bone, 0.36 s for the ball); what she throws
+leaves her hand up where she is and flies down, as it goes, to the height it has when thrown
+from the ground (420 px/s), so it hits along her lane as usual. Landing before the throw is
+done, she lets it go as she lands. Lucy's `K` and `L` (her guns) stay on the ground.
+
+The super attack only spends its rage when it strikes: if Raithwyn is
 hit while gathering it, or the key is let go too early, the rage stays.
 
 ## Phones and tablets
@@ -797,7 +806,7 @@ What is checked:
 - `style.test.js` — style ranks D…SSS and their bonuses, scenery, the acid puddle, the pause menu.
 - `menu.test.js` — main menu, settings (FPS counter and limit), fighter select (Raithwyn and Lucy are
   playable).
-- `features.test.js` — translations, key layout, bone cost, super attack, the unstoppable end of
+- `features.test.js` — translations, key layout, bone cost, the bone and the dark ball in a jump (Raithwyn only, one a jump), super attack, the unstoppable end of
   Fatso's wind-up, the Necromancer.
 - `level2.test.js` — Old Quarry: the `Z`+`2` secret, the transition after the first stage, the
   floor and the camera path (two slants), fights only on the flat, about 30% longer than the

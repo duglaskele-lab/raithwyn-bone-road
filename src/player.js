@@ -1,5 +1,6 @@
 // Raithwyn: movement, combo, air punch, bone throw, hadouken, super attack, getting hit.
 import {
+  AIR_SHOT,
   BONE_COST,
   BULLET,
   BIG_GUN,
@@ -77,6 +78,91 @@ function hadoMotion(seq) {
   if (seq.length < 3 || G.time - seq[0].t > HADO.motion) return 0;
   const [a, b, c] = seq.map((s) => s.a);
   return a === 'd' && b === 'd' ? (c === 'r' ? 1 : c === 'l' ? -1 : 0) : 0;
+}
+
+/** Her bone leaves her hand (from up in a jump too: then it flies down to its usual height). */
+function releaseBone(p) {
+  SFX.swing();
+  G.projs.push({
+    k: 'bone',
+    x: p.x + p.face * 62,
+    y: p.y,
+    z: p.z + 116,
+    zTo: 116,
+    vzd: AIR_SHOT.drop,
+    vx: p.face * 650,
+    rot: 0,
+    life: 1.05,
+  });
+}
+/** Her dark ball of level p.hl leaves her hands (from a jump, flying down to its height). */
+function releaseHado(p) {
+  SFX.hado();
+  G.shake = 5 * p.hl;
+  if (p.hl === 3) {
+    SFX.nova();
+    G.flash = 0.25;
+  }
+  G.projs.push({
+    k: 'hado',
+    lv: p.hl,
+    x: p.x + p.face * (150 + 20 * p.hl),
+    y: p.y,
+    z: p.z + 104,
+    zTo: 104,
+    vzd: AIR_SHOT.drop,
+    vx: p.face * 660,
+    life: 2.4,
+    hit: new Set(),
+  });
+}
+/**
+ * Raithwyn in a jump: K throws a bone, L a dark ball (one move a jump, as the jump attack).
+ * The cost is as on the ground; true if she does it.
+ */
+function startAirShot(p, b) {
+  p.buf = null;
+  if (b === 'bone') {
+    if (p.boneCd > 0) return false;
+    if (p.rage < BONE_COST) {
+      SFX.deny();
+      return false;
+    }
+    p.rage -= BONE_COST;
+    p.boneCd = 0.5;
+  } else {
+    const most = hadoLevel(p.rage);
+    if (!most) {
+      SFX.deny();
+      return false;
+    }
+    p.hl = p.bufDir ? most : 1;
+    if (p.bufDir) p.face = p.bufDir;
+    p.rage -= RL[p.hl - 1];
+    p.inv = Math.max(p.inv, 0.35);
+  }
+  p.airUsed = 1;
+  p.airS = { k: b, t: 0, sw: 0 };
+  return true;
+}
+/** Her throw in the air: the throw's frames, quicker; the bone or the ball leaves her hand. */
+function airShot(p, dt) {
+  const a = p.airS,
+    bone = a.k === 'bone',
+    fr = bone ? D.thr : D.hado,
+    sum = fr.reduce((u, v) => u + v, 0),
+    i = tl(fr, (a.t += dt) * (sum / (bone ? AIR_SHOT.bone : AIR_SHOT.hado)));
+  if (i < 0) {
+    p.airS = null;
+    return;
+  }
+  p.an = [bone ? 'throw' : 'hado', i];
+  if (!bone && i >= 1 && i <= 3 && fxRandom() < 0.6)
+    motes(p.x + p.face * (i === 1 ? 40 : 150), p.y - p.z - 102, 1, 90);
+  if (i >= (bone ? 2 : 4) && !a.sw) {
+    a.sw = 1;
+    (bone ? releaseBone : releaseHado)(p);
+  }
 }
 
 // The dark ball of level p.hl leaves her hands: its rage is spent now.
@@ -168,6 +254,7 @@ export function updPlayer(dt) {
         p.vyd = my * 70;
         p.airT = null;
         p.airUsed = 0;
+        p.airS = null;
       } else if (b === 'atk') startAtk(mx);
       else if (b === 'bone' && p.who === 'lucy' && p.finT > 0) startFinShot();
       else if (b === 'bone' && p.who === 'lucy') {
@@ -246,6 +333,10 @@ export function updPlayer(dt) {
         p.x += p.vx * dt;
         p.y += p.vyd * dt;
         p.an = ['jump', p.vz > 230 ? 1 : p.vz > -230 ? 2 : 3];
+        // Raithwyn's bone (K) and dark ball (L) in the air
+        if (!p.airUsed && p.who !== 'lucy' && p.bufT > 0 && (p.buf === 'bone' || p.buf === 'hado'))
+          startAirShot(p, p.buf);
+        if (p.airS) airShot(p, dt);
         if (!p.airUsed && p.buf === 'atk' && p.bufT > 0) {
           p.buf = null;
           p.airUsed = 1;
@@ -263,6 +354,9 @@ export function updPlayer(dt) {
           p.ph = 2;
           p.t = 0;
           dust(p.x, p.y, 4);
+          // landed before her throw was done: it leaves her hand now
+          if (p.airS && !p.airS.sw) (p.airS.k === 'bone' ? releaseBone : releaseHado)(p);
+          p.airS = null;
         }
       } else {
         p.an = ['jump', 4];
@@ -400,16 +494,7 @@ export function updPlayer(dt) {
         });
       } else if (!gun && i >= 2 && !p.sw) {
         p.sw = 1;
-        SFX.swing();
-        G.projs.push({
-          k: 'bone',
-          x: p.x + p.face * 62,
-          y: p.y,
-          z: 116,
-          vx: p.face * 650,
-          rot: 0,
-          life: 1.05,
-        });
+        releaseBone(p);
       }
       break;
     }
@@ -507,22 +592,7 @@ export function updPlayer(dt) {
         motes(p.x + p.face * (i === 1 ? 40 : 150), p.y - 102, 1, 90);
       if (i >= 4 && !p.sw) {
         p.sw = 1;
-        SFX.hado();
-        G.shake = 5 * p.hl;
-        if (p.hl === 3) {
-          SFX.nova();
-          G.flash = 0.25;
-        }
-        G.projs.push({
-          k: 'hado',
-          lv: p.hl,
-          x: p.x + p.face * (150 + 20 * p.hl),
-          y: p.y,
-          z: 104,
-          vx: p.face * 660,
-          life: 2.4,
-          hit: new Set(),
-        });
+        releaseHado(p);
       }
       break;
     }
