@@ -11,6 +11,7 @@ import { hitPlayer } from '../combat.js';
 import { scoreMult } from '../style.js';
 import { jawaLogo } from '../bg3.js';
 import { defineState, FOES } from './registry.js';
+import { meetsPlayer } from '../height.js';
 import { faceP, go, lob } from './kit.js';
 
 /** A point a fraction `u` of the way from `p` to `q`. */
@@ -298,7 +299,7 @@ export function fireBolt(e, x, z, speed, dmg, col = '#ff4fb4', knock = false, qu
 }
 /** The bolt flies on; it hurts the player it meets, and is gone off the screen. */
 export function boltFly(q) {
-  if (Math.abs(P.x - q.x) < 24 && Math.abs(P.y - q.y) < 20 && P.z < q.z + 30)
+  if (Math.abs(P.x - q.x) < 24 && Math.abs(P.y - q.y) < 20 && meetsPlayer(q.z - 12, q.z + 12))
     if (hitPlayer(q.dmg, Math.sign(q.vx), q.knock)) {
       q.life = 0;
       spark(q.x, q.y - q.z, q.col, false);

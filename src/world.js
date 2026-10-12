@@ -9,6 +9,7 @@ import {
   GRENADE,
   GT,
   HADO,
+  HEIGHT,
   JNADE,
   LUCY,
   PROS,
@@ -39,6 +40,7 @@ import { fallSign } from './props3.js';
 import { beepTimer, boltFly } from './foes/robot.js';
 import { wallStops } from './foes/barrier.js';
 import { explode, updFuses } from './blast.js';
+import { meetsPlayer, reaches } from './height.js';
 import {
   camTo,
   floorClamp,
@@ -279,11 +281,12 @@ export function update(dt) {
       } else if (q.life < 0.25) q.z -= 260 * dt;
       for (const e of G.enemies.concat(G.props)) {
         if (e.dead) continue;
-        const zone = e.T?.dragon
-          ? dragonZone(e, q.x - 16, q.x + 16, q.y, 22)
-          : Math.abs(e.x - q.x) < e.w + 16 && Math.abs(e.y - q.y) < 22 && (e.z < 90 || e.T?.flyer)
-            ? 'body'
-            : null;
+        const [lo, hi] = [q.z - HEIGHT.bone, q.z + HEIGHT.bone],
+          zone = e.T?.dragon
+            ? dragonZone(e, q.x - 16, q.x + 16, q.y, 22, lo, hi)
+            : Math.abs(e.x - q.x) < e.w + 16 && Math.abs(e.y - q.y) < 22 && reaches(e, lo, hi, true)
+              ? 'body'
+              : null;
         if (zone) {
           if (hurtEnemy(e, 7 * dmgMult() * headBonus(e, zone), Math.sign(q.vx), false, 'bone')) {
             if (!e.isProp) {
@@ -318,11 +321,13 @@ export function update(dt) {
         .concat(G.props)
         .filter((e) => !e.dead)
         .map((e) => {
-          if (e.T?.dragon) return [e, dragonZone(e, q.x - 20, q.x + 20, q.y, 22), q.x];
+          const lo = q.z - HEIGHT.bullet,
+            hi = q.z + HEIGHT.bullet;
+          if (e.T?.dragon) return [e, dragonZone(e, q.x - 20, q.x + 20, q.y, 22, lo, hi), q.x];
           const ahead = (e.x - from) * s,
             hit =
               Math.abs(e.y - q.y) < 22 &&
-              (e.z < 120 || e.T?.flyer) &&
+              reaches(e, lo, hi, true) &&
               (q.x - e.x) * s >= 0 &&
               ahead >= -e.w;
           return [e, hit ? 'body' : null, e.x];
@@ -443,9 +448,12 @@ export function update(dt) {
         if (e.dead || q.hit.has(e)) continue;
         const r = [34, 50, 74][q.lv - 1],
           dy = [32, 46, 72][q.lv - 1],
+          // the ball's own size, up and down: cast high in a jump it flies over the short
           zone = e.T?.dragon
-            ? dragonZone(e, q.x - r, q.x + r, q.y, dy)
-            : Math.abs(e.x - q.x) < e.w + r && Math.abs(e.y - q.y) < dy
+            ? dragonZone(e, q.x - r, q.x + r, q.y, dy, q.z - r, q.z + r)
+            : Math.abs(e.x - q.x) < e.w + r &&
+                Math.abs(e.y - q.y) < dy &&
+                reaches(e, q.z - r, q.z + r, true)
               ? 'body'
               : null;
         if (zone) {
@@ -481,7 +489,7 @@ export function update(dt) {
       q.y += q.vy * dt;
       q.vz -= ACID.g * dt;
       q.z += q.vz * dt;
-      if (Math.abs(P.x - q.x) < 26 && Math.abs(P.y - q.y) < 20 && q.z < 140 && P.z < 110)
+      if (Math.abs(P.x - q.x) < 26 && Math.abs(P.y - q.y) < 20 && meetsPlayer(q.z - 20, q.z + 20))
         if (hitPlayer(ZOMBIE.headDmg, Math.sign(q.vx), false)) q.life = 0;
       if (q.life > 0 && q.z <= 0) q.life = 0;
       if (q.life <= 0)
@@ -625,7 +633,12 @@ export function update(dt) {
           s: fxRnd(3, 5),
           col: '#9dff4a',
         });
-      if (!q.hitP && Math.abs(P.x - q.x) < 30 && Math.abs(P.y - q.y) < 22 && q.z < 130 && P.z < 110)
+      if (
+        !q.hitP &&
+        Math.abs(P.x - q.x) < 30 &&
+        Math.abs(P.y - q.y) < 22 &&
+        meetsPlayer(q.z - 22, q.z + 22)
+      )
         q.hitP = hitPlayer(10, Math.sign(q.vx), true);
       if (q.z <= 0) {
         q.life = 0;
@@ -659,8 +672,7 @@ export function update(dt) {
         !q.hitP &&
         Math.abs(P.x - q.x) < 26 &&
         Math.abs(P.y - q.y) < 20 &&
-        q.z < 130 &&
-        P.z < 110
+        meetsPlayer(q.z - 22, q.z + 22)
       ) {
         if (hitPlayer(ACID.hit, Math.sign(q.vx), false)) {
           q.hitP = true;
@@ -716,7 +728,12 @@ export function update(dt) {
         });
       const r = [34, 50, 74][q.lv - 1],
         dy = [26, 36, 56][q.lv - 1];
-      if (!q.hitP && Math.abs(P.x - q.x) < r && Math.abs(P.y - q.y) < dy && P.z < 130)
+      if (
+        !q.hitP &&
+        Math.abs(P.x - q.x) < r &&
+        Math.abs(P.y - q.y) < dy &&
+        meetsPlayer(q.z - r, q.z + r)
+      )
         if (evilHitP(q.owner, q.dmg, Math.sign(q.vx), q.lv > 1)) {
           q.hitP = true;
           if (q.lv < 3) q.life = 0;
@@ -731,7 +748,11 @@ export function update(dt) {
       // an enemy's bone; Raithwyn's (with an owner) may drift in depth and hits her skeleton
       q.rot += dt * 16 * Math.sign(q.vx);
       q.y += (q.vy ?? 0) * dt;
-      if (Math.abs(P.x - q.x) < 24 && Math.abs(P.y - q.y) < 19 && P.z < 95) {
+      if (
+        Math.abs(P.x - q.x) < 24 &&
+        Math.abs(P.y - q.y) < 19 &&
+        meetsPlayer(q.z - HEIGHT.bone, q.z + HEIGHT.bone)
+      ) {
         const dmg = q.dmg ?? 7;
         if (
           q.owner

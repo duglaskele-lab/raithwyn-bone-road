@@ -51,6 +51,23 @@ export const HADO = { motion: 0.8, dmg: [50, 110, 180] };
 // quicker than on the ground. The bone flies down at `angle` degrees below the level, straight,
 // until it strikes the ground and breaks; the ball flies straight on at the height she cast it.
 export const AIR_SHOT = { bone: 0.3, hado: 0.36, angle: 30 };
+// Heights (see height.js): a standing enemy is `body` px tall (times its scale; TYPES `height`
+// for one that is not), never less than `min`, one lying on the ground `down`; the heroine is `player` tall, her legs
+// tucked `tuck` px up in a jump. Her blow from the ground covers the heights `punch` (above her
+// feet), her flying kick `kick` (above her feet, up in the air); a bone `bone` px either way of
+// its height, a bullet `bullet`, a dark ball its own size (34, 50, 74 by level).
+export const HEIGHT = {
+  body: 160,
+  min: 150,
+  down: 50,
+  player: 150,
+  tuck: 40,
+  punch: [40, 150],
+  kick: [0, 130],
+  bone: 20,
+  bullet: 14,
+  buck: 40,
+};
 // Super attack: hold I this long with a full rage bar; it hits everything on screen.
 export const SUPER_HOLD = 1.0,
   SUPER_DMG = 150;

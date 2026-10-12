@@ -13,6 +13,7 @@ import { SFX } from '../audio.js';
 import { hitPlayer, stunPlayer } from '../combat.js';
 import { scoreMult } from '../style.js';
 import { defineFoe } from './registry.js';
+import { meetsPlayer } from '../height.js';
 import { faceP, go, moveTo } from './kit.js';
 
 /** How much of her can be seen (and hit) now: 0..1. */
@@ -189,7 +190,7 @@ export function skullBall(q, dt) {
     !q.hit &&
     Math.abs(P.x - q.x) < 28 &&
     Math.abs(P.y - q.y) < 24 &&
-    P.z < q.z + 40 &&
+    meetsPlayer(q.z - 24, q.z + 24) &&
     hitPlayer(BANSHEE.skullDmg, Math.sign(q.vx), true)
   ) {
     q.hit = true;
