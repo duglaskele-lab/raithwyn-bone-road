@@ -245,6 +245,8 @@ export function update(dt) {
   for (const q of G.projs) {
     q.life -= dt;
     q.x += q.vx * dt;
+    // thrown from a jump: down to its usual height as it flies
+    if (q.zTo != null && q.z > q.zTo) q.z = Math.max(q.zTo, q.z - q.vzd * dt);
     // a barrier heavy's wall of light stops the player's shots
     if (wallStops(q)) {
       q.life = 0;
