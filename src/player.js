@@ -80,7 +80,7 @@ function hadoMotion(seq) {
   return a === 'd' && b === 'd' ? (c === 'r' ? 1 : c === 'l' ? -1 : 0) : 0;
 }
 
-/** Her bone leaves her hand (from up in a jump too: then it flies down to its usual height). */
+/** Her bone leaves her hand; thrown from a jump it flies down at AIR_SHOT.angle to the ground. */
 function releaseBone(p) {
   SFX.swing();
   G.projs.push({
@@ -88,14 +88,14 @@ function releaseBone(p) {
     x: p.x + p.face * 62,
     y: p.y,
     z: p.z + 116,
-    zTo: 116,
-    vzd: AIR_SHOT.drop,
+    // down at the angle, as fast as it flies forward
+    vzd: p.z > 0 ? 650 * Math.tan((AIR_SHOT.angle * Math.PI) / 180) : 0,
     vx: p.face * 650,
     rot: 0,
     life: 1.05,
   });
 }
-/** Her dark ball of level p.hl leaves her hands (from a jump, flying down to its height). */
+/** Her dark ball of level p.hl leaves her hands (from a jump, straight on at that height). */
 function releaseHado(p) {
   SFX.hado();
   G.shake = 5 * p.hl;
@@ -109,8 +109,6 @@ function releaseHado(p) {
     x: p.x + p.face * (150 + 20 * p.hl),
     y: p.y,
     z: p.z + 104,
-    zTo: 104,
-    vzd: AIR_SHOT.drop,
     vx: p.face * 660,
     life: 2.4,
     hit: new Set(),

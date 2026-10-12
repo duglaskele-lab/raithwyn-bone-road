@@ -86,18 +86,23 @@ function jumpAndPress(press) {
   pressed[press] = true;
 }
 
-test('Raithwyn throws a bone in a jump (K): from up high, down to its usual height', () => {
+test('Raithwyn throws a bone in a jump (K): down at 30 degrees, it breaks on the ground', () => {
   P.rage = 50;
   jumpAndPress('bone');
-  const z0 = P.z;
   step(0.25);
   const q = G.projs.find((p) => p.k === 'bone');
   assert.ok(q, 'a bone');
   assert.equal(P.rage, 50 - BONE_COST, 'it costs what it costs on the ground');
-  assert.ok(q.z > 116 && q.z < z0 + 116 + 1, 'from up where she is');
-  step(0.4);
-  assert.equal(q.z, 116, 'down to its usual height');
-  // and the bone hits an enemy on the ground along her lane
+  const [x0, z0] = [q.x, q.z];
+  step(0.1);
+  const slope = (z0 - q.z) / Math.abs(q.x - x0);
+  assert.ok(Math.abs(slope - Math.tan(Math.PI / 6)) < 0.02, 'down at 30 degrees');
+  const debris = G.debris.length;
+  step(1);
+  assert.ok(!G.projs.includes(q), 'gone');
+  assert.ok(Math.abs(q.x - P.x) < 520, 'it struck the ground, short of its full flight');
+  assert.ok(G.debris.length > debris, 'broken on the ground');
+  // on its way down it hits an enemy on the ground along her lane
   freshGame();
   P.rage = 50;
   const e = spawn('grunt', 1, P.x + 300, P.y);
@@ -115,6 +120,10 @@ test('Raithwyn casts the dark ball in a jump (L); one move a jump; Lucy keeps he
   const q = G.projs.find((p) => p.k === 'hado');
   assert.ok(q, 'a dark ball');
   assert.equal(q.lv, 1, 'a plain L: level I');
+  const z = q.z;
+  assert.ok(z > 104, 'up at the height she cast it');
+  step(0.1);
+  assert.equal(q.z, z, 'straight on at that height');
   assert.ok(P.rage < MAXR);
   // a second move in the same jump is not done
   const rage = P.rage;
