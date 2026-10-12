@@ -161,24 +161,46 @@ function prop(decor, dx) {
   return u;
 }
 
-test('things to break have heights: a bone flies over a barrel but breaks on a big grave', () => {
-  const barrel = prop('barrel', 200),
+test('things to break have heights: a bone flies over a bench but breaks on a big grave', () => {
+  const bench = prop('bench', 200),
     tomb = prop('tomb', 420);
-  assert.deepEqual(bodyBand(barrel), [0, DECOR.barrel.h]);
+  assert.deepEqual(bodyBand(bench), [0, DECOR.bench.h]);
   G.projs.push({ k: 'bone', x: P.x + 62, y: P.y, z: 116, vx: 650, rot: 0, life: 1.05 });
   step(0.7);
-  assert.equal(barrel.hp, DECOR.barrel.hp, 'over the barrel');
+  assert.equal(bench.hp, DECOR.bench.hp, 'over the bench');
   assert.equal(tomb.hp, DECOR.tomb.hp - 1, 'into the grave');
 });
 
-test('a blow from the ground breaks a barrel; a flying kick from high up passes over it', () => {
-  const barrel = prop('barrel', 60);
+test("Old Quarry's barrels are tall enough for Lucy's shot; a power cell is not", async () => {
+  const { BULLET } = await import('../src/config.js');
+  const lo = BULLET.z - HEIGHT.bullet,
+    hi = BULLET.z + HEIGHT.bullet;
+  for (const k of ['barrel', 'tnt']) assert.ok(reaches(prop(k, 200), lo, hi, true), k);
+  assert.ok(!reaches(prop('cell', 300), lo, hi, true), 'over the power cell');
+  // in play: her bullet sets a red barrel off
+  G.props = [];
+  const tnt = prop('tnt', 260);
+  G.projs.push({
+    k: 'bullet',
+    x: P.x + 58,
+    y: P.y,
+    z: BULLET.z,
+    vx: BULLET.speed,
+    rot: 0,
+    life: 0.45,
+  });
+  step(0.2);
+  assert.ok(tnt.fuseT !== undefined || tnt.dead, 'lit');
+});
+
+test('a blow from the ground breaks a bench; a flying kick from high up passes over it', () => {
+  const bench = prop('bench', 60);
   Object.assign(P, { z: 100, hit: new Set() });
   strike({ x0: 0, x1: 122, dy: 28, dmg: 12, knock: true, rage: 0, src: 'air' });
-  assert.equal(barrel.hp, DECOR.barrel.hp, 'over it');
+  assert.ok(!bench.dead, 'over it');
   Object.assign(P, { z: 0, hit: new Set() });
   strike({ x0: 0, x1: 100, dy: 27, dmg: 8, knock: false, rage: 0 });
-  assert.equal(barrel.hp, DECOR.barrel.hp - 1, 'a punch');
+  assert.ok(bench.dead, 'a punch');
   // an urn, low on the ground, is reached by a blow but not by a dark ball
   const urn = { isProp: 1, x: P.x + 250, y: P.y, z: 0, w: 16 };
   assert.ok(reaches(urn, 40, 150));

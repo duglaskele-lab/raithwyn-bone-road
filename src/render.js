@@ -294,61 +294,66 @@ export function drawDecor(u) {
       ctx.stroke();
     }
   } else if (u.decor === 'barrel' || u.decor === 'tnt') {
-    // a barrel: staves bulging out, iron hoops; the red one has TNT on it and a fuse
+    // a tall barrel: staves bulging out, three iron hoops; the red one has TNT on it and a fuse
     const red = u.decor === 'tnt',
-      body = red ? '#b02a1e' : D.col;
+      body = red ? '#b02a1e' : D.col,
+      H = D.h;
     ctx.beginPath();
-    ctx.moveTo(-20, 0);
-    ctx.quadraticCurveTo(-27, -27, -20, -54);
-    ctx.lineTo(20, -54);
-    ctx.quadraticCurveTo(27, -27, 20, 0);
+    ctx.moveTo(-21, 0);
+    ctx.quadraticCurveTo(-30, -H / 2, -21, -H);
+    ctx.lineTo(21, -H);
+    ctx.quadraticCurveTo(30, -H / 2, 21, 0);
     ctx.closePath();
     fill(body);
     ctx.strokeStyle = 'rgba(23,21,29,.35)';
     ctx.lineWidth = 1.5;
-    for (const sx of [-12, -4, 4, 12]) {
+    for (const sx of [-13, -4.5, 4.5, 13]) {
       ctx.beginPath();
       ctx.moveTo(sx * 0.9, -2);
-      ctx.quadraticCurveTo(sx * 1.3, -27, sx * 0.9, -52);
+      ctx.quadraticCurveTo(sx * 1.3, -H / 2, sx * 0.9, -H + 2);
       ctx.stroke();
     }
     ctx.fillStyle = fl ? '#fff' : '#4a4850';
-    for (const hy of [-46, -10]) ctx.fillRect(-23, hy - 2, 46, 5);
+    for (const hy of [-H + 10, -H / 2, -12]) {
+      const w = hy === -H / 2 ? 27 : 24;
+      ctx.fillRect(-w, hy - 2, w * 2, 5);
+    }
     ctx.beginPath();
-    ctx.ellipse(0, -54, 20, 5, 0, 0, TAU);
+    ctx.ellipse(0, -H, 21, 5, 0, 0, TAU);
     fill(red ? '#7a1a12' : '#6a4428');
     if (red) {
       ctx.fillStyle = '#f2e2b0';
-      ctx.font = `900 13px ${FONT}`;
+      ctx.font = `900 15px ${FONT}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('TNT', 0, -28);
+      ctx.fillText('TNT', 0, -H * 0.3);
+      ctx.fillText('TNT', 0, -H * 0.72);
       // the fuse; lit, it spits sparks and the barrel blinks
       ctx.strokeStyle = '#2c2a2e';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(4, -56);
-      ctx.quadraticCurveTo(10, -66, 6, -72);
+      ctx.moveTo(4, -H - 2);
+      ctx.quadraticCurveTo(10, -H - 12, 6, -H - 18);
       ctx.stroke();
       if (u.fuseT !== undefined) {
         ctx.fillStyle = Math.floor(G.time * 16) % 2 ? '#fff6c0' : '#ff8a2a';
         ctx.beginPath();
-        ctx.arc(6, -73, 4 + Math.random() * 2, 0, TAU);
+        ctx.arc(6, -H - 19, 4 + Math.random() * 2, 0, TAU);
         ctx.fill();
         if (Math.floor(G.time * 10) % 2) {
           ctx.fillStyle = 'rgba(255,240,180,.35)';
-          ctx.fillRect(-24, -56, 48, 56);
+          ctx.fillRect(-26, -H - 2, 52, H + 2);
         }
       }
     } else if (u.hp < D.hp) {
       ctx.strokeStyle = OL;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(-6, -50);
-      ctx.lineTo(2, -36);
-      ctx.lineTo(-4, -24);
-      ctx.moveTo(10, -8);
-      ctx.lineTo(4, -20);
+      ctx.moveTo(-6, -H + 6);
+      ctx.lineTo(2, -H * 0.66);
+      ctx.lineTo(-4, -H * 0.44);
+      ctx.moveTo(10, -10);
+      ctx.lineTo(4, -H * 0.3);
       ctx.stroke();
     }
   } else if (u.decor === 'bench') {
