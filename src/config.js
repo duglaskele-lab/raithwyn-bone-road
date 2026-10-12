@@ -477,16 +477,17 @@ export const CHEF = { cd: [2.5, 4.5], hits: 3, gap: 0.2, dmg: 7 };
 // fissure: arm up `wind` s, then `n` eruptions `step` px apart, `gap` s apart, along its lane
 // (`w` px wide; three lanes `lanes` px apart in the second phase). The rush: `wind` s cocked,
 // then the rocket fist at `speed` px/s. The hop-back punch: when she is within `near` px it
-// sinks into a sumo stance (`wind` s), hops back `dist` px (`air` s, `h` px high; towards the
-// roomier side of the screen, over her if it must) and drives its fist at her at `speed` px/s.
+// hops back at once, `dist` px (`air` s, `h` px high; towards the roomier side of the screen,
+// over her if it must), sinks into a sumo stance `wind` s and drives its fist at her at
+// `speed` px/s.
 // The sky slam (second phase only): within `near` px, crouched `wind` s, it leaps `h` px up
 // (`up` s), hangs over her `track` s (its shadow follows her), then drops in `fall` s: a ring of
-// shock `r` round (`dmg`), `rec` s to get up. From `phase2` of its health it is `p2speed` times
-// quicker in its moves and waits `p2cd` as long between them.
+// shock `r` round (`dmg`), `rec` s to get up. Its moves go at `p1speed` of their speed in the
+// first phase; from `phase2` of its health at `p2speed`, and it waits `p2cd` as long between them.
 export const BREAKER = {
   hop: {
     near: 240,
-    wind: 0.5,
+    wind: 0.4,
     air: 0.45,
     h: 110,
     dist: 330,
@@ -512,7 +513,9 @@ export const BREAKER = {
   fissure: { wind: 0.7, n: 7, step: 100, gap: 0.09, w: 40, dmg: 14, lanes: 55, cd: [4, 6.5] },
   rush: { wind: 0.5, speed: 820, dmg: 16, cd: [4, 6.5] },
   phase2: 0.5,
-  p2speed: 1.3,
+  // a tenth slower than it was (1) in the first phase, a fifth slower (1.3) in the second
+  p1speed: 0.9,
+  p2speed: 1.04,
   p2cd: 0.7,
 };
 // The mech samurai (Midnight City's last boss). Its cut: `wind` s raised, then it sweeps `reach` px
@@ -525,18 +528,23 @@ export const BREAKER = {
 // and the leap (`wind`, `air`, `h`, `r`, `dmg`). From `p3`: its open core takes `core` times
 // the harm. Beaten, it kneels `dieT` s before it bursts.
 // Its two drones (part of it, never to be hit) hover `side` px either side of it, `z` up; every
-// `cd` s they attack. The sweep: they mark two lanes (hers, and one `off` px beside it), aim
-// `aim` s, then each drives its beam along its lane for `t` s at `speed` px/s from opposite
-// sides (`r` px wide, `dmg`). The tripwire: they fly to the screen's two edges, `z` up, along
-// her lane (following her the first `follow` of `aim` s), then a beam between them for `t` s
-// (`dy` px either way, `dmg`); from its second phase they do it twice.
+// `cd` s they shoot as the watcher drones do (DRONE): a mark under her follows her `aim` s,
+// holds still `lock` s, then a laser there (`r` px round, `dmg`) for `beam` s; `n1` shots in
+// turn `gap` s apart (`n2` from its second phase), each drone keeping `keep` px off its mark.
 export const MECHA = {
   drone: {
     side: 130,
     z: 250,
-    cd: [6, 9],
-    sweep: { aim: 0.75, t: 1.3, speed: 560, off: 64, r: 36, dmg: 10 },
-    trip: { aim: 0.9, follow: 0.6, t: 0.35, z: 70, dy: 22, dmg: 14 },
+    keep: 120,
+    cd: [5, 8],
+    aim: 0.9,
+    lock: 0.35,
+    beam: 0.3,
+    r: 44,
+    dmg: 10,
+    gap: 0.7,
+    n1: 2,
+    n2: 4,
   },
   arc: { wind: 0.55, reach: 230, dy: 70, dmg: 18 },
   iai: { wind: 0.7, wind3: 0.4, speed: 2200, dy: 32, dmg: 22, breath: 0.35, cd: [3.5, 5.5] },
@@ -978,7 +986,7 @@ export const TYPES = {
   },
   // the mini-boss of Midnight City: the breaker android with one enormous arm (BREAKER)
   breaker: {
-    hp: 900,
+    hp: 720,
     scale: 1.3,
     speed: 96,
     dmg: 18,

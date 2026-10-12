@@ -7,12 +7,12 @@
 //   - it punches the ground and a fissure of eruptions runs along her lane (jump it, or step
 //     out of the lane); in its second phase three fissures run side by side;
 //   - it fires its fist like a rocket and charges straight through;
-//   - close up, it sinks into a sumo stance, hops back (towards the roomier side of the screen)
-//     and drives its fist at her;
+//   - close up, it hops back at once (towards the roomier side of the screen), sinks into a
+//     sumo stance and drives its fist at her;
 //   - in its second phase, close up, it leaps high out of sight and drops on her, a wide ring
 //     of shock (its shadow follows her while it is up there).
 // At half health the arm glows white-hot and it gets faster. Its attacks go on through blows.
-import { BREAKER, OL, TAU, W } from '../config.js';
+import { BREAKER, OL, TAU, TYPES, W } from '../config.js';
 import { clamp, fxRandom, fxRnd, rnd } from '../util.js';
 import { APP, G, P } from '../state.js';
 import { ctx } from '../gfx.js';
@@ -108,12 +108,12 @@ export default defineFoe('breaker', {
       },
     },
     {
-      // close up: the sumo stance, a hop back and the fist
+      // close up: a hop back at once, the sumo stance, and the fist
       when: (e, s) => e.hopCd <= 0 && !s.pdown && s.adx < B.hop.near && s.ady < 60 && onScreen(e),
       go(e) {
         faceP(e);
-        go(e, 'bhprep', 0, { engage: false });
-        SFX.stance();
+        go(e, 'bhop', 0, { engage: false, x0: e.x, hx: hopTarget(e) });
+        SFX.jump();
       },
     },
     {
@@ -165,7 +165,16 @@ export default defineFoe('breaker', {
       SFX.nova();
       G.flash = Math.max(G.flash, 0.3);
     }
-    e.speedK = e.phase2 ? B.p2speed : 1;
+    e.speedK = e.phase2 ? B.p2speed : B.p1speed;
+    // its plain blow keeps the same pace as its moves
+    if (e.T.speedK !== e.speedK)
+      e.T = {
+        ...e.T,
+        speedK: e.speedK,
+        wind: TYPES.breaker.wind / e.speedK,
+        act: TYPES.breaker.act / e.speedK,
+        rec: TYPES.breaker.rec / e.speedK,
+      };
     // steam from the arm's vents
     if (fxRandom() < (e.phase2 ? 0.35 : 0.15))
       G.parts.push({
@@ -205,7 +214,7 @@ export default defineFoe('breaker', {
     bland(e) {
       if (e.t > (e.recT ?? B.leap.rec) / e.speedK) go(e, 'chase', 0, { recT: undefined });
     },
-    // the hop-back punch: the stance...
+    // the hop-back punch: after the hop, the stance...
     bhprep(e) {
       faceP(e);
       if (fxRandom() < 0.6) {
@@ -224,11 +233,11 @@ export default defineFoe('breaker', {
         });
       }
       if (e.t > B.hop.wind / e.speedK) {
-        go(e, 'bhop', 0, { x0: e.x, hx: hopTarget(e) });
-        SFX.jump();
+        go(e, 'bhrun', 0, { rdir: e.face, hitDone: false, rx0: e.x });
+        SFX.dash();
       }
     },
-    // ...the hop...
+    // the hop back (first)
     bhop: {
       pin: true,
       tick(e) {
@@ -240,8 +249,8 @@ export default defineFoe('breaker', {
           dust(e.x, e.y, 8);
           SFX.thud();
           faceP(e);
-          go(e, 'bhrun', 0, { rdir: e.face, hitDone: false, rx0: e.x });
-          SFX.dash();
+          go(e, 'bhprep', 0);
+          SFX.stance();
         }
       },
     },
@@ -463,8 +472,8 @@ export default defineFoe('breaker', {
       // the sumo stance: a deep squat, legs wide, the fist drawn back, the other hand out
       bhprep: {
         set: { lF: [1.15, 0.05], lB: [-1.15, -0.05], aB: [1.3, 1.7], lean: 0.32, head: 0 },
-        tween: { dur: 0.25, from: { aF: 'pre' }, to: { aF: [-1.1, -0.3] } },
-        shake: { after: 0.3, amp: 0.05, rate: 60, fields: ['aF'] },
+        tween: { dur: 0.2, from: { aF: [-1.0, -0.3] }, to: { aF: [-1.1, -0.3] } },
+        shake: { after: 0.2, amp: 0.05, rate: 60, fields: ['aF'] },
       },
       bhop: {
         set: { lF: [0.8, -0.5], lB: [-0.3, -1.3], aF: [-1.0, -0.3], aB: [1.0, 1.4], lean: 0 },
@@ -553,46 +562,69 @@ function bigArm(c) {
   ctx.restore();
 }
 
-/** Its body, a sumo wrestler's: a round iron belly, the belt (mawashi) of orange and black with
- *  its tassels hanging in front, the core glowing in the middle. In the hip frame. */
+/** Its body, a sumo wrestler's: a broad chest plate over a fat iron ball of a belly at the
+ *  base of the body, round its hips, the belt (mawashi) of orange and black under it with its
+ *  tassels hanging in front, the core glowing for a navel. In the hip frame. */
 function sumoBody(c) {
   const { o, fl, e } = c;
   const hot = e.phase2 ? '#fff1c2' : A.glow;
-  ctx.save();
-  ctx.rotate(o.lean);
   ctx.lineJoin = 'round';
   ctx.strokeStyle = OL;
   ctx.lineWidth = 2.6;
-  // the belly
+  // the chest, leaning with the spine
+  ctx.save();
+  ctx.rotate(o.lean);
   ctx.fillStyle = fl ? '#fff' : A.body;
   ctx.beginPath();
-  ctx.ellipse(6, -38, 42, 44, 0, 0, TAU);
+  ctx.moveTo(-22, -60);
+  ctx.quadraticCurveTo(6, -68, 30, -58);
+  ctx.lineTo(34, -26);
+  ctx.lineTo(-24, -26);
+  ctx.closePath();
   ctx.fill();
   ctx.stroke();
   if (!fl) {
-    // plates riveted across it, a sheen on top
+    ctx.strokeStyle = 'rgba(255,255,255,.28)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-14, -58);
+    ctx.quadraticCurveTo(6, -63, 24, -56);
+    ctx.stroke();
+    jawaLogo(4, -44, 8);
+  }
+  ctx.restore();
+  // the belly: a fat ball round its hips
+  const bx = 12 + Math.sin(o.lean) * 14,
+    by = -8;
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2.6;
+  ctx.fillStyle = fl ? '#fff' : A.body;
+  ctx.beginPath();
+  ctx.ellipse(bx, by, 46, 40, 0, 0, TAU);
+  ctx.fill();
+  ctx.stroke();
+  if (!fl) {
+    // its plates, rivets, a sheen
     ctx.strokeStyle = 'rgba(0,0,0,.35)';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.ellipse(6, -38, 30, 44, 0, -1.2, 1.2);
-    ctx.moveTo(-20, -74);
-    ctx.quadraticCurveTo(10, -66, 40, -72);
+    ctx.ellipse(bx, by, 32, 40, 0, -1.25, 1.25);
     ctx.stroke();
     ctx.fillStyle = '#9aa0aa';
     for (const [x, y] of [
-      [-22, -58],
-      [-26, -30],
-      [36, -60],
-      [40, -30],
+      [-30, -26],
+      [-34, 2],
+      [40, -26],
+      [44, 2],
     ]) {
       ctx.beginPath();
-      ctx.arc(x, y, 2.2, 0, TAU);
+      ctx.arc(bx - 6 + x, by + y, 2.2, 0, TAU);
       ctx.fill();
     }
     ctx.strokeStyle = 'rgba(255,255,255,.28)';
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.arc(6, -38, 34, -2.6, -1.6);
+    ctx.arc(bx, by, 36, -2.7, -1.7);
     ctx.stroke();
     // the core, its navel
     ctx.fillStyle = hot;
@@ -601,36 +633,38 @@ function sumoBody(c) {
       ctx.shadowBlur = 14;
     }
     ctx.beginPath();
-    ctx.arc(24, -34, 7, 0, TAU);
+    ctx.arc(bx + 26, by - 4, 7, 0, TAU);
     ctx.fill();
     ctx.shadowBlur = 0;
-    jawaLogo(-2, -54, 9);
   }
-  ctx.restore();
-  // the belt round its middle, and the tassels in front
+  // the belt round the bottom of the ball, the tassels in front
   ctx.strokeStyle = OL;
   ctx.lineWidth = 2.4;
   ctx.fillStyle = fl ? '#fff' : A.trim;
   ctx.beginPath();
-  ctx.moveTo(-34, -16);
-  ctx.quadraticCurveTo(6, -6, 46, -16);
-  ctx.lineTo(44, 4);
-  ctx.quadraticCurveTo(6, 12, -32, 4);
+  ctx.moveTo(bx - 42, by + 14);
+  ctx.quadraticCurveTo(bx, by + 26, bx + 44, by + 14);
+  ctx.lineTo(bx + 36, by + 32);
+  ctx.quadraticCurveTo(bx, by + 44, bx - 34, by + 32);
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
   if (!fl) {
-    ctx.fillStyle = '#1c1a1e';
-    ctx.fillRect(-30, -8, 72, 4);
+    ctx.strokeStyle = '#1c1a1e';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(bx - 38, by + 22);
+    ctx.quadraticCurveTo(bx, by + 34, bx + 40, by + 22);
+    ctx.stroke();
   }
   ctx.strokeStyle = fl ? '#fff' : '#1c1a1e';
   ctx.lineWidth = 3;
   ctx.beginPath();
   for (let k = 0; k < 5; k++) {
-    const x = 10 + k * 6,
+    const x = bx + 10 + k * 6,
       sw = Math.sin(e.anim * 5 + k) * 2;
-    ctx.moveTo(x, 6);
-    ctx.lineTo(x + sw, 26);
+    ctx.moveTo(x, by + 36);
+    ctx.lineTo(x + sw, by + 56);
   }
   ctx.stroke();
 }
