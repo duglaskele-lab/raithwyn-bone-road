@@ -4,7 +4,9 @@
 // (bullets, bones, a level I dark ball) stops on the wall — so it shields the robots behind it
 // too — and so do blows from the front; heavy blows crack the wall and the third shatters it,
 // a crushing blow shatters it at once. From behind it is open. Only crushing blows move it.
-import { BARRIER, OL, TAU } from '../config.js';
+// Wall up or not, every so often it takes a grenade from the pack on its back and lobs it at
+// her (JNADE: three seconds on its timer, and the blast hurts robots too).
+import { BARRIER, JNADE, OL, TAU } from '../config.js';
 import { fxRnd, rnd } from '../util.js';
 import { APP, G } from '../state.js';
 import { ctx } from '../gfx.js';
@@ -12,7 +14,7 @@ import { SFX } from '../audio.js';
 import { spark } from '../fx.js';
 import { defineFoe } from './registry.js';
 import { faceP, go } from './kit.js';
-import { robotDie, robotLook } from './robot.js';
+import { drawJnade, robotDie, robotLook, THROW_POSE } from './robot.js';
 
 const A = { body: '#5a7ca3', trim: '#2b3a4f', glow: '#5fd0ff', w: 17, chest: 1.3 };
 
@@ -59,10 +61,18 @@ export function wallStops(q) {
 }
 
 export default defineFoe('barrier', {
-  init: { barCd: [1, 2.5] },
-  timers: ['barCd'],
-  attacks: ['braise'],
+  init: { barCd: [1, 2.5], nadeCd: [2, 4] },
+  timers: ['barCd', 'nadeCd'],
+  attacks: ['braise', 'gthrow'],
   moves: [
+    {
+      // a grenade from its pack, over its wall or without one
+      when: (e, s) =>
+        e.nadeCd <= 0 && !s.pdown && s.adx > JNADE.min && s.adx < JNADE.max && s.ady < 150,
+      go(e) {
+        go(e, 'gthrow', 0, { engage: false, thrown: false });
+      },
+    },
     {
       when: (e, s) => e.barCd <= 0 && !wallUp(e) && s.adx < 620,
       go(e) {
@@ -92,6 +102,8 @@ export default defineFoe('barrier', {
     e.wallUntil = 0;
     robotDie(e, dir);
   },
+  // behind its wall it throws the way the wall faces
+  nadeFace: (e) => wallUp(e),
   // it turns towards her slowly while its wall is up, so going round it works
   tick(e) {
     if (wallUp(e) && e.state === 'chase') e.face = e.wallFace;
@@ -109,13 +121,76 @@ export default defineFoe('barrier', {
     },
   },
   over: drawWall,
-  look: robotLook(A, head, projector),
+  look: robotLook(A, head, projector, null, { pack: backpack, backHand: heldNade }),
   pose: {
     guard: { chase: { set: { aF: (e, k) => [1.1, 1.5 + 0.04 * k.br], aB: [0.5, 1.2] } } },
-    states: { braise: { set: { aF: [1.5, 1.57], aB: [1.3, 1.5], lean: 0.05 } } },
+    states: {
+      braise: { set: { aF: [1.5, 1.57], aB: [1.3, 1.5], lean: 0.05 } },
+      // the projector held out while the other arm throws (the wall up or not)
+      gthrow: { ...THROW_POSE, set: { aF: [1.1, 1.5] } },
+    },
   },
 });
 
+/** The pack on its back: a steel case with a cooling grille, an aerial, and a rack of
+ *  grenades on its side. */
+function backpack(c) {
+  const { fl } = c;
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2.4;
+  ctx.fillStyle = fl ? '#fff' : A.trim;
+  ctx.beginPath();
+  ctx.roundRect(-52, -70, 40, 60, 7);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = fl ? '#fff' : A.body;
+  ctx.beginPath();
+  ctx.roundRect(-60, -62, 14, 44, 5);
+  ctx.fill();
+  ctx.stroke();
+  if (!fl) {
+    // the grille
+    ctx.strokeStyle = 'rgba(0,0,0,.45)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let y = -58; y < -24; y += 6) {
+      ctx.moveTo(-58, y);
+      ctx.lineTo(-49, y);
+    }
+    ctx.stroke();
+    // a status light
+    ctx.fillStyle = A.glow;
+    ctx.fillRect(-30, -64, 8, 5);
+  }
+  // the aerial
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-40, -70);
+  ctx.lineTo(-46, -100);
+  ctx.stroke();
+  ctx.fillStyle = '#ff3b4b';
+  ctx.beginPath();
+  ctx.arc(-46, -101, 3, 0, TAU);
+  ctx.fill();
+  // the rack of grenades at the bottom
+  for (const x of [-44, -28]) {
+    ctx.save();
+    ctx.translate(x, -8);
+    drawJnade(6.5, null, fl);
+    ctx.restore();
+  }
+}
+/** The grenade in its back hand, drawn back for the throw. */
+function heldNade(c, p) {
+  const { e, fl } = c;
+  if (e.state !== 'gthrow' || e.thrown) return;
+  ctx.save();
+  ctx.translate(p[0], p[1]);
+  drawJnade(8, null, fl);
+  ctx.restore();
+}
 /** The domed head with its T-shaped visor. */
 function head(c) {
   const { e, fl } = c;

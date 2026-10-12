@@ -706,7 +706,7 @@ export function updPlayer(dt) {
   }
   if (p.state === 'plunge');
   else if (level().floor) {
-    // Old Quarry, Neon Kyoto: on the floor and on screen (the camera comes along between
+    // Old Quarry, Midnight City: on the floor and on screen (the camera comes along between
     // fights); up in the air she may be over a gap between the roofs, and lands in it (but
     // she does not walk off a roof's edge)
     const air = p.z > 0,

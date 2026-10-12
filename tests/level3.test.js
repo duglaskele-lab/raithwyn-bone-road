@@ -28,7 +28,7 @@ const step = (seconds, each) => {
     each?.(i);
   }
 };
-/** Neon Kyoto, with the camera and the player at `d` pixels along the road, no fight on. */
+/** Midnight City, with the camera and the player at `d` pixels along the road, no fight on. */
 function kyoto(d = 0) {
   startLevel(3);
   G.banner = null;
@@ -40,7 +40,7 @@ function kyoto(d = 0) {
 /** The camera's place along the road where the player stands at road x `x` (on the roofs). */
 const roofAt = (x) => pathProject(x, L3.Y_R + 80, PATH);
 
-test('holding Z and 3 on the first screen of the Bone Road takes the player to Neon Kyoto', () => {
+test('holding Z and 3 on the first screen of the Bone Road takes the player to Midnight City', () => {
   keys.lvlZ = true;
   keys.lvl3 = true;
   step(STAGE_HOLD - 0.2);
@@ -59,7 +59,7 @@ test('holding Z and 3 on the first screen of the Bone Road takes the player to N
   assert.equal(G.level, 2);
 });
 
-test('holding X on the first screen of Neon Kyoto takes the player to the last fight', () => {
+test('holding X on the first screen of Midnight City takes the player to the last fight', () => {
   startLevel(3);
   G.banner = null;
   keys.secret = true;
@@ -198,7 +198,7 @@ test('robots never climb out of the ground: they walk in, step out of doors, or 
   assert.equal(level().robots, true);
 });
 
-test('the whole of Neon Kyoto can be drawn, rain, train, doors, gaps and garden', async () => {
+test('the whole of Midnight City can be drawn, rain, train, doors, gaps and garden', async () => {
   const { stubCanvas } = await import('./helpers.js');
   const { APP } = await import('../src/state.js');
   const restore = stubCanvas();
@@ -231,7 +231,7 @@ test('the whole of Neon Kyoto can be drawn, rain, train, doors, gaps and garden'
   }
 });
 
-test("Neon Kyoto's things to break all stand on the floor, none over a gap", async () => {
+test("Midnight City's things to break all stand on the floor, none over a gap", async () => {
   const { PROPS3 } = await import('../src/level3.js');
   startLevel(3);
   for (const [x, y, k] of PROPS3) {
@@ -293,7 +293,7 @@ test('a power cell crackles, then bursts into lightning that throws robots about
   assert.ok(e.hp <= e.T.hp - BLAST.cell.dmgE || e.dead, 'the robot is hurt');
 });
 
-test("Neon Kyoto's music: its walk, and its own theme in the boss fights", async () => {
+test("Midnight City's music: its walk, and its own theme in the boss fights", async () => {
   const { THEMES, themeFor } = await import('../src/audio.js');
   startLevel(3);
   G.wave = null;

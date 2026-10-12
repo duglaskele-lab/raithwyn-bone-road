@@ -31,7 +31,7 @@ export function spawn(type, side, x, y) {
     placed = x !== undefined;
   let entry = null;
   if (!placed && level().robots) {
-    // Neon Kyoto: in from a side, out of a door, or down from above
+    // Midnight City: in from a side, out of a door, or down from above
     entry = robotEntry(side, random);
     ({ x, y } = entry);
     if (entry.how !== 'walk') side = x > P.x ? 1 : -1;
@@ -120,7 +120,7 @@ export function updEnemy(e, dt, ctxE) {
   if (level().pits && e.state === 'chase') gapHop(e);
   if (e.state === 'pitfall');
   else if (level().pits && !e.T.bigBoss) {
-    // Neon Kyoto's roofs: thrown over a gap it may land in it, and is gone
+    // Midnight City's roofs: thrown over a gap it may land in it, and is gone
     const air = e.z > 0,
       landed = e.wasAir && !air;
     e.wasAir = air;

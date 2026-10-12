@@ -1,4 +1,4 @@
-// The things to break in Neon Kyoto (DECOR kinds marked `k3`): lamp posts with a neon sign
+// The things to break in Midnight City (DECOR kinds marked `k3`): lamp posts with a neon sign
 // hung off their arm (break the post and the sign comes down on whoever is under it), neon
 // signs on stands, paper lanterns on poles, vending machines (three blows, then food spills
 // out), Jawacorp's power cells (an electric blast that throws robots about) and holographic
@@ -54,7 +54,7 @@ function panel(x, y, w, h, col, fl, seed) {
   ctx.restore();
 }
 
-/** Draws one of Neon Kyoto's breakables at the origin (the spot on the floor). */
+/** Draws one of Midnight City's breakables at the origin (the spot on the floor). */
 export function drawDecor3(u, fl) {
   const D = DECOR[u.decor],
     cracked = D.hp - u.hp;

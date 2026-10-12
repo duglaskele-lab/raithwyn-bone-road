@@ -1,4 +1,4 @@
-// Explosions: Old Quarry's red barrels and sticks of dynamite, Neon Kyoto's power cells (a
+// Explosions: Old Quarry's red barrels and sticks of dynamite, Midnight City's power cells (a
 // burst of lightning). A blast hurts everyone near it, the player and the enemies alike, sets
 // off other red barrels and cells around it and breaks barrels.
 import { BLAST, DECOR, TAU } from './config.js';
@@ -65,9 +65,14 @@ export function explode(x, y, k = 'barrel', z = 0) {
   for (const e of B.dmgE ? G.enemies : [])
     if (!e.dead && within(x, y, e.x, e.y, B.r))
       hurtEnemy(e, B.dmgE, e.x >= x ? 1 : -1, true, B.crush ? 'blast2' : 'blast');
-  // sticks of dynamite caught in it go off a moment later too
+  // sticks of dynamite (grenades, power cells) caught in it go off a moment later too
   for (const q of G.projs)
-    if (q.k === 'tnt' && q.fuse > B.chain && within(x, y, q.x, q.y, B.r)) q.fuse = B.chain;
+    if (
+      (q.k === 'tnt' || q.k === 'jnade' || q.k === 'jcell') &&
+      q.fuse > B.chain &&
+      within(x, y, q.x, q.y, B.r)
+    )
+      q.fuse = B.chain;
   // other barrels: red ones go off a moment later, wooden ones burst
   for (const u of G.props)
     if (!u.dead && within(x, y, u.x, u.y, B.r * 1.05)) {

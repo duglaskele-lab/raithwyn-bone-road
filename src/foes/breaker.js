@@ -1,11 +1,16 @@
-// Jawacorp's breaker android (TYPES.breaker, BREAKER), the mini-boss of Neon Kyoto, waiting in
-// the metro's concourse: a hunched black-and-orange robot with one enormous mechanical arm —
+// Jawacorp's breaker android (TYPES.breaker, BREAKER), the mini-boss of Midnight City, waiting in
+// the metro's concourse: a black-and-orange robot built like a sumo wrestler — a round iron
+// belly in an orange belt, a topknot on its helmet — with one enormous mechanical arm —
 // pistons, vents glowing orange, a fist like a block of iron. It never stays still:
 //   - up close it brings the fist down in front of it (a heavy blow);
 //   - it leaps at her, landing where she stood (the spot is marked) in a ring of shock;
 //   - it punches the ground and a fissure of eruptions runs along her lane (jump it, or step
 //     out of the lane); in its second phase three fissures run side by side;
-//   - it fires its fist like a rocket and charges straight through.
+//   - it fires its fist like a rocket and charges straight through;
+//   - close up, it sinks into a sumo stance, hops back (towards the roomier side of the screen)
+//     and drives its fist at her;
+//   - in its second phase, close up, it leaps high out of sight and drops on her, a wide ring
+//     of shock (its shadow follows her while it is up there).
 // At half health the arm glows white-hot and it gets faster. Its attacks go on through blows.
 import { BREAKER, OL, TAU, W } from '../config.js';
 import { clamp, fxRandom, fxRnd, rnd } from '../util.js';
@@ -17,10 +22,25 @@ import { breakProp, finale, hitPlayer } from '../combat.js';
 import { defineFoe } from './registry.js';
 import { faceP, go } from './kit.js';
 import { plate, robotDie, robotLook, visorHelm } from './robot.js';
+import { jawaLogo } from '../bg3.js';
 
 const A = { body: '#3b3d45', trim: '#b8650f', glow: '#ffb02e', w: 16, chest: 1.35 };
 const B = BREAKER;
-const UNSTOPPABLE = ['bcrouch', 'bleap', 'bland', 'bpound', 'bfis', 'brwind', 'brush'];
+const UNSTOPPABLE = [
+  'bcrouch',
+  'bleap',
+  'bland',
+  'bpound',
+  'bfis',
+  'brwind',
+  'brush',
+  'bhprep',
+  'bhop',
+  'bhrun',
+  'bsprep',
+  'bsup',
+  'bsfall',
+];
 /** Its countdowns run faster in the second phase. */
 const cd = (e, r) => rnd(...r) * (e.phase2 ? B.p2cd : 1);
 const onScreen = (e) => e.x > G.cam + 40 && e.x < G.cam + W - 40;
@@ -57,14 +77,45 @@ function erupt(e, x, y) {
     if (hitPlayer(B.fissure.dmg, e.face, true)) e.fisHit = true;
 }
 
+/** Where it hops to for the hop-back punch: away from her if there is room behind it, else
+ *  over her to the other side; never off the screen. */
+function hopTarget(e) {
+  const H = B.hop,
+    away = e.x >= P.x ? 1 : -1,
+    room = (d) => (d > 0 ? G.cam + W - 60 - e.x : e.x - (G.cam + 60)),
+    dir = room(away) >= H.room ? away : -away;
+  return clamp(e.x + dir * H.dist, G.cam + 60, G.cam + W - 60);
+}
+
 export default defineFoe('breaker', {
-  init: { leapCd: [1.5, 2.5], fisCd: [3, 4.5], rushCd: [4, 6] },
-  timers: ['leapCd', 'fisCd', 'rushCd'],
+  init: { leapCd: [1.5, 2.5], fisCd: [3, 4.5], rushCd: [4, 6], hopCd: [1, 2.5], slamCd: [0, 1] },
+  timers: ['leapCd', 'fisCd', 'rushCd', 'hopCd', 'slamCd'],
   attacks: UNSTOPPABLE,
   unstoppable: (e) => UNSTOPPABLE.includes(e.state),
   // in its big moves nothing stops it; otherwise only crushing blows (a heavy foe)
   guard: (e) => UNSTOPPABLE.includes(e.state),
+  // high up in the sky slam it is out of reach
+  immune: (e) => e.state === 'bsup' || (e.state === 'bsfall' && e.z > 200),
   moves: [
+    {
+      // the second phase, close up: the sky slam
+      when: (e, s) =>
+        e.phase2 && e.slamCd <= 0 && !s.pdown && s.adx < B.slam.near && s.ady < 90 && onScreen(e),
+      go(e) {
+        faceP(e);
+        go(e, 'bsprep', 0, { engage: false });
+        SFX.spin();
+      },
+    },
+    {
+      // close up: the sumo stance, a hop back and the fist
+      when: (e, s) => e.hopCd <= 0 && !s.pdown && s.adx < B.hop.near && s.ady < 60 && onScreen(e),
+      go(e) {
+        faceP(e);
+        go(e, 'bhprep', 0, { engage: false });
+        SFX.stance();
+      },
+    },
     {
       // further off: it leaps at her
       when: (e, s) => e.leapCd <= 0 && !s.pdown && s.adx > B.leap.min && onScreen(e),
@@ -152,7 +203,127 @@ export default defineFoe('breaker', {
       },
     },
     bland(e) {
-      if (e.t > B.leap.rec / e.speedK) go(e, 'chase');
+      if (e.t > (e.recT ?? B.leap.rec) / e.speedK) go(e, 'chase', 0, { recT: undefined });
+    },
+    // the hop-back punch: the stance...
+    bhprep(e) {
+      faceP(e);
+      if (fxRandom() < 0.6) {
+        const s = e.T.scale;
+        G.parts.push({
+          k: 'glow',
+          x: e.x - e.face * fxRnd(30, 60) * s,
+          y: e.y - fxRnd(60, 110) * s,
+          vx: fxRnd(-30, 30),
+          vy: fxRnd(-60, -20),
+          g: 0,
+          t: 0,
+          life: 0.3,
+          s: fxRnd(4, 7),
+          col: e.phase2 ? '#fff1c2' : '#ffb02e',
+        });
+      }
+      if (e.t > B.hop.wind / e.speedK) {
+        go(e, 'bhop', 0, { x0: e.x, hx: hopTarget(e) });
+        SFX.jump();
+      }
+    },
+    // ...the hop...
+    bhop: {
+      pin: true,
+      tick(e) {
+        const u = clamp(e.t / B.hop.air, 0, 1);
+        e.x = e.x0 + (e.hx - e.x0) * u;
+        e.z = 4 * B.hop.h * u * (1 - u);
+        if (u >= 1) {
+          e.z = 0;
+          dust(e.x, e.y, 8);
+          SFX.thud();
+          faceP(e);
+          go(e, 'bhrun', 0, { rdir: e.face, hitDone: false, rx0: e.x });
+          SFX.dash();
+        }
+      },
+    },
+    // ...and the fist, driven at her
+    bhrun: {
+      pin: true,
+      tick(e, dt) {
+        e.face = e.rdir;
+        e.x += e.rdir * B.hop.speed * e.speedK * dt;
+        e.y += clamp(P.y - e.y, -1, 1) * 60 * dt;
+        e.moving = true;
+        if (fxRandom() < 0.8)
+          G.parts.push({
+            k: 'glow',
+            x: e.x - e.rdir * fxRnd(10, 40),
+            y: e.y - fxRnd(80, 120),
+            vx: -e.rdir * 260,
+            vy: fxRnd(-20, 20),
+            g: 0,
+            t: 0,
+            life: 0.2,
+            s: fxRnd(4, 7),
+            col: '#ffb02e',
+          });
+        if (
+          !e.hitDone &&
+          Math.abs(P.x - (e.x + e.rdir * 60)) < 70 &&
+          Math.abs(P.y - e.y) < 34 &&
+          P.z < 100 &&
+          hitPlayer(B.hop.dmg, e.rdir, true)
+        ) {
+          e.hitDone = true;
+          G.shake = Math.max(G.shake, 10);
+        }
+        const past = (e.x - P.x) * e.rdir > 140,
+          edge = e.x < G.cam + 40 || e.x > G.cam + W - 40;
+        if (past || edge || Math.abs(e.x - e.rx0) > 800) {
+          dust(e.x, e.y, 6);
+          go(e, 'recover', 0, { hopCd: cd(e, B.hop.cd) });
+        }
+      },
+    },
+    // the sky slam: crouched...
+    bsprep(e) {
+      faceP(e);
+      if (e.t > B.slam.wind / e.speedK) {
+        go(e, 'bsup', 0, { y0: e.z });
+        SFX.jump();
+        dust(e.x, e.y, 12);
+        G.shake = Math.max(G.shake, 6);
+      }
+    },
+    // ...up out of sight, hanging over her (its shadow on her)...
+    bsup: {
+      pin: true,
+      tick(e, dt) {
+        const S = B.slam;
+        if (e.t < S.up) e.z = S.h * Math.sin(((e.t / S.up) * Math.PI) / 2);
+        else {
+          e.z = S.h;
+          const k = Math.min(1, dt * 6);
+          e.x += (clamp(P.x, G.cam + 80, G.cam + W - 80) - e.x) * k;
+          e.y += (P.y - e.y) * k;
+        }
+        if (e.t > S.up + S.track) go(e, 'bsfall');
+      },
+    },
+    // ...and down
+    bsfall: {
+      pin: true,
+      tick(e) {
+        const S = B.slam,
+          u = clamp(e.t / S.fall, 0, 1);
+        e.z = S.h * (1 - u * u);
+        if (u >= 1) {
+          e.z = 0;
+          shock(e, e.x, e.y, S.r, S.dmg);
+          G.shake = Math.max(G.shake, 22);
+          SFX.boom();
+          go(e, 'bland', 0, { slamCd: cd(e, S.cd), recT: S.rec });
+        }
+      },
     },
     bpound(e) {
       // the arm high over its head, then down on the ground
@@ -241,6 +412,31 @@ export default defineFoe('breaker', {
         ctx.lineTo(e.x - G.cam + e.face * (70 + F.n * F.step), e.y + dy);
       }
       ctx.stroke();
+    } else if (e.state === 'bsup' || e.state === 'bsfall') {
+      // where it will come down: a wide ring, closing as it falls
+      const r = B.slam.r,
+        k = e.state === 'bsfall' ? 1 : clamp((e.t - B.slam.up) / B.slam.track, 0, 1),
+        x = e.x - G.cam;
+      ctx.strokeStyle = `rgba(255,96,40,${0.5 + 0.4 * k})`;
+      ctx.fillStyle = `rgba(255,90,30,${0.1 + 0.2 * k})`;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.ellipse(x, e.y, r, r * 0.42, 0, 0, TAU);
+      ctx.fill();
+      ctx.stroke();
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(x, e.y, r * (1 - 0.7 * k), r * 0.42 * (1 - 0.7 * k), 0, 0, TAU);
+      ctx.stroke();
+    } else if (e.state === 'bhprep') {
+      // the line its fist will take
+      ctx.strokeStyle = `rgba(255,176,46,${0.2 + 0.4 * clamp(e.t / B.hop.wind, 0, 1)})`;
+      ctx.lineWidth = 5;
+      ctx.setLineDash([12, 8]);
+      ctx.beginPath();
+      ctx.moveTo(e.x - G.cam - 160, e.y);
+      ctx.lineTo(e.x - G.cam + 160, e.y);
+      ctx.stroke();
     } else if (e.state === 'brwind') {
       ctx.strokeStyle = 'rgba(255,176,46,.5)';
       ctx.lineWidth = 6;
@@ -251,10 +447,10 @@ export default defineFoe('breaker', {
     }
     ctx.restore();
   },
-  look: { ...robotLook(A, (c) => visorHelm(c.fl, A), null), arm: bigArm },
+  look: { ...robotLook(A, sumoHead, null), torso: sumoBody, arm: bigArm },
   pose: {
-    // hunched, the great arm hanging low and forward
-    base: { set: { lean: 0.28, head: -0.25 } },
+    // hunched, legs apart under its belly, the great arm hanging low and forward
+    base: { set: { lean: 0.22, head: -0.2, lF: [0.42, 0.1], lB: [-0.48, -0.36] } },
     guard: { chase: { set: { aF: (e, k) => [0.45 + 0.04 * k.br, 0.75], aB: [0.2, 0.9] } } },
     states: {
       bcrouch: { set: { lF: [1.0, -0.9], lB: [-0.9, -1.6], lean: 0.5, aF: [2.6, 2.9] } },
@@ -264,6 +460,27 @@ export default defineFoe('breaker', {
       bfis: { set: { aF: [0.9, 0.3], lean: 0.65, lF: [0.9, -0.5], lB: [-0.8, -1.3] } },
       brwind: { set: { aF: [-0.6, -0.2], lean: 0.35, lF: [0.7, -0.4], lB: [-0.7, -1.2] } },
       brush: { set: { aF: [1.57, 1.57], aB: [-0.8, -0.5], lean: 0.55 } },
+      // the sumo stance: a deep squat, legs wide, the fist drawn back, the other hand out
+      bhprep: {
+        set: { lF: [1.15, 0.05], lB: [-1.15, -0.05], aB: [1.3, 1.7], lean: 0.32, head: 0 },
+        tween: { dur: 0.25, from: { aF: 'pre' }, to: { aF: [-1.1, -0.3] } },
+        shake: { after: 0.3, amp: 0.05, rate: 60, fields: ['aF'] },
+      },
+      bhop: {
+        set: { lF: [0.8, -0.5], lB: [-0.3, -1.3], aF: [-1.0, -0.3], aB: [1.0, 1.4], lean: 0 },
+      },
+      bhrun: {
+        set: { aF: [1.57, 1.57], aB: [-0.9, -0.6], lean: 0.6, lF: [1.0, 0.3], lB: [-0.9, -1.3] },
+      },
+      bsprep: {
+        set: { lF: [1.1, -0.8], lB: [-1.0, -1.6], lean: 0.5, aF: [2.6, 2.9], aB: [2.4, 2.8] },
+      },
+      bsup: {
+        set: { lF: [0.3, -0.5], lB: [-0.2, -0.8], aF: [3.0, 3.1], aB: [2.8, 3.0], lean: -0.1 },
+      },
+      bsfall: {
+        set: { lF: [0.5, -0.1], lB: [-0.5, -0.4], aF: [2.3, 2.0], aB: [2.1, 1.9], lean: 0.15 },
+      },
     },
   },
 });
@@ -334,4 +551,105 @@ function bigArm(c) {
     ctx.fill();
   }
   ctx.restore();
+}
+
+/** Its body, a sumo wrestler's: a round iron belly, the belt (mawashi) of orange and black with
+ *  its tassels hanging in front, the core glowing in the middle. In the hip frame. */
+function sumoBody(c) {
+  const { o, fl, e } = c;
+  const hot = e.phase2 ? '#fff1c2' : A.glow;
+  ctx.save();
+  ctx.rotate(o.lean);
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2.6;
+  // the belly
+  ctx.fillStyle = fl ? '#fff' : A.body;
+  ctx.beginPath();
+  ctx.ellipse(6, -38, 42, 44, 0, 0, TAU);
+  ctx.fill();
+  ctx.stroke();
+  if (!fl) {
+    // plates riveted across it, a sheen on top
+    ctx.strokeStyle = 'rgba(0,0,0,.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(6, -38, 30, 44, 0, -1.2, 1.2);
+    ctx.moveTo(-20, -74);
+    ctx.quadraticCurveTo(10, -66, 40, -72);
+    ctx.stroke();
+    ctx.fillStyle = '#9aa0aa';
+    for (const [x, y] of [
+      [-22, -58],
+      [-26, -30],
+      [36, -60],
+      [40, -30],
+    ]) {
+      ctx.beginPath();
+      ctx.arc(x, y, 2.2, 0, TAU);
+      ctx.fill();
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,.28)';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(6, -38, 34, -2.6, -1.6);
+    ctx.stroke();
+    // the core, its navel
+    ctx.fillStyle = hot;
+    if (!APP.lowFx) {
+      ctx.shadowColor = A.glow;
+      ctx.shadowBlur = 14;
+    }
+    ctx.beginPath();
+    ctx.arc(24, -34, 7, 0, TAU);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    jawaLogo(-2, -54, 9);
+  }
+  ctx.restore();
+  // the belt round its middle, and the tassels in front
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2.4;
+  ctx.fillStyle = fl ? '#fff' : A.trim;
+  ctx.beginPath();
+  ctx.moveTo(-34, -16);
+  ctx.quadraticCurveTo(6, -6, 46, -16);
+  ctx.lineTo(44, 4);
+  ctx.quadraticCurveTo(6, 12, -32, 4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  if (!fl) {
+    ctx.fillStyle = '#1c1a1e';
+    ctx.fillRect(-30, -8, 72, 4);
+  }
+  ctx.strokeStyle = fl ? '#fff' : '#1c1a1e';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  for (let k = 0; k < 5; k++) {
+    const x = 10 + k * 6,
+      sw = Math.sin(e.anim * 5 + k) * 2;
+    ctx.moveTo(x, 6);
+    ctx.lineTo(x + sw, 26);
+  }
+  ctx.stroke();
+}
+/** Its helmet, with a sumo's topknot of steel on top. */
+function sumoHead(c) {
+  const { fl } = c;
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2.2;
+  ctx.fillStyle = fl ? '#fff' : '#1c1a1e';
+  ctx.beginPath();
+  ctx.ellipse(-4, -19, 6, 5, -0.3, 0, TAU);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(2, -24, 11, 5, 0.15, 0, TAU);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = fl ? '#fff' : A.trim;
+  ctx.fillRect(-7, -22, 6, 5);
+  visorHelm(fl, A);
 }

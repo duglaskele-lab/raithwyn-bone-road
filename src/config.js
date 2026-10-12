@@ -405,7 +405,7 @@ export const SECRET_HOLD = 3;
 // The other secrets: hold Z and 2 (Z and 3) together this long on the first screen to go to
 // stage 2 (stage 3).
 export const STAGE_HOLD = 2;
-// Jawacorp's robots (Neon Kyoto). The guard's baton stuns for `stun` s; the guardess's plasma
+// Jawacorp's robots (Midnight City). The guard's baton stuns for `stun` s; the guardess's plasma
 // bolts fly at `boltV`.
 export const ROBOT = { stun: 0.3, boltV: 560 };
 // The watcher drone: hovers `z` up (only a jump attack or a shot reaches it there), `keep` px
@@ -460,17 +460,53 @@ export const TURRET = {
 // `w` px out and `d` px deep either way: every shot of the player's (bullet, bone, a level I
 // dark ball) stops on it, and so do blows from the front, `hp` of the heavy ones break it.
 export const BARRIER = { cd: [2.5, 4.5], up: 4.5, w: 70, d: 70, hp: 3 };
+// A Jawacorp grenade, thrown by the barrier heavy (every `cd` s, wall up or not) and by the
+// grenadier guard (once): `wind` s drawn back, then lobbed `min`..`max` px at her, in the air
+// `flight` s (falling at `g`); its timer shows the seconds left and it goes off `fuse` s
+// after the throw (BLAST.jnade), wherever it has rolled.
+export const JNADE = { fuse: 3, wind: 0.55, flight: 0.8, g: 1500, min: 150, max: 520, cd: [5, 8] };
+// The cell carrier guard: a blow with its power cell, or a blow on it, starts the cell's timer;
+// `fuse` s later the cell bursts (BLAST.cell), in its hands or on the ground where it fell.
+export const CELLG = { fuse: 3 };
 // The noodle chef: every `cd` s, close up, a flurry of `hits` cuts `gap` s apart (`dmg` each,
 // the last one knocks her down).
 export const CHEF = { cd: [2.5, 4.5], hits: 3, gap: 0.2, dmg: 7 };
-// The breaker android (Neon Kyoto's mini-boss). Its plain blow lands `smash.at` px in front in a
+// The breaker android (Midnight City's mini-boss). Its plain blow lands `smash.at` px in front in a
 // ring `smash.r` round. The leap: from `leap.min` px off, crouched `wind` s, `air` s in the air
 // (`h` px high) to where she stood, a ring of shock `r` round (`dmg`), `rec` s to get up. The
 // fissure: arm up `wind` s, then `n` eruptions `step` px apart, `gap` s apart, along its lane
 // (`w` px wide; three lanes `lanes` px apart in the second phase). The rush: `wind` s cocked,
-// then the rocket fist at `speed` px/s. From `phase2` of its health it is `p2speed` times
+// then the rocket fist at `speed` px/s. The hop-back punch: when she is within `near` px it
+// sinks into a sumo stance (`wind` s), hops back `dist` px (`air` s, `h` px high; towards the
+// roomier side of the screen, over her if it must) and drives its fist at her at `speed` px/s.
+// The sky slam (second phase only): within `near` px, crouched `wind` s, it leaps `h` px up
+// (`up` s), hangs over her `track` s (its shadow follows her), then drops in `fall` s: a ring of
+// shock `r` round (`dmg`), `rec` s to get up. From `phase2` of its health it is `p2speed` times
 // quicker in its moves and waits `p2cd` as long between them.
 export const BREAKER = {
+  hop: {
+    near: 240,
+    wind: 0.5,
+    air: 0.45,
+    h: 110,
+    dist: 330,
+    room: 220,
+    speed: 1150,
+    dmg: 17,
+    cd: [4, 6],
+  },
+  slam: {
+    near: 300,
+    wind: 0.4,
+    up: 0.5,
+    h: 640,
+    track: 0.55,
+    fall: 0.25,
+    r: 300,
+    dmg: 20,
+    rec: 1,
+    cd: [5, 7],
+  },
   smash: { at: 100, r: 120 },
   leap: { min: 230, wind: 0.45, air: 0.85, h: 260, r: 190, dmg: 18, rec: 0.6, cd: [3, 5] },
   fissure: { wind: 0.7, n: 7, step: 100, gap: 0.09, w: 40, dmg: 14, lanes: 55, cd: [4, 6.5] },
@@ -479,7 +515,7 @@ export const BREAKER = {
   p2speed: 1.3,
   p2cd: 0.7,
 };
-// The mech samurai (Neon Kyoto's last boss). Its cut: `wind` s raised, then it sweeps `reach` px
+// The mech samurai (Midnight City's last boss). Its cut: `wind` s raised, then it sweeps `reach` px
 // ahead and `dy` px either way across the road (`dmg`). The iai: sunk in its stance `wind` s
 // (`wind3` in a run of them) as a line glows along her lane, then across the screen at
 // `speed` px/s, cutting whoever is on the line (`dy` either way, `dmg`); in a run, `breath` s
@@ -488,7 +524,20 @@ export const BREAKER = {
 // each landing `fall` s after its mark appears (`r` px round, BLAST.missile), every `cd` s;
 // and the leap (`wind`, `air`, `h`, `r`, `dmg`). From `p3`: its open core takes `core` times
 // the harm. Beaten, it kneels `dieT` s before it bursts.
+// Its two drones (part of it, never to be hit) hover `side` px either side of it, `z` up; every
+// `cd` s they attack. The sweep: they mark two lanes (hers, and one `off` px beside it), aim
+// `aim` s, then each drives its beam along its lane for `t` s at `speed` px/s from opposite
+// sides (`r` px wide, `dmg`). The tripwire: they fly to the screen's two edges, `z` up, along
+// her lane (following her the first `follow` of `aim` s), then a beam between them for `t` s
+// (`dy` px either way, `dmg`); from its second phase they do it twice.
 export const MECHA = {
+  drone: {
+    side: 130,
+    z: 250,
+    cd: [6, 9],
+    sweep: { aim: 0.75, t: 1.3, speed: 560, off: 64, r: 36, dmg: 10 },
+    trip: { aim: 0.9, follow: 0.6, t: 0.35, z: 70, dy: 22, dmg: 14 },
+  },
   arc: { wind: 0.55, reach: 230, dy: 70, dmg: 18 },
   iai: { wind: 0.7, wind3: 0.4, speed: 2200, dy: 32, dmg: 22, breath: 0.35, cd: [3.5, 5.5] },
   guard: { t: 1.3, cut: 0.15, dmg: 18, cd: [4, 6.5] },
@@ -500,7 +549,7 @@ export const MECHA = {
   rec: 0.55,
   dieT: 2.6,
 };
-// Falling off a roof into a gap (Neon Kyoto): she drops for `time` s, then is back on the
+// Falling off a roof into a gap (Midnight City): she drops for `time` s, then is back on the
 // roof she fell from, `dmg` of her full health the poorer, untouchable for `inv` s. A robot
 // knocked into a gap is gone (`time` s of falling) and counts as beaten.
 export const PIT = { time: 0.9, dmg: 0.15, inv: 1.5 };
@@ -516,7 +565,7 @@ export const DECOR = {
   // Old Quarry: a wooden barrel (two hits) and a red barrel that blows up (see BLAST)
   barrel: { w: 26, hp: 2, col: '#8a5a32', score: 30 },
   tnt: { w: 24, hp: 1, col: '#b02a1e', score: 30, boom: 'barrel' },
-  // Neon Kyoto (see props3.js): a lamp post whose neon sign falls when it breaks, a neon sign
+  // Midnight City (see props3.js): a lamp post whose neon sign falls when it breaks, a neon sign
   // on a stand, a paper lantern on a pole, a vending machine (three blows; food spills out),
   // a Jawacorp power cell (an electric blast), a holographic projector
   post: { w: 16, hp: 2, col: '#3a3f4c', score: 40, k3: 1 },
@@ -538,10 +587,12 @@ export const BLAST = {
   airburst: { r: 325, dmgP: 0, dmgE: 91, chain: 0.14, crush: 1 },
   // a shell of the Prospector's mortars: it hurts the player only
   mortar: { r: 115, dmgP: 16, dmgE: 0, chain: 0.14 },
-  // a Jawacorp power cell (Neon Kyoto): a burst of lightning instead of fire
+  // a Jawacorp power cell (Midnight City): a burst of lightning instead of fire
   cell: { r: 150, dmgP: 16, dmgE: 46, chain: 0.14, lit: 0.7, zap: 1 },
   // a missile of the mech samurai: it hurts the player only
   missile: { r: 62, dmgP: 12, dmgE: 0, chain: 0.14 },
+  // a Jawacorp grenade (the barrier heavy's, the grenadier guard's): it hurts robots too
+  jnade: { r: 150, dmgP: 18, dmgE: 40, chain: 0.14 },
 };
 // Lucy's grenade (I): costs `cost` rage; its blast is a crushing blow (BLAST `crush`); it leaves her hand `x` ahead and `z` up, flies in an
 // arc (`vx`, `vz` up, `g` down), spinning `spin` turns a second; on the ground it bounces
@@ -741,7 +792,7 @@ export const TYPES = {
     eye: '#7fe6ff',
     score: 350,
   },
-  // Neon Kyoto's robots (Jawacorp's; see foes/guard.js, drone.js, ninja.js)
+  // Midnight City's robots (Jawacorp's; see foes/guard.js, drone.js, ninja.js)
   // the android guard: an electric baton, its blow stuns for a moment (ROBOT.stun)
   guard: {
     hp: 40,
@@ -759,6 +810,42 @@ export const TYPES = {
     dk: '#6a727c',
     eye: '#4fe3ff',
     score: 120,
+  },
+  // the grenadier guard: a baton, and a grenade held out ready; it throws it once (JNADE)
+  grenadier: {
+    hp: 40,
+    scale: 1.04,
+    speed: 76,
+    dmg: 7,
+    reach: 76,
+    style: 'punch',
+    wind: 0.4,
+    act: 0.14,
+    rec: 0.5,
+    cd: [1, 1.8],
+    thick: 1,
+    col: '#9aa3ad',
+    dk: '#6a727c',
+    eye: '#ffb02e',
+    score: 150,
+  },
+  // the cell carrier guard: it hits with a Jawacorp power cell that bursts on a timer (CELLG)
+  cellguard: {
+    hp: 44,
+    scale: 1.06,
+    speed: 72,
+    dmg: 10,
+    reach: 80,
+    style: 'smash',
+    wind: 0.55,
+    act: 0.14,
+    rec: 0.6,
+    cd: [1.2, 2],
+    thick: 1,
+    col: '#9aa3ad',
+    dk: '#6a727c',
+    eye: '#7fe9ff',
+    score: 150,
   },
   // the android guardess: cat's ears, a plasma rifle; keeps her distance and shoots
   catguard: {
@@ -853,7 +940,7 @@ export const TYPES = {
   },
   // the barrier heavy: a wall of hard light in front of it (BARRIER); only crushing blows move it
   barrier: {
-    hp: 280,
+    hp: 210,
     scale: 1.3,
     speed: 42,
     dmg: 16,
@@ -889,7 +976,7 @@ export const TYPES = {
     eye: '#ff3b4b',
     score: 550,
   },
-  // the mini-boss of Neon Kyoto: the breaker android with one enormous arm (BREAKER)
+  // the mini-boss of Midnight City: the breaker android with one enormous arm (BREAKER)
   breaker: {
     hp: 900,
     scale: 1.3,
@@ -912,7 +999,7 @@ export const TYPES = {
     eye: '#ffb02e',
     score: 5000,
   },
-  // the last boss of Neon Kyoto: the mech samurai (MECHA)
+  // the last boss of Midnight City: the mech samurai (MECHA)
   mecha: {
     hp: 1500,
     scale: 1.65,

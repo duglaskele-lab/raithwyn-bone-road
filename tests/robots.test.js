@@ -33,10 +33,21 @@ function foe(type, dx = 160, extra = {}) {
   return e;
 }
 
-test("the robots come in Neon Kyoto's fights", () => {
+test("the robots come in Midnight City's fights", () => {
   const all = Object.values(WAVEGEN3.pools).flatMap((p) => Object.keys(p));
-  for (const k of ['guard', 'catguard', 'drone', 'ninja', 'monk', 'turret', 'barrier', 'chef'])
+  for (const k of [
+    'guard',
+    'grenadier',
+    'cellguard',
+    'catguard',
+    'drone',
+    'ninja',
+    'turret',
+    'barrier',
+    'chef',
+  ])
     assert.ok(all.includes(k), k);
+  assert.ok(!all.includes('monk'), 'no omnic monk any more');
   assert.ok(WAVEGEN3.pools.mid.catguard < WAVEGEN3.pools.mid.ninja, 'the guardess is rarer');
 });
 
@@ -232,6 +243,82 @@ test("the barrier heavy's wall stops shots and blows from the front; it cracks, 
   assert.ok(!(e.wallUntil > G.time), 'shattered');
   hurtEnemy(e, 10, -e.face, false, 'punch');
   assert.ok(e.hp < hp, 'open now');
+});
+
+test('the barrier heavy lobs a grenade over its wall: three seconds on the timer, then a blast that hurts robots too', async () => {
+  const { BLAST, JNADE } = await import('../src/config.js');
+  P.inv = 99;
+  const e = foe('barrier', 320, { barCd: 0, nadeCd: 99 });
+  step(0.5);
+  assert.ok(e.wallUntil > G.time, 'the wall is up');
+  e.nadeCd = 0;
+  update(DT);
+  assert.equal(e.state, 'gthrow');
+  step(JNADE.wind + 0.05);
+  const q = G.projs.find((p) => p.k === 'jnade');
+  assert.ok(q, 'a grenade');
+  assert.ok(q.vx < 0, 'at her');
+  assert.ok(e.wallUntil > G.time, 'its wall still up');
+  assert.ok(Math.abs(q.fuse - (JNADE.fuse - 0.05)) < 0.05, 'its timer set going on the throw');
+  // a guard standing where it lands
+  step(JNADE.flight + 0.6);
+  assert.equal(q.z, 0, 'on the ground');
+  const g = spawn('guard', 1, q.x, q.y);
+  Object.assign(g, { state: 'chase', cd: 99 });
+  const hp = g.hp;
+  step(JNADE.fuse - JNADE.flight - 0.8);
+  assert.ok(q.life > 0, 'not yet');
+  step(0.3);
+  assert.ok(!(q.life > 0), 'gone off');
+  assert.ok(g.hp <= hp - BLAST.jnade.dmgE || g.dead, 'the blast hurts robots too');
+});
+
+test('the grenadier throws its one grenade, then fights as a guard', async () => {
+  const { JNADE } = await import('../src/config.js');
+  P.inv = 99;
+  const e = foe('grenadier', 300, { nadeCd: 0 });
+  update(DT);
+  assert.equal(e.state, 'gthrow');
+  step(JNADE.wind + 0.45);
+  assert.equal(G.projs.filter((p) => p.k === 'jnade').length, 1);
+  assert.ok(e.nadeGone);
+  e.nadeCd = 0;
+  step(3);
+  assert.equal(G.projs.filter((p) => p.k === 'jnade').length, 0, 'no second grenade');
+});
+
+test("the cell carrier's power cell: a blow on it sets the timer going, it bursts three seconds on", async () => {
+  const { CELLG } = await import('../src/config.js');
+  P.inv = 99;
+  const e = foe('cellguard', 260);
+  e.hp = 999;
+  step(0.5);
+  assert.ok(!(e.cellT > 0), 'no timer yet');
+  hurtEnemy(e, 5, 1, false, 'punch');
+  assert.equal(e.cellT, CELLG.fuse);
+  step(CELLG.fuse - 0.2);
+  assert.ok(!e.cellGone);
+  const hp = e.hp;
+  step(0.3);
+  assert.ok(e.cellGone, 'burst');
+  assert.ok(e.hp < hp, 'caught in it');
+});
+
+test('the cell carrier: its blow knocks her down and sets the timer; killed, it drops the cell still ticking', () => {
+  const e = foe('cellguard', 60);
+  e.state = 'attack';
+  e.t = 0;
+  e.hitDone = false;
+  updEnemy(e, DT, { n: 0 });
+  assert.equal(P.state, 'ko');
+  assert.ok(e.cellT > 0, 'the timer runs');
+  P.inv = 99;
+  hurtEnemy(e, 999, 1, true, 'punch');
+  const q = G.projs.find((p) => p.k === 'jcell');
+  assert.ok(q, 'the cell falls');
+  assert.ok(q.fuse <= 3 && q.fuse > 2.5);
+  step(3.2);
+  assert.ok(!(q.life > 0), 'and bursts');
 });
 
 test("the noodle chef's flurry: three cuts, the last one knocks her down", async () => {

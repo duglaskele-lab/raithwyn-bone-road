@@ -237,6 +237,10 @@ export const SFX = {
   fuse() {
     noise(0.12, 0.08, 6000, 4500, 3, 0, 'highpass');
   },
+  // a grenade's timer counting down (higher on the last second)
+  beep(last = false) {
+    tone('square', last ? 2100 : 1500, last ? 2100 : 1500, 0.06, 0.06);
+  },
   gun() {
     noise(0.05, 0.22, 3500, 900, 1.6);
     tone('square', 180, 70, 0.04, 0.08);
@@ -959,7 +963,7 @@ THEMES.showdown = westernBand({
   },
   form: ['call', 'drive', 'A', 'B', 'drive', 'brk', 'A2', 'B'],
 });
-// Neon Kyoto's band: synthwave with an eastern soul. A section is four bars (64 sixteenths), a
+// Midnight City's band: synthwave with an eastern soul. A section is four bars (64 sixteenths), a
 // chord per bar; its parts: drums ('four': a kick on every beat, a gated snare on two and four;
 // 'taiko': big drums in a pattern; 'half'), the bass ('arp': sixteenths leaping an octave;
 // 'drive': eighths; 'pedal'), pads, an arpeggio, and melodies — the koto (plucked, a little
@@ -1067,7 +1071,7 @@ const NEON = {
   Gm: { root: 31, pad: [55, 58, 62] },
   Eb: { root: 39, pad: [63, 67, 70] },
 };
-// "Neon Kyoto": the walk through the city, in D at 112 BPM: a synthwave groove under a koto
+// "Midnight City": the walk through the city, in D at 112 BPM: a synthwave groove under a koto
 // tune and the shakuhachi's answer.
 THEMES.kyoto = neonBand({
   bpm: 112,
@@ -1125,7 +1129,7 @@ export function themeFor(state, enemies = G.enemies, wave = G.wave) {
     // Old Quarry: its ride, and the showdown for the slime and the last fight
     return wave && levelWaves()[G.waveI]?.boss ? 'showdown' : 'frontier';
   if (state === 'play' && G.level === 3)
-    // Neon Kyoto: its walk, and the fights of the breaker and of the mech samurai
+    // Midnight City: its walk, and the fights of the breaker and of the mech samurai
     return wave && levelWaves()[G.waveI]?.boss ? 'kyotoBoss' : 'kyoto';
   if (state === 'play') {
     // the Bone Dragon brings its own music, faster in its second phase
