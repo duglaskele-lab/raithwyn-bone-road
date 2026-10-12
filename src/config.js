@@ -594,10 +594,9 @@ export const DECOR = {
   cross: { w: 14, h: 62, hp: 1, col: '#8b8f84', score: 20 },
   // a big grave: three hits; a zombie or a skeleton may climb out of it
   tomb: { w: 40, h: 114, hp: 3, col: '#6f7c80', score: 50, big: 1 },
-  // Old Quarry: a wooden barrel (two hits) and a red barrel that blows up (see BLAST), tall
-  // enough for a shot at Lucy's chest height (BULLET.z) to hit them
-  barrel: { w: 26, h: 128, hp: 2, col: '#8a5a32', score: 30 },
-  tnt: { w: 24, h: 128, hp: 1, col: '#b02a1e', score: 30, boom: 'barrel' },
+  // Old Quarry: a wooden barrel (two hits) and a red barrel that blows up (see BLAST)
+  barrel: { w: 26, h: 56, hp: 2, col: '#8a5a32', score: 30 },
+  tnt: { w: 24, h: 56, hp: 1, col: '#b02a1e', score: 30, boom: 'barrel' },
   // Midnight City (see props3.js): a lamp post whose neon sign falls when it breaks, a neon sign
   // on a stand, a paper lantern on a pole, a vending machine (three blows; food spills out),
   // a Jawacorp power cell (an electric blast), a holographic projector

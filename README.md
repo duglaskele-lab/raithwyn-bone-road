@@ -236,13 +236,12 @@ a band too, and reaches only what it meets:
 - a shot reaches a flying robot from the ground too (it is aimed at it).
 
 Things to break stand as tall as they are drawn (`h` in `DECOR`): a bench 54 px, a stone cross 62,
-a big grave 114, an urn 50; Old Quarry's barrels (wooden and red) are tall, 128, so that Lucy's
-shot at her chest hits them (a red one goes off at once); in Midnight City a lamp post 215, a
-neon sign 104, a paper lantern 142, a vending machine 118, a power cell 72 (low: her shot passes
-over it), a holographic projector 120. So a bone or a level I dark ball from the ground flies
-over a bench, a cross or an urn (a blow breaks them, or a bone thrown from a jump as it comes
-down) and breaks on a grave, a barrel or a vending machine; a flying kick from high in a jump
-passes over the low ones.
+a big grave 114, a barrel (wooden or red) 56, an urn 50; in Midnight City a lamp post 215, a neon
+sign 104, a paper lantern 142, a vending machine 118, a power cell 72, a holographic projector
+120. So a bone or a level I dark ball from the ground flies over a barrel, a bench or an urn (a
+blow breaks them, or a bone thrown from a jump as it comes down), and breaks on a grave or a
+vending machine; a flying kick from high in a jump passes over the low ones; Lucy's pistol at her
+chest misses a barrel (a punch, her grenade or a blast nearby sets a red one off).
 
 The heroine fills 0–150 px, her legs tucked 40 px up in a jump. The enemies' missiles meet her
 by height too, so she can jump over them: a thrown bone, a zombie's head, the necromancer's
@@ -846,10 +845,9 @@ What is checked:
   skeleton into a tall enemy, from the ground (and a level III one from a jump) hitting it, a
   bone from the ground hitting the smallest enemy, the drone out of reach of a blow from the
   ground but not of a shot, jumping over a thrown bone and a robot's bolt, the dragon's raised
-  head reached only from a jump for double harm; things to break: a bone over a bench and into
-  a grave, Lucy's shot hitting the tall barrels (and setting a red one off) but not a power
-  cell, a punch breaking a bench that a flying kick from high up passes over, an urn reached by
-  a blow but not by a dark ball.
+  head reached only from a jump for double harm; things to break: a bone over a barrel and into
+  a grave, a punch breaking a barrel that a flying kick from high up passes over, an urn reached
+  by a blow but not by a dark ball.
 - `features.test.js` — translations, key layout, bone cost, the bone in a jump (down at 30 degrees, breaking on the ground) and the dark ball (straight on at her height; Raithwyn only, one a jump), super attack, the unstoppable end of
   Fatso's wind-up, the Necromancer.
 - `level2.test.js` — Old Quarry: the `Z`+`2` secret, the transition after the first stage, the
