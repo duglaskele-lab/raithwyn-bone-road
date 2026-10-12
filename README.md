@@ -652,10 +652,10 @@ smoke, not bones.
   a glitching red eye, sparking wiring, a cleaver in each hand. Up close: a flurry of three
   cuts, both cleavers in turn; the last one knocks her down.
 
-**The mini-boss: the Breaker Android** (900 health; `TYPES.breaker`, `BREAKER`), in the metro's
-concourse. A black robot with orange joints built like a sumo wrestler — a round iron belly with
-the core glowing for a navel, an orange belt with its tassels in front, a steel topknot on its
-helmet — and one enormous mechanical arm: a heavy shoulder, pistons, vents glowing orange, a
+**The mini-boss: the Breaker Android** (720 health; `TYPES.breaker`, `BREAKER`), in the metro's
+concourse. A black robot with orange joints built like a sumo wrestler — a broad chest plate
+over a fat iron ball of a belly at the base of its body, round its hips, the core glowing for a
+navel, an orange belt under it with its tassels in front, a steel topknot on its helmet — and one enormous mechanical arm: a heavy shoulder, pistons, vents glowing orange, a
 fist like a block of iron. It never stays still:
 
 - up close it brings the fist down in front of it, in a little ring of shock (knocks down);
@@ -664,27 +664,27 @@ fist like a block of iron. It never stays still:
 - it raises the arm and punches the ground: a fissure of seven eruptions runs along her lane
   (marked by a dashed line as it winds up) — step out of the lane or jump it;
 - it cocks the fist and fires it like a rocket, charging straight through her;
-- up close it sinks into a sumo stance for 0.5 s (the fist drawn back, glowing), hops back
-  to the roomier side of the screen (over her, if there is no room behind it) and drives the
-  fist at her;
+- up close it hops back at once, with no wind-up, to the roomier side of the screen (over
+  her, if there is no room behind it), sinks into a sumo stance for 0.4 s (the fist drawn
+  back, glowing) and rams the fist at her;
 - in its second phase, up close, it leaps high out of sight; a wide ring on the ground follows
   her for a moment, then it drops onto it: a ring of shock 300 px round.
 
-Its big moves cannot be stopped (a red outline); only crushing blows move it. At half health
-the arm glows white-hot, it is 1.3 times quicker and waits less between moves, and three
+Its big moves cannot be stopped (a red outline); only crushing blows move it. Its attacks go at
+0.9 of their old pace in the first phase. At half health the arm glows white-hot, its attacks
+go at 1.04 (a fifth slower than the old 1.3), it waits less between moves, and three
 fissures run side by side. Beaten, it bursts into parts, the fight is over and food drops.
 
 **The last boss: the Mech Samurai** (1500 health; `TYPES.mecha`, `MECHA`), in the garden on top
 of the tower. A giant war machine in samurai armour of black lacquer and red lacing: a horned
 helmet with a golden crest, a snarling face mask with burning eyes, great shoulder plates, an
-armoured skirt, and a katana of red plasma, held at rest low behind it, the arm drawn back and
-the blade pointing down. It drops from the sky, landing in a ring of shock. It never flinches.
-Two drones fly beside it, black discs with golden crests and red eyes: they are part of it and
-cannot be hit. Every 6–9 s they attack while it fights on: the **sweep** — they mark her lane
-and the one beside it, then drive their beams along them from either side (dodge between); or
-the **tripwire** — they fly to the screen's two edges along her lane and stretch a laser
-between them (step out of the lane or jump it; twice in a row from phase 2). Beaten, it takes
-them down with it.
+armoured skirt, and a katana of red plasma. At rest its sword arm hangs a little back, the
+blade pointing down behind it, the other arm loose at its side. It drops from the sky, landing
+in a ring of shock. It never flinches. Two drones fly beside it, black discs with golden crests
+and red eyes: they are part of it and cannot be hit. Every 5–8 s, while it fights on, they
+shoot as the watcher drones do: a red mark under her follows her for 0.9 s, holds still
+0.35 s, then a laser comes down on it (step off the mark) — two shots in turn, four from
+phase 2. Beaten, it takes them down with it.
 
 - **Phase 1:** wide cuts that sweep across the road's depth in front of it; the **iai** — it
   sinks into its stance while a red line glows the length of the screen along her lane, then
@@ -814,12 +814,14 @@ What is checked:
 - `mecha.test.js` — the mech samurai: the last fight, dropping from the sky, the iai on the line
   (and off it), the counter stance, never flinching, the missiles on the marks (sparing it), the
   overheated core and the run of iai cuts, kneeling and bursting, the game won; its two drones
-  (not foes to hit), their sweep and their tripwire, the sword held low behind it; winning Old
+  (not foes to hit), their aimed shots (two, four from phase 2; off the mark she is spared),
+  the sword held low behind it; winning Old
   Quarry leads on to Midnight City.
 - `breaker.test.js` — the breaker android: in the metro, the leap onto the marked spot and its
   shock, nothing stopping it in the air, the fissure along the lane (and out of it), three
-  fissures and more speed at half health, the rocket fist, the sumo stance and the hop-back
-  punch (over her with no room behind it), the sky slam in the second phase only, its end.
+  fissures and more speed at half health, the rocket fist, the hop back at once (over her with
+  no room behind it), the sumo stance and the ramming fist, the slower pace of its attacks in
+  both phases and its health, the sky slam in the second phase only, its end.
 - `level3.test.js` — Midnight City: the `Z`+`3` and `X` secrets, the road (down into the metro, up
   to the avenue and onto the roofs), a gap on screen in every fight on the roofs, gaps that can
   be jumped (the widest only running), falling into a gap and climbing back hurt, not walking

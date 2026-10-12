@@ -114,19 +114,20 @@ test('the rocket fist charges straight through her', () => {
   assert.ok(e.x < P.x, 'past her');
 });
 
-test('close up: a sumo stance, a hop back to the roomier side, and the fist driven at her', () => {
+test('close up: a hop back at once to the roomier side, a sumo stance, the fist driven at her', () => {
   // her on its left, the screen's left edge close behind her: it hops away to the right
   const e = boss(150, { hopCd: 0 });
   update(DT);
-  assert.equal(e.state, 'bhprep');
-  step(BREAKER.hop.wind - 0.1);
-  assert.equal(e.state, 'bhprep', 'the stance lasts its time');
-  step(0.15);
-  assert.equal(e.state, 'bhop');
+  assert.equal(e.state, 'bhop', 'no wind-up before the hop');
   assert.ok(e.hx > e.x0 + 200, 'back, away from her');
+  step(BREAKER.hop.air + 0.05);
+  assert.equal(e.state, 'bhprep', 'the stance after it');
+  const wind = BREAKER.hop.wind / BREAKER.p1speed;
+  step(wind - 0.12);
+  assert.equal(e.state, 'bhprep', 'the stance lasts its time');
   let thrown = false,
     far = 0;
-  step(BREAKER.hop.air + 1, () => {
+  step(1, () => {
     far = Math.max(far, e.x - P.x);
     thrown = thrown || P.state === 'ko';
   });
@@ -134,11 +135,22 @@ test('close up: a sumo stance, a hop back to the roomier side, and the fist driv
   assert.ok(thrown, 'the fist lands');
 });
 
+test('its attacks are a tenth slower in the first phase, a fifth slower in the second', () => {
+  const e = boss(400);
+  update(DT);
+  assert.ok(Math.abs(e.T.wind - TYPES.breaker.wind / 0.9) < 1e-9);
+  e.hp = e.T.hp * 0.4;
+  update(DT);
+  assert.ok(Math.abs(e.speedK - 1.3 * 0.8) < 1e-9);
+  assert.ok(Math.abs(e.T.wind - TYPES.breaker.wind / 1.04) < 1e-9);
+  assert.equal(TYPES.breaker.hp, 720, 'a fifth less health than its 900');
+});
+
 test('with no room behind it, it hops over her to the other side', () => {
   const e = boss(-150, { hopCd: 0, face: 1 });
   e.x = G.cam + 120;
   P.x = G.cam + 270;
-  step(BREAKER.hop.wind + 0.05);
+  update(DT);
   assert.equal(e.state, 'bhop');
   assert.ok(e.hx > P.x, 'over her: it lands on her far side');
 });

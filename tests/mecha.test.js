@@ -138,43 +138,45 @@ test('its two drones fly beside it, part of it: they are not foes to be hit', ()
   );
 });
 
-test('the drones sweep two lanes with their beams from either side', () => {
+test('its drones aim and fire as the watcher drones do: two shots in turn, four from phase 2', () => {
+  const D = MECHA.drone;
   const e = boss(500, { droneCd: 0 });
-  let hit = false;
   update(DT);
-  assert.notEqual(e.dm ?? 'home', 'home', 'they attack');
-  // the sweep, whichever came up
-  {
-    Object.assign(e, {
-      dm: 'sweep',
-      dmT: 0,
-      dHit: [false, false],
-      spots: [
-        { x: P.x - 340, y: P.y, dir: 1 },
-        { x: P.x + 340, y: P.y + MECHA.drone.sweep.off, dir: -1 },
-      ],
-    });
-  }
-  const hp = P.hp;
-  step(MECHA.drone.sweep.aim + MECHA.drone.sweep.t, () => (hit = hit || P.hp < hp));
-  assert.ok(hit, 'the beam along her lane finds her');
-  step(0.2);
+  assert.equal(e.shots.length, D.n1);
+  assert.deepEqual(
+    e.shots.map((q) => q.i),
+    [0, 1],
+    'the two drones in turn',
+  );
+  // standing still, both find her
+  let hits = 0,
+    hp = P.hp;
+  step(D.aim + D.lock + D.beam + D.gap * (D.n1 - 1) + 0.5, () => {
+    if (P.hp < hp) {
+      hits++;
+      hp = P.hp;
+      P.inv = 0;
+    }
+  });
+  assert.equal(hits, D.n1);
   assert.equal(e.dm, 'home', 'back beside it');
+  // from the second phase, four
+  Object.assign(e, { p2: true, droneCd: 0, state: 'chase' });
+  update(DT);
+  assert.equal(e.shots.length, D.n2);
 });
 
-test("the drones' tripwire: along her lane; stepped out of it, she is spared", () => {
-  const T = MECHA.drone.trip;
-  const e = boss(500);
-  Object.assign(e, { dm: 'trip', dmT: 0, dHit: [false, false], tripN: 1, ty: P.y });
-  step(T.aim * T.follow + 0.05);
-  P.y += 60;
+test("a drone's mark holds still before it fires: stepping off it, she is spared", () => {
+  const D = MECHA.drone;
+  const e = boss(500, { droneCd: 0 });
+  update(DT);
+  step(D.aim + 0.05);
+  assert.ok(Math.abs(e.shots[0].tx - P.x) < 10, 'the mark followed her');
+  P.x += 120;
   const hp = P.hp;
-  step(T.aim * (1 - T.follow) + T.t);
-  assert.equal(P.hp, hp, 'out of the lane');
-  // and in it
-  Object.assign(e, { dm: 'trip', dmT: 0, dHit: [false, false], tripN: 1, ty: P.y });
-  step(T.aim + T.t);
-  assert.ok(P.hp < hp, 'in the lane');
+  step(D.lock + D.beam);
+  assert.ok(e.shots[0].fired);
+  assert.equal(P.hp, hp, 'off the mark');
 });
 
 test('at rest it holds the sword drawn back, the blade pointing down', async () => {
