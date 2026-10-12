@@ -10,7 +10,7 @@ import { replaying } from './replay.js';
 
 // The hidden moves on the HUD (game pixels): hold the portrait for the X secret (the road to
 // the final boss), hold the score for the Z + 2 secret (on to Old Quarry), hold the name and
-// the health bar for the Z + 3 secret (on to Neon Kyoto).
+// the health bar for the Z + 3 secret (on to Midnight City).
 export const SECRET_BOXES = {
   secret: [14, 10, 70, 70],
   stage: [W - 220, 10, 210, 50],

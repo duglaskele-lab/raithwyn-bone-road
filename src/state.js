@@ -71,7 +71,7 @@ function freshPlayer() {
     acidT: 0,
     thrown: null, // thrown by the strongman: the foes she has bowled over on the way
     thrower: null,
-    safe: null, // Neon Kyoto: the last spot of a roof she stood on (a fall puts her back there)
+    safe: null, // Midnight City: the last spot of a roof she stood on (a fall puts her back there)
     wasAir: false, // up in the air last frame (landing in a gap between the roofs)
     landed: false, // the punch under way has struck something
     finT: 0, // how long K still makes Lucy's heavy shot (J J K)

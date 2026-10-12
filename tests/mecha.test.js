@@ -28,7 +28,7 @@ const step = (s, each) => {
     each?.();
   }
 };
-const CDS = { cd: 99, iaiCd: 99, guardCd: 99, misCd: 99, leapCd: 99 };
+const CDS = { cd: 99, iaiCd: 99, guardCd: 99, misCd: 99, leapCd: 99, droneCd: 99 };
 const boss = (dx, extra = {}) => {
   const e = spawn('mecha', 1, P.x + dx, P.y);
   Object.assign(e, { state: 'chase', t: 0, face: -1, z: 0 }, CDS, extra);
@@ -124,6 +124,71 @@ test('at a quarter it overheats: the open core takes double harm, and iai cuts c
   assert.ok(dashes >= 3, `${dashes} cuts`);
 });
 
+test('its two drones fly beside it, part of it: they are not foes to be hit', () => {
+  const e = boss(400);
+  step(0.5);
+  assert.equal(e.dr.length, 2);
+  assert.deepEqual(
+    G.enemies.map((q) => q.type),
+    ['mecha'],
+  );
+  assert.ok(
+    e.dr.every((d) => d.z > 150 && Math.abs(d.x - e.x) < 220),
+    'up, beside it',
+  );
+});
+
+test('the drones sweep two lanes with their beams from either side', () => {
+  const e = boss(500, { droneCd: 0 });
+  let hit = false;
+  update(DT);
+  assert.notEqual(e.dm ?? 'home', 'home', 'they attack');
+  // the sweep, whichever came up
+  {
+    Object.assign(e, {
+      dm: 'sweep',
+      dmT: 0,
+      dHit: [false, false],
+      spots: [
+        { x: P.x - 340, y: P.y, dir: 1 },
+        { x: P.x + 340, y: P.y + MECHA.drone.sweep.off, dir: -1 },
+      ],
+    });
+  }
+  const hp = P.hp;
+  step(MECHA.drone.sweep.aim + MECHA.drone.sweep.t, () => (hit = hit || P.hp < hp));
+  assert.ok(hit, 'the beam along her lane finds her');
+  step(0.2);
+  assert.equal(e.dm, 'home', 'back beside it');
+});
+
+test("the drones' tripwire: along her lane; stepped out of it, she is spared", () => {
+  const T = MECHA.drone.trip;
+  const e = boss(500);
+  Object.assign(e, { dm: 'trip', dmT: 0, dHit: [false, false], tripN: 1, ty: P.y });
+  step(T.aim * T.follow + 0.05);
+  P.y += 60;
+  const hp = P.hp;
+  step(T.aim * (1 - T.follow) + T.t);
+  assert.equal(P.hp, hp, 'out of the lane');
+  // and in it
+  Object.assign(e, { dm: 'trip', dmT: 0, dHit: [false, false], tripN: 1, ty: P.y });
+  step(T.aim + T.t);
+  assert.ok(P.hp < hp, 'in the lane');
+});
+
+test('at rest it holds the sword drawn back, the blade pointing down', async () => {
+  const { armPoint, skelPose } = await import('../src/skeleton.js');
+  const e = boss(400);
+  update(DT);
+  const o = skelPose(e);
+  assert.ok(o.aF[0] < 0, 'the arm back');
+  const hand = armPoint(e, false, 0),
+    tip = armPoint(e, false, 120);
+  assert.ok(tip[1] < hand[1] - 50, 'the blade goes down');
+  assert.ok((tip[0] - hand[0]) * e.face < 0, 'and back, behind it');
+});
+
 test('beaten, it kneels, then bursts; the stage is won, and with it the game', () => {
   startLevel(3);
   G.banner = null;
@@ -147,7 +212,7 @@ test('beaten, it kneels, then bursts; the stage is won, and with it the game', (
   assert.equal(APP.state, 'win');
 });
 
-test('winning Old Quarry leads on to Neon Kyoto, keeping score and lives', () => {
+test('winning Old Quarry leads on to Midnight City, keeping score and lives', () => {
   freshGame();
   startLevel(2);
   G.waveI = WAVES3.length;

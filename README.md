@@ -550,14 +550,14 @@ trumpet, tremolo guitar, bells, choir and a whip crack) while walking, and "Show
 (D minor, 156 BPM, trumpet fanfares, driving bass, bells and choir) in the Slime's fight and the
 finale.
 
-## Stage 3: Neon Kyoto
+## Stage 3: Midnight City
 
 A city of the future with an eastern soul, built by the Jawacorp corporation, whose robots walk
 its streets. It comes after Old Quarry (the same "Stage clear" screen leads on to it, keeping
 score and lives), and it is the last stage: beating its boss wins the game.
 
 **Music** (synthesised, `THEMES` in `src/audio.js`, on the Japanese "in" scale D Eb G A C):
-"Neon Kyoto" (112 BPM) while walking — a synthwave groove (four-on-the-floor kick, a gated
+"Midnight City" (112 BPM) while walking — a synthwave groove (four-on-the-floor kick, a gated
 snare, an octave-leaping sixteenth bass, pads, an arpeggio) under a plucked koto tune and the
 breathy shakuhachi's answer, a gong in the bridge; "Steel Ronin" (148 BPM) in the fights of the
 breaker android and the mech samurai — taiko drums and a gong, a driving bass, a detuned saw
@@ -572,7 +572,9 @@ bridge over the expressway; the fire stairs up a brick wall; the roofs with aeri
 and fans, the city far below the gaps; the garden on the tower top with a pagoda, petals
 drifting and a holographic moon. Jawacorp, who built the robots, is everywhere: its sign (a
 hood in a ring with two burning eyes) on billboards, posters, a tower over the whole city and
-over every door the robots come out of. In the light picture (`APP.lowFx`) there are fewer
+over every door the robots come out of. Other firms advertise too: "No milk, Serval pilk" (a
+carton with a serval on it), a blue "Your ad could be here" screen nobody has bought, and the
+red "Meme Lords" board with its picture of stars. In the light picture (`APP.lowFx`) there are fewer
 raindrops and petals and no glows.
 
 **The road** (`src/level3.js`, about 1.8 times as long as Old Quarry): the slums in the rain →
@@ -608,6 +610,14 @@ smoke, not bones.
 
 - **Android Guard** (light, the main one) — white armour, a blue visor, an electric baton: its
   blow stuns the heroine for 0.3 s.
+- **Grenadier Guard** (light) — khaki armour, an amber visor, a belt of grenades, a baton in one
+  hand and a grenade in the other, held out high behind it, ready, as it walks. From a little
+  way off it throws it once (a red timer on the grenade counts down three seconds, beeping;
+  the blast hurts robots too), then fights as a guard.
+- **Cell Carrier** (light) — a guard carrying a Jawacorp power cell in both hands, and hitting
+  with it (it knocks her down). A blow with the cell, or a blow on it, sets the cell's timer
+  going: three seconds later it bursts into lightning in its hands (it is caught in it too).
+  Killed first, it drops the cell, still ticking.
 - **Android Guardess** (light, rarer) — slimmer, a helmet with cat's ears and a pink visor, a
   cable plait, a plasma rifle. She keeps her distance; a red laser sight shows where she aims
   (0.75 s), then a plasma bolt flies along the road.
@@ -621,10 +631,8 @@ smoke, not bones.
   600 px straight through the heroine, cutting her down (14). When a shot flies its way it takes
   a stance for 1.3 s and turns Lucy's bullets and Raithwyn's bones back at the shooter; a blow up
   close breaks the stance.
-- **Omnic Monk** (light) — a robot in a saffron robe floating cross-legged, a ring of orbs round
-  its neck, blue lights on its brow. It keeps behind the others and puts a shield of light on
-  one robot at a time (0.8 s to cast, a thread of light to it): for 6 s that robot takes only
-  35% of the harm of a blow; a crushing blow ends the shield. Beat the monk first.
+- **Omnic Monk** (`TYPES.monk`, not in the stage any more) — a robot in a saffron robe floating
+  cross-legged, that put a shield of light on other robots.
 - **Turret Robot** (medium) — squat olive armour, a boxy head with one red eye, a rotary gun for
   a front arm. It fights in two modes. As a robot it walks, hits, and from mid range raises its
   gun (0.45 s, a red sight) and fires a burst of three bolts out of the muzzle. From a distance,
@@ -633,8 +641,10 @@ smoke, not bones.
   and a second gun comes up on the back arm. Then it fires bursts of six from both muzzles in
   turn down the lane for 5 s, turning if she gets behind it, and takes only half the harm of a
   blow, until it packs up again; step up or down the road.
-- **Barrier Heavy** (heavy) — broad blue armour, a domed head with a T-shaped visor, a
-  projector on its forearm. It raises a wall of hard light in front of it for 4.5 s and keeps
+- **Barrier Heavy** (heavy, 210 health) — broad blue armour, a domed head with a T-shaped
+  visor, a projector on its forearm, a pack on its back (a grille, an aerial, a rack of
+  grenades). Every 5–8 s, its wall up or not, it lobs a grenade at her (`JNADE`: three seconds
+  on its timer, then a blast that hurts robots too). It raises a wall of hard light in front of it for 4.5 s and keeps
   it as it walks: the heroine's shots (bullets, bones, a level I dark ball) stop on it, which
   shields the robots behind it too, and so do blows from the front; three heavy blows (or one
   crushing) shatter it. From behind it is open; only crushing blows move it.
@@ -643,15 +653,22 @@ smoke, not bones.
   cuts, both cleavers in turn; the last one knocks her down.
 
 **The mini-boss: the Breaker Android** (900 health; `TYPES.breaker`, `BREAKER`), in the metro's
-concourse. A hunched black robot with orange joints and one enormous mechanical arm: a heavy
-shoulder, pistons, vents glowing orange, a fist like a block of iron. It never stays still:
+concourse. A black robot with orange joints built like a sumo wrestler — a round iron belly with
+the core glowing for a navel, an orange belt with its tassels in front, a steel topknot on its
+helmet — and one enormous mechanical arm: a heavy shoulder, pistons, vents glowing orange, a
+fist like a block of iron. It never stays still:
 
 - up close it brings the fist down in front of it, in a little ring of shock (knocks down);
 - from further off it crouches and leaps at the heroine, landing where she stood (the spot is
   marked in orange) in a ring of shock 190 px round that throws her and smashes things nearby;
 - it raises the arm and punches the ground: a fissure of seven eruptions runs along her lane
   (marked by a dashed line as it winds up) — step out of the lane or jump it;
-- it cocks the fist and fires it like a rocket, charging straight through her.
+- it cocks the fist and fires it like a rocket, charging straight through her;
+- up close it sinks into a sumo stance for 0.5 s (the fist drawn back, glowing), hops back
+  to the roomier side of the screen (over her, if there is no room behind it) and drives the
+  fist at her;
+- in its second phase, up close, it leaps high out of sight; a wide ring on the ground follows
+  her for a moment, then it drops onto it: a ring of shock 300 px round.
 
 Its big moves cannot be stopped (a red outline); only crushing blows move it. At half health
 the arm glows white-hot, it is 1.3 times quicker and waits less between moves, and three
@@ -660,8 +677,14 @@ fissures run side by side. Beaten, it bursts into parts, the fight is over and f
 **The last boss: the Mech Samurai** (1500 health; `TYPES.mecha`, `MECHA`), in the garden on top
 of the tower. A giant war machine in samurai armour of black lacquer and red lacing: a horned
 helmet with a golden crest, a snarling face mask with burning eyes, great shoulder plates, an
-armoured skirt, and a katana of red plasma. It drops from the sky, landing in a ring of shock.
-It never flinches.
+armoured skirt, and a katana of red plasma, held at rest low behind it, the arm drawn back and
+the blade pointing down. It drops from the sky, landing in a ring of shock. It never flinches.
+Two drones fly beside it, black discs with golden crests and red eyes: they are part of it and
+cannot be hit. Every 6–9 s they attack while it fights on: the **sweep** — they mark her lane
+and the one beside it, then drive their beams along them from either side (dodge between); or
+the **tripwire** — they fly to the screen's two edges along her lane and stretch a laser
+between them (step out of the lane or jump it; twice in a row from phase 2). Beaten, it takes
+them down with it.
 
 - **Phase 1:** wide cuts that sweep across the road's depth in front of it; the **iai** — it
   sinks into its stance while a red line glows the length of the screen along her lane, then
@@ -682,7 +705,7 @@ open, lit inside), or drop down
 from above.
 
 **Secret.** On the first screen of the first stage, before the first fight, hold `Z` and `3`
-together for 2 seconds and the heroine goes straight to Neon Kyoto. On its first screen, hold
+together for 2 seconds and the heroine goes straight to Midnight City. On its first screen, hold
 `X` for 3 seconds and she goes straight to the last fight.
 
 ## Layout
@@ -705,8 +728,8 @@ src/
   level.js                stages: floor, camera path, where enemies come from, transition
   level2.js               Old Quarry: floor, camera path, waves, barrels
   bg2.js                  Old Quarry's procedural backdrop
-  level3.js               Neon Kyoto: floor, gaps between the roofs, doors, camera path, waves
-  bg3.js                  Neon Kyoto's procedural backdrop and the rain
+  level3.js               Midnight City: floor, gaps between the roofs, doors, camera path, waves
+  bg3.js                  Midnight City's procedural backdrop and the rain
   blast.js                barrel and dynamite explosions
   state.js                the application (APP); one run: the world (G), the player (P), reset()
   util.js                 small pure functions
@@ -781,19 +804,23 @@ What is checked:
   first stage, where enemies come from, barrels and blasts, the Miner, Dynamite, the Lizard, the
   Power Armor, its gun and its jump onto a marked spot, no more than two armors per wave, the Slime and its zombies, the
   final fight against the Prospector alone, the `X` secret to it.
-- `robots.test.js` — Jawacorp's robots: in Neon Kyoto's fights, the guard's stun, the
+- `robots.test.js` — Jawacorp's robots: in Midnight City's fights, the guard's stun, the
   guardess's bolt, the drone out of reach of a punch but not of a jump attack, its laser on the
   marked spot, the ninja's dash and its stance turning shots back, parts instead of bones; the
   monk's shield (and a crushing blow ending it), the turret's stream down its lane, the barrier
-  heavy's wall (shots and blows from the front, cracking, shattering), the chef's flurry.
+  heavy's wall (shots and blows from the front, cracking, shattering) and its grenade over it
+  (the timer, the blast hurting robots), the grenadier's one grenade, the cell carrier's cell
+  (set going by a blow on it or with it, bursting, dropped still ticking), the chef's flurry.
 - `mecha.test.js` — the mech samurai: the last fight, dropping from the sky, the iai on the line
   (and off it), the counter stance, never flinching, the missiles on the marks (sparing it), the
-  overheated core and the run of iai cuts, kneeling and bursting, the game won; winning Old
-  Quarry leads on to Neon Kyoto.
+  overheated core and the run of iai cuts, kneeling and bursting, the game won; its two drones
+  (not foes to hit), their sweep and their tripwire, the sword held low behind it; winning Old
+  Quarry leads on to Midnight City.
 - `breaker.test.js` — the breaker android: in the metro, the leap onto the marked spot and its
   shock, nothing stopping it in the air, the fissure along the lane (and out of it), three
-  fissures and more speed at half health, the rocket fist, its end.
-- `level3.test.js` — Neon Kyoto: the `Z`+`3` and `X` secrets, the road (down into the metro, up
+  fissures and more speed at half health, the rocket fist, the sumo stance and the hop-back
+  punch (over her with no room behind it), the sky slam in the second phase only, its end.
+- `level3.test.js` — Midnight City: the `Z`+`3` and `X` secrets, the road (down into the metro, up
   to the avenue and onto the roofs), a gap on screen in every fight on the roofs, gaps that can
   be jumped (the widest only running), falling into a gap and climbing back hurt, not walking
   off an edge, a robot thrown into a gap, robots walking in, stepping out of doors, dropping

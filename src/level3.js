@@ -1,4 +1,4 @@
-// Stage 3, Neon Kyoto: a city of the future with an eastern soul, built by Jawacorp, whose
+// Stage 3, Midnight City: a city of the future with an eastern soul, built by Jawacorp, whose
 // robots walk its streets. The road runs through the rainy slums, down the stairs into the
 // metro, up the escalator to the avenue of arches and over the bridge, then up the fire
 // stairs onto the rooftops: separate roofs with gaps between them (fall in and you are hurt
@@ -166,7 +166,7 @@ const P = [
 ];
 export const PROPS3 = P.map(([x, d, k, drop]) => [x, topY(x) + d, k, drop]);
 
-// How an ordinary fight of Neon Kyoto is rolled (as WAVEGEN, config.js): Jawacorp's robots.
+// How an ordinary fight of Midnight City is rolled (as WAVEGEN, config.js): Jawacorp's robots.
 export const WAVEGEN3 = {
   count: [5, 10],
   hard: [0.06, 0.32],
@@ -174,9 +174,9 @@ export const WAVEGEN3 = {
   maxHard: [1, 3],
   gap: [0.9, 0.5],
   pools: {
-    easy: { guard: 4, drone: 1.3 },
-    mid: { ninja: 1, catguard: 0.5, monk: 0.7 },
+    easy: { guard: 3.2, grenadier: 1, drone: 1.3 },
+    mid: { ninja: 1, catguard: 0.5, cellguard: 0.8 },
     hard: { turret: 1, chef: 1, barrier: 0.6 },
   },
-  cap: { ninja: 2, catguard: 2, drone: 3, monk: 1, turret: 2, barrier: 1 },
+  cap: { ninja: 2, catguard: 2, drone: 3, grenadier: 2, cellguard: 2, turret: 2, barrier: 1 },
 };

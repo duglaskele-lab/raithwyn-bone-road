@@ -1,8 +1,8 @@
-// What Jawacorp's robots (Neon Kyoto) share: metal armour drawn over the skeleton rig (plates
+// What Jawacorp's robots (Midnight City) share: metal armour drawn over the skeleton rig (plates
 // on the limbs, a chest plate with a glowing core, the maker's sign on it), dying in a burst of
 // parts and sparks instead of bones, and the plasma bolts their guns fire.
-import { OL, TAU, W } from '../config.js';
-import { fxRnd } from '../util.js';
+import { CELLG, FONT, JNADE, OL, TAU, W } from '../config.js';
+import { clamp, fxRnd, rnd } from '../util.js';
 import { APP, G, P } from '../state.js';
 import { ctx } from '../gfx.js';
 import { SFX } from '../audio.js';
@@ -10,6 +10,8 @@ import { spark } from '../fx.js';
 import { hitPlayer } from '../combat.js';
 import { scoreMult } from '../style.js';
 import { jawaLogo } from '../bg3.js';
+import { defineState, FOES } from './registry.js';
+import { faceP, go, lob } from './kit.js';
 
 /** A point a fraction `u` of the way from `p` to `q`. */
 export const along = (p, q, u) => [p[0] + (q[0] - p[0]) * u, p[1] + (q[1] - p[1]) * u];
@@ -73,14 +75,24 @@ function limbPlates(L, w, A, fl, foot) {
  * The look hooks of a robot in armour `A` = { body, trim, glow, w (plate width), chest }:
  * plates on every limb, a chest plate with its core and Jawacorp's sign; `head` and `weapon`
  * draw its own head and what it holds; `chest(c)` adds to the chest (over the plate).
+ * `opts.pack(c)` draws something on its back (behind the body, in the spine's frame), and
+ * `opts.backHand(c, p)` what its back hand holds at `p`.
  */
-export function robotLook(A, head, weapon, chest) {
+export function robotLook(A, head, weapon, chest, opts = {}) {
   const w = A.w ?? 10;
   return {
     back(c) {
       const { o, fl, limb, TH, SH, UA, FA, sh } = c;
+      if (opts.pack) {
+        ctx.save();
+        ctx.rotate(o.lean);
+        opts.pack(c);
+        ctx.restore();
+      }
       limbPlates(limb([-3, 0], o.lB[0], o.lB[1], TH, SH), w, dim(A), fl, true);
-      limbPlates(limb([sh[0] - 3, sh[1]], o.aB[0], o.aB[1], UA, FA), w * 0.9, dim(A), fl);
+      const L = limb([sh[0] - 3, sh[1]], o.aB[0], o.aB[1], UA, FA);
+      limbPlates(L, w * 0.9, dim(A), fl);
+      opts.backHand?.(c, L[2]);
     },
     torso(c) {
       const { o, fl } = c;
@@ -318,6 +330,8 @@ export function drawBolt(q, x, y) {
 /** Jawacorp's robots, by type. */
 const ROBOTS = new Set([
   'guard',
+  'grenadier',
+  'cellguard',
   'catguard',
   'drone',
   'ninja',
@@ -357,3 +371,163 @@ export function drawOrb(e) {
   ctx.stroke();
   ctx.restore();
 }
+
+// --- Jawacorp's grenades and power cells, on a timer ----------------------------------------------
+
+/** A little screen with the seconds left on it (dark when the timer is not running). */
+function timerScreen(x, y, w, h, secs, fl) {
+  ctx.fillStyle = fl ? '#fff' : '#0b0d14';
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 1.5;
+  ctx.fillRect(x - w / 2, y - h / 2, w, h);
+  ctx.strokeRect(x - w / 2, y - h / 2, w, h);
+  if (secs == null || fl) return;
+  // it blinks faster as the end comes
+  const rate = secs < 1 ? 12 : 4;
+  if (Math.floor(G.time * rate) % 4 === 3) return;
+  ctx.save();
+  ctx.fillStyle = '#ff3b3b';
+  if (!APP.lowFx) {
+    ctx.shadowColor = '#ff3b3b';
+    ctx.shadowBlur = 6;
+  }
+  ctx.font = `900 ${Math.round(h * 0.95)}px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(String(Math.max(1, Math.ceil(secs))), x, y + 1);
+  ctx.restore();
+}
+/** A Jawacorp grenade at the origin, `r` round: a dark shell, a yellow band, a lever and a
+ *  timer screen (`secs` left, or null if not yet set going). */
+export function drawJnade(r, secs, fl) {
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2;
+  // the lever and the cap on top
+  ctx.fillStyle = fl ? '#fff' : '#8a94a0';
+  ctx.fillRect(-r * 0.3, -r * 1.25, r * 0.6, r * 0.4);
+  ctx.strokeRect(-r * 0.3, -r * 1.25, r * 0.6, r * 0.4);
+  ctx.beginPath();
+  ctx.moveTo(r * 0.3, -r * 1.1);
+  ctx.quadraticCurveTo(r * 1.1, -r * 1.0, r * 0.95, -r * 0.2);
+  ctx.stroke();
+  ctx.fillStyle = fl ? '#fff' : '#3a4232';
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, TAU);
+  ctx.fill();
+  ctx.stroke();
+  if (!fl) {
+    ctx.fillStyle = '#ffc21a';
+    ctx.fillRect(-r, -r * 0.18, r * 2, r * 0.36);
+    ctx.fillStyle = 'rgba(255,255,255,.25)';
+    ctx.beginPath();
+    ctx.arc(-r * 0.35, -r * 0.4, r * 0.3, 0, TAU);
+    ctx.fill();
+  }
+  timerScreen(r * 0.1, r * 0.42, r * 1.15, r * 0.78, secs, fl);
+}
+/** A Jawacorp power cell at the origin (its foot), `h` tall: steel caps, a glass tube of
+ *  crackling blue, hazard stripes, its timer (`secs`, or null). */
+export function drawCell(h, secs, fl) {
+  const w = h * 0.55,
+    hot = secs != null && secs < 1;
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2;
+  // the glass
+  ctx.fillStyle = fl ? '#fff' : hot && Math.floor(G.time * 14) % 2 ? '#e8fdff' : '#4fe3ff';
+  if (!APP.lowFx && !fl) {
+    ctx.shadowColor = '#4fe3ff';
+    ctx.shadowBlur = secs != null ? 16 : 8;
+  }
+  ctx.fillRect(-w * 0.4, -h * 0.82, w * 0.8, h * 0.64);
+  ctx.shadowBlur = 0;
+  ctx.strokeRect(-w * 0.4, -h * 0.82, w * 0.8, h * 0.64);
+  if (!fl) {
+    // lightning inside
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    let y = -h * 0.8;
+    ctx.moveTo(0, y);
+    for (let k = 0; k < 5; k++) {
+      y += h * 0.12;
+      ctx.lineTo(Math.sin(G.time * 37 + k * 2.3) * w * 0.3, y);
+    }
+    ctx.stroke();
+  }
+  // the caps
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2;
+  ctx.fillStyle = fl ? '#fff' : '#3b3f4a';
+  for (const y0 of [-h, -h * 0.2]) {
+    ctx.fillRect(-w / 2, y0, w, h * 0.2);
+    ctx.strokeRect(-w / 2, y0, w, h * 0.2);
+  }
+  if (!fl) {
+    ctx.fillStyle = '#ffc21a';
+    for (let k = 0; k < 3; k++) ctx.fillRect(-w / 2 + 3 + k * (w / 3), -h * 0.17, w / 6, h * 0.14);
+  }
+  timerScreen(0, -h * 0.9, w * 0.6, h * 0.14, secs, fl);
+}
+/** Lob a grenade at her from (x0, z0), its timer set going. */
+export function throwJnade(e, x0, z0) {
+  const d = clamp((P.x - x0) * e.face, JNADE.min, JNADE.max);
+  lob(e, 'jnade', x0, z0, JNADE.flight, JNADE.g, d, 150, {
+    fuse: JNADE.fuse,
+    beep: JNADE.fuse,
+    life: 99,
+  });
+  SFX.swing();
+}
+/** A power cell (lit or not) falls from its hands: on the ground its timer runs on. */
+export function dropCell(e, fuse = CELLG.fuse) {
+  G.projs.push({
+    k: 'jcell',
+    x: e.x + e.face * 30 * e.T.scale,
+    y: e.y + 4,
+    z: 80 * e.T.scale,
+    vx: e.face * 30,
+    vy: 0,
+    vz: 100,
+    rot: 0,
+    fuse,
+    beep: fuse,
+    life: 99,
+  });
+}
+/** A timer counting down: a beep on every whole second. */
+export function beepTimer(q, dt) {
+  q.fuse -= dt;
+  if (q.fuse > 0 && Math.ceil(q.fuse) < Math.ceil(q.beep)) SFX.beep(q.fuse < 1);
+  q.beep = q.fuse;
+}
+
+// The throw of a grenade: drawn back, then lobbed. A foe may say `nadeFace(e)` to keep its
+// facing (the barrier heavy behind its wall) and `nadeFrom(e)` where it leaves its hand.
+defineState('gthrow', (e) => {
+  const F = FOES[e.type];
+  if (!F.nadeFace?.(e)) faceP(e);
+  if (!e.thrown && e.t > JNADE.wind) {
+    e.thrown = true;
+    const s = e.T.scale;
+    throwJnade(e, e.x + e.face * 30 * s, 160 * s);
+    F.onThrow?.(e);
+  }
+  if (e.t > JNADE.wind + 0.35) go(e, 'chase', 0, { nadeCd: rnd(...JNADE.cd) });
+});
+/** The back arm's swing for the throw: drawn far back over the shoulder, then over and out. */
+export const THROW_POSE = {
+  tween: {
+    dur: JNADE.wind,
+    from: { aB: [0.02, 0.95] },
+    to: { aB: [-2.4, -1.5] },
+  },
+  fn: (o, e) => {
+    const u = clamp((e.t - JNADE.wind) / 0.12, 0, 1);
+    if (u > 0) o.aB = [-2.4 + 4.1 * u, -1.5 + 3.0 * u];
+    o.lean = e.t < JNADE.wind ? -0.12 : 0.28;
+    o.lF = [0.45, 0.1];
+    o.lB = [-0.5, -0.7];
+  },
+};

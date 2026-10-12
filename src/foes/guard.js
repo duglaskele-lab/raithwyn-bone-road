@@ -1,18 +1,35 @@
-// Jawacorp's android guards (Neon Kyoto). The guard (TYPES.guard): white armour, a visor glowing
+// Jawacorp's android guards (Midnight City). The guard (TYPES.guard): white armour, a visor glowing
 // blue, an electric baton; its blow stuns the heroine for a moment (ROBOT.stun). The guardess
 // (TYPES.catguard), rarer: slimmer, a helmet with cat's ears and a pink visor, a cable plait,
 // a plasma rifle; she keeps her distance, a laser sight shows where she aims, and she fires a
 // plasma bolt along the road.
+// Two kinds of guard more: the grenadier (TYPES.grenadier) walks up with a grenade held out
+// ready in its other hand, throws it once (JNADE) and then fights as a guard; the cell carrier
+// (TYPES.cellguard) hits with a Jawacorp power cell in both hands, and a blow with it, or a
+// blow on it, sets the cell's timer going (CELLG): three seconds, then it bursts.
 import { APP } from '../state.js';
-import { OL, ROBOT, TAU } from '../config.js';
+import { CELLG, JNADE, OL, ROBOT, TAU } from '../config.js';
 import { ctx } from '../gfx.js';
 import { SFX } from '../audio.js';
 import { hitPlayer, stunPlayer } from '../combat.js';
 import { defineFoe } from './registry.js';
-import { fireBolt, robotDie, robotLook, visorHelm } from './robot.js';
+import { explode } from '../blast.js';
+import { go } from './kit.js';
+import {
+  drawCell,
+  drawJnade,
+  dropCell,
+  fireBolt,
+  robotDie,
+  robotLook,
+  THROW_POSE,
+  visorHelm,
+} from './robot.js';
 
 const GUARD = { body: '#d7dde4', trim: '#4f5663', glow: '#4fe3ff', w: 13, chest: 1.08 };
 const CAT = { body: '#efe8f4', trim: '#3f3550', glow: '#ff4fb4', w: 9, chest: 0.92 };
+const GREN = { body: '#c9c3a6', trim: '#4e4a3a', glow: '#ffb02e', w: 13, chest: 1.1 };
+const CELL = { body: '#d7dde4', trim: '#2e4a5a', glow: '#7fe9ff', w: 14, chest: 1.12 };
 
 /** The stun baton in the hand: a black grip, a rod, its end crackling blue. */
 function baton(c) {
@@ -113,14 +130,16 @@ function catHead(c) {
   visorHelm(fl, CAT, true);
 }
 
+// the baton's blow: a jolt that stuns (or, if she is not on her feet, just hurts)
+function batonBlow(e) {
+  SFX.crackle();
+  if (!stunPlayer(e.T.dmg, ROBOT.stun)) hitPlayer(e.T.dmg, e.face, false);
+  return false;
+}
+
 export default defineFoe('guard', {
   look: robotLook(GUARD, (c) => visorHelm(c.fl, GUARD), baton),
-  // the baton's blow: a jolt that stuns (or, if she is not on her feet, just hurts)
-  connect(e) {
-    SFX.crackle();
-    if (!stunPlayer(e.T.dmg, ROBOT.stun)) hitPlayer(e.T.dmg, e.face, false);
-    return false;
-  },
+  connect: batonBlow,
   die: robotDie,
   pose: {
     // the baton held up, ready
@@ -140,6 +159,143 @@ defineFoe('catguard', {
     states: {
       windup: { set: { aF: [1.35, 1.57], aB: [1.1, 1.5], lean: 0.02 } },
       attack: { set: { aF: [1.2, 1.4], aB: [0.95, 1.35], lean: -0.08 } },
+    },
+  },
+});
+
+/** Does the grenadier still have its grenade? */
+const hasNade = (e) => !e.nadeGone && !(e.state === 'gthrow' && e.thrown);
+/** Grenades in a belt across the chest (one is missing: it is in the hand). */
+function nadeBelt(c) {
+  ctx.fillStyle = c.fl ? '#fff' : '#3a3428';
+  ctx.save();
+  ctx.translate(2, -36);
+  ctx.rotate(-0.6);
+  ctx.fillRect(-24, -3, 48, 6);
+  for (const x of [-14, 0, 14]) {
+    ctx.save();
+    ctx.translate(x, 2);
+    drawJnade(4.5, null, c.fl);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+defineFoe('grenadier', {
+  init: { nadeCd: [0.3, 1.2] },
+  timers: ['nadeCd'],
+  look: robotLook(GREN, (c) => visorHelm(c.fl, GREN), baton, nadeBelt, {
+    backHand(c, p) {
+      if (!hasNade(c.e)) return;
+      ctx.save();
+      ctx.translate(p[0], p[1]);
+      drawJnade(8, null, c.fl);
+      ctx.restore();
+    },
+  }),
+  moves: [
+    {
+      // its one grenade, from a little way off
+      when: (e, s) =>
+        !e.nadeGone && e.nadeCd <= 0 && !s.pdown && s.adx > JNADE.min && s.adx < 460 && s.ady < 120,
+      go(e) {
+        go(e, 'gthrow', 0, { engage: false, thrown: false });
+      },
+    },
+  ],
+  onThrow(e) {
+    e.nadeGone = true;
+  },
+  connect: batonBlow,
+  die: robotDie,
+  pose: {
+    guard: {
+      chase: {
+        set: {
+          aF: (e, k) => [0.9, 2.3 + 0.05 * k.br],
+          // the grenade held out behind, high, ready to be thrown
+          aB: (e, k) => (hasNade(e) ? [-2.15, -1.75 + 0.05 * k.br] : [0.02, 0.95]),
+        },
+      },
+    },
+    states: { gthrow: THROW_POSE },
+  },
+});
+
+/** Does the cell carrier still hold its cell? */
+const hasCell = (e) => !e.cellGone;
+/** Set its cell's timer going (if it is not already). */
+function armCell(e) {
+  if (!hasCell(e) || e.cellT > 0) return;
+  e.cellT = e.cellBeep = CELLG.fuse;
+  SFX.beep();
+}
+/** Where the cell is: in its hands, in front of its chest. */
+const cellAt = (e) => [e.x + e.face * 34 * e.T.scale, e.y + 2];
+
+defineFoe('cellguard', {
+  look: robotLook(
+    CELL,
+    (c) => visorHelm(c.fl, CELL),
+    (c) => {
+      const { e, h, wa, fl } = c;
+      if (!hasCell(e)) return;
+      ctx.save();
+      ctx.translate(h[0], h[1]);
+      ctx.rotate(-(wa - 1.57) * 0.8);
+      ctx.translate(-4, 26);
+      drawCell(52, e.cellT > 0 ? e.cellT : null, fl);
+      ctx.restore();
+    },
+  ),
+  // the blow with the cell knocks her down, and sets its timer going; without it, a punch
+  connect(e) {
+    if (hasCell(e)) {
+      SFX.crackle();
+      hitPlayer(e.T.dmg, e.face, true);
+      armCell(e);
+    } else hitPlayer(Math.round(e.T.dmg * 0.6), e.face, false);
+    return false;
+  },
+  // a blow on it sets the timer going too
+  onHit(e) {
+    armCell(e);
+    return false;
+  },
+  tick(e, dt) {
+    if (!(e.cellT > 0)) return;
+    e.cellT -= dt;
+    if (e.cellT > 0 && Math.ceil(e.cellT) < Math.ceil(e.cellBeep)) SFX.beep(e.cellT < 1);
+    e.cellBeep = e.cellT;
+    if (e.cellT <= 0) {
+      // it bursts in its hands
+      e.cellGone = true;
+      e.cellT = 0;
+      explode(...cellAt(e), 'cell');
+    }
+  },
+  die(e, dir) {
+    // the cell falls, its timer running (a dying blow is a blow on it too)
+    if (hasCell(e)) dropCell(e, e.cellT > 0 ? e.cellT : CELLG.fuse);
+    e.cellGone = true;
+    robotDie(e, dir);
+  },
+  pose: {
+    // the cell carried in both hands, in front
+    guard: {
+      chase: {
+        fn: (o, e, k) => {
+          if (!hasCell(e)) return;
+          o.aF = [0.75, 2.05 + 0.04 * k.br];
+          o.aB = [0.65, 2.0 + 0.04 * k.br];
+        },
+      },
+    },
+    states: {
+      // both hands on the cell for the swing
+      windup: { fn: (o, e) => hasCell(e) && (o.aB = [o.aF[0] - 0.12, o.aF[1]]) },
+      attack: { fn: (o, e) => hasCell(e) && (o.aB = [o.aF[0] - 0.12, o.aF[1]]) },
+      recover: { fn: (o, e) => hasCell(e) && (o.aB = [o.aF[0] - 0.12, o.aF[1]]) },
     },
   },
 });

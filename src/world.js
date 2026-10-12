@@ -9,6 +9,7 @@ import {
   GRENADE,
   GT,
   HADO,
+  JNADE,
   LUCY,
   PROS,
   PURPLE,
@@ -35,7 +36,7 @@ import { dandies, evilHitP, evilHurt } from './foes/evil.js';
 import { roadBand } from './foes/strongman.js';
 import { skullBall, skullBurst } from './foes/banshee.js';
 import { fallSign } from './props3.js';
-import { boltFly } from './foes/robot.js';
+import { beepTimer, boltFly } from './foes/robot.js';
 import { wallStops } from './foes/barrier.js';
 import { explode, updFuses } from './blast.js';
 import {
@@ -138,7 +139,7 @@ function secretWarp(dt) {
     last = WAVES.length - 1;
   G.waveI = last;
   if (level().path) {
-    // Old Quarry, Neon Kyoto: straight to the last arena, along the road
+    // Old Quarry, Midnight City: straight to the last arena, along the road
     const d = pathPx(WAVES[last].s),
       c = pathAt(d);
     camTo(d);
@@ -157,7 +158,7 @@ function secretWarp(dt) {
   SFX.nova();
 }
 // The other secrets: hold Z and 2 (or Z and 3) together for STAGE_HOLD seconds on the first
-// screen of the Bone Road, and the player is taken to the gates of Old Quarry (of Neon Kyoto).
+// screen of the Bone Road, and the player is taken to the gates of Old Quarry (of Midnight City).
 function stageWarp(dt) {
   const to = keys.lvlZ && keys.lvl2 ? 2 : keys.lvlZ && keys.lvl3 ? 3 : 0;
   if (!to || (G.stageTo && G.stageTo !== to)) {
@@ -562,12 +563,14 @@ export function update(dt) {
         q.life = 0;
         explode(q.tx, q.ty, 'mortar');
       }
-    } else if (q.k === 'tnt') {
-      // a lit stick of dynamite: it flies, bounces, lies there and blows up
-      q.fuse -= dt;
+    } else if (q.k === 'tnt' || q.k === 'jnade' || q.k === 'jcell') {
+      // a lit stick of dynamite (a Jawacorp grenade, a power cell on its timer): it flies,
+      // bounces, lies there and blows up
+      if (q.k === 'tnt') q.fuse -= dt;
+      else beepTimer(q, dt);
       if (q.z > 0 || q.vz > 0) {
         q.y += q.vy * dt;
-        q.vz -= DYNAMITE.g * dt;
+        q.vz -= (q.k === 'tnt' ? DYNAMITE.g : JNADE.g) * dt;
         q.z += q.vz * dt;
         q.rot += dt * 14 * Math.sign(q.vx || 1);
         if (q.z <= 0) {
@@ -578,7 +581,7 @@ export function update(dt) {
         }
       } else q.vx *= Math.pow(0.02, dt);
       floorClamp(q);
-      if (fxRandom() < 0.6)
+      if (q.k === 'tnt' && fxRandom() < 0.6)
         G.parts.push({
           k: 'dot',
           x: q.x + Math.cos(q.rot) * 14,
@@ -593,7 +596,7 @@ export function update(dt) {
         });
       if (q.fuse <= 0) {
         q.life = 0;
-        explode(q.x, q.y, 'dynamite');
+        explode(q.x, q.y, { tnt: 'dynamite', jnade: 'jnade', jcell: 'cell' }[q.k]);
       }
     } else if (q.k === 'zspit') {
       // a zombie spat out by the slime: it lands, and gets up to fight

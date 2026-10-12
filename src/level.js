@@ -1,7 +1,7 @@
 // The stages: which one is played, its fights, its floor and how the camera follows the
 // player. The Bone Road (stage 1) is a straight strip (the GT..GB band, the camera only goes
-// right); Old Quarry (stage 2) and Neon Kyoto (stage 3) have a floor of polygons and a camera
-// path (see level2.js, level3.js). Neon Kyoto's roofs also have gaps to fall into (`pits`),
+// right); Old Quarry (stage 2) and Midnight City (stage 3) have a floor of polygons and a camera
+// path (see level2.js, level3.js). Midnight City's roofs also have gaps to fall into (`pits`),
 // doors robots step out of (`doors`), and its robots never climb out of the ground.
 import { DECOR, GB, GT, H, W, WAVEGEN, WAVES } from './config.js';
 import { clamp } from './util.js';
@@ -262,7 +262,7 @@ export function entryPoint(side, r) {
   return tries[0] ?? null;
 }
 /**
- * Where a robot of Neon Kyoto comes from (they never climb out of the ground): walking in
+ * Where a robot of Midnight City comes from (they never climb out of the ground): walking in
  * from side `side` (mostly), stepping out of a door of a building on screen, or dropping
  * down from above onto the floor. Returns { x, y, how: 'walk' | 'door' | 'drop' }.
  */
@@ -296,7 +296,7 @@ export function groundPoint(r) {
 
 // --- starting a stage ----------------------------------------------------------------------
 
-/** A stage's things to break, fresh (Old Quarry's barrels, Neon Kyoto's signs and machines). */
+/** A stage's things to break, fresh (Old Quarry's barrels, Midnight City's signs and machines). */
 export function levelProps(n = 2) {
   const list = n === 2 ? PROPS2 : n === 3 ? L3.PROPS3 : [];
   return list.map(([x, y, decor, drop]) => ({

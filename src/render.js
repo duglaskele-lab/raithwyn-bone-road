@@ -39,7 +39,7 @@ import { drawBike } from './foes/bikes.js';
 import { roadBand } from './foes/strongman.js';
 import { drawSkull } from './foes/banshee.js';
 import { drawDecor3, drawFallingSign } from './props3.js';
-import { drawBolt, drawOrb } from './foes/robot.js';
+import { drawBolt, drawCell, drawJnade, drawOrb } from './foes/robot.js';
 import { FOES } from './foes/registry.js';
 import { stick } from './foes/dynamite.js';
 import { drawHelmetDebris } from './foes/prospector.js';
@@ -232,7 +232,7 @@ export function drawDecor(u) {
   ctx.save();
   ctx.translate(u.x - G.cam, u.y);
   if (D.k3) {
-    // Neon Kyoto's (props3.js)
+    // Midnight City's (props3.js)
     drawDecor3(u, fl);
     ctx.restore();
     return;
@@ -538,6 +538,20 @@ export function drawProj(q) {
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
+    ctx.restore();
+    return;
+  }
+  if (q.k === 'jnade' || q.k === 'jcell') {
+    // a Jawacorp grenade / power cell, its timer counting down
+    ctx.save();
+    if (q.k === 'jnade') {
+      ctx.translate(x, y - 14);
+      ctx.rotate(q.z > 0 ? q.rot : 0);
+      drawJnade(14, q.fuse, false);
+    } else {
+      ctx.translate(x, y + 2);
+      drawCell(44, q.fuse, false);
+    }
     ctx.restore();
     return;
   }

@@ -1,4 +1,4 @@
-// Procedural scenery of Neon Kyoto (stage 3): a city of the future with an eastern soul, built
+// Procedural scenery of Midnight City (stage 3): a city of the future with an eastern soul, built
 // by Jawacorp (its sign everywhere: a hood in a ring with two burning eyes). The rainy slums
 // of shacks, cables and paper lanterns; the stairs down into the metro, its platform with the
 // trains rushing past and its concourse; the escalator up to the avenue of red arches, cherry
@@ -336,6 +336,153 @@ function jawaBoard(x, y, w, h, seed = 1) {
   for (let yy = y; yy < y + h; yy += 4) ctx.fillRect(x, yy, w, 1.5);
   glow(T.amber, x + h * 0.55, y + h / 2, 0.35 * a, 1);
 }
+/** A five-pointed star of radius r. */
+function star(x, y, r, rot = 0) {
+  ctx.beginPath();
+  for (let k = 0; k < 10; k++) {
+    const a = rot - Math.PI / 2 + (k * Math.PI) / 5,
+      q = k % 2 ? r * 0.42 : r;
+    ctx.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+/** A line of lit text on a board, left or centred, with a neon blur. */
+function boardText(t, x, y, size, col, glowCol, weight = 900, align = 'left') {
+  ctx.font = `${weight} ${Math.round(size)}px ${FONT}`;
+  ctx.textAlign = align;
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = col;
+  if (!APP.lowFx && glowCol) {
+    ctx.shadowColor = glowCol;
+    ctx.shadowBlur = 10;
+  }
+  ctx.fillText(t, x, y);
+  ctx.shadowBlur = 0;
+}
+// Not every screen in the city is Jawacorp's: other firms' adverts too.
+const ADS = {
+  // a milk that is not milk, with a serval on the carton
+  milk(x, y, w, h) {
+    ctx.fillStyle = '#f4ead2';
+    ctx.fillRect(x, y, w, h);
+    // the serval's spots along the edges
+    ctx.fillStyle = '#c98a3a';
+    const r = mulberry(w * 7 + h);
+    for (let k = 0; k < 26; k++) {
+      const sx = x + r() * w,
+        sy = r() < 0.5 ? y + 4 + r() * h * 0.14 : y + h - 4 - r() * h * 0.14;
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, 3 + r() * 3, 2 + r() * 2, r() * 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // the carton
+    const cx = x + h * 0.5,
+      cw = h * 0.42,
+      ch = h * 0.62,
+      cy = y + h * 0.24;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(cx - cw / 2, cy, cw, ch);
+    ctx.fillStyle = '#e0d4bc';
+    ctx.beginPath();
+    ctx.moveTo(cx - cw / 2, cy);
+    ctx.lineTo(cx, cy - h * 0.12);
+    ctx.lineTo(cx + cw / 2, cy);
+    ctx.fill();
+    // a serval's head on it: big ears, spots
+    ctx.fillStyle = '#e0a24a';
+    const hy = cy + ch * 0.45,
+      hr = cw * 0.3;
+    ctx.beginPath();
+    ctx.moveTo(cx - hr * 0.9, hy - hr * 0.4);
+    ctx.lineTo(cx - hr * 0.8, hy - hr * 1.9);
+    ctx.lineTo(cx - hr * 0.1, hy - hr * 0.8);
+    ctx.moveTo(cx + hr * 0.9, hy - hr * 0.4);
+    ctx.lineTo(cx + hr * 0.8, hy - hr * 1.9);
+    ctx.lineTo(cx + hr * 0.1, hy - hr * 0.8);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx, hy, hr, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#3a2410';
+    for (const [dx, dy] of [
+      [-0.4, -0.3],
+      [0.4, -0.3],
+      [0, 0.35],
+    ])
+      ctx.fillRect(cx + dx * hr - 1.5, hy + dy * hr - 1.5, 3, 3);
+    boardText('NO MILK,', x + h * 0.95, y + h * 0.36, h * 0.15, '#6a4a2a', null, 700);
+    boardText('SERVAL PILK', x + h * 0.95, y + h * 0.62, h * 0.24, '#d0541c', '#ffb070');
+  },
+  // the blue screen nobody has bought
+  ad(x, y, w, h) {
+    const g = ctx.createLinearGradient(x, y, x, y + h);
+    g.addColorStop(0, '#1f5cd6');
+    g.addColorStop(1, '#0d2a7a');
+    ctx.fillStyle = g;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = 'rgba(200,230,255,.7)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 7]);
+    ctx.strokeRect(x + 8, y + 8, w - 16, h - 16);
+    ctx.setLineDash([]);
+    boardText('YOUR AD', x + w / 2, y + h * 0.36, h * 0.26, '#ffffff', '#7fb8ff', 900, 'center');
+    boardText(
+      'COULD BE HERE',
+      x + w / 2,
+      y + h * 0.66,
+      h * 0.17,
+      '#bfe0ff',
+      '#7fb8ff',
+      700,
+      'center',
+    );
+  },
+  // a red board with a field of stars
+  meme(x, y, w, h) {
+    const g = ctx.createLinearGradient(x, y, x, y + h);
+    g.addColorStop(0, '#d61f2c');
+    g.addColorStop(1, '#7a0c14');
+    ctx.fillStyle = g;
+    ctx.fillRect(x, y, w, h);
+    // the picture: a night of stars, one big gold star in it
+    const px = x + 10,
+      pw = h * 1.1;
+    ctx.fillStyle = '#16123a';
+    ctx.fillRect(px, y + 10, pw, h - 20);
+    const r = mulberry(h * 13);
+    ctx.fillStyle = '#fff6c0';
+    for (let k = 0; k < 9; k++)
+      star(px + 8 + r() * (pw - 16), y + 18 + r() * (h - 36), 2 + r() * 3, r());
+    ctx.fillStyle = '#ffd23a';
+    if (!APP.lowFx) {
+      ctx.shadowColor = '#ffd23a';
+      ctx.shadowBlur = 12;
+    }
+    star(px + pw / 2, y + h / 2, h * 0.3, Math.sin(G.time * 0.8) * 0.15);
+    ctx.shadowBlur = 0;
+    boardText('MEME', x + pw + 26, y + h * 0.36, h * 0.27, '#fff2d0', '#ff8a8a');
+    boardText('LORDS', x + pw + 26, y + h * 0.68, h * 0.27, '#ffd23a', '#ff8a8a');
+  },
+};
+/** An advert of another firm (`kind`: milk, ad, meme): a lit screen in a dark frame. */
+function adBoard(x, y, w, h, kind, seed = 1) {
+  box(x - 6, y - 6, w + 12, h + 12, '#14101a', 3);
+  const a = flick(seed);
+  ctx.save();
+  ctx.globalAlpha = 0.55 + 0.45 * a;
+  ADS[kind](x, y, w, h);
+  ctx.restore();
+  ctx.fillStyle = 'rgba(0,0,0,.14)';
+  for (let yy = y; yy < y + h; yy += 4) ctx.fillRect(x, yy, w, 1.5);
+  glow(
+    kind === 'ad' ? T.cyan : kind === 'meme' ? T.pink : T.amber,
+    x + w / 2,
+    y + h / 2,
+    0.3 * a,
+    1,
+  );
+}
 /** A red paper lantern, swaying a little, glowing. */
 function lantern(x, y, s = 1) {
   const sw = Math.sin(G.time * 1.6 + x * 0.01) * 3;
@@ -652,7 +799,9 @@ function drawSlums() {
       cable(x + 30, Y_A - 270, x + 250, Y_A - 300, 18, '#1a1420');
     }
   // Jawacorp's big screens over the slums
-  for (const bx of [900, 2000]) if (view(bx, bx + 360)) jawaBoard(bx, Y_A - 290, 360, 110, bx);
+  // (in the gaps between the doors, which are tall enough for the biggest robots)
+  if (view(1080, 1440)) jawaBoard(1080, Y_A - 290, 360, 110, 900);
+  if (view(1630, 1990)) adBoard(1630, Y_A - 290, 360, 110, 'ad', 2000);
   // the metro's entrance: a canopy over the stairs and its sign
   const ex = STAIRS[0] - 30;
   if (view(ex - 60, ex + 220)) {
@@ -860,8 +1009,8 @@ function drawAvenue() {
       ky = Y_A - 380 - (k % 2) * 60 + Math.sin(G.time * 1.3 + k * 2) * 18;
     if (view(kx - 60, kx + 60)) koi(kx, ky, G.time + k, k % 2 ? '#ff8a3c' : '#5fd0ff');
   }
-  // a Jawacorp screen high on a tower
-  if (view(ARCH_X + 900, ARCH_X + 1300)) jawaBoard(ARCH_X + 900, Y_A - 560, 380, 120, 5);
+  // an advert high on a tower
+  if (view(7190, 7570)) adBoard(7190, Y_A - 330, 380, 120, 'meme', 5);
 }
 /** The bridge: its railing, the expressway's lights beyond, the pylons and their cables. */
 function drawBridge() {
@@ -998,7 +1147,7 @@ function drawRoofs() {
       }
     }
   }
-  // Jawacorp's billboards on their iron frames, high over the roofs
+  // billboards on their iron frames (Jawacorp's, and one serval milk), high over the roofs
   for (const bx of [10420, 11380, 12240]) {
     if (!view(bx - 40, bx + 460)) continue;
     ctx.strokeStyle = '#20222a';
@@ -1009,7 +1158,8 @@ function drawRoofs() {
       ctx.lineTo(fx, Y_R - 170);
       ctx.stroke();
     }
-    jawaBoard(bx, Y_R - 300, 420, 130, bx);
+    if (bx === 11380) adBoard(bx, Y_R - 300, 420, 130, 'milk', bx);
+    else jawaBoard(bx, Y_R - 300, 420, 130, bx);
   }
 }
 /** The garden on the tower: a pagoda, cherry trees, stone lanterns, a red fence, an arch. */

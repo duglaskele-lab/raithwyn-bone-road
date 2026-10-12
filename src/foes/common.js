@@ -27,7 +27,7 @@ defineState('rise', (e) => {
   if (e.t > (FOES[e.type].riseTime ?? 0.9)) go(e, 'chase');
 });
 
-// A robot of Neon Kyoto steps out of a door in a building (see robotEntry in level.js): the
+// A robot of Midnight City steps out of a door in a building (see robotEntry in level.js): the
 // door slides open, it comes out onto the street...
 defineState('door', (e, dt) => {
   faceP(e);

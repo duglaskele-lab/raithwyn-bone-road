@@ -30,7 +30,17 @@ const boss = (dx, extra = {}) => {
   const e = spawn('breaker', 1, P.x + dx, P.y);
   Object.assign(
     e,
-    { state: 'chase', t: 0, face: -1, cd: 99, leapCd: 99, fisCd: 99, rushCd: 99 },
+    {
+      state: 'chase',
+      t: 0,
+      face: -1,
+      cd: 99,
+      leapCd: 99,
+      fisCd: 99,
+      rushCd: 99,
+      hopCd: 99,
+      slamCd: 99,
+    },
     extra,
   );
   return e;
@@ -102,6 +112,63 @@ test('the rocket fist charges straight through her', () => {
   step(BREAKER.rush.wind + 1, () => (thrown = thrown || P.state === 'ko'));
   assert.ok(thrown);
   assert.ok(e.x < P.x, 'past her');
+});
+
+test('close up: a sumo stance, a hop back to the roomier side, and the fist driven at her', () => {
+  // her on its left, the screen's left edge close behind her: it hops away to the right
+  const e = boss(150, { hopCd: 0 });
+  update(DT);
+  assert.equal(e.state, 'bhprep');
+  step(BREAKER.hop.wind - 0.1);
+  assert.equal(e.state, 'bhprep', 'the stance lasts its time');
+  step(0.15);
+  assert.equal(e.state, 'bhop');
+  assert.ok(e.hx > e.x0 + 200, 'back, away from her');
+  let thrown = false,
+    far = 0;
+  step(BREAKER.hop.air + 1, () => {
+    far = Math.max(far, e.x - P.x);
+    thrown = thrown || P.state === 'ko';
+  });
+  assert.ok(far > 300, 'it got its distance');
+  assert.ok(thrown, 'the fist lands');
+});
+
+test('with no room behind it, it hops over her to the other side', () => {
+  const e = boss(-150, { hopCd: 0, face: 1 });
+  e.x = G.cam + 120;
+  P.x = G.cam + 270;
+  step(BREAKER.hop.wind + 0.05);
+  assert.equal(e.state, 'bhop');
+  assert.ok(e.hx > P.x, 'over her: it lands on her far side');
+});
+
+test('its second phase: a leap out of sight, its mark following her, then a wide slam', () => {
+  const e = boss(200, { slamCd: 0, phase2: true });
+  e.hp = e.T.hp * 0.4;
+  P.inv = 0;
+  update(DT);
+  assert.equal(e.state, 'bsprep');
+  step(BREAKER.slam.wind + BREAKER.slam.up + 0.05);
+  assert.equal(e.state, 'bsup');
+  assert.ok(e.z > 500, 'high up');
+  assert.equal(hurtEnemy(e, 10, 1, true, 'punch'), false, 'out of reach up there');
+  // she moves; the mark follows her
+  P.x += 150;
+  let thrown = false,
+    px = 0;
+  step(BREAKER.slam.track + BREAKER.slam.fall + 0.1, () => {
+    if (e.state === 'bsfall') px = P.x;
+    thrown = thrown || P.state === 'ko';
+  });
+  assert.ok(Math.abs(e.x - px) < 40, 'it came down on her');
+  assert.ok(thrown, 'the shock throws her');
+});
+
+test('the sky slam is a second-phase move only', () => {
+  const e = boss(200, { slamCd: 0 });
+  update(DT);
+  assert.notEqual(e.state, 'bsprep');
 });
 
 test('beaten, it bursts and the fight is over (the others with it); food drops', () => {

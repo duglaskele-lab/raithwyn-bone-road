@@ -1,4 +1,4 @@
-// Jawacorp's mech samurai (TYPES.mecha, MECHA), the last boss of Neon Kyoto, in the garden on
+// Jawacorp's mech samurai (TYPES.mecha, MECHA), the last boss of Midnight City, in the garden on
 // top of the tower: a giant war machine in samurai armour of black lacquer and red lacing — a
 // horned helmet with a golden crest, a snarling face mask with burning eyes, great shoulder
 // plates, an armoured skirt — and a katana of red plasma. It drops from the sky.
@@ -11,6 +11,9 @@
 //     of shock.
 //   Phase 3 (a quarter): it overheats — its chest opens, the core glows white (blows do
 //     double harm there) — and it strikes three to five iai cuts in a row, a breath between.
+// Two drones fly with it, part of it (they cannot be hit): now and then they sweep their beams
+// along her lane and the one beside it from opposite sides, or fly to the screen's two edges
+// and stretch a laser tripwire across her lane (twice, from the second phase).
 // It never flinches. Beaten, it sinks to one knee, its core dims, and it bursts.
 import { MECHA, OL, TAU, W } from '../config.js';
 import { clamp, fxRandom, fxRnd, random, rnd } from '../util.js';
@@ -60,8 +63,8 @@ function iai(e, n) {
 }
 
 export default defineFoe('mecha', {
-  init: { iaiCd: [2.5, 4], guardCd: [3, 5], misCd: [2, 3], leapCd: [3, 5] },
-  timers: ['iaiCd', 'guardCd', 'misCd', 'leapCd'],
+  init: { iaiCd: [2.5, 4], guardCd: [3, 5], misCd: [2, 3], leapCd: [3, 5], droneCd: [3, 5] },
+  timers: ['iaiCd', 'guardCd', 'misCd', 'leapCd', 'droneCd'],
   attacks: MOVES,
   unstoppable: (e) => MOVES.includes(e.state) && e.state !== 'mkguard',
   // it never flinches, never is thrown
@@ -74,6 +77,11 @@ export default defineFoe('mecha', {
     Object.assign(e, { state: 'mkdrop', z: 700, vz: -300, x: G.cam + W * 0.7 });
   },
   moves: [
+    {
+      // its drones attack (it fights on meanwhile)
+      when: (e, s) => e.droneCd <= 0 && (e.dm ?? 'home') === 'home' && !s.pdown && onScreen(e),
+      go: (e) => droneAttack(e, random() < 0.5 ? 'sweep' : 'trip'),
+    },
     {
       // overheated: a run of iai cuts
       when: (e, s) => e.p3 && e.iaiCd <= 0 && !s.pdown && onScreen(e),
@@ -145,6 +153,7 @@ export default defineFoe('mecha', {
     SFX.boom();
   },
   tick(e, dt) {
+    droneTick(e, dt);
     if (!e.p2 && e.hp <= e.T.hp * M.p2 && !e.dying) {
       e.p2 = true;
       go(e, 'mkpurge', 0, { engage: false });
@@ -337,6 +346,7 @@ export default defineFoe('mecha', {
   },
   // its marks on the ground: the iai's line, the missiles' marks, where it will land
   ground(e) {
+    droneGround(e);
     ctx.save();
     if (e.state === 'mkiaiw') {
       const k = clamp(e.t / M.iai.wind, 0, 1),
@@ -388,6 +398,7 @@ export default defineFoe('mecha', {
     }
     ctx.restore();
   },
+  over: drawDrones,
   look: {
     ...robotLook(A, head, katana, chestPlate),
     back: (c) => {
@@ -406,8 +417,13 @@ export default defineFoe('mecha', {
     },
   },
   pose: {
-    base: { set: { lean: 0.08 } },
-    guard: { chase: { set: { aF: (e, k) => [0.8, 1.9 + 0.04 * k.br], aB: [0.7, 1.7] } } },
+    // at rest the sword arm is drawn back, the blade pointing down behind it
+    base: { set: { lean: 0.08, aF: [-0.5, -0.72], aB: [0.35, 1.0] } },
+    guard: {
+      chase: {
+        set: { aF: (e, k) => [-0.5 + 0.03 * k.br, -0.72], aB: (e, k) => [0.35, 1.0 + 0.05 * k.br] },
+      },
+    },
     states: {
       mkwind: { set: { aF: [2.6, 3.1], aB: [2.2, 2.8], lean: -0.1 } },
       mkarc: { set: { aF: [1.3, 1.0], aB: [1.0, 0.8], lean: 0.35, lF: [0.6, -0.2] } },
@@ -648,4 +664,242 @@ function pods(c) {
   ctx.restore();
   // a plate's stub of armour on the shoulder now
   plate([neck[0] - 6, neck[1] + 4], [neck[0] + 6, neck[1] + 10], 10, A.trim, fl);
+}
+
+// --- its drones -----------------------------------------------------------------------------------
+
+const D = M.drone;
+/** Its drones set off on an attack: 'sweep' or 'trip'. */
+function droneAttack(e, kind) {
+  const S = D.sweep,
+    side = P.y > e.y ? -1 : 1;
+  Object.assign(e, { dm: kind, dmT: 0, dHit: [false, false], tripN: e.p2 ? 2 : 1, ty: P.y });
+  if (kind === 'sweep')
+    // one beam along her lane from her left, the other a lane beside it from her right
+    e.spots = [
+      { x: P.x - 340, y: P.y, dir: 1 },
+      { x: P.x + 340, y: P.y + side * S.off, dir: -1 },
+    ];
+  SFX.beam();
+}
+/** Where a drone hovers at rest, beside it, bobbing. */
+function home(e, i) {
+  const s = i ? 1 : -1;
+  return [
+    e.x + s * D.side + Math.sin(G.time * 1.7 + i * 2) * 16,
+    e.y - 30 + i * 60,
+    D.z + Math.sin(G.time * 2.3 + i) * 14,
+  ];
+}
+/** Its drones fly, aim and fire (and fall when it is beaten). */
+function droneTick(e, dt) {
+  e.dr ??= [0, 1].map((i) => {
+    const [x, y, z] = home(e, i);
+    return { x, y, z };
+  });
+  if (e.state === 'mkdie') {
+    // beaten: they drop, and burst on the ground
+    for (const d of e.dr) {
+      if (d.boom) continue;
+      d.vz = (d.vz ?? 0) - 900 * dt;
+      d.z += d.vz * dt;
+      if (d.z <= 0) {
+        d.z = 0;
+        d.boom = true;
+        spark(d.x, d.y - 10, '#ffd0d8', true);
+        SFX.shatter();
+      }
+    }
+    return;
+  }
+  e.dmT = (e.dmT ?? 0) + dt;
+  const m = e.dm ?? 'home';
+  for (let i = 0; i < 2; i++) {
+    const d = e.dr[i];
+    let [tx, ty, tz] = home(e, i);
+    if (m === 'sweep') {
+      // over its spot, a little behind it
+      const sp = e.spots[i];
+      [tx, ty, tz] = [sp.x - sp.dir * 70, sp.y - 10, D.z];
+    } else if (m === 'trip') {
+      [tx, ty, tz] = [i ? G.cam + W - 40 : G.cam + 40, e.ty, D.trip.z];
+    }
+    const k = Math.min(1, dt * (m === 'home' ? 3 : 7));
+    d.x += (tx - d.x) * k;
+    d.y += (ty - d.y) * k;
+    d.z += (tz - d.z) * k;
+  }
+  if (m === 'sweep') {
+    const S = D.sweep;
+    if (e.dmT > S.aim) {
+      for (let i = 0; i < 2; i++) {
+        const sp = e.spots[i];
+        sp.x += sp.dir * S.speed * dt;
+        if (
+          !e.dHit[i] &&
+          Math.abs(P.x - sp.x) < S.r &&
+          Math.abs(P.y - sp.y) < 24 &&
+          P.z < 60 &&
+          hitPlayer(S.dmg, sp.dir, false)
+        )
+          e.dHit[i] = true;
+      }
+      if (fxRandom() < 0.4) for (const sp of e.spots) dust(sp.x, sp.y, 1);
+    }
+    if (e.dmT > S.aim + S.t) droneDone(e);
+  } else if (m === 'trip') {
+    const T = D.trip;
+    // the lane follows her a while, then is fixed
+    if (e.dmT < T.aim * T.follow) e.ty += (P.y - e.ty) * Math.min(1, dt * 8);
+    if (e.dmT > T.aim && e.dmT - dt <= T.aim) {
+      SFX.beam();
+      G.shake = Math.max(G.shake, 4);
+    }
+    if (
+      e.dmT > T.aim &&
+      !e.dHit[0] &&
+      Math.abs(P.y - e.ty) < T.dy &&
+      P.z < T.z + 30 &&
+      hitPlayer(T.dmg, P.x >= e.x ? 1 : -1, true)
+    )
+      e.dHit[0] = true;
+    if (e.dmT > T.aim + T.t) {
+      if (--e.tripN > 0) Object.assign(e, { dmT: 0, ty: P.y, dHit: [false, false] });
+      else droneDone(e);
+    }
+  }
+}
+function droneDone(e) {
+  Object.assign(e, { dm: 'home', dmT: 0, spots: null, droneCd: cd(e, D.cd) });
+}
+/** The drones' marks on the ground: their shadows, the lanes they will sweep, the tripwire. */
+function droneGround(e) {
+  if (!e.dr) return;
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,.25)';
+  for (const d of e.dr) {
+    ctx.beginPath();
+    ctx.ellipse(d.x - G.cam, d.y, 22, 7, 0, 0, TAU);
+    ctx.fill();
+  }
+  const blink = Math.floor(G.time * 16) % 2;
+  if (e.dm === 'sweep' && e.dmT < D.sweep.aim) {
+    ctx.strokeStyle = `rgba(255,59,92,${blink ? 0.75 : 0.4})`;
+    ctx.lineWidth = 3;
+    ctx.setLineDash([12, 8]);
+    for (const sp of e.spots) {
+      ctx.beginPath();
+      ctx.moveTo(sp.x - G.cam, sp.y);
+      ctx.lineTo(sp.x - G.cam + sp.dir * D.sweep.speed * D.sweep.t, sp.y);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+/** A drone of its: a black lacquered disc with red trim, a golden crest, one red eye, two
+ *  thrusters burning under it. At (x, y) on screen. */
+function drawDrone(x, y, face) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2.2;
+  // the thrusters' flames
+  if (!APP.lowFx) {
+    ctx.shadowColor = A.glow;
+    ctx.shadowBlur = 10;
+  }
+  ctx.fillStyle = 'rgba(255,120,140,.85)';
+  for (const s of [-1, 1]) {
+    const f = 10 + Math.sin(G.time * 50 + s) * 4;
+    ctx.beginPath();
+    ctx.moveTo(s * 16 - 5, 8);
+    ctx.lineTo(s * 16, 8 + f);
+    ctx.lineTo(s * 16 + 5, 8);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+  // the crest
+  ctx.fillStyle = '#e3b23c';
+  ctx.beginPath();
+  ctx.moveTo(-2, -10);
+  ctx.quadraticCurveTo(-12, -18, -16, -26);
+  ctx.quadraticCurveTo(-4, -20, 0, -12);
+  ctx.quadraticCurveTo(6, -20, 16, -26);
+  ctx.quadraticCurveTo(12, -16, 2, -10);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  // the body
+  ctx.fillStyle = A.body;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 28, 12, 0, 0, TAU);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = A.trim;
+  ctx.fillRect(-26, -2, 52, 4);
+  for (const s of [-1, 1]) {
+    ctx.fillStyle = '#3a3f4c';
+    ctx.beginPath();
+    ctx.ellipse(s * 16, 7, 7, 4, 0, 0, TAU);
+    ctx.fill();
+    ctx.stroke();
+  }
+  // the eye
+  ctx.fillStyle = '#16080c';
+  ctx.beginPath();
+  ctx.arc(face * 10, 0, 7, 0, TAU);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#ff3b5c';
+  if (!APP.lowFx) {
+    ctx.shadowColor = A.glow;
+    ctx.shadowBlur = 12;
+  }
+  ctx.beginPath();
+  ctx.arc(face * 11, 0, 3.5, 0, TAU);
+  ctx.fill();
+  ctx.restore();
+}
+/** A beam of red light from (x0, y0) to (x1, y1) on screen; `w` its width, `a` how bright. */
+function beam(x0, y0, x1, y1, w, a) {
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.strokeStyle = `rgba(255,59,92,${0.5 * a})`;
+  ctx.lineWidth = w * 2.2;
+  ctx.beginPath();
+  ctx.moveTo(x0, y0);
+  ctx.lineTo(x1, y1);
+  ctx.stroke();
+  ctx.strokeStyle = `rgba(255,235,240,${a})`;
+  ctx.lineWidth = w * 0.7;
+  ctx.stroke();
+  ctx.restore();
+}
+/** The drones, and their beams. */
+function drawDrones(e) {
+  if (!e.dr) return;
+  const fire = (m, aim) => e.dm === m && e.dmT > aim;
+  // the beams first, then the drones over them
+  if (e.dm === 'sweep')
+    e.dr.forEach((d, i) => {
+      const sp = e.spots[i],
+        on = fire('sweep', D.sweep.aim);
+      beam(d.x - G.cam, d.y - d.z, sp.x - G.cam, sp.y, on ? 10 : 2, on ? 1 : 0.5);
+      if (on) {
+        ctx.fillStyle = 'rgba(255,200,210,.7)';
+        ctx.beginPath();
+        ctx.ellipse(sp.x - G.cam, sp.y, D.sweep.r, D.sweep.r * 0.42, 0, 0, TAU);
+        ctx.fill();
+      }
+    });
+  if (e.dm === 'trip') {
+    const [a, b] = e.dr,
+      on = fire('trip', D.trip.aim),
+      blink = Math.floor(G.time * 18) % 2;
+    beam(a.x - G.cam, a.y - a.z, b.x - G.cam, b.y - b.z, on ? 14 : 2, on ? 1 : blink ? 0.7 : 0.3);
+  }
+  for (const d of e.dr) if (!d.boom) drawDrone(d.x - G.cam, d.y - d.z, e.face);
 }
