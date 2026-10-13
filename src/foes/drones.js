@@ -15,18 +15,22 @@ const A = { body: '#2a2d36', trim: '#a8242c', glow: '#ff3b5c' };
 /**
  * The drones for a boss, with the numbers D (side, z, keep, cd, aim, lock, beam, r, dmg, gap,
  * n1, n2) and its say: `strong(e)` (more shots), `beaten(e)`, `cd(e, range)` (its pace), and
- * optionally `home(e, i)` ([x, y, z] where drone i hovers at rest). Returns { attack, tick,
- * ground, draw }; the boss keeps the countdown e.droneCd and calls attack when it runs out
- * (while e.dm is 'home').
+ * optionally `home(e, i)` ([x, y, z] where drone i hovers at rest), `count(e)` (how many it
+ * has now: 2 if not said; more fly out of it as it asks, from `from(e)`, [x, y, z]). Returns
+ * { attack, tick, ground, draw }; the boss keeps the countdown e.droneCd and calls attack when
+ * it runs out (while e.dm is 'home' and it has drones).
  */
 export function bossDrones(D, opts) {
-  /** Its drones set off: a run of aimed shots, the two drones in turn (more in phase 2). */
+  /** Its drones set off: a run of aimed shots, the drones in turn (more in phase 2). */
   function droneAttack(e) {
+    muster(e);
+    const m = e.dr.length;
+    if (!m) return;
     const n = opts.strong(e) ? D.n2 : D.n1;
     e.dm = 'shots';
     e.shots = [];
     for (let k = 0; k < n; k++)
-      e.shots.push({ i: k % 2, t: -k * D.gap, tx: P.x, ty: P.y, fired: false });
+      e.shots.push({ i: k % m, t: -k * D.gap, tx: P.x, ty: P.y, fired: false });
   }
   /** Where a drone hovers at rest, beside it, bobbing (or where its master says). */
   const home =
@@ -42,12 +46,18 @@ export function bossDrones(D, opts) {
   /** The shot a drone is busy with now (aiming or firing), if any. */
   const busy = (e, i) =>
     e.shots?.find((q) => q.i === i && q.t >= 0 && q.t <= D.aim + D.lock + D.beam);
+  /** As many drones as its master has now: new ones fly out of it. */
+  function muster(e) {
+    e.dr ??= [];
+    for (let want = opts.count?.(e) ?? 2; e.dr.length < want && !opts.beaten(e);) {
+      const [x, y, z] = opts.from?.(e) ?? home(e, e.dr.length);
+      e.dr.push({ x, y, z });
+      if (opts.from) SFX.spin();
+    }
+  }
   /** Its drones fly, aim and fire (and fall when it is beaten). */
   function droneTick(e, dt) {
-    e.dr ??= [0, 1].map((i) => {
-      const [x, y, z] = home(e, i);
-      return { x, y, z };
-    });
+    muster(e);
     if (opts.beaten(e)) {
       // beaten: they drop, and burst on the ground
       e.shots = null;
@@ -87,11 +97,11 @@ export function bossDrones(D, opts) {
       e.dm = 'home';
       e.droneCd = opts.cd(e, D.cd);
     }
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < e.dr.length; i++) {
       const d = e.dr[i],
         q = busy(e, i);
       // a drone at work keeps off to one side of its mark, up high; else beside it
-      const [tx, ty, tz] = q ? [q.tx + (i ? 1 : -1) * D.keep, q.ty - 20, D.z] : home(e, i);
+      const [tx, ty, tz] = q ? [q.tx + (i % 2 ? 1 : -1) * D.keep, q.ty - 20, D.z] : home(e, i);
       const k = Math.min(1, dt * (q ? 4 : 3));
       d.x += (tx - d.x) * k;
       d.y += (ty - d.y) * k;

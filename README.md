@@ -728,33 +728,45 @@ garden on top of the tower. A Jawacorp war machine the size of a tram: a wide ca
 steel with an orange rim and glowing vents, eyes on stalks that follow the heroine, a grilled
 mouth with mandibles, two great orange claws held up in front like fists, and six legs, three
 on each side. Like a crab it faces out of the screen and walks sideways along the road,
-keeping her a claw's length off. It drops from the sky. Its two drones (the mech samurai's,
-`src/foes/drones.js`) fly by its eyes: they cannot be hit, and every 5–8 s they mark a spot
-under her, follow her with it, hold it and laser it — two shots, four in its second phase.
+keeping her a claw's length off. It drops from the sky.
 
-- **Its body is solid:** the heroine cannot walk through it (round it, in front or behind along
-  the road's depth, she can). It always leaves 140 px of the screen free on either side.
+Its fight has three phases. In the first it fights alone. At two thirds of its health two
+drones (the mech samurai's, `src/foes/drones.js`) fly out of its back and hover by its eyes;
+at a third — or as soon as all its legs are gone — two more fly out, wider and higher, and it
+gets 1.2 times quicker, slams twice and spits five bubbles. The drones cannot be hit; every
+5–8 s they mark spots under her, follow her with them, hold them and laser them — two shots
+with two drones, four with four. Each new phase begins with a roar.
+
+- **Its body is solid:** an oval on the ground the heroine cannot walk into — pushed out of it
+  the shortest way, she slides smoothly round it (in front or behind along the road's depth).
+  It always leaves 140 px of the screen free on either side.
 - **Its legs break:** a blow on a leg (they stand round its sides, where she fights) wears it
   down (90 each) and hurts the crab as well. A broken leg is gone (a sparking stump); the crab
   loses 60 more health and slumps for 1.8 s, its body down on the ground, where blows do 1.5
   times the harm; it is 12% slower for every lost leg, leans to its weaker side, and with fewer
-  than two legs on a side it can no longer scuttle.
+  than two legs on a side it can no longer scuttle. With all six gone it crashes down on its
+  belly for good (a small ring of shock) and fights from where it lies: no more walking,
+  stomping, scuttling or leaping — only its claws and its bubbles.
 - **The claw slam:** a claw rises high over her, opening, its shadow growing on the ground
   under it (it follows her the first 0.5 s, then holds still), trembles, and comes down 0.85 s
-  later on that spot. In its second phase a second slam follows at once.
+  later on that spot. In its third phase a second slam follows at once.
 - **The claw sweep:** the claw drawn back low, scraping sparks off the ground for 0.75 s, then
   swept out along the ground on her side, 390 px: it runs low, so jump it.
 - **The bubbles:** its mouth grille glows and its body swells for 0.8 s, then three bubbles
-  (five in its second phase) arc out onto her and round her — their shadows show where they will
+  (five in its third phase) arc out onto her and round her — their shadows show where they will
   burst.
 - **The stomp:** when she is close to its body, it rises high on straightening legs, trembling,
   steam from its vents, for a full second, then drops: a ring of shock 340 px round, low — jump
   it.
 - **The scuttle:** it crouches, its legs drumming, dust flying, for 0.7 s, then charges
   sideways through where she stands — step off its lane.
+- **The leap** (while it has legs on both sides): it crouches deep, trembling, for 0.85 s, then
+  leaps up out of sight. Its landing spot is lit on the ground — an orange ring that follows her
+  while it hangs up there, turning red and fixed 0.3 s before it drops — and it comes down on it:
+  everyone in the ring (230 px round) is hit.
 
-Its moves have no red marks: each is read from its wind-up. It never flinches. At half health
-it roars, its eyes and vents turn red, and it is 1.2 times quicker. Beaten, it sinks onto its
+Its moves (but the leap) have no red marks: each is read from its wind-up. It never flinches.
+Beaten, it sinks onto its
 belly, its legs splaying, sparking, drops its drones and bursts.
 
 The Mech Samurai (`TYPES.mecha`, `MECHA`), the stage's last boss before, is no longer in it (its
@@ -884,8 +896,11 @@ What is checked:
 - `crab.test.js` — the cyber crab: the last fight, dropping from the sky; its solid body (pushed
   out of it, round it along the depth); its legs wearing down and breaking (the slump, more harm
   on its body, no scuttle with fewer than two legs on a side); the claw slam on her spot (and
-  out of it), the low sweep (jumped), the stomp, the bubbles, its drones (two shots, four in its
-  second phase), the second phase and its double slam, its end and the game won.
+  out of it), the low sweep (jumped), the stomp, the bubbles; its three phases (no drones, two
+  flying out of it, two more and quicker); on its belly for good with all its legs gone (no
+  walking, its claws still reaching); the leap onto the lit spot following her (not without legs
+  on both sides); sliding round its oval body; the third phase's double slam; its end and the
+  game won.
 - `mecha.test.js` — the mech samurai (no longer in the stage): dropping from the sky, the iai on the line
   (and off it), the counter stance, never flinching, the missiles on the marks (sparing it), the
   overheated core and the run of iai cuts, kneeling and bursting, the game won; its two drones

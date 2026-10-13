@@ -2,21 +2,26 @@
 // top of the tower. A war machine the size of a tram: a wide armoured carapace of dark steel,
 // glowing vents, eyes on stalks, a grilled mouth, two great orange claws in front and six legs,
 // three on each side. Like a crab it faces out of the screen and walks sideways along the road.
-// Its body is solid: the heroine cannot walk through it (round it, along the road's depth, she
-// can). Its legs can be broken: each takes so many blows; a broken leg is gone, the crab slumps
-// for a moment (its body down, blows on it do more harm) and is slower for good; with fewer
-// than two legs on a side it can no longer scuttle. Every move has a plain wind-up:
+// Its body is solid, an oval on the ground: the heroine cannot walk into it, she slides round it
+// (along the road's depth). Its legs can be broken: each takes so many blows; a broken leg is
+// gone, the crab slumps for a moment (its body down, blows on it do more harm) and is slower for
+// good; with fewer than two legs on a side it can no longer scuttle; with none left it lies on
+// its belly for good and fights from there with its claws and bubbles. Every move has a plain
+// wind-up:
 //   - the claw slam: a claw rises high over her (its shadow on the ground under it), trembling,
-//     then comes down on that spot; in its second phase a second slam follows;
+//     then comes down on that spot; in its third phase a second slam follows;
 //   - the claw sweep: the claw drawn back low, scraping sparks, then swept out along the
 //     ground on her side (jump it);
 //   - the bubbles: its mouth glows and its body swells, then bubbles arc out onto her and round
 //     her (their shadows show where), bursting;
 //   - the stomp: when she is close it rises high on its legs, trembling, steam from its vents,
 //     then drops: a ring of shock round it (jump it);
-//   - the scuttle: it crouches, legs drumming, then charges sideways through where she stands.
-// Two drones fly by its eyes (as the mech samurai's) and laser marked spots under her: two
-// shots, four in its second phase (at half health, its eyes turn red and it gets quicker).
+//   - the scuttle: it crouches, legs drumming, then charges sideways through where she stands;
+//   - the leap (with legs on both sides): crouched deep, then up out of sight; its landing spot
+//     is lit on the ground, following her, then fixed, and it comes down on it.
+// Three phases: alone at first; at two thirds of its health two drones (as the mech samurai's)
+// fly out of it and laser marked spots under her; at a third (or with all its legs gone) two
+// more, its eyes turn red and it gets quicker.
 // It never flinches. Beaten, it sinks down, sparking, and bursts.
 import { CRAB, OL, TAU, W } from '../config.js';
 import { clamp, ease, fxRandom, fxRnd, lerp, random, rnd } from '../util.js';
@@ -43,11 +48,15 @@ const LEGS = [-1, 1].flatMap((s) => [0, 1, 2].map((i) => ({ s, i })));
 /** Where each leg's foot stands across the road's depth (behind, level, in front). */
 const LEG_DY = [-24, 2, 26];
 
-/** Its countdowns run quicker in the second phase. */
+/** Its countdowns run quicker in its third phase. */
 const cd = (e, r) => rnd(...r) * (e.p2 ? C.p2cd : 1);
-/** Its pace: quicker in the second phase, slower for every leg it has lost. */
+/** Its pace: quicker in its third phase (slower for every leg it has lost, as it walks). */
 const pace = (e) => (e.p2 ? C.p2speed : 1);
 const legsLost = (e) => e.legs.filter((l) => l.broken).length;
+/** All its legs gone: it lies on its belly for good. */
+const grounded = (e) => legsLost(e) === e.legs.length;
+/** Where its body rests: on its legs, or down on its belly when they are all gone. */
+const restLift = (e) => (grounded(e) ? -90 : 0);
 const legsOn = (e, s) => e.legs.filter((l) => l.s === s && !l.broken).length;
 /** The side she is on. */
 const sideOf = (e) => (P.x >= e.x ? 1 : -1);
@@ -157,11 +166,13 @@ function breakLeg(e, l) {
       life: 2.5,
     });
   e.hp -= C.breakDmg;
-  if (e.hp > 0) go(e, 'crslump', 0, { side: 0 });
+  // its last leg: down on its belly for good; else it slumps a moment
+  if (e.hp > 0) go(e, grounded(e) ? 'crfall' : 'crslump', 0, { side: 0, hitDone: false });
 }
 
 /** The marks on the ground: the slam's shadow growing under the raised claw. */
 function ground(e) {
+  if (e.state === 'crjump') return landing(e);
   if (e.state !== 'crslamw' && e.state !== 'crslam') return;
   const k = e.state === 'crslam' ? 1 : clamp(e.t / (e.wind ?? C.slam.wind), 0, 1),
     r = C.slam.r * (0.55 + 0.45 * k);
@@ -173,17 +184,44 @@ function ground(e) {
   ctx.restore();
 }
 
-// its two drones, hovering by its eyes
+/** Where it will land from its leap, lit on the ground: a red-orange ring, pulsing, filling in
+ *  as it comes down. */
+function landing(e) {
+  const J = C.jump,
+    k = clamp(e.t / (J.up + J.hang + J.fall), 0, 1),
+    lock = e.t > J.up + J.hang - J.lock,
+    p = 0.5 + 0.5 * Math.sin(G.time * (lock ? 30 : 12)),
+    x = e.tx - G.cam;
+  ctx.save();
+  ctx.fillStyle = `rgba(255,70,40,${0.12 + 0.25 * k})`;
+  ctx.strokeStyle = `rgba(255,${lock ? 60 : 140},50,${0.6 + 0.4 * p})`;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.ellipse(x, e.ty, J.r, J.r * 0.42, 0, 0, TAU);
+  ctx.fill();
+  ctx.stroke();
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(x, e.ty, J.r * (1 - 0.8 * k), J.r * 0.42 * (1 - 0.8 * k), 0, 0, TAU);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// its drones: none in its first phase, two from the second, four in the third; they fly out of
+// its back and then hover by its eyes (the second pair wider and higher)
 const DR = bossDrones(C.drone, {
-  strong: (e) => e.p2,
+  strong: (e) => e.phase >= 3,
   beaten: (e) => e.state === 'crdie',
   cd: (e, r) => cd(e, r),
+  count: (e) => [0, 0, 2, 4][e.phase ?? 1],
+  from: (e) => [e.x, e.y, under(e) + C.bodyH],
   home: (e, i) => {
-    const s = i ? 1 : -1;
+    const s = i % 2 ? 1 : -1,
+      far = i >= 2 ? 1 : 0;
     return [
-      e.x + s * C.drone.side + Math.sin(G.time * 1.7 + i * 2) * 16,
-      e.y - 20 + i * 40,
-      under(e) + C.bodyH + 50 + Math.sin(G.time * 2.3 + i) * 14,
+      e.x + s * (C.drone.side + far * 110) + Math.sin(G.time * 1.7 + i * 2) * 16,
+      e.y - 20 + (i % 2) * 40,
+      under(e) + C.bodyH + 50 + far * 70 + Math.sin(G.time * 2.3 + i) * 14,
     ];
   },
 });
@@ -195,13 +233,20 @@ function think(e, dt) {
     ady = Math.abs(P.y - e.y),
     down = ['ko', 'down', 'getup', 'dead', 'win', 'plunge'].includes(P.state);
   e.side = s;
+  const legs = !grounded(e);
   if (!down && e.t > 0.3) {
-    if (e.stompCd <= 0 && gap < C.stomp.near && ady < 120) {
+    if (legs && e.jumpCd <= 0 && legsOn(e, -1) > 0 && legsOn(e, 1) > 0 && gap > 60) {
+      go(e, 'crjumpw', 0, { side: 0, hitDone: false });
+      SFX.spin();
+      return;
+    }
+    if (legs && e.stompCd <= 0 && gap < C.stomp.near && ady < 120) {
       go(e, 'crstompw', 0, { side: 0 });
       SFX.spin();
       return;
     }
     if (
+      legs &&
       e.scutCd <= 0 &&
       gap > 120 &&
       ady < C.scuttle.dy &&
@@ -226,6 +271,11 @@ function think(e, dt) {
       return;
     }
   }
+  // on its belly it can no longer walk: it fights from where it lies
+  if (!legs) {
+    e.walking = false;
+    return;
+  }
   // sideways, to keep her a claw's length off its body; drifting across the road after her
   const tx = clampX(e, P.x - s * (C.bw + C.keep)),
     sp = e.T.speed * pace(e) * (1 - C.legSlow * legsLost(e));
@@ -236,7 +286,7 @@ function think(e, dt) {
   }
   e.y += clamp(P.y - e.y, -1, 1) * Math.min(Math.abs(P.y - e.y), 30 * dt);
 }
-/** A claw rises to slam down on her (`second`: the follow-up in its second phase). */
+/** A claw rises to slam down on her (`second`: the follow-up in its third phase). */
 function slamAt(e, wind, second) {
   const s = sideOf(e);
   e.side = s;
@@ -257,14 +307,15 @@ export default defineFoe('crab', {
     bubCd: [2, 4],
     stompCd: [4, 6],
     scutCd: [6, 9],
+    jumpCd: [5, 8],
     droneCd: [3, 5],
   },
-  timers: ['slamCd', 'sweepCd', 'bubCd', 'stompCd', 'scutCd', 'droneCd'],
+  timers: ['slamCd', 'sweepCd', 'bubCd', 'stompCd', 'scutCd', 'jumpCd', 'droneCd'],
   // it never flinches, never is thrown
   guard: () => true,
   spawn(e, side, placed) {
     e.legs = LEGS.map((l) => ({ ...l, hp: C.legHp, broken: false }));
-    Object.assign(e, { lift: 0, walkT: 0, side: 0 });
+    Object.assign(e, { lift: 0, walkT: 0, side: 0, phase: 1 });
     if (placed) {
       e.state = 'crwalk';
       return;
@@ -274,7 +325,7 @@ export default defineFoe('crab', {
   },
   // its parts: a leg (taking the blow) or its body
   zone(e, x0, x1, y, dy, zLo, zHi) {
-    if (e.state === 'crdrop' || e.state === 'crdie') return null;
+    if (e.state === 'crdrop' || e.state === 'crdie' || e.z > 60) return null;
     const lo = Math.min(x0, x1),
       hi = Math.max(x0, x1);
     for (let n = 0; n < e.legs.length; n++) {
@@ -316,23 +367,37 @@ export default defineFoe('crab', {
   },
   tick(e, dt) {
     DR.tick(e, dt);
-    if (!e.p2 && e.hp <= e.T.hp * C.p2 && !e.dying) {
-      e.p2 = true;
-      go(e, 'crroar', 0, { side: 0 });
+    // its phases: two drones fly out at two thirds of its health; at a third (or with all its
+    // legs gone) two more, and it gets quicker
+    const ph = e.hp <= e.T.hp * C.ph3 || grounded(e) ? 3 : e.hp <= e.T.hp * C.ph2 ? 2 : 1;
+    if (ph > e.phase && !e.dying) {
+      e.phase = ph;
+      e.p2 = ph >= 3;
+      e.droneCd = Math.min(e.droneCd, 1.5);
+      if (e.state !== 'crfall' && e.state !== 'crjump') go(e, 'crroar', 0, { side: 0 });
       SFX.nova();
       G.flash = Math.max(G.flash, 0.3);
     }
     // its drones fire when their time comes, whatever the crab is doing
-    if (e.droneCd <= 0 && (e.dm ?? 'home') === 'home' && !e.dying && e.state !== 'crdrop')
-      DR.attack(e);
-    // its body is solid: she is pushed out to the nearer side (if there is room there)
-    if (e.state !== 'crdrop' && Math.abs(P.y - e.y) < C.depth && Math.abs(P.x - e.x) < C.bw + 18) {
-      let s = P.x >= e.x ? 1 : -1;
-      const x = (d) => e.x + d * (C.bw + 18);
-      if (x(s) < G.cam + 20 || x(s) > G.cam + W - 20) s = -s;
-      P.x = x(s);
+    if (e.phase >= 2 && e.droneCd <= 0 && (e.dm ?? 'home') === 'home' && !e.dying) DR.attack(e);
+    // its body is solid, an oval on the ground: she is pushed out of it the shortest way, so
+    // she slides round it smoothly (never off the screen: then out the other side)
+    if (e.state !== 'crdrop' && e.z < 60) {
+      const ax = C.bw + 18,
+        ay = C.depth,
+        dx = P.x - e.x,
+        dy = P.y - e.y,
+        v = (dx / ax) ** 2 + (dy / ay) ** 2;
+      if (v < 1) {
+        const k = v > 1e-6 ? 1 / Math.sqrt(v) : 0;
+        let nx = k ? dx * k : (P.x >= e.x ? 1 : -1) * ax,
+          ny = k ? dy * k : 0;
+        if (e.x + nx < G.cam + 20 || e.x + nx > G.cam + W - 20) nx = -nx;
+        P.x = e.x + nx;
+        P.y = e.y + ny;
+      }
     }
-    // steam from its vents, more in its second phase
+    // steam from its vents, more in its third phase
     if (fxRandom() < (e.p2 ? 0.3 : 0.12))
       G.parts.push({
         k: 'smoke',
@@ -357,10 +422,68 @@ export default defineFoe('crab', {
         go(e, 'crrec', -0.5);
       }
     },
-    crwalk: (e, dt) => think(e, dt),
+    crwalk(e, dt) {
+      e.lift += (restLift(e) - e.lift) * 0.2;
+      think(e, dt);
+    },
+    // all its legs gone: down on its belly, for good
+    crfall(e) {
+      e.walking = false;
+      e.lift += (-95 - e.lift) * 0.3;
+      if (!e.hitDone && e.lift < -80) {
+        e.hitDone = true;
+        shock(e.x, e.y, C.bw + 60, 10);
+        SFX.boom();
+      }
+      if (e.t > C.fall) go(e, 'crrec', 0);
+    },
+    // the leap: crouched deep, trembling...
+    crjumpw(e) {
+      e.walking = false;
+      e.lift = -40 * ease(clamp(e.t / 0.4, 0, 1)) + (e.t > 0.4 ? Math.sin(e.t * 60) * 3 : 0);
+      if (fxRandom() < 0.4) dust(e.x + fxRnd(-C.bw - 150, C.bw + 150), e.y + fxRnd(-20, 20), 1);
+      if (e.t > C.jump.wind / pace(e)) {
+        go(e, 'crjump', 0, { x0: e.x, y0: e.y, tx: clampX(e, P.x), ty: P.y, lift: 0 });
+        dust(e.x, e.y, 16);
+        SFX.jump();
+        G.shake = Math.max(G.shake, 8);
+      }
+    },
+    // ...up out of sight, hanging over her (where it will land lit on the ground), and down
+    crjump: {
+      pin: true,
+      tick(e, dt) {
+        const J = C.jump,
+          T = J.up + J.hang + J.fall;
+        if (e.t < J.up + J.hang - J.lock) {
+          const k = Math.min(1, dt * 4);
+          e.tx += (clampX(e, P.x) - e.tx) * k;
+          e.ty += (P.y - e.ty) * k;
+        }
+        if (e.t < J.up) e.z = J.h * Math.sin(((e.t / J.up) * Math.PI) / 2);
+        else if (e.t < J.up + J.hang) e.z = J.h;
+        else e.z = J.h * (1 - ((e.t - J.up - J.hang) / J.fall) ** 2);
+        const u = ease(clamp(e.t / (J.up + J.hang), 0, 1));
+        e.x = lerp(e.x0, e.tx, u);
+        e.y = lerp(e.y0, e.ty, u);
+        if (e.t >= T) {
+          e.z = 0;
+          e.x = e.tx;
+          e.y = e.ty;
+          G.shake = Math.max(G.shake, 22);
+          SFX.boom();
+          SFX.quake();
+          dust(e.x, e.y, 24);
+          G.parts.push({ k: 'gring', x: e.x, y: e.y, t: 0, life: 0.5, s: J.r, col: '#ffb27a' });
+          if (((P.x - e.x) / J.r) ** 2 + ((P.y - e.y) / (J.r * 0.42)) ** 2 < 1 && P.z < 60)
+            hitPlayer(J.dmg, P.x >= e.x ? 1 : -1, true);
+          go(e, 'crrec', -(J.rec - C.rec), { jumpCd: cd(e, J.cd), lift: -30 });
+        }
+      },
+    },
     crrec(e) {
       e.walking = false;
-      e.lift += (0 - e.lift) * 0.2;
+      e.lift += (restLift(e) - e.lift) * 0.2;
       if (e.t > C.rec / pace(e)) go(e, 'crwalk');
     },
     crroar(e) {
@@ -541,7 +664,7 @@ export default defineFoe('crab', {
     // a leg broken: down on its belly for a moment
     crslump(e) {
       e.walking = false;
-      e.lift += (-70 - e.lift) * 0.25;
+      e.lift += (Math.min(-70, restLift(e)) - e.lift) * 0.25;
       if (e.t > C.slump) go(e, 'crrec', 0);
     },
     crdie(e) {
