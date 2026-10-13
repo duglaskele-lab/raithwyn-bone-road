@@ -35,9 +35,8 @@ const boss = (dx, extra = {}) => {
   return e;
 };
 
-test('the mech samurai is the last fight, on the tower; it drops from the sky', () => {
-  const w = WAVES3.at(-1);
-  assert.ok(w.final && w.sp[0][0] === 'mecha');
+test('the mech samurai (no longer in the stage: the cyber crab took its place) drops from the sky', () => {
+  assert.ok(!WAVES3.some((w) => w.sp?.some((q) => q[0] === 'mecha')), 'not in the stage');
   const e = spawn('mecha', 1);
   assert.equal(e.state, 'mkdrop');
   assert.ok(e.z > 300);

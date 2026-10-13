@@ -3,7 +3,9 @@
 // of hard light in front of it, and keeps it up while it walks: every shot of the player's
 // (bullets, bones, a level I dark ball) stops on the wall — so it shields the robots behind it
 // too — and so do blows from the front; heavy blows crack the wall and the third shatters it,
-// a crushing blow shatters it at once. From behind it is open. Only crushing blows move it.
+// a crushing blow shatters it at once. From behind it is open, and while it swings its arms in
+// a blow the wall goes out (it comes back after, if its time is not up). Only crushing blows
+// move it.
 // Wall up or not, every so often it takes a grenade from the pack on its back and lobs it at
 // her (JNADE: three seconds on its timer, and the blast hurts robots too).
 import { BARRIER, JNADE, OL, TAU } from '../config.js';
@@ -18,8 +20,10 @@ import { drawJnade, robotDie, robotLook, THROW_POSE } from './robot.js';
 
 const A = { body: '#5a7ca3', trim: '#2b3a4f', glow: '#5fd0ff', w: 17, chest: 1.3 };
 
-/** Is its wall up? */
-export const wallUp = (e) => e.type === 'barrier' && !e.dying && (e.wallUntil ?? 0) > G.time;
+/** Is its wall raised (for a while yet)? */
+const wallOn = (e) => e.type === 'barrier' && !e.dying && (e.wallUntil ?? 0) > G.time;
+/** Is its wall standing now? It goes out while it swings its arms in a blow (an opening). */
+export const wallUp = (e) => wallOn(e) && e.state !== 'windup' && e.state !== 'attack';
 /** Where its wall stands (x on the road). */
 const wallX = (e) => e.x + e.face * BARRIER.w * e.T.scale;
 /** The wall goes down in a burst of light. */
@@ -74,7 +78,7 @@ export default defineFoe('barrier', {
       },
     },
     {
-      when: (e, s) => e.barCd <= 0 && !wallUp(e) && s.adx < 620,
+      when: (e, s) => e.barCd <= 0 && !wallOn(e) && s.adx < 620,
       go(e) {
         faceP(e);
         go(e, 'braise', 0, { engage: false });
@@ -107,7 +111,7 @@ export default defineFoe('barrier', {
   // it turns towards her slowly while its wall is up, so going round it works
   tick(e) {
     if (wallUp(e) && e.state === 'chase') e.face = e.wallFace;
-    if (!wallUp(e) && e.wallUntil) {
+    if (!wallOn(e) && e.wallUntil) {
       e.wallUntil = 0;
       e.barCd = rnd(...BARRIER.cd);
     }

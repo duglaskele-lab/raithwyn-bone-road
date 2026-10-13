@@ -646,10 +646,10 @@ function koi(x, y, t, col) {
 }
 /** A door in a building: shut, or slid open (lit inside) while a robot steps out. */
 function door(i, x, y) {
-  // big enough for Jawacorp's largest robots (up to 1.3 times a man) to walk out upright
+  // tall enough for a man-sized robot (up to DOOR_SCALE) to walk out upright
   const open = G.enemies.some((e) => e.state === 'door' && e.door === i);
-  const W = 116,
-    H = 236,
+  const W = 104,
+    H = 200,
     w = W - 12,
     h = H - 10;
   box(x - W / 2, y - H, W, H, '#16141c', 4);
@@ -1091,8 +1091,8 @@ function drawFire() {
 
 /** On a roof a door is in a little stairwell hut, a water tank beside it. */
 function hut(x, y) {
-  box(x - 90, y - 270, 180, 270, '#2e2c3a');
-  box(x - 102, y - 284, 204, 16, '#3a3848');
+  box(x - 82, y - 236, 164, 236, '#2e2c3a');
+  box(x - 94, y - 250, 188, 16, '#3a3848');
   box(x + 112, y - 120, 60, 90, '#3b3f4a');
   ctx.fillStyle = '#2a2d36';
   for (const lx of [x + 118, x + 162]) ctx.fillRect(lx, y - 30, 5, 30);

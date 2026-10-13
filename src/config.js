@@ -431,6 +431,9 @@ export const STAGE_HOLD = 2;
 // Jawacorp's robots (Midnight City). The guard's baton stuns for `stun` s; the guardess's plasma
 // bolts fly at `boltV`.
 export const ROBOT = { stun: 0.3, boltV: 560 };
+// The doors in Midnight City's buildings are tall enough for a robot up to this size: bigger
+// ones (the turret, the barrier heavy) walk in or drop down instead.
+export const DOOR_SCALE = 1.12;
 // The watcher drone: hovers `z` up (only a jump attack or a shot reaches it there), `keep` px
 // off the player; it marks a spot on the ground under her, follows her with it for `aim` s,
 // holds it still `lock` s, then fires its laser there (`r` px round) for `beam` s.
@@ -533,11 +536,23 @@ export const BREAKER = {
   },
   smash: { at: 100, r: 120 },
   leap: { min: 230, wind: 0.45, air: 0.85, h: 260, r: 190, dmg: 18, rec: 0.6, cd: [3, 5] },
-  fissure: { wind: 0.7, n: 7, step: 100, gap: 0.09, w: 40, dmg: 14, lanes: 55, cd: [4, 6.5] },
+  fissure: {
+    wind: 0.7,
+    n: 7,
+    step: 100,
+    gap: 0.09,
+    w: 40,
+    dmg: 14,
+    lanes: 55,
+    cd: [4, 6.5],
+    crack: 1.4, // how long the cracks it leaves glow on the ground
+  },
   rush: { wind: 0.5, speed: 820, dmg: 16, cd: [4, 6.5] },
   phase2: 0.5,
   // a tenth slower than it was (1) in the first phase, a fifth slower (1.3) in the second
   p1speed: 0.9,
+  // and in the first phase it waits a tenth longer between its moves
+  p1cd: 1.1,
   p2speed: 1.04,
   p2cd: 0.7,
 };
@@ -580,6 +595,74 @@ export const MECHA = {
   rec: 0.55,
   dieT: 2.6,
 };
+// The cyber crab (Midnight City's last boss, foes/crab.js). Its body: `bw` px either way of its
+// middle along the road, `depth` either way across it, solid (she cannot walk through it); its
+// underside `hb` px up on its legs, the body `bodyH` tall; it keeps `edge` px of the screen free
+// on either side of it and its body `keep` px off her. Each of its six legs takes `legHp`;
+// broken, the leg is gone, the crab loses `breakDmg` health and slumps `slump` s (its body
+// down: blows on it do `slumpMult` times the harm), and it is `legSlow` slower for every leg it
+// has lost; with fewer than two legs on a side it can no longer scuttle.
+//   The claw slam: a claw raised high over her `wind` s (following her the first `track` s), then
+//     down in `strike` s on that spot (`r` round, `dmg`), held `hold` s; in its second phase a
+//     second slam follows (`wind2`). It reaches `reach` px out from its body.
+//   The claw sweep: the claw drawn low and back `wind` s (scraping sparks), then swept out along
+//     the ground `reach` px in `strike` s (`dy` either way across the road): below `z` px, so
+//     jump it.
+//   The bubbles: its mouth glows `wind` s, then `n` (`n2` in the second phase) bubbles arc out
+//     (`flight` s) onto her and round her, each bursting `r` px round (`dmg`).
+//   The stomp: when she is close (`near` px off its body), it rises on its legs `wind` s, then
+//     drops: a ring of shock `r` round (`dmg`), low: jump it.
+//   The scuttle: crouched, its legs drumming `wind` s, then it charges sideways at `speed`
+//     px/s through where she stands (`dy` either way, `dmg`).
+// From `p2` of its health it is `p2speed` times quicker and waits `p2cd` as long between moves.
+// Beaten, it sinks down `dieT` s before it bursts. Its two drones: as the mech samurai's.
+export const CRAB = {
+  bw: 150,
+  depth: 46,
+  hb: 110,
+  bodyH: 140,
+  edge: 140,
+  keep: 150,
+  legHp: 90,
+  breakDmg: 60,
+  slump: 1.8,
+  slumpMult: 1.5,
+  legSlow: 0.12,
+  slam: {
+    wind: 0.85,
+    track: 0.5,
+    strike: 0.12,
+    hold: 0.5,
+    r: 90,
+    dmg: 20,
+    reach: 340,
+    wind2: 0.55,
+    cd: [2.5, 4],
+  },
+  sweep: { wind: 0.75, strike: 0.3, reach: 390, dy: 100, z: 40, dmg: 16, cd: [4, 6] },
+  bubble: { wind: 0.8, n: 3, n2: 5, flight: 0.9, h: 220, r: 55, dmg: 9, cd: [5, 7] },
+  stomp: { wind: 1.0, r: 340, dmg: 18, near: 170, rec: 0.8, cd: [6, 8] },
+  scuttle: { wind: 0.7, speed: 650, dmg: 16, dy: 70, cd: [7, 10] },
+  rec: 0.6,
+  p2: 0.5,
+  p2speed: 1.2,
+  p2cd: 0.75,
+  dieT: 2.6,
+  drone: {
+    side: 160,
+    z: 330,
+    keep: 120,
+    cd: [5, 8],
+    aim: 0.9,
+    lock: 0.35,
+    beam: 0.3,
+    r: 44,
+    dmg: 10,
+    gap: 0.7,
+    n1: 2,
+    n2: 4,
+  },
+};
 // Falling off a roof into a gap (Midnight City): she drops for `time` s, then is back on the
 // roof she fell from, `dmg` of her full health the poorer, untouchable for `inv` s. A robot
 // knocked into a gap is gone (`time` s of falling) and counts as beaten.
@@ -590,7 +673,7 @@ export const GAPHOP = { vx: 420, vz: 650, g: 1800 };
 // Breakable scenery along the road: hits needed, colour of the pieces, score.
 // `h`: how tall it stands (see HEIGHT: an attack passing over it misses it).
 export const DECOR = {
-  bench: { w: 34, h: 54, hp: 1, col: '#7a5638', score: 20 },
+  bench: { w: 64, h: 54, hp: 1, col: '#7a5638', score: 20 },
   cross: { w: 14, h: 62, hp: 1, col: '#8b8f84', score: 20 },
   // a big grave: three hits; a zombie or a skeleton may climb out of it
   tomb: { w: 40, h: 114, hp: 3, col: '#6f7c80', score: 50, big: 1 },
@@ -1051,6 +1134,26 @@ export const TYPES = {
     dk: '#2e323b',
     eye: '#ff3b5c',
     score: 10000,
+  },
+  // the last boss of Midnight City: the cyber crab (CRAB, foes/crab.js)
+  crab: {
+    hp: 1800,
+    scale: 1,
+    speed: 70,
+    dmg: 18,
+    reach: 200,
+    style: 'other',
+    wind: 0.6,
+    act: 0.16,
+    rec: 0.6,
+    cd: [1, 2],
+    bigBoss: 1,
+    weight: 'boss',
+    shadow: 230,
+    col: '#3b4656',
+    dk: '#262d38',
+    eye: '#4fe3ff',
+    score: 12000,
   },
   // the shield bearer (SHIELD): a rusty tower shield in front, a spear
   shield: {

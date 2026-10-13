@@ -230,19 +230,6 @@ export function dragonZone(e, x0, x1, y, dy = 30, zLo = 0, zHi = 9999) {
     return 'body';
   return null;
 }
-/** Its weak spot shows: a pulsing green glint round the head while it is held up high. */
-export function drawWeakSpot(e) {
-  if (e.dying || e.state === 'dying' || headHeight(e) < DRAGON.high) return;
-  const [x, y] = headPoint(e),
-    p = 0.5 + 0.5 * Math.sin(G.time * 6);
-  ctx.save();
-  ctx.strokeStyle = `rgba(198,255,122,${0.25 + 0.35 * p})`;
-  ctx.lineWidth = 2 + p * 1.5;
-  ctx.beginPath();
-  ctx.arc(x - G.cam, y, 30 + p * 6, 0, TAU);
-  ctx.stroke();
-  ctx.restore();
-}
 /** World position (x, screen y) of the head, for sparks. */
 export function headPoint(e) {
   const h = dragonHead(e);

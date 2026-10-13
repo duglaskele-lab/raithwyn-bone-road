@@ -3,6 +3,7 @@ import {
   ACID,
   BIG_GUN,
   BULLET,
+  CRAB,
   CHAIN_GAP,
   DYNAMITE,
   GB,
@@ -27,8 +28,8 @@ import { SFX } from './audio.js';
 import { keys, pressed } from './input.js';
 import { dust, floatTxt, motes } from './fx.js';
 import { t } from './i18n.js';
-import { acidBite, addRage, headBonus, hitPlayer, hurtEnemy } from './combat.js';
-import { DRAGON, dragonZone, plasmaBlast, updShocks } from './dragon.js';
+import { acidBite, addRage, headBonus, hitPlayer, hurtEnemy, partZone, zoned } from './combat.js';
+import { DRAGON, plasmaBlast, updShocks } from './dragon.js';
 import { dmgMult, styleGain, updStyle } from './style.js';
 import { bufferPresses, updPlayer } from './player.js';
 import { spawn, updEnemy } from './enemies.js';
@@ -282,8 +283,8 @@ export function update(dt) {
       for (const e of G.enemies.concat(G.props)) {
         if (e.dead) continue;
         const [lo, hi] = [q.z - HEIGHT.bone, q.z + HEIGHT.bone],
-          zone = e.T?.dragon
-            ? dragonZone(e, q.x - 16, q.x + 16, q.y, 22, lo, hi)
+          zone = zoned(e)
+            ? partZone(e, q.x - 16, q.x + 16, q.y, 22, lo, hi)
             : Math.abs(e.x - q.x) < e.w + 16 && Math.abs(e.y - q.y) < 22 && reaches(e, lo, hi, true)
               ? 'body'
               : null;
@@ -323,7 +324,7 @@ export function update(dt) {
         .map((e) => {
           const lo = q.z - HEIGHT.bullet,
             hi = q.z + HEIGHT.bullet;
-          if (e.T?.dragon) return [e, dragonZone(e, q.x - 20, q.x + 20, q.y, 22, lo, hi), q.x];
+          if (zoned(e)) return [e, partZone(e, q.x - 20, q.x + 20, q.y, 22, lo, hi), q.x];
           const ahead = (e.x - from) * s,
             hit =
               Math.abs(e.y - q.y) < 22 &&
@@ -449,8 +450,8 @@ export function update(dt) {
         const r = [34, 50, 74][q.lv - 1],
           dy = [32, 46, 72][q.lv - 1],
           // the ball's own size, up and down: cast high in a jump it flies over the short
-          zone = e.T?.dragon
-            ? dragonZone(e, q.x - r, q.x + r, q.y, dy, q.z - r, q.z + r)
+          zone = zoned(e)
+            ? partZone(e, q.x - r, q.x + r, q.y, dy, q.z - r, q.z + r)
             : Math.abs(e.x - q.x) < e.w + r &&
                 Math.abs(e.y - q.y) < dy &&
                 reaches(e, q.z - r, q.z + r, true)
@@ -553,6 +554,35 @@ export function update(dt) {
           q.vx *= GRENADE.roll;
           dust(q.x, q.y, 1);
         }
+      }
+    } else if (q.k === 'cbub') {
+      // a bubble of the cyber crab: an arc from its mouth onto its spot, where it bursts
+      q.t += dt;
+      if (q.t < 0) continue;
+      const u = Math.min(1, q.t / q.T);
+      q.x = q.x0 + (q.tx - q.x0) * u;
+      q.y = q.y0 + (q.ty - q.y0) * u;
+      q.z = q.z0 * (1 - u) + 4 * q.h * u * (1 - u);
+      if (u >= 1) {
+        q.life = 0;
+        const r = CRAB.bubble.r;
+        G.parts.push({ k: 'gring', x: q.tx, y: q.ty, t: 0, life: 0.35, s: r, col: '#9fe8ff' });
+        for (let k = 0; k < 10; k++)
+          G.parts.push({
+            k: 'dot',
+            x: q.tx + fxRnd(-10, 10),
+            y: q.ty - fxRnd(0, 16),
+            vx: fxRnd(-180, 180),
+            vy: fxRnd(-260, -80),
+            g: 700,
+            t: 0,
+            life: fxRnd(0.3, 0.5),
+            s: fxRnd(2.5, 4.5),
+            col: k % 2 ? '#bff6ff' : '#4fe3ff',
+          });
+        SFX.splash();
+        if (((P.x - q.tx) / r) ** 2 + ((P.y - q.ty) / (r * 0.5)) ** 2 < 1 && meetsPlayer(0, 50))
+          hitPlayer(CRAB.bubble.dmg, P.x >= q.tx ? 1 : -1, false);
       }
     } else if (q.k === 'shell') {
       // a mortar shell of the Prospector: up in an arc, down on its marked spot, a blast

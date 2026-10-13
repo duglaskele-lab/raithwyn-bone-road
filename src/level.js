@@ -3,7 +3,7 @@
 // right); Old Quarry (stage 2) and Midnight City (stage 3) have a floor of polygons and a camera
 // path (see level2.js, level3.js). Midnight City's roofs also have gaps to fall into (`pits`),
 // doors robots step out of (`doors`), and its robots never climb out of the ground.
-import { DECOR, GB, GT, H, W, WAVEGEN, WAVES } from './config.js';
+import { DECOR, DOOR_SCALE, GB, GT, H, W, WAVEGEN, WAVES } from './config.js';
 import { clamp } from './util.js';
 import { G, P } from './state.js';
 import { FLOOR, PATH, PROPS2, WAVEGEN2, WAVES2 } from './level2.js';
@@ -25,7 +25,7 @@ export const LEVELS = {
     banner: ['stage3', 'subtitle3'],
     floor: L3.FLOOR,
     path: L3.PATH,
-    boss: ['@mecha', 'mechaBanner'],
+    boss: ['@crab', 'crabBanner'],
     pits: L3.PITS,
     doors: L3.DOORS,
     robots: true,
@@ -266,13 +266,14 @@ export function entryPoint(side, r) {
  * from side `side` (mostly), stepping out of a door of a building on screen, or dropping
  * down from above onto the floor. Returns { x, y, how: 'walk' | 'door' | 'drop' }.
  */
-export function robotEntry(side, r) {
+export function robotEntry(side, r, scale = 1) {
   const L = level();
   if (side !== 0 && r() < 0.7) {
     const at = entryPoint(side, r);
     if (at) return { x: at[0], y: at[1], how: 'walk' };
   }
-  const doors = (L.doors ?? []).filter(
+  // (the doors are tall enough for a man-sized robot: the big ones walk in or drop)
+  const doors = (scale > DOOR_SCALE ? [] : (L.doors ?? [])).filter(
     ([x, y]) => x > G.cam + 90 && x < G.cam + W - 90 && inView(x, y + 10) && onFloor(x, y + 10),
   );
   if (doors.length && r() < 0.6) {
