@@ -596,12 +596,15 @@ export const MECHA = {
   dieT: 2.6,
 };
 // The cyber crab (Midnight City's last boss, foes/crab.js). Its body: `bw` px either way of its
-// middle along the road, `depth` either way across it, solid (she cannot walk through it); its
+// middle along the road, `depth` either way across it, solid (an oval she cannot walk into: she
+// slides round it); its
 // underside `hb` px up on its legs, the body `bodyH` tall; it keeps `edge` px of the screen free
 // on either side of it and its body `keep` px off her. Each of its six legs takes `legHp`;
 // broken, the leg is gone, the crab loses `breakDmg` health and slumps `slump` s (its body
 // down: blows on it do `slumpMult` times the harm), and it is `legSlow` slower for every leg it
-// has lost; with fewer than two legs on a side it can no longer scuttle.
+// has lost; with fewer than two legs on a side it can no longer scuttle. With all six gone it
+// falls on its belly for good (`fall` s to crash down) and fights from there: no more walking,
+// stomping, scuttling or jumping, only its claws and its bubbles.
 //   The claw slam: a claw raised high over her `wind` s (following her the first `track` s), then
 //     down in `strike` s on that spot (`r` round, `dmg`), held `hold` s; in its second phase a
 //     second slam follows (`wind2`). It reaches `reach` px out from its body.
@@ -614,8 +617,15 @@ export const MECHA = {
 //     drops: a ring of shock `r` round (`dmg`), low: jump it.
 //   The scuttle: crouched, its legs drumming `wind` s, then it charges sideways at `speed`
 //     px/s through where she stands (`dy` either way, `dmg`).
-// From `p2` of its health it is `p2speed` times quicker and waits `p2cd` as long between moves.
-// Beaten, it sinks down `dieT` s before it bursts. Its two drones: as the mech samurai's.
+//   The leap (while it has legs on both sides): crouched deep, trembling, `wind` s, then up out
+//     of sight (`up` s, `h` px), hanging there over her (its landing spot lit on the ground,
+//     following her until `lock` s before the drop) `hang` s, then down in `fall` s on the spot:
+//     everyone in `r` round is hit (`dmg`); `rec` s to get up.
+// Three phases: in the first it fights alone; from `ph2` of its health two drones fly out of
+// it; from `ph3` (or when all its legs are gone) two more, and it is `p2speed` times quicker,
+// waits `p2cd` as long between moves, slams twice and spits more bubbles. Beaten, it sinks down
+// `dieT` s before it bursts. Its drones: as the mech samurai's (two shots with two, four with
+// four).
 export const CRAB = {
   bw: 150,
   depth: 46,
@@ -643,8 +653,22 @@ export const CRAB = {
   bubble: { wind: 0.8, n: 3, n2: 5, flight: 0.9, h: 220, r: 55, dmg: 9, cd: [5, 7] },
   stomp: { wind: 1.0, r: 340, dmg: 18, near: 170, rec: 0.8, cd: [6, 8] },
   scuttle: { wind: 0.7, speed: 650, dmg: 16, dy: 70, cd: [7, 10] },
+  jump: {
+    wind: 0.85,
+    up: 0.45,
+    h: 560,
+    hang: 0.6,
+    lock: 0.3,
+    fall: 0.3,
+    r: 230,
+    dmg: 22,
+    rec: 0.9,
+    cd: [7, 10],
+  },
+  fall: 1.2,
   rec: 0.6,
-  p2: 0.5,
+  ph2: 2 / 3,
+  ph3: 1 / 3,
   p2speed: 1.2,
   p2cd: 0.75,
   dieT: 2.6,

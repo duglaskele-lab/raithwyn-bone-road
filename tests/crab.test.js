@@ -174,36 +174,93 @@ test('the bubbles arc out onto her and burst', () => {
   assert.equal(G.projs.filter((p) => p.k === 'cbub').length, 0);
 });
 
-test('its two drones fly by its eyes and fire: two shots, four in its second phase', () => {
+test('three phases: alone at first; two drones fly out at two thirds of its health, two more at a third', () => {
   const e = crab(400, { droneCd: 0 });
+  step(0.3);
+  assert.equal(e.phase, 1);
+  assert.ok(!e.dr?.length, 'no drones yet');
+  assert.ok(!e.shots, 'nothing fires');
+  e.hp = e.T.hp * CRAB.ph2 - 1;
   step(DT * 2);
-  assert.equal(e.dr.length, 2);
-  assert.equal(e.shots.length, CRAB.drone.n1);
+  assert.equal(e.phase, 2);
+  assert.equal(e.state, 'crroar');
+  assert.equal(e.dr.length, 2, 'two drones out of it');
+  assert.ok(Math.abs(e.dr[0].x - e.x) < 40, 'flying out of its body');
   assert.deepEqual(
     G.enemies.map((q) => q.type),
     ['crab'],
     'they are not foes to hit',
   );
-  const f = crab(600, { droneCd: 0, p2: true });
+  e.droneCd = 0;
   step(DT * 2);
-  assert.equal(f.shots.length, CRAB.drone.n2);
+  assert.equal(e.shots.length, CRAB.drone.n1);
+  e.hp = e.T.hp * CRAB.ph3 - 1;
+  step(DT * 2);
+  assert.equal(e.phase, 3);
+  assert.ok(e.p2, 'quicker now');
+  assert.equal(e.dr.length, 4, 'two more');
 });
 
-test('at half health its second phase: a roar, then it is quicker and the slam comes twice', () => {
-  const e = crab(CRAB.bw + 200);
-  e.hp = e.T.hp * CRAB.p2 - 1;
-  step(DT * 2);
-  assert.ok(e.p2);
-  assert.equal(e.state, 'crroar');
-  step(1.1);
-  e.slamCd = 0;
-  e.t = 1;
-  step(DT * 2);
-  assert.equal(e.state, 'crslamw');
+test('with all its legs gone it falls on its belly for good: the third phase, and it no longer walks', () => {
+  const e = crab(CRAB.bw + 260);
+  for (const l of e.legs.slice(1)) l.broken = true;
+  e.legs[0].hp = 1;
+  e.x = P.x + CRAB.bw + 120;
+  Object.assign(P, { hit: new Set(), face: 1 });
+  strike({ x0: 0, x1: 122, dy: 28, dmg: 16, knock: false, rage: 0 });
+  assert.ok(e.legs[0].broken);
+  assert.equal(e.state, 'crfall');
+  step(0.3); // (the world stands still a moment as the leg breaks)
+  assert.equal(e.phase, 3, 'its last phase');
   P.inv = 99;
-  step(CRAB.slam.wind / CRAB.p2speed + CRAB.slam.strike + CRAB.slam.hold / CRAB.p2speed + 0.05);
-  assert.equal(e.state, 'crslamw', 'a second slam');
-  assert.ok(e.second);
+  step(CRAB.fall + CRAB.rec + 0.3);
+  assert.ok(e.lift < -80, 'down on its belly');
+  // she walks off: it does not follow, nor stomp, scuttle or leap
+  const x = e.x;
+  Object.assign(e, { stompCd: 0, scutCd: 0, jumpCd: 0 });
+  P.x = G.cam + 60;
+  step(1);
+  assert.equal(e.x, x, 'it stays where it lies');
+  assert.ok(!['crstompw', 'crscutw', 'crjumpw', 'crjump'].includes(e.state));
+  // its claws still reach
+  e.slamCd = 0;
+  P.x = e.x - CRAB.bw - 150;
+  step(0.2);
+  assert.equal(e.state, 'crslamw');
+});
+
+test('the leap: crouched, up out of sight, its landing spot lit and following her, then down on it', () => {
+  const e = crab(CRAB.bw + 250, { jumpCd: 0 });
+  step(DT * 2);
+  assert.equal(e.state, 'crjumpw');
+  step(CRAB.jump.wind + 0.05);
+  assert.equal(e.state, 'crjump');
+  step(CRAB.jump.up);
+  assert.ok(e.z > 400, 'high up');
+  // she moves; the spot follows her, then holds
+  P.x -= 60;
+  step(CRAB.jump.hang - CRAB.jump.lock);
+  const at = Math.max(P.x, G.cam + CRAB.bw + CRAB.edge); // (its body stays clear of the edge)
+  assert.ok(Math.abs(e.tx - at) < 30, 'the spot followed her');
+  assert.ok(thrownIn(CRAB.jump.lock + CRAB.jump.fall + 0.2), 'it came down on her');
+  // not with its legs gone on a side
+  const f = crab(CRAB.bw + 250, { jumpCd: 0 });
+  for (const l of f.legs.filter((q) => q.s === 1)) l.broken = true;
+  step(0.2);
+  assert.notEqual(f.state, 'crjumpw');
+});
+
+test('its body is an oval: she slides round it, pushed out the shortest way', () => {
+  const e = crab(400);
+  // just off its middle along the depth: pushed out mostly across the road
+  P.x = e.x + 40;
+  P.y = e.y + CRAB.depth * 0.8;
+  step(DT);
+  const dx = P.x - e.x,
+    dy = P.y - e.y;
+  assert.ok((dx / (CRAB.bw + 18)) ** 2 + (dy / CRAB.depth) ** 2 >= 0.99, 'on its edge');
+  assert.ok(dy > CRAB.depth * 0.8, 'out across the road, not to its side');
+  assert.ok(Math.abs(dx) < CRAB.bw, 'not thrown out to its side');
 });
 
 test('beaten, it sinks, then bursts; the stage is won, and with it the game', () => {
