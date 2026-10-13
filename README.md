@@ -235,7 +235,7 @@ a band too, and reaches only what it meets:
   ball is big enough to reach down to them all;
 - a shot reaches a flying robot from the ground too (it is aimed at it).
 
-Things to break stand as tall as they are drawn (`h` in `DECOR`): a bench 54 px, a stone cross 62,
+Things to break stand as tall as they are drawn (`h` in `DECOR`): a long park bench 54 px (128 wide), a stone cross 62,
 a big grave 114, a barrel (wooden or red) 56, an urn 50; in Midnight City a lamp post 215, a neon
 sign 104, a paper lantern 142, a vending machine 118, a power cell 72, a holographic projector
 120. So a bone or a level I dark ball from the ground flies over a barrel, a bench or an urn (a
@@ -250,7 +250,7 @@ of level I. Shadows on the ground under the missiles (all but the quick bullets)
 
 **The Bone Dragon's weak spot** is its head held up high (above 150 px): only an attack from a
 jump reaches it there (a flying kick, a bone or a dark ball thrown from the jump), and it takes
-twice the harm. A pulsing green ring round the head shows it. The lowered head after a bite still
+twice the harm (nothing on screen marks it). The lowered head after a bite still
 takes 1.5 times the harm from the ground.
 
 **Enemy weight classes** (`weight` in `TYPES`, rules in `WEIGHT` in `src/config.js`):
@@ -690,7 +690,9 @@ smoke, not bones.
   on its timer, then a blast that hurts robots too). It raises a wall of hard light in front of it for 4.5 s and keeps
   it as it walks: the heroine's shots (bullets, bones, a level I dark ball) stop on it, which
   shields the robots behind it too, and so do blows from the front; three heavy blows (or one
-  crushing) shatter it. From behind it is open; only crushing blows move it.
+  crushing) shatter it. From behind it is open, and while it swings its arms in a blow the wall
+  goes out (an opening; it comes back after, if its time is not up); only crushing blows move
+  it.
 - **Hacked Noodle Chef** (medium) — a kitchen robot gone wrong, a stained apron, a crooked hat,
   a glitching red eye, sparking wiring, a cleaver in each hand. Up close: a flurry of three
   cuts, both cleavers in turn; the last one knocks her down.
@@ -705,7 +707,9 @@ fist like a block of iron. It never stays still:
 - from further off it crouches and leaps at the heroine, landing where she stood (the spot is
   marked in orange) in a ring of shock 190 px round that throws her and smashes things nearby;
 - it raises the arm and punches the ground: a fissure of seven eruptions runs along her lane
-  (marked by a dashed line as it winds up) — step out of the lane or jump it;
+  (marked by a dashed line as it winds up) — step out of the lane or jump it. Every eruption
+  splits the ground (a glowing crack that stays 1.4 s), throws up a pillar of sparks and rock
+  chunks and shakes the screen;
 - it cocks the fist and fires it like a rocket, charging straight through her;
 - up close it hops back at once, with no wind-up, to the roomier side of the screen (over
   her, if there is no room behind it), sinks into a sumo stance for 0.4 s (the fist drawn
@@ -714,38 +718,53 @@ fist like a block of iron. It never stays still:
   her for a moment, then it drops onto it: a ring of shock 300 px round.
 
 Its big moves cannot be stopped (a red outline); only crushing blows move it. Its attacks go at
-0.9 of their old pace in the first phase. At half health the arm glows white-hot, its attacks
+0.9 of their old pace in the first phase, and it waits a tenth longer between its moves and its
+blows there. At half health the arm glows white-hot, its attacks
 go at 1.04 (a fifth slower than the old 1.3), it waits less between moves, and three
 fissures run side by side. Beaten, it bursts into parts, the fight is over and food drops.
 
-**The last boss: the Mech Samurai** (1500 health; `TYPES.mecha`, `MECHA`), in the garden on top
-of the tower. A giant war machine in samurai armour of black lacquer and red lacing: a horned
-helmet with a golden crest, a snarling face mask with burning eyes, great shoulder plates, an
-armoured skirt, and a katana of red plasma. At rest its sword arm hangs a little back, the
-blade pointing down behind it, the other arm loose at its side. It drops from the sky, landing
-in a ring of shock. It never flinches. Two drones fly beside it, black discs with golden crests
-and red eyes: they are part of it and cannot be hit. Every 5–8 s, while it fights on, they
-shoot as the watcher drones do: a red mark under her follows her for 0.9 s, holds still
-0.35 s, then a laser comes down on it (step off the mark) — two shots in turn, four from
-phase 2. Beaten, it takes them down with it.
+**The last boss: the Cyber Crab** (1800 health; `TYPES.crab`, `CRAB`, `src/foes/crab.js`), in the
+garden on top of the tower. A Jawacorp war machine the size of a tram: a wide carapace of dark
+steel with an orange rim and glowing vents, eyes on stalks that follow the heroine, a grilled
+mouth with mandibles, two great orange claws held up in front like fists, and six legs, three
+on each side. Like a crab it faces out of the screen and walks sideways along the road,
+keeping her a claw's length off. It drops from the sky. Its two drones (the mech samurai's,
+`src/foes/drones.js`) fly by its eyes: they cannot be hit, and every 5–8 s they mark a spot
+under her, follow her with it, hold it and laser it — two shots, four in its second phase.
 
-- **Phase 1:** wide cuts that sweep across the road's depth in front of it; the **iai** — it
-  sinks into its stance while a red line glows the length of the screen along her lane, then
-  it is across in a flash, cutting down whoever is on the line (step off it); the **counter
-  stance** — a blow from the front rings off the blade and it cuts back at once.
-- **Phase 2** (half health): its shoulder plates fall away and missile pods open on its back: a
-  salvo of six missiles comes down on red marks round her (one right under her), and it leaps
-  onto her, landing in a ring of shock.
-- **Phase 3** (a quarter): it overheats — its chest opens and the core blazes white: blows do
-  double harm. It strikes three to five iai cuts in a row, a breath between them.
+- **Its body is solid:** the heroine cannot walk through it (round it, in front or behind along
+  the road's depth, she can). It always leaves 140 px of the screen free on either side.
+- **Its legs break:** a blow on a leg (they stand round its sides, where she fights) wears it
+  down (90 each) and hurts the crab as well. A broken leg is gone (a sparking stump); the crab
+  loses 60 more health and slumps for 1.8 s, its body down on the ground, where blows do 1.5
+  times the harm; it is 12% slower for every lost leg, leans to its weaker side, and with fewer
+  than two legs on a side it can no longer scuttle.
+- **The claw slam:** a claw rises high over her, opening, its shadow growing on the ground
+  under it (it follows her the first 0.5 s, then holds still), trembles, and comes down 0.85 s
+  later on that spot. In its second phase a second slam follows at once.
+- **The claw sweep:** the claw drawn back low, scraping sparks off the ground for 0.75 s, then
+  swept out along the ground on her side, 390 px: it runs low, so jump it.
+- **The bubbles:** its mouth grille glows and its body swells for 0.8 s, then three bubbles
+  (five in its second phase) arc out onto her and round her — their shadows show where they will
+  burst.
+- **The stomp:** when she is close to its body, it rises high on straightening legs, trembling,
+  steam from its vents, for a full second, then drops: a ring of shock 340 px round, low — jump
+  it.
+- **The scuttle:** it crouches, its legs drumming, dust flying, for 0.7 s, then charges
+  sideways through where she stands — step off its lane.
 
-Beaten, it sinks to one knee, its core and eyes dim, and it bursts in a shower of sparks and
-cherry petals.
+Its moves have no red marks: each is read from its wind-up. It never flinches. At half health
+it roars, its eyes and vents turn red, and it is 1.2 times quicker. Beaten, it sinks onto its
+belly, its legs splaying, sparking, drops its drones and bursts.
+
+The Mech Samurai (`TYPES.mecha`, `MECHA`), the stage's last boss before, is no longer in it (its
+code stays): a giant in samurai armour with a plasma katana, the iai cut along her lane, a
+counter stance, missiles and a leap, an overheated core.
 
 **Where robots come from.** They never climb out of the ground: they walk in from the left or
-the right, step out of a door in a building (a tall door, big enough for the largest of them, slides
-open, lit inside), or drop down
-from above.
+the right, step out of a door in a building (the door, tall enough for a man-sized robot,
+slides open, lit inside), or drop down from above. The big ones (the turret, the barrier heavy:
+bigger than `DOOR_SCALE`) never come out of a door: they walk in or drop.
 
 **Secret.** On the first screen of the first stage, before the first fight, hold `Z` and `3`
 together for 2 seconds and the heroine goes straight to Midnight City. On its first screen, hold
@@ -862,7 +881,12 @@ What is checked:
   heavy's wall (shots and blows from the front, cracking, shattering) and its grenade over it
   (the timer, the blast hurting robots), the grenadier's one grenade, the cell carrier's cell
   (set going by a blow on it or with it, bursting, dropped still ticking), the chef's flurry.
-- `mecha.test.js` — the mech samurai: the last fight, dropping from the sky, the iai on the line
+- `crab.test.js` — the cyber crab: the last fight, dropping from the sky; its solid body (pushed
+  out of it, round it along the depth); its legs wearing down and breaking (the slump, more harm
+  on its body, no scuttle with fewer than two legs on a side); the claw slam on her spot (and
+  out of it), the low sweep (jumped), the stomp, the bubbles, its drones (two shots, four in its
+  second phase), the second phase and its double slam, its end and the game won.
+- `mecha.test.js` — the mech samurai (no longer in the stage): dropping from the sky, the iai on the line
   (and off it), the counter stance, never flinching, the missiles on the marks (sparing it), the
   overheated core and the run of iai cuts, kneeling and bursting, the game won; its two drones
   (not foes to hit), their aimed shots (two, four from phase 2; off the mark she is spared),

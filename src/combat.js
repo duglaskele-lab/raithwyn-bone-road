@@ -261,8 +261,8 @@ export function buckshot() {
   for (const e of G.enemies.concat(G.props)) {
     if (e.dead || e.dying) continue;
     const dx = (e.x - p.x) * p.face,
-      zone = e.T?.dragon
-        ? dragonZone(e, p.x, p.x + p.face * B.range, p.y, B.dy, lo, hi)
+      zone = zoned(e)
+        ? partZone(e, p.x, p.x + p.face * B.range, p.y, B.dy, lo, hi)
         : dx > -10 && dx < B.range + e.w && Math.abs(e.y - p.y) < B.dy && reaches(e, lo, hi, true)
           ? 'body'
           : null;
@@ -325,9 +325,18 @@ export function finale(e) {
       }
     G.projs = G.projs.filter(
       (p) =>
-        !['ebone', 'ehado', 'acid', 'plasma', 'shell', 'quake', 'skull', 'fsign', 'rbolt'].includes(
-          p.k,
-        ),
+        ![
+          'ebone',
+          'ehado',
+          'acid',
+          'plasma',
+          'shell',
+          'quake',
+          'skull',
+          'fsign',
+          'rbolt',
+          'cbub',
+        ].includes(p.k),
     );
     G.pools = [];
     G.shocks = [];
@@ -461,8 +470,8 @@ export function strike(o) {
   for (const e of G.enemies.concat(G.props)) {
     if (p.hit.has(e) || e.dead) continue;
     const dx = (e.x - p.x) * p.face,
-      zone = e.T?.dragon
-        ? dragonZone(e, p.x + p.face * o.x0, p.x + p.face * o.x1, p.y, o.dy, lo, hi)
+      zone = zoned(e)
+        ? partZone(e, p.x + p.face * o.x0, p.x + p.face * o.x1, p.y, o.dy, lo, hi)
         : dx > o.x0 - e.w && dx < o.x1 + e.w && Math.abs(e.y - p.y) < o.dy && reaches(e, lo, hi)
           ? 'body'
           : null;
@@ -482,9 +491,20 @@ export function strike(o) {
     }
   }
 }
+/** Does this foe have parts of its own to be hit (the dragon's head, the crab's legs)? */
+export const zoned = (e) => !!(e.T?.dragon || FOES[e.type]?.zone);
+/** Which of its parts a hit covering x0..x1 at depth y, heights zLo..zHi, lands on (or null). */
+export function partZone(e, x0, x1, y, dy, zLo, zHi) {
+  return e.T?.dragon
+    ? dragonZone(e, x0, x1, y, dy, zLo, zHi)
+    : FOES[e.type].zone(e, x0, x1, y, dy, zLo, zHi);
+}
 /** A hit on the dragon's head: 1.5x damage lowered, 2x held up high (its weak spot, reached
- *  only from a jump), and a spark where it landed. */
+ *  only from a jump), and a spark where it landed; on another foe's part, its own say (the
+ *  crab's legs take the blow). */
 export function headBonus(e, zone) {
+  const F = FOES[e.type];
+  if (F?.zoneHit) return F.zoneHit(e, zone);
   if (zone !== 'head' && zone !== 'high') return 1;
   const [x, y] = headPoint(e);
   spark(x, y, '#c6ff7a', true);

@@ -42,7 +42,7 @@ const UNSTOPPABLE = [
   'bsfall',
 ];
 /** Its countdowns run faster in the second phase. */
-const cd = (e, r) => rnd(...r) * (e.phase2 ? B.p2cd : 1);
+const cd = (e, r) => rnd(...r) * (e.phase2 ? B.p2cd : B.p1cd);
 const onScreen = (e) => e.x > G.cam + 40 && e.x < G.cam + W - 40;
 
 /** A ring of shock on the ground at (x, y): whoever is on the ground inside it is thrown. */
@@ -57,22 +57,40 @@ function shock(e, x, y, r, dmg) {
   for (const u of G.props)
     if (!u.dead && ((u.x - x) / r) ** 2 + ((u.y - y) / (r * 0.42)) ** 2 < 1) breakProp(u);
 }
-/** One eruption of a fissure: a burst of rock and orange light; it throws her if she is in it. */
+/** One eruption of a fissure: the ground splits (a glowing crack stays a while), a pillar of
+ *  molten light and rock bursts up, chunks fly; it throws her if she is in it. */
 function erupt(e, x, y) {
-  for (let k = 0; k < 6; k++)
+  (e.cracks ??= []).push({ x, y, t: G.time, seed: e.fisN * 7 + Math.round(y) });
+  for (let k = 0; k < 14; k++)
     G.parts.push({
-      k: 'dot',
-      x: x + fxRnd(-14, 14),
-      y: y - fxRnd(0, 20),
-      vx: fxRnd(-60, 60),
-      vy: fxRnd(-420, -200),
+      k: k % 3 ? 'dot' : 'glow',
+      x: x + fxRnd(-18, 18),
+      y: y - fxRnd(0, 30),
+      vx: fxRnd(-80, 80),
+      vy: fxRnd(-620, -260),
       g: 900,
       t: 0,
-      life: fxRnd(0.4, 0.7),
-      s: fxRnd(3, 6),
-      col: k % 2 ? '#ffb02e' : '#6a5a4a',
+      life: fxRnd(0.45, 0.8),
+      s: fxRnd(3, 7),
+      col: k % 2 ? '#ffb02e' : k % 3 ? '#ffe7a0' : '#6a5a4a',
     });
-  dust(x, y, 3);
+  for (let k = 0; k < 3; k++)
+    G.debris.push({
+      k: 'shard',
+      x: x + fxRnd(-12, 12),
+      gy: y + fxRnd(-4, 4),
+      z: fxRnd(10, 30),
+      vx: fxRnd(-140, 140),
+      vz: fxRnd(260, 460),
+      rot: fxRnd(TAU),
+      vr: fxRnd(-10, 10),
+      len: fxRnd(8, 16),
+      col: k % 2 ? '#5a4a3c' : '#7a6a58',
+      life: 1.4,
+    });
+  G.parts.push({ k: 'gring', x, y, t: 0, life: 0.3, s: B.fissure.w * 1.6, col: '#ffb02e' });
+  dust(x, y, 6);
+  G.shake = Math.max(G.shake, 5);
   if (!e.fisHit && Math.abs(P.x - x) < B.fissure.w && Math.abs(P.y - y) < 24 && P.z < 40)
     if (hitPlayer(B.fissure.dmg, e.face, true)) e.fisHit = true;
 }
@@ -174,6 +192,8 @@ export default defineFoe('breaker', {
         wind: TYPES.breaker.wind / e.speedK,
         act: TYPES.breaker.act / e.speedK,
         rec: TYPES.breaker.rec / e.speedK,
+        // (a tenth longer between blows in the first phase, as between its moves)
+        cd: TYPES.breaker.cd.map((v) => v * (e.phase2 ? 1 : B.p1cd)),
       };
     // steam from the arm's vents
     if (fxRandom() < (e.phase2 ? 0.35 : 0.15))
@@ -397,6 +417,7 @@ export default defineFoe('breaker', {
   },
   // its marks on the ground: where it will land, the fissure's path, the rush's line
   ground(e) {
+    drawCracks(e);
     ctx.save();
     if (e.state === 'bcrouch' || e.state === 'bleap') {
       const r = B.leap.r,
@@ -686,4 +707,37 @@ function sumoHead(c) {
   ctx.fillStyle = fl ? '#fff' : A.trim;
   ctx.fillRect(-7, -22, 6, 5);
   visorHelm(fl, A);
+}
+
+/** The cracks its fissures leave in the ground: jagged, glowing orange, fading out. */
+function drawCracks(e) {
+  if (!e.cracks?.length) return;
+  e.cracks = e.cracks.filter((c) => G.time - c.t < B.fissure.crack);
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  for (const c of e.cracks) {
+    const a = 1 - (G.time - c.t) / B.fissure.crack,
+      x = c.x - G.cam,
+      w = B.fissure.step * 0.62;
+    let r = c.seed;
+    const j = () => ((r = (r * 9301 + 49297) % 233280) / 233280 - 0.5) * 8;
+    const path = () => {
+      ctx.beginPath();
+      ctx.moveTo(x - w, c.y + j());
+      for (let k = -2; k <= 2; k++) ctx.lineTo(x + (k * w) / 2.5, c.y + j());
+      ctx.lineTo(x + w, c.y + j());
+    };
+    ctx.strokeStyle = `rgba(30,18,10,${0.8 * a})`;
+    ctx.lineWidth = 9;
+    r = c.seed;
+    path();
+    ctx.stroke();
+    ctx.strokeStyle = `rgba(255,${150 + 60 * a},46,${a})`;
+    ctx.lineWidth = 3.5;
+    r = c.seed;
+    path();
+    ctx.stroke();
+  }
+  ctx.restore();
 }

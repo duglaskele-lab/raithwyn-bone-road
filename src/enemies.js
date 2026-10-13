@@ -32,7 +32,7 @@ export function spawn(type, side, x, y) {
   let entry = null;
   if (!placed && level().robots) {
     // Midnight City: in from a side, out of a door, or down from above
-    entry = robotEntry(side, random);
+    entry = robotEntry(side, random, T.scale);
     ({ x, y } = entry);
     if (entry.how !== 'walk') side = x > P.x ? 1 : -1;
   } else if (!placed && level().floor) {

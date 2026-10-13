@@ -171,6 +171,16 @@ test('a robot knocked into a gap is gone and counts as beaten', () => {
   assert.ok(P.score > score, 'it counts');
 });
 
+test('the doors are for man-sized robots: the big ones walk in or drop down', async () => {
+  const { DOOR_SCALE, TYPES } = await import('../src/config.js');
+  kyoto(0);
+  for (const type of ['barrier', 'turret']) {
+    assert.ok(TYPES[type].scale > DOOR_SCALE, type);
+    for (let i = 0; i < 40; i++)
+      assert.notEqual(spawn(type, [-1, 0, 1][i % 3]).state, 'door', type);
+  }
+});
+
 test('robots never climb out of the ground: they walk in, step out of doors, or drop down', () => {
   kyoto(0);
   const how = new Set();

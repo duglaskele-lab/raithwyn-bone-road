@@ -48,7 +48,6 @@ import {
   drawDragonBeam,
   drawDragonGround,
   drawDragonPart,
-  drawWeakSpot,
   drawShocks,
 } from './dragon.js';
 
@@ -352,20 +351,21 @@ export function drawDecor(u) {
       ctx.stroke();
     }
   } else if (u.decor === 'bench') {
-    for (const lx of [-26, 22]) {
+    // a long park bench: two iron end frames, the seat and two back rails of wood
+    for (const lx of [-56, 51]) {
       ctx.beginPath();
       ctx.rect(lx, -22, 5, 22);
       fill('#2f2b33');
     }
     ctx.beginPath();
-    ctx.rect(-34, -26, 68, 7);
+    ctx.rect(-64, -26, 128, 7);
     fill(D.col);
     for (const sy of [-52, -42]) {
       ctx.beginPath();
-      ctx.rect(-32, sy, 64, 6);
+      ctx.rect(-62, sy, 124, 6);
       fill('#8a6544');
     }
-    for (const lx of [-28, 24]) {
+    for (const lx of [-58, 54]) {
       ctx.beginPath();
       ctx.rect(lx, -54, 4, 30);
       fill('#2f2b33');
@@ -539,6 +539,25 @@ export function drawProj(q) {
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
+    ctx.restore();
+    return;
+  }
+  if (q.k === 'cbub') {
+    // a bubble of the cyber crab: a glassy cyan sphere, a glint on it
+    if (q.t < 0) return;
+    ctx.save();
+    ctx.translate(x, y - 16);
+    ctx.fillStyle = 'rgba(79,227,255,.35)';
+    ctx.strokeStyle = 'rgba(191,246,255,.9)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, 16, 0, TAU);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.8)';
+    ctx.beginPath();
+    ctx.ellipse(-5, -6, 5, 3, -0.5, 0, TAU);
+    ctx.fill();
     ctx.restore();
     return;
   }
@@ -1220,7 +1239,7 @@ export function drawWorld() {
           ? 26 * q.lv
           : q.k === 'fsign'
             ? 38
-            : q.k === 'plasma' || q.k === 'skull'
+            : q.k === 'plasma' || q.k === 'skull' || q.k === 'cbub'
               ? 20
               : 10,
       );
@@ -1240,7 +1259,6 @@ export function drawWorld() {
   list.sort((a, b) => a[0] - b[0]);
   for (const l of list) l[1](l[2]);
   for (const e of G.enemies) if (e.T.dragon) drawDragonBeam(e);
-  for (const e of G.enemies) if (e.T.dragon) drawWeakSpot(e);
   for (const e of G.enemies) FOES[e.type]?.over?.(e);
   for (const e of G.enemies) if (e.orbUntil > G.time) drawOrb(e);
   for (const p of G.parts) drawPart(p);
