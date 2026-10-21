@@ -67,6 +67,7 @@ export function waveSpawns(i) {
   // on the Bone Road, someone other than Raithwyn meets Raithwyn herself instead of the dragon
   const swap = (s) =>
     s[0] === 'dragon' && P.who && P.who !== 'raithwyn' ? ['evil', ...s.slice(1)] : s.slice();
-  return w.sp ? w.sp.map(swap) : rollWave(w.lvl, L.gen);
+  // (a fight may roll from its own pools, and have fixed enemies join it: `gen`, `add`)
+  return w.sp ? w.sp.map(swap) : rollWave(w.lvl, w.gen ?? L.gen).concat(w.add ?? []);
 }
 export const STRONG = Object.keys(WAVEGEN.pools.hard);

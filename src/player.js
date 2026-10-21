@@ -7,6 +7,7 @@ import {
   LUCY,
   GRENADE,
   D,
+  FROST,
   HADO,
   FIGHTER_ANIM,
   IDLE_HOLD,
@@ -31,6 +32,7 @@ import { SFX } from './audio.js';
 import { dust, motes } from './fx.js';
 import { floorClamp, level, overPit, viewClamp } from './level.js';
 import { buckshot, hadoLevel, hurtEnemy, strike, superNova } from './combat.js';
+import { dismount, rideTick, tryMount } from './foes/beasts.js';
 
 // The idle pose at time t: the poses are held for hold[i] 24ths of a second each.
 export function idlePose(t, hold = IDLE_HOLD) {
@@ -198,6 +200,11 @@ export function bufferPresses() {
       }
     }
 }
+/** A jump: she crouches, then springs (`vx` along the road, `vyd` across it). */
+function startJump(p, vx, vyd) {
+  Object.assign(p, { buf: null, state: 'jump', t: 0, ph: 0, vx, vyd, airT: null, airUsed: 0 });
+  p.airS = null;
+}
 export function updPlayer(dt) {
   const p = P;
   p.t += dt;
@@ -243,17 +250,8 @@ export function updPlayer(dt) {
         dust(p.x - p.face * 14, p.y, 1);
       // J held: she keeps punching on her own, chain after chain
       const b = p.bufT > 0 ? p.buf : keys.atk ? 'atk' : null;
-      if (b === 'jump') {
-        p.buf = null;
-        p.state = 'jump';
-        p.t = 0;
-        p.ph = 0;
-        p.vx = mx * sp;
-        p.vyd = my * 70;
-        p.airT = null;
-        p.airUsed = 0;
-        p.airS = null;
-      } else if (b === 'atk') startAtk(mx);
+      if (b === 'jump') startJump(p, mx * sp, my * 70);
+      else if (b === 'atk') startAtk(mx);
       else if (b === 'bone' && p.who === 'lucy' && p.finT > 0) startFinShot();
       else if (b === 'bone' && p.who === 'lucy') {
         // Lucy's K: she draws her pistol and fires, if she has a round left
@@ -347,6 +345,8 @@ export function updPlayer(dt) {
           p.airT += dt;
           strike({ x0: 0, x1: 122, dy: 28, dmg: 12, knock: true, rage: RAGE.air, src: 'air' });
         }
+        // coming down onto a beast nobody rides: she is in its saddle (Frostfang Pass)
+        if (p.vz < 0 && G.level === 4 && tryMount(p)) break;
         if (p.z <= 0) {
           p.z = 0;
           p.ph = 2;
@@ -361,6 +361,21 @@ export function updPlayer(dt) {
         if (p.t > 0.07) toIdle();
       }
       break;
+    case 'ride': {
+      // on a beast: she steers it, J makes it whip its tail or breathe fire, a jump gets her off
+      const b = p.bufT > 0 ? p.buf : keys.atk ? 'atk' : null;
+      if (b === 'atk') p.buf = null;
+      if (!rideTick(p, dt, mx, my, b === 'atk')) toIdle();
+      else if (b === 'jump') {
+        dismount(p);
+        startJump(p, mx * 200, my * 70);
+        p.ph = 1;
+        p.z = p.seat;
+        p.vz = 420;
+        SFX.jump();
+      }
+      break;
+    }
     case 'atk1': {
       const i = tl(D.atk1, p.t);
       if (i < 0) {
@@ -680,6 +695,33 @@ export function updPlayer(dt) {
       if (p.t > p.dazeT) toIdle();
       break;
     }
+    case 'frozen':
+      // in a block of ice (the frost wolf's breath): stuck until it thaws; mashing J and K
+      // breaks it sooner
+      p.an = ['hurt', 0];
+      p.buf = null;
+      for (const a of ['atk', 'jump', 'bone', 'hado', 'l', 'r'])
+        if (pressed[a]) p.hold -= FROST.breath.mash;
+      if (p.t > p.hold) {
+        toIdle();
+        p.inv = Math.max(p.inv, 0.6);
+        SFX.ice();
+        for (let k = 0; k < 10; k++)
+          G.debris.push({
+            k: 'shard',
+            x: p.x + fxRnd(-24, 24),
+            gy: p.y + fxRnd(-4, 4),
+            z: fxRnd(20, 140),
+            vx: fxRnd(-200, 200),
+            vz: fxRnd(120, 360),
+            rot: fxRnd(TAU),
+            vr: fxRnd(-12, 12),
+            len: fxRnd(8, 16),
+            col: '#d8f8ff',
+            life: 1,
+          });
+      }
+      break;
     case 'hurt':
       p.x += p.vx * dt;
       p.vx *= Math.pow(0.02, dt);

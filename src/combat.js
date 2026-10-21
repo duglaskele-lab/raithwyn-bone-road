@@ -20,7 +20,7 @@ import {
 import { fxRnd, random, rnd } from './util.js';
 import { APP, G, P } from './state.js';
 import { SFX } from './audio.js';
-import { motes, shatter, spark } from './fx.js';
+import { dust, motes, shatter, spark } from './fx.js';
 import { spawn } from './enemies.js';
 import { explode } from './blast.js';
 import { dropSign } from './props3.js';
@@ -321,7 +321,9 @@ export function finale(e) {
     for (const o of G.enemies)
       if (!o.dead && o !== e) {
         o.dead = true;
-        shatter(o, o.x < e.x ? -1 : 1);
+        // (a beast nobody rides, the thief gnome: they are simply gone, in a puff of dust)
+        if (o.neutral) dust(o.x, o.y, 10);
+        else shatter(o, o.x < e.x ? -1 : 1);
       }
     G.projs = G.projs.filter(
       (p) =>
@@ -537,6 +539,12 @@ export function hitPlayer(dmg, dir, knock) {
   p.buf = null;
   p.puller = null;
   p.grabber = null;
+  // on a beast: thrown out of the saddle (see foes/beasts.js)
+  if (p.steed) {
+    p.z = p.seat;
+    p.steed = null;
+    knock = true;
+  }
   if (p.hp <= 0 || lucky || knock || p.z > 0 || p.state === 'jump') {
     p.state = 'ko';
     p.t = 0;

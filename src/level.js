@@ -2,12 +2,14 @@
 // player. The Bone Road (stage 1) is a straight strip (the GT..GB band, the camera only goes
 // right); Old Quarry (stage 2) and Midnight City (stage 3) have a floor of polygons and a camera
 // path (see level2.js, level3.js). Midnight City's roofs also have gaps to fall into (`pits`),
-// doors robots step out of (`doors`), and its robots never climb out of the ground.
+// doors robots step out of (`doors`), and its robots never climb out of the ground. Frostfang
+// Pass (stage 4, level4.js) turns up the mountainside and has a gorge under its bridge.
 import { DECOR, DOOR_SCALE, GB, GT, H, W, WAVEGEN, WAVES } from './config.js';
 import { clamp } from './util.js';
 import { G, P } from './state.js';
 import { FLOOR, PATH, PROPS2, WAVEGEN2, WAVES2 } from './level2.js';
 import * as L3 from './level3.js';
+import * as L4 from './level4.js';
 
 export const LEVELS = {
   1: { waves: WAVES, gen: WAVEGEN, banner: ['stage1', 'subtitle'] },
@@ -30,10 +32,19 @@ export const LEVELS = {
     doors: L3.DOORS,
     robots: true,
   },
+  4: {
+    waves: L4.WAVES4,
+    gen: L4.GEN4.village,
+    banner: ['stage4', 'subtitle4'],
+    floor: L4.FLOOR,
+    path: L4.PATH,
+    boss: ['@frostwolf', 'frostwolfBanner'],
+    pits: L4.PITS,
+  },
 };
 export const level = () => LEVELS[G.level] ?? LEVELS[1];
 /** The last stage: winning it wins the game; winning any other goes on to the next. */
-export const LAST_LEVEL = 3;
+export const LAST_LEVEL = 4;
 export const levelWaves = () => level().waves;
 
 // --- the floor ---------------------------------------------------------------------------
@@ -299,7 +310,7 @@ export function groundPoint(r) {
 
 /** A stage's things to break, fresh (Old Quarry's barrels, Midnight City's signs and machines). */
 export function levelProps(n = 2) {
-  const list = n === 2 ? PROPS2 : n === 3 ? L3.PROPS3 : [];
+  const list = n === 2 ? PROPS2 : n === 3 ? L3.PROPS3 : n === 4 ? L4.PROPS4 : [];
   return list.map(([x, y, decor, drop]) => ({
     isProp: 1,
     decor,
@@ -323,13 +334,14 @@ export function startLevel(n) {
     G[k] = [];
   G.lastFoe = null;
   G.slow = 0;
+  G.blizzard = false;
   // the secret works on each stage's first screen (X: straight to its boss)
   G.secretDone = false;
   G.secretT = 0;
   G.props = n > 1 ? levelProps(n) : G.props;
   camTo(0);
   Object.assign(P, { x: 150, y: 450, z: 0, vz: 0, vx: 0, state: 'idle', t: 0, face: 1, inv: 1 });
-  Object.assign(P, { safe: null, wasAir: false });
+  Object.assign(P, { safe: null, wasAir: false, steed: null });
   P.an = ['idle', 0];
   const [a, b] = level().banner;
   G.banner = { a, b, t: 0 };

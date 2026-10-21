@@ -14,6 +14,7 @@ import {
   JNADE,
   LUCY,
   PROS,
+  POTION,
   PURPLE,
   RAGE,
   SECRET_HOLD,
@@ -41,6 +42,7 @@ import { fallSign } from './props3.js';
 import { beepTimer, boltFly } from './foes/robot.js';
 import { wallStops } from './foes/barrier.js';
 import { explode, updFuses } from './blast.js';
+import { boulderRoll, updHazards4 } from './hazards4.js';
 import { meetsPlayer, reaches } from './height.js';
 import {
   camTo,
@@ -56,9 +58,11 @@ import {
 
 // How full the screen is: zombies come in crowds and count as half an enemy each. The bodies
 // of the dead (a lizard or a power armour lying where it fell) do not count.
-const crowd = () => G.enemies.reduce((n, e) => n + (e.dying ? 0 : e.T.crowd || 1), 0);
-/** Enemies still fighting: the fight is over when there are none, bodies or not. */
-export const alive = () => G.enemies.filter((e) => !e.dying);
+const crowd = () =>
+  G.enemies.reduce((n, e) => n + (e.dying ? 0 : (e.T.crowd ?? 1) * (e.neutral ? 0.5 : 1)), 0);
+/** Enemies still fighting: the fight is over when there are none, bodies or not (nor those who
+ *  take no side: a beast nobody rides, the thief with his sack). */
+export const alive = () => G.enemies.filter((e) => !e.dying && !e.neutral);
 export function updWaves(dt) {
   const WAVES = levelWaves();
   if (G.wave) {
@@ -104,8 +108,10 @@ export function updWaves(dt) {
       if (followPath(dt, WAVES[G.waveI].s)) {
         G.wave = { sp: waveSpawns(G.waveI), t: 0 };
         G.goT = 0;
-        if (WAVES[G.waveI].final && level().boss) {
-          const [a, b] = level().boss;
+        // a boss's banner: the stage's last one, or one a fight names (a mini-boss)
+        const bn = WAVES[G.waveI].banner ?? (WAVES[G.waveI].final && level().boss);
+        if (bn) {
+          const [a, b] = bn;
           G.banner = { a, b, t: 0 };
           SFX.boss();
         }
@@ -160,10 +166,11 @@ function secretWarp(dt) {
   G.shake = 10;
   SFX.nova();
 }
-// The other secrets: hold Z and 2 (or Z and 3) together for STAGE_HOLD seconds on the first
-// screen of the Bone Road, and the player is taken to the gates of Old Quarry (of Midnight City).
+// The other secrets: hold Z and 2 (Z and 3, Z and 4) together for STAGE_HOLD seconds on the
+// first screen of the Bone Road, and the player is taken to the gates of Old Quarry (of Midnight
+// City, of Frostfang Pass).
 function stageWarp(dt) {
-  const to = keys.lvlZ && keys.lvl2 ? 2 : keys.lvlZ && keys.lvl3 ? 3 : 0;
+  const to = !keys.lvlZ ? 0 : keys.lvl2 ? 2 : keys.lvl3 ? 3 : keys.lvl4 ? 4 : 0;
   if (!to || (G.stageTo && G.stageTo !== to)) {
     G.stageT = 0;
     G.stageTo = to;
@@ -221,6 +228,7 @@ export function update(dt) {
   updPlayer(dt);
   updStyle(dt);
   updShocks(dt);
+  if (G.level === 4) updHazards4(dt);
   const c = { n: 0 };
   for (const e of G.enemies) if (e.engage) c.n++;
   for (const e of G.enemies) updEnemy(e, dt, c);
@@ -255,6 +263,10 @@ export function update(dt) {
     }
     if (q.k === 'quake') {
       quakeWave(q);
+      continue;
+    }
+    if (q.k === 'boulder') {
+      boulderRoll(q, dt);
       continue;
     }
     if (q.k === 'skull') {
@@ -867,6 +879,11 @@ export function update(dt) {
       } else if (it.kind === 'ammo') {
         P.ammo = LUCY.ammo;
         floatTxt(it.x, it.y - 120, t('plusAmmo'), '#ffd76a');
+      } else if (it.kind === 'potion') {
+        // the thief gnome's blue magic pot: a little rage
+        addRage(POTION);
+        floatTxt(it.x, it.y - 120, t('plusRage'), '#8fd8ff');
+        motes(it.x, it.y - 40, 6);
       } else {
         addRage(RAGE.pickup);
         floatTxt(it.x, it.y - 120, t('plusRage'), '#d9b8ff');

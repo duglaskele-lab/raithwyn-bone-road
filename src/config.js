@@ -38,6 +38,7 @@ export const RAGE = {
   bone: 3, // a bone that hits
   hurt: 6, // taking a hit
   pickup: 75, // a rage pickup
+  beast: 4, // a blow of a beast she rides, per enemy hit
   revive: 60, // at least this much after losing a life
 };
 // A bone throw costs 5% of the rage bar.
@@ -687,6 +688,159 @@ export const CRAB = {
     n2: 4,
   },
 };
+// Frostfang Pass (stage 4). The skeleton amazon: she leaps down on the heroine from `min`..`max`
+// px away (`air` s in the air, `h` high), and a light blow may make her flip away (`flip` of
+// the time, `dist` px back).
+export const AMAZON = {
+  leap: { min: 150, max: 330, wind: 0.3, air: 0.55, h: 120, dmg: 11, r: 70, cd: [3, 5] },
+  flip: 0.3,
+  dist: 170,
+  flipT: 0.45,
+};
+// The death knight: its shield turns a light blow from in front `block` of the time (never a
+// heavy or crushing one, nor one from behind); its thrust runs `dist` px at `speed`.
+export const KNIGHT = {
+  block: 0.55,
+  thrust: { min: 150, max: 320, wind: 0.45, speed: 620, dist: 300, dmg: 14, cd: [3, 5] },
+};
+// The bone giant: its maul sends a shock wave along the ground (as the strongman's, STRONG),
+// from `min` px away; and its plain blow shakes the ground in a ring `r` round where it lands.
+export const GIANT = {
+  quake: { min: 200, max: 640, wind: 0.85, cd: [4, 6.5] },
+  ring: 70,
+};
+// The harpy: hovers `z` up (out of reach of a blow from the ground), `keep` px off; dives at the
+// heroine (`swoop` px/s), sits on the ground a while after (`perch` s: a blow reaches her
+// there), then flies up again.
+export const HARPY = { z: 170, keep: 230, wind: 0.55, swoop: 560, low: 26, perch: 0.9, dmg: 9 };
+// The grey wolf: it leaps at the heroine from `min`..`max` px (`air` s, `h` high).
+export const WOLF = {
+  leap: { min: 130, max: 300, wind: 0.32, air: 0.42, h: 70, dmg: 9, cd: [2, 3.5] },
+};
+// The thief gnome: runs across the screen; each blow shakes a pot out of his sack (`drops` in
+// all, `hp` of the time a joint of meat), then he runs off crying.
+export const GNOME = { drops: 3, hp: 0.3, flee: 330 };
+// A blue magic pot (the gnome's): a little rage.
+export const POTION = 40;
+// The beasts. `seat`: how high the rider sits (`pseat`: the heroine); `ride`: how fast the heroine rides it; `stay`:
+// seconds it waits with nobody on it before it runs off. Its attack: `wind` s, then the tail
+// (`front` px ahead, `back` behind, `dy` deep) or the fire (`reach` px, `t` s); `dmgP` on the
+// heroine, `dmgE` on an enemy when she rides it.
+export const BEAST = {
+  rider: {
+    seat: 62,
+    pseat: 52,
+    ride: 230,
+    wind: 0.42,
+    front: 150,
+    back: 70,
+    dy: 34,
+    dmgP: 12,
+    dmgE: 22,
+  },
+  drake: {
+    seat: 70,
+    pseat: 60,
+    ride: 200,
+    wind: 0.5,
+    reach: 250,
+    t: 0.6,
+    dy: 32,
+    dmgP: 11,
+    dmgE: 20,
+  },
+  stay: 12,
+  near: 70,
+  remount: 520,
+};
+// The minotaur (Frostfang Pass's mini-boss) and his great axe:
+//   grip   how much harm his grip on the axe takes before it flies out of his hands (a heavy
+//          blow counts `heavy` times over, a crushing one `crush` times); it comes back each
+//          time he picks the axe up again
+//   sweep  his plain blow: the axe swung round in front of him
+//   chop   from further off: the axe brought down, a crack running along the ground (`n`
+//          bursts, `step` px apart)
+//   throw  from far off: the axe flung spinning along her lane (`speed`), sticking in the
+//          ground where it stops; then he goes to pull it out
+//   charge without the axe: head down, horns first, across the screen
+//   fists  without the axe: a double-fisted blow (his plain one then), quicker
+//   pick   seconds it takes him to pull the axe out of the ground (a blow does not stop it)
+//   kick   a blow of hers on the axe lying there sends it skidding `kick` px away
+//   enrage at this share of his health he goes red: quicker, the chop's crack runs three wide
+export const MINO = {
+  grip: 150,
+  heavy: 1.6,
+  crush: 2.5,
+  chop: { min: 180, max: 520, wind: 0.75, n: 6, step: 70, r: 44, dmg: 18, cd: [3.5, 5.5] },
+  throw: { min: 300, wind: 0.7, speed: 760, dmg: 20, cd: [6, 9] },
+  charge: { min: 220, wind: 0.6, speed: 640, dmg: 18, cd: [2.5, 4] },
+  fists: { dmg: 13 },
+  pick: 0.75,
+  kick: 230,
+  enrage: 0.45,
+  rage: { speed: 1.18, cd: 0.72 },
+  dieT: 1.6,
+};
+// The frost wolf (Frostfang Pass's last boss):
+//   breath  the ice breath: a cone along the road `reach` px (`dy` deep at its far end), for
+//           `t` s; a heroine caught in it freezes in a block of ice (`freeze` s, J and K mash
+//           her out quicker, `mash` s a press), taking `dmg`
+//   bite    a lunge and a snap of the jaws, from `min`..`max` px
+//   swipe   up close, a paw swung round
+//   howl    it howls: wolves come out of the forest (`wolves`), icicles fall from the trees
+//           (`spikes`, marked on the ground `warn` s before)
+//   leap    out of the glade, high over the trees, down on her (a ring of ice spikes)
+//   ph2/ph3 its phases (shares of its health); in the third a blizzard blows and the breath
+//           sweeps across the road
+export const FROST = {
+  bw: 150,
+  bodyH: 150,
+  breath: {
+    min: 120,
+    max: 520,
+    wind: 0.85,
+    t: 1.1,
+    reach: 460,
+    dy: 90,
+    dmg: 12,
+    freeze: 1.4,
+    mash: 0.12,
+    cd: [5, 7],
+  },
+  bite: { min: 160, max: 430, wind: 0.42, air: 0.38, h: 60, dmg: 18, cd: [2.5, 4] },
+  swipe: { wind: 0.4, reach: 230, dy: 50, dmg: 15, cd: [1.4, 2.4] },
+  howl: {
+    wind: 0.4,
+    t: 1.2,
+    wolves: [0, 1, 2, 3],
+    spikes: [3, 5, 7],
+    warn: 0.9,
+    r: 46,
+    dmg: 13,
+    cd: [11, 15],
+  },
+  leap: {
+    wind: 0.7,
+    up: 0.45,
+    hang: 0.7,
+    fall: 0.32,
+    h: 620,
+    r: 200,
+    dmg: 22,
+    rec: 0.9,
+    cd: [8, 11],
+  },
+  ph2: 0.66,
+  ph3: 0.33,
+  p2speed: 1.15,
+  p2cd: 0.8,
+  dieT: 2.6,
+};
+// On the climb up the mountainside (Frostfang Pass), while a fight is on, boulders come rolling
+// down the trail now and then (every `gap` s): a shadow at the top of the screen `warn` s before,
+// then down it rolls at `speed`, `r` px round, hitting whoever is in its way (`dmgP` on the
+// heroine, `dmgE` on a foe) — jump it or step aside.
+export const BOULDER = { gap: [4.5, 7.5], warn: 1, speed: 430, r: 34, dmgP: 14, dmgE: 40 };
 // Falling off a roof into a gap (Midnight City): she drops for `time` s, then is back on the
 // roof she fell from, `dmg` of her full health the poorer, untouchable for `inv` s. A robot
 // knocked into a gap is gone (`time` s of falling) and counts as beaten.
@@ -713,6 +867,16 @@ export const DECOR = {
   vend: { w: 34, h: 118, hp: 3, col: '#c22f3a', score: 60, k3: 1 },
   cell: { w: 22, h: 72, hp: 1, col: '#4fe3ff', score: 30, boom: 'cell', k3: 1 },
   holo: { w: 26, h: 120, hp: 1, col: '#5fd0ff', score: 30, k3: 1 },
+  // Frostfang Pass (see props4.js): a wooden crate (two blows), a clay pot, a haystack, a market
+  // cart (three blows), a fence, a boulder (three blows), a pile of logs, a carved wooden idol
+  crate: { w: 30, h: 60, hp: 2, col: '#9a6a3a', score: 30, k4: 1 },
+  pot: { w: 18, h: 44, hp: 1, col: '#b8643a', score: 20, k4: 1 },
+  hay: { w: 40, h: 70, hp: 1, col: '#e3c25a', score: 20, k4: 1 },
+  cart: { w: 56, h: 84, hp: 3, col: '#8a5a32', score: 60, k4: 1 },
+  fence: { w: 44, h: 62, hp: 1, col: '#9a7a52', score: 20, k4: 1 },
+  rock: { w: 40, h: 66, hp: 3, col: '#7d8590', score: 50, k4: 1 },
+  log: { w: 46, h: 50, hp: 2, col: '#7a5232', score: 30, k4: 1 },
+  idol: { w: 22, h: 120, hp: 2, col: '#8a6a4a', score: 40, k4: 1 },
 };
 // Explosions: radius on the floor (an ellipse, 0.42 as deep as wide), damage to the player and
 // to enemies, and for a red barrel caught in a blast, the delay before it goes off too; a red
@@ -1403,6 +1567,225 @@ export const TYPES = {
     dk: '#b3ac99',
     eye: '#c58bff',
     score: 3000,
+  },
+  // Frostfang Pass (stage 4): the skeleton bandit (foes/bandit.js), with a spiked club; it rides
+  // the beasts too
+  bandit: {
+    hp: 40,
+    scale: 1.02,
+    speed: 84,
+    dmg: 8,
+    reach: 76,
+    style: 'smash',
+    wind: 0.38,
+    act: 0.14,
+    rec: 0.45,
+    cd: [0.9, 1.7],
+    col: '#e8e0c8',
+    dk: '#b2a98e',
+    eye: '#ff7a2e',
+    score: 140,
+  },
+  // the skeleton amazon (AMAZON): a long spear, a leap down on the heroine, a flip away
+  amazon: {
+    hp: 42,
+    scale: 1,
+    speed: 112,
+    dmg: 9,
+    reach: 100,
+    style: 'slash',
+    wind: 0.32,
+    act: 0.13,
+    rec: 0.42,
+    cd: [0.8, 1.5],
+    col: '#efe6d2',
+    dk: '#b8ad94',
+    eye: '#ff5ab4',
+    score: 220,
+  },
+  // the death knight (KNIGHT): plate armour, a round shield that turns light blows, a sword
+  knight: {
+    hp: 110,
+    scale: 1.12,
+    speed: 62,
+    dmg: 13,
+    reach: 98,
+    style: 'slash',
+    wind: 0.45,
+    act: 0.15,
+    rec: 0.55,
+    cd: [1, 1.8],
+    thick: 2,
+    weight: 'medium',
+    col: '#ded6c0',
+    dk: '#a59d86',
+    eye: '#7fd8ff',
+    score: 600,
+  },
+  // the bone giant (GIANT): huge, a stone maul; the ground shakes where it strikes
+  giant: {
+    hp: 230,
+    scale: 1.55,
+    speed: 46,
+    dmg: 18,
+    reach: 112,
+    style: 'smash',
+    wind: 0.75,
+    act: 0.18,
+    rec: 0.8,
+    cd: [1.3, 2.2],
+    knock: 1,
+    thick: 5,
+    armK: 1.12,
+    weight: 'heavy',
+    col: '#e4d8b6',
+    dk: '#ab9e7c',
+    eye: '#ffb020',
+    score: 1100,
+  },
+  // the harpy (HARPY): flies out of reach of a blow from the ground, dives with her talons
+  harpy: {
+    hp: 30,
+    scale: 1,
+    speed: 120,
+    dmg: 9,
+    reach: 50,
+    style: 'other',
+    wind: 0.5,
+    act: 0.1,
+    rec: 0.4,
+    cd: [1.8, 3],
+    crowd: 0.7,
+    flyer: 1,
+    shadow: 40,
+    col: '#dcd2bc',
+    dk: '#9d927a',
+    eye: '#ffe14a',
+    score: 260,
+  },
+  // the grey wolf (WOLF): quick, leaps and bites, comes in packs
+  wolf: {
+    hp: 30,
+    scale: 1,
+    speed: 150,
+    dmg: 7,
+    reach: 70,
+    style: 'other',
+    wind: 0.28,
+    act: 0.12,
+    rec: 0.42,
+    cd: [0.8, 1.5],
+    crowd: 0.6,
+    height: 90,
+    shadow: 56,
+    col: '#8d8f99',
+    dk: '#5e606b',
+    eye: '#ffd23a',
+    score: 160,
+  },
+  // the thief gnome (GNOME): runs past with a sack of magic pots; every blow shakes one out
+  gnome: {
+    hp: 999,
+    scale: 0.8,
+    speed: 170,
+    dmg: 1, // (he never strikes)
+    reach: 30,
+    style: 'other',
+    wind: 1,
+    act: 0.1,
+    rec: 0.4,
+    cd: [1, 2],
+    crowd: 0,
+    height: 100,
+    shadow: 30,
+    col: '#e9dcc0',
+    dk: '#a99b7d',
+    eye: '#fff',
+    score: 300,
+  },
+  // the beasts (BEAST, foes/beasts.js): ridden by a bandit, or by the heroine once she jumps on.
+  // The cockatrice whips its tail round; the fire drake breathes fire.
+  rider: {
+    hp: 999,
+    scale: 1,
+    speed: 118,
+    dmg: 12,
+    reach: 140,
+    style: 'other',
+    wind: 0.45,
+    act: 0.2,
+    rec: 0.6,
+    cd: [1.2, 2.2],
+    crowd: 0,
+    height: 120,
+    shadow: 70,
+    col: '#5fae6a',
+    dk: '#3d7a48',
+    eye: '#ffe14a',
+    score: 1, // (never beaten)
+  },
+  drake: {
+    hp: 999,
+    scale: 1,
+    speed: 100,
+    dmg: 11,
+    reach: 230,
+    style: 'other',
+    wind: 0.55,
+    act: 0.6,
+    rec: 0.7,
+    cd: [1.6, 2.6],
+    crowd: 0,
+    height: 130,
+    shadow: 80,
+    col: '#4f7fd0',
+    dk: '#2f528f',
+    eye: '#ffcf3a',
+    score: 1, // (never beaten)
+  },
+  // the mini-boss of Frostfang Pass: the minotaur and his great axe (MINO, foes/minotaur.js)
+  minotaur: {
+    hp: 900,
+    scale: 1.75,
+    speed: 74,
+    dmg: 20,
+    reach: 150,
+    style: 'smash',
+    wind: 0.6,
+    act: 0.18,
+    rec: 0.7,
+    cd: [0.9, 1.6],
+    knock: 1,
+    thick: 6,
+    armK: 1.1,
+    bigBoss: 1,
+    weight: 'heavy',
+    shadow: 70,
+    col: '#7a5236',
+    dk: '#54371f',
+    eye: '#ff3b2e',
+    score: 6000,
+  },
+  // the last boss of Frostfang Pass: the frost wolf (FROST, foes/frostwolf.js)
+  frostwolf: {
+    hp: 1900,
+    scale: 1,
+    speed: 130,
+    dmg: 18,
+    reach: 190,
+    style: 'other',
+    wind: 0.5,
+    act: 0.16,
+    rec: 0.6,
+    cd: [1, 2],
+    bigBoss: 1,
+    weight: 'boss',
+    height: 230,
+    shadow: 210,
+    col: '#dbe9f5',
+    dk: '#93adc4',
+    eye: '#7ff0ff',
+    score: 14000,
   },
 };
 // The road (a quarter shorter than it was): seven fights, the baron, one more fight and the

@@ -597,7 +597,7 @@ finale.
 
 A city of the future with an eastern soul, built by the Jawacorp corporation, whose robots walk
 its streets. It comes after Old Quarry (the same "Stage clear" screen leads on to it, keeping
-score and lives), and it is the last stage: beating its boss wins the game.
+score and lives); beating its boss leads on to Frostfang Pass.
 
 **Music** (synthesised, `THEMES` in `src/audio.js`, on the Japanese "in" scale D Eb G A C):
 "Midnight City" (112 BPM) while walking — a synthwave groove (four-on-the-floor kick, a gated
@@ -782,6 +782,124 @@ bigger than `DOOR_SCALE`) never come out of a door: they walk in or drop.
 together for 2 seconds and the heroine goes straight to Midnight City. On its first screen, hold
 `X` for 3 seconds and she goes straight to the last fight.
 
+## Stage 4: Frostfang Pass
+
+A sword-and-sorcery road after Golden Axe (I–III). It comes after Midnight City (keeping score
+and lives) and it is the last stage: beating its boss wins the game.
+
+**The road** (`src/level4.js`): a village of thatched huts in the morning sun → the road
+climbing into the hills → the trail turns and goes straight up the mountainside, away from the
+viewer (the camera turns at its foot, looks up it and climbs with it) → at the top it turns again
+onto a ledge along the cliff, past a great waterfall, across the gorge under it on a plank bridge
+→ the pool under a second cascade, where the minotaur waits → down into the dark forest as the
+sun goes down → night, and the glade of standing stones under the moon, where the frost wolf
+hunts. The light changes with the road: morning, noon, sunset, night (`dayAt` in `src/bg4.js`).
+
+**The scenery** (`src/bg4.js`, all in code): the huts with their timber frames, chimney smoke, a
+windmill turning, a well, market stalls, oaks and fences; green hills under far snowy peaks and
+drifting clouds; a wayside shrine; walls of rock with pines on both sides of the trail up the
+mountain; the cliff along the ledge with moss, ivy and a cave mouth, pines on its top; the
+waterfall pouring past the ledge into the gorge (mist, spray over the fight, a rainbow by day),
+the rope bridge, the pool under a second cascade, a rope rail along the ledge's edge in front of
+the fighters; the forest — firs, great trunks, mushrooms, a canopy over the screen, fog low over
+the ground and fireflies at night; the standing stones of the glade with glowing runes, frost on
+the ground and snow falling.
+
+**Music** (synthesised): "The Quest" (128 BPM, D minor) on the road — a gallop, the horn's call,
+a whistled tune, bells and a choir in the bridge; "Master of the Falls" (152 BPM) for the
+minotaur and the frost wolf — a driving riff, the fanfare and the choir.
+
+**The gorge.** On the ledge the gorge under the waterfall is crossed by a narrow plank bridge.
+Off the bridge one falls in (a jump that falls short, a blow that throws her): she is back on
+the ledge, hurt, as with the gaps between Midnight City's roofs (`PIT`); a foe thrown in is gone.
+Foes walking towards her steer for the bridge.
+
+**The boulders.** On the trail up the mountainside, while a fight is on, boulders come rolling
+down it every 4.5–7.5 s: a red lane shows at the top of the screen a second before, then down it
+rolls, hitting her (14) and her foes (40, a crushing blow) alike — jump it or step aside
+(`BOULDER`, `src/hazards4.js`).
+
+**The beasts** (`BEAST`, `src/foes/beasts.js`), Golden Axe's mounts: the **cockatrice**, a green
+bird-lizard that spins round and whips its spiked tail (in front and behind), and the **fire
+drake**, a blue dragon that breathes fire along the road. A skeleton bandit rides one in; any
+blow on him knocks him out of the saddle, and the beast stands there with nobody on it ("JUMP
+ON!" over it when she is near). A jump that comes down on it puts her in the saddle: she steers
+it, `J` makes it whip its tail or breathe fire at her foes (22 / 20, knocking down, a heavy
+blow), a jump gets her off, and a blow on her throws her out of the saddle. Left alone, a
+bandit may walk up to it and climb back on; after 12 s nobody rides it, it runs off. A beast is
+never hurt and takes no side: a fight ends without it.
+
+**The thief gnome** (`GNOME`), Golden Axe's: a little gnome in a blue hood runs across the
+screen with a sack. He never fights and is never hurt; each blow on him shakes something out
+of the sack — a blue magic pot (a little rage, 40, `POTION`) or, one time in three, a joint of
+meat — three in all, and then he runs off crying.
+
+**Enemies** (`TYPES`, `src/foes/warband.js`, `src/foes/wild.js`):
+
+- **Skeleton bandit** (light) — a horned helmet and a spiked club; every second one a hooded one
+  with a mace. He rides the beasts in and climbs back on a free one.
+- **Skeleton amazon** (light) — a long spear thrust from further off than a punch; from 150–330 px
+  she leaps down on the heroine spear first (11, knocks down); a light blow makes her flip away
+  out of reach one time in three (`AMAZON`).
+- **Death knight** (medium) — plate armour, a great helm with a red plume, a round shield and a
+  sword. The shield turns a light blow or a shot from in front more often than not (55%), never a
+  heavy or crushing one, never from behind; from 150–320 px it runs at her in a thrust (14,
+  knocks down, `KNIGHT`).
+- **Bone giant** (heavy) — a huge skeleton with a stone maul: its plain blow shakes the ground
+  where it lands; from 200–640 px it raises the maul and slams it down, and a shock wave runs
+  along the ground (as the saloon strongman's; jump it) (`GIANT`).
+- **Harpy** (light, flies) — a skull-faced bird-woman with ragged wings. She hovers out of reach
+  of a blow from the ground (a jump kick or a shot reaches her), dives at the heroine talons first
+  (9), sits on the ground a moment after (a blow reaches her there), and flies up again; any blow
+  in the air brings her down (`HARPY`).
+- **Grey wolf** (light, in packs) — quick; it leaps at her from 130–300 px and bites; it dies whole
+  (`WOLF`).
+
+**Things to break** (`DECOR`, `src/props4.js`): wooden crates (2 blows), clay pots, haystacks, a
+market cart (3 blows), fences, boulders by the mountain road (3 blows), piles of logs (2) and
+carved wooden idols with horns (2) in the forest; many hold a heart or rage.
+
+**The minotaur** (mini-boss, `TYPES.minotaur`, `MINO`, `src/foes/minotaur.js`), at the pool under
+the falls: a huge bull-headed brute in a fur kilt with a great double-bitted axe.
+
+- Up close he brings the axe down (20, knocks down).
+- From 180–520 px he chops the ground and a crack of bursting stone runs along her lane (18);
+  enraged, three cracks side by side. The line is marked while he raises the axe.
+- From over 300 px he flings the axe spinning along her lane (20); it sticks in the ground where
+  it stops, and he has to go and pull it out (0.75 s, nothing stops it).
+- Every blow of hers loosens his grip (150; a heavy blow counts 1.6 times, a crushing one 2.5
+  times): at last the axe flies out of his hands and lands somewhere about.
+- Without it he fights with his fists (13, quicker) and charges horns first across the screen
+  (18); hitting the edge of the arena dazes him for a second — a chance to hit him. He makes for
+  the axe whenever she is not in his way, and **a blow of hers on the axe lying there sends it
+  skidding away** from him.
+- At 45% of his health he goes red: quicker, shorter pauses, three cracks.
+
+His big moves (red outline) go on through blows; only a crushing blow moves him. Beaten, he
+falls and bursts; every other foe crumbles.
+
+**The frost wolf** (the last boss, `TYPES.frostwolf`, `FROST`, `src/foes/frostwolf.js`): a white
+wolf three times a man's height, ice crystals along its back, eyes like cold stars. It comes down
+into the glade from over the trees and howls. Its body is a wall (she is pushed round it); its
+head is its weak spot (×1.3, reached high up in front, best from a jump).
+
+- **The ice breath:** it draws breath (0.85 s; the cone it will fill is marked on the ground,
+  following her), then a cone of freezing mist rolls 460 px along the road. Caught in it, she
+  freezes in a block of ice (12, 1.4 s; mashing `J`/`K` breaks it sooner) — and it comes for her.
+- **The bite:** a crouch and a lunge across the glade, jaws first (18, knocks down).
+- **The swipe:** up close, a paw swung round (15).
+- **The howl:** wolves come out of the forest (1, 2, 3 by phase) and icicles fall from the trees
+  on marked spots (13 each; a ring that fills before each one falls).
+- **The leap** (from phase 2): out of the glade high over the trees, its shadow following her,
+  and down in a ring of ice (22, 200 px).
+- **Phases:** at 2/3 of its health it gets quicker and starts leaping; at 1/3 a blizzard blows,
+  icicles fall all the time and the breath sweeps across the road from one side to the other.
+  Each phase begins with a howl. Beaten, it falls on its side and the blizzard ends.
+
+**Secret.** On the first screen of the first stage, before the first fight, hold `Z` and `4`
+together for 2 seconds and the heroine goes straight to Frostfang Pass. On its first screen,
+hold `X` for 3 seconds and she goes straight to the frost wolf.
+
 ## Layout
 
 ```
@@ -804,6 +922,10 @@ src/
   bg2.js                  Old Quarry's procedural backdrop
   level3.js               Midnight City: floor, gaps between the roofs, doors, camera path, waves
   bg3.js                  Midnight City's procedural backdrop and the rain
+  level4.js               Frostfang Pass: floor (the climb, the bridge), gorge, camera path, waves
+  bg4.js                  Frostfang Pass's procedural backdrop, the time of day, snow
+  props4.js               Frostfang Pass's things to break
+  hazards4.js             the boulders rolling down the trail
   blast.js                barrel and dynamite explosions
   state.js                the application (APP); one run: the world (G), the player (P), reset()
   util.js                 small pure functions
@@ -912,6 +1034,14 @@ What is checked:
   fissures and more speed at half health, the rocket fist, the hop back at once (over her with
   no room behind it), the sumo stance and the ramming fist, the slower pace of its attacks in
   both phases and its health, the sky slam in the second phase only, its end.
+- `level4.test.js` — Frostfang Pass: the `Z`+`4` secret, the last stage, the road (the climb,
+  the bridge and the gorge), the camera turning up the trail, the fights and their pools, the
+  music; the beasts (ridden in, a rider knocked off, never hurt, ridden by her, attacking her
+  foes, throwing her off, a bandit climbing back on, running off), the thief gnome and his pots,
+  the harpy out of reach, the knight's shield; the minotaur (losing the axe, heavy blows, going
+  to pick it up, the axe kicked away, the throw, rage, death); the frost wolf (coming down,
+  the freezing breath and mashing out, its body a wall, its head, the howl, the phases, the
+  leap, the blizzard); the boulders on the climb only.
 - `level3.test.js` — Midnight City: the `Z`+`3` and `X` secrets, the road (down into the metro, up
   to the avenue and onto the roofs), a gap on screen in every fight on the roofs, gaps that can
   be jumped (the widest only running), falling into a gap and climbing back hurt, not walking

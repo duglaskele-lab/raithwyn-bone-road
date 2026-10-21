@@ -3,7 +3,7 @@
 import { GB, GT, H, W } from '../config.js';
 import { clamp } from '../util.js';
 import { G, P } from '../state.js';
-import { level } from '../level.js';
+import { floorSpan, level, overPit } from '../level.js';
 
 /** The player is on the ground or out of the fight: nobody should start an attack. */
 export const playerDown = () => ['ko', 'down', 'getup', 'dead', 'win', 'plunge'].includes(P.state);
@@ -26,6 +26,12 @@ export const ahead = (e) => (P.x - e.x) * e.face;
 export function moveTo(e, tx, ty, sp, dt) {
   tx = clamp(tx, G.cam + 40, G.cam + W - 40);
   ty = level().floor ? clamp(ty, G.camY + 220, G.camY + H - 8) : clamp(ty, GT + 4, GB - 2);
+  // a gap ahead with a bridge over it (Frostfang Pass's gorge): steer for the bridge
+  if (level().pits && Math.abs(tx - e.x) > 6) {
+    const ax = e.x + Math.sign(tx - e.x) * 40,
+      span = overPit(ax, e.y) && floorSpan(ax);
+    if (span) ty = clamp(ty, span[0] + 10, span[1] - 10);
+  }
   const a = tx - e.x,
     b = ty - e.y,
     d = Math.hypot(a, b);
