@@ -190,7 +190,7 @@ test('at rest it holds the sword drawn back, the blade pointing down', async () 
   assert.ok((tip[0] - hand[0]) * e.face < 0, 'and back, behind it');
 });
 
-test('beaten, it kneels, then bursts; the stage is won, and with it the game', () => {
+test('beaten, it kneels, then bursts; the stage is won, and on to Frostfang Pass', () => {
   startLevel(3);
   G.banner = null;
   G.waveI = WAVES3.length - 1;
@@ -205,12 +205,12 @@ test('beaten, it kneels, then bursts; the stage is won, and with it the game', (
   assert.equal(APP.state, 'win');
   step(MECHA.dieT + 1.5); // (the world is in slow motion a moment after the last blow)
   assert.ok(e.dead, 'burst');
-  // the last stage: no next one
+  // the next stage: Frostfang Pass
   pressed.atk = true;
   G.endT = 8;
   update(DT);
-  assert.equal(G.level, 3);
-  assert.equal(APP.state, 'win');
+  assert.equal(G.level, 4);
+  assert.equal(APP.state, 'play');
 });
 
 test('winning Old Quarry leads on to Midnight City, keeping score and lives', () => {

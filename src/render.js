@@ -32,6 +32,9 @@ import { RANKS, STYLE_STEP, dmgMult, scoreMult, styleRank } from './style.js';
 import { drawBG, drawFog, drawVignette } from './background.js';
 import { drawBG2, drawFront2 } from './bg2.js';
 import { drawBG3, drawFront3 } from './bg3.js';
+import { drawBG4, drawFront4 } from './bg4.js';
+import { drawDecor4 } from './props4.js';
+import { drawBoulder } from './hazards4.js';
 import { levelWaves, overPit, roadDir } from './level.js';
 import { hadoLevel } from './combat.js';
 import { boneShape, drawAura, drawSkel } from './skeleton.js';
@@ -158,6 +161,27 @@ export function drawItem(it) {
       ctx.arc(-3, -9, 2, 0, TAU);
       ctx.fill();
     }
+  } else if (it.kind === 'potion') {
+    // a blue magic pot (the thief gnome's): a round clay jar, a stopper, a glint
+    ctx.fillStyle = '#3f7ae0';
+    ctx.beginPath();
+    ctx.moveTo(-4, -12);
+    ctx.lineTo(4, -12);
+    ctx.lineTo(4, -7);
+    ctx.quadraticCurveTo(12, -4, 11, 4);
+    ctx.quadraticCurveTo(9, 12, 0, 12);
+    ctx.quadraticCurveTo(-9, 12, -11, 4);
+    ctx.quadraticCurveTo(-12, -4, -4, -7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#8a5a32';
+    ctx.fillRect(-4, -16, 8, 5);
+    ctx.strokeRect(-4, -16, 8, 5);
+    ctx.fillStyle = 'rgba(200,235,255,.8)';
+    ctx.beginPath();
+    ctx.arc(-4, 0, 2.6, 0, TAU);
+    ctx.fill();
   } else if (it.kind === 'hp') {
     ctx.fillStyle = '#ff4a5e';
     ctx.beginPath();
@@ -231,9 +255,9 @@ export function drawDecor(u) {
     D = DECOR[u.decor];
   ctx.save();
   ctx.translate(u.x - G.cam, u.y);
-  if (D.k3) {
-    // Midnight City's (props3.js)
-    drawDecor3(u, fl);
+  if (D.k3 || D.k4) {
+    // Midnight City's (props3.js), Frostfang Pass's (props4.js)
+    (D.k3 ? drawDecor3 : drawDecor4)(u, fl);
     ctx.restore();
     return;
   }
@@ -501,6 +525,7 @@ export function drawDebris(d) {
 export function drawProj(q) {
   const x = q.x - G.cam,
     y = q.y - q.z;
+  if (q.k === 'boulder') return drawBoulder(q);
   if (q.k === 'nade') {
     // Lucy's grenade, spinning round its middle
     const [img, f] = fighterFrame('lucy', 'nade', 0);
@@ -1158,7 +1183,38 @@ export function drawPlayer() {
     ctx.fillRect(p.x - G.cam - 120, p.y / 0.3 - 120, 240, 240);
     ctx.restore();
   }
-  sprite(p.an[0], p.an[1], p.x - G.cam, p.y - p.z + 2, p.face < 0, 1, a, p.who);
+  // on a beast she sits up in its saddle
+  const seat = p.state === 'ride' && p.steed ? p.seat : 0;
+  sprite(p.an[0], p.an[1], p.x - G.cam, p.y - p.z + 2 - seat, p.face < 0, 1, a, p.who);
+  if (p.state === 'frozen') {
+    // a block of ice round her, cracking as it thaws
+    const x = p.x - G.cam,
+      u = clamp(p.t / p.hold, 0, 1);
+    ctx.save();
+    ctx.fillStyle = 'rgba(170,230,255,.42)';
+    ctx.strokeStyle = 'rgba(230,250,255,.9)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x - 46, p.y + 4);
+    ctx.lineTo(x - 52, p.y - 120);
+    ctx.lineTo(x - 30, p.y - 176);
+    ctx.lineTo(x + 34, p.y - 170);
+    ctx.lineTo(x + 50, p.y - 110);
+    ctx.lineTo(x + 44, p.y + 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let k = 0; k < Math.floor(u * 6); k++) {
+      ctx.moveTo(x - 30 + k * 12, p.y - 160 + k * 8);
+      ctx.lineTo(x - 18 + k * 10, p.y - 120 + k * 12);
+    }
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.6)';
+    ctx.fillRect(x - 40, p.y - 150, 6, 80);
+    ctx.restore();
+  }
 }
 /** Where a mortar shell will come down: a red area (the blast's own), filling as it falls. */
 function shellMark(q) {
@@ -1188,6 +1244,7 @@ function shellMark(q) {
 export function drawWorld() {
   if (G.level === 2) drawBG2();
   else if (G.level === 3) drawBG3();
+  else if (G.level === 4) drawBG4();
   else {
     drawBG();
     drawFog();
@@ -1241,7 +1298,9 @@ export function drawWorld() {
             ? 38
             : q.k === 'plasma' || q.k === 'skull' || q.k === 'cbub'
               ? 20
-              : 10,
+              : q.k === 'boulder'
+                ? 32
+                : 10,
       );
   if (APP.state !== 'title') shadow(P.x, P.y, P.z, 40);
   const list = [];
@@ -1286,6 +1345,7 @@ export function drawWorld() {
   ctx.restore();
   if (G.level === 2) drawFront2();
   if (G.level === 3) drawFront3();
+  if (G.level === 4) drawFront4();
 }
 /** A neon sign: a framed word that glows; `on` seconds since it lit (it flickers on). */
 const NEON = {

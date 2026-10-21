@@ -27,6 +27,8 @@ export const MAP = {
   Numpad2: 'lvl2',
   Digit3: 'lvl3',
   Numpad3: 'lvl3',
+  Digit4: 'lvl4',
+  Numpad4: 'lvl4',
   ShiftLeft: 'run',
   ShiftRight: 'run',
   Enter: 'start',

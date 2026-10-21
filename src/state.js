@@ -138,6 +138,7 @@ function freshRun() {
     flash: 0,
     slow: 0,
     bikes: 0, // rockers so far: every second one rides the chopper
+    bandits: 0, // bandits so far: every second one is the hooded one with a mace
     enemies: [],
     props,
     // a couple of hearts lying on the road before the dragon's lair

@@ -181,7 +181,15 @@ function frame(dt) {
       overlay(Math.min(0.5, (G.endT - 1.2) * 0.5));
       txt(t('stageClear'), W / 2, 210, 54, '#f0e9ff', 'center', 8);
       txt(t('score') + P.score, W / 2, 252, 22, '#f0cf4f', 'center', 4);
-      txt(t(G.level === 1 ? 'nextStage' : 'nextStage3'), W / 2, 292, 22, '#f2b664', 'center', 4);
+      txt(
+        t(['nextStage', 'nextStage3', 'nextStage4'][G.level - 1]),
+        W / 2,
+        292,
+        22,
+        '#f2b664',
+        'center',
+        4,
+      );
       if (G.endT > 2.4)
         txt(touch ? t('nextTouch') : t('nextKey'), W / 2, 330, 17, '#ece5cb', 'center', 4);
     } else if (APP.state === 'win' && G.endT > 1.2) {

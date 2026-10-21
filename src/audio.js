@@ -414,6 +414,41 @@ export const SFX = {
     tone('square', 45, 98, 0.95, 0.09, 0, 300);
     noise(0.9, 0.1, 200, 700, 1);
   },
+  // Frostfang Pass: a beast's roar (the minotaur, a beast left alone), a wolf's howl, the frost
+  // wolf's icy breath, ice cracking and shattering, wings beating, the gnome's squeak
+  roar() {
+    growl(0.9, 120, 70, 0.28);
+    tone('sine', 70, 40, 0.8, 0.3);
+  },
+  howl() {
+    tone('sawtooth', 300, 520, 0.5, 0.06, 0, 1300);
+    tone('sawtooth', 520, 430, 1.1, 0.07, 0.45, 1300);
+    tone('sine', 600, 500, 1.4, 0.08, 0.3);
+    noise(1.4, 0.05, 1200, 900, 3, 0.2);
+  },
+  iceBreath() {
+    noise(1.2, 0.35, 3000, 1500, 0.8);
+    noise(1.2, 0.15, 7000, 5000, 1.5, 0, 'highpass');
+    tone('sine', 1400, 900, 1.1, 0.03, 0.1);
+  },
+  ice() {
+    noise(0.12, 0.4, 5000, 2500, 2);
+    tone('triangle', 2400, 1800, 0.1, 0.08);
+    tone('triangle', 3100, 2600, 0.08, 0.05, 0.04);
+  },
+  freeze() {
+    noise(0.4, 0.3, 6000, 2000, 1);
+    for (let i = 0; i < 5; i++)
+      tone('triangle', 1800 + i * 300, 1500 + i * 200, 0.08, 0.05, i * 0.05);
+  },
+  flap() {
+    noise(0.12, 0.18, 500, 200, 1);
+    noise(0.1, 0.12, 400, 180, 1, 0.14);
+  },
+  squeak() {
+    tone('square', 900, 1400, 0.08, 0.05, 0, 3000);
+    tone('square', 1300, 900, 0.1, 0.05, 0.09, 3000);
+  },
 };
 const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
 // Music themes. Each one plays a single 16th-note step `n` at `d` seconds from now; `step` is
@@ -1120,6 +1155,78 @@ THEMES.kyotoBoss = neonBand({
   },
   form: ['call', 'drive', 'A', 'B', 'drive', 'brk', 'A'],
 });
+// Frostfang Pass's two themes, on Old Quarry's band (westernBand): a heroic gallop in D minor,
+// the horn's call over bells and a choir; and the fights of the minotaur and of the frost wolf,
+// a driving riff, the fanfare and the choir.
+THEMES.pass = westernBand({
+  bpm: 128,
+  chords: DM,
+  quest: [
+    62, 0, 0, 0, 65, 0, 69, 0, 67, 0, 65, 0, 64, 0, 62, 0, 60, 0, 0, 0, 64, 0, 67, 0, 65, 0, 64, 0,
+    62, 0, 60, 0, 58, 0, 0, 0, 62, 0, 65, 0, 69, 0, 70, 0, 69, 0, 67, 0, 69, 0, 0, 0, 0, 0, 64, 0,
+    61, 0, 0, 0, 57, 0, 0, 0,
+  ],
+  call: [
+    74, 0, 0, 0, 77, 0, 0, 0, 76, 0, 74, 0, 72, 0, 70, 0, 69, 0, 0, 0, 0, 0, 0, 0, 65, 0, 67, 0, 69,
+    0, 0, 0, 70, 0, 0, 0, 74, 0, 0, 0, 72, 0, 70, 0, 69, 0, 67, 0, 69, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+  ],
+  sections: {
+    intro: { ch: ['Dm', 'C', 'Bb', 'A'], drums: 'half', bass: 'pedal', horn: 'call', bell: 1 },
+    ride: { ch: ['Dm', 'C', 'Bb', 'A'], drums: 'full', bass: 'gallop', gtr: 'stab' },
+    A: { ch: ['Dm', 'C', 'Bb', 'A'], drums: 'full', bass: 'gallop', gtr: 'stab', whistle: 'quest' },
+    B: { ch: ['Gm', 'Dm', 'Bb', 'A'], drums: 'full', bass: 'gallop', gtr: 'trem', horn: 'call' },
+    bridge: { ch: ['Bb', 'F', 'Gm', 'A'], drums: 'half', bass: 'pedal', choir: 1, bell: 2 },
+    A2: {
+      ch: ['Dm', 'C', 'Bb', 'A'],
+      drums: 'full',
+      bass: 'gallop',
+      gtr: 'trem',
+      whistle: 'quest',
+      choir: 1,
+      up: 1,
+    },
+  },
+  form: ['intro', 'ride', 'A', 'B', 'ride', 'A2', 'bridge', 'B'],
+});
+THEMES.passBoss = westernBand({
+  bpm: 152,
+  chords: DM,
+  riff: [
+    62, 0, 62, 65, 0, 62, 69, 0, 70, 0, 69, 0, 67, 0, 65, 0, 60, 0, 60, 64, 0, 60, 67, 0, 69, 0, 67,
+    0, 65, 0, 64, 0, 58, 0, 58, 62, 0, 58, 65, 0, 67, 0, 65, 0, 64, 0, 62, 0, 61, 0, 64, 0, 69, 0,
+    73, 0, 76, 0, 73, 0, 69, 0, 64, 0,
+  ],
+  fanfare: [
+    74, 0, 0, 0, 77, 0, 0, 0, 76, 0, 74, 0, 72, 0, 70, 0, 69, 0, 0, 0, 0, 0, 0, 0, 65, 0, 67, 0, 69,
+    0, 0, 0, 70, 0, 0, 0, 74, 0, 0, 0, 72, 0, 70, 0, 69, 0, 67, 0, 69, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+  ],
+  sections: {
+    call: { ch: ['Dm', 'Dm', 'Bb', 'A'], drums: 'half', bass: 'pedal', horn: 'fanfare', bell: 2 },
+    drive: { ch: ['Dm', 'C', 'Bb', 'A'], drums: 'drive', bass: 'drive', gtr: 'trem' },
+    A: { ch: ['Dm', 'C', 'Bb', 'A'], drums: 'drive', bass: 'drive', gtr: 'stab', horn: 'riff' },
+    B: {
+      ch: ['Gm', 'Dm', 'Bb', 'A'],
+      drums: 'drive',
+      bass: 'drive',
+      gtr: 'trem',
+      horn: 'fanfare',
+      choir: 1,
+    },
+    brk: { ch: ['Bb', 'F', 'Gm', 'A'], drums: 'half', bass: 'pedal', choir: 1, bell: 2 },
+    A2: {
+      ch: ['Dm', 'C', 'Bb', 'A'],
+      drums: 'drive',
+      bass: 'drive',
+      gtr: 'trem',
+      horn: 'riff',
+      choir: 1,
+      up: 1,
+    },
+  },
+  form: ['call', 'drive', 'A', 'B', 'drive', 'brk', 'A2', 'B'],
+});
 /** Which theme plays now: the night theme in the fight, the dragon's own theme in its fight
  * (its outro once it falls apart), the old theme on the menu. The western stays in THEMES
  * for later use. */
@@ -1128,6 +1235,9 @@ export function themeFor(state, enemies = G.enemies, wave = G.wave) {
   if (state === 'play' && G.level === 2)
     // Old Quarry: its ride, and the showdown for the slime and the last fight
     return wave && levelWaves()[G.waveI]?.boss ? 'showdown' : 'frontier';
+  if (state === 'play' && G.level === 4)
+    // Frostfang Pass: the quest, and the fights of the minotaur and of the frost wolf
+    return wave && levelWaves()[G.waveI]?.boss ? 'passBoss' : 'pass';
   if (state === 'play' && G.level === 3)
     // Midnight City: its walk, and the fights of the breaker and of the mech samurai
     return wave && levelWaves()[G.waveI]?.boss ? 'kyotoBoss' : 'kyoto';
