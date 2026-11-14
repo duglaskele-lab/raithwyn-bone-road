@@ -442,8 +442,8 @@ export default defineFoe('lizard', {
         s.ady < 50 &&
         (P.x - e.x) * P.face < 0,
       go(e) {
-        e.dodgeCd = rnd(LIZARD.dodgeCd[0], LIZARD.dodgeCd[1]);
-        if (random() > LIZARD.dodge) return;
+        // (every time, never by chance: then not again for a while, and that is her opening)
+        e.dodgeCd = LIZARD.dodgeCd;
         faceP(e);
         go(e, 'lzhop', 0, { vx: -e.face * LIZARD.hopVx, vz: LIZARD.hopVz, engage: false });
         SFX.hiss();

@@ -21,8 +21,10 @@
 //   block(e, dir, knock, src, crush)  before any harm: true = the blow is stopped (a shield)
 //   soak(e, knock, src, crush, dir)  a factor on the damage of a blow (a pose that shrugs off,
 //                            a weak spot that takes more)
-//   onHit(e, dmg, dir, knock, src)  first say on a hit; true = fully handled
+//   onHit(e, dmg, dir, knock, src, crush)  first say on a hit; true = fully handled
 //   guard(e, knock, src, dir, crush) after the damage, before the usual flinch; true = handled
+//   poise(e)                 [left, whole]: what its poise bar shows instead of its poise (a
+//                            shield, a wall of light, a grip), or null
 //   die(e, dir)              replaces the usual shatter into bones
 //   unstoppable(e)           true while it is in an attack no hit can stop (red outline)
 //   attacks                  its own attack states (a medium enemy's attacks go on through hits)

@@ -36,7 +36,7 @@ import { drawBG4, drawFront4 } from './bg4.js';
 import { drawDecor4 } from './props4.js';
 import { drawBoulder } from './hazards4.js';
 import { levelWaves, overPit, roadDir } from './level.js';
-import { hadoLevel } from './combat.js';
+import { hadoLevel, poiseView } from './combat.js';
 import { boneShape, drawAura, drawSkel } from './skeleton.js';
 import { drawBike } from './foes/bikes.js';
 import { roadBand } from './foes/strongman.js';
@@ -1416,6 +1416,19 @@ function drawAmmo(p) {
     }
   }
 }
+
+/**
+ * An enemy's poise, a thin bar under its health (see POISE in config.js): gold while her blows
+ * wear it down, red while it does an attack nothing can stop. Nothing for a light enemy.
+ */
+function poiseBar(e, x, y, w, side) {
+  const v = poiseView(e);
+  if (!v) return;
+  bar(x, y, w, 5, v.v / v.max, 0, v.locked ? '#ff4a4a' : '#ffd76a', 3);
+  const col = v.locked ? '#ff9a9a' : '#ffe9a8';
+  if (side === 'right') txt(t('poise'), x - 4, y + 6, 10, col, 'right', 3);
+  else txt(t('poise'), x + w + 6, y + 6, 10, col, 'left', 3);
+}
 export function drawHUD() {
   const p = P;
   drawLucky(p);
@@ -1516,6 +1529,7 @@ export function drawHUD() {
     ctx.globalAlpha = Math.min(1, G.lastFoeT * 2);
     txt(foeName(G.lastFoe.type), W - 20, 60, 14, '#ece5cb', 'right', 3);
     bar(W - 190, 66, 164, 9, Math.max(0, G.lastFoe.hp) / G.lastFoe.T.hp, 0, '#ff8a4a', 4);
+    if (!G.lastFoe.dying) poiseBar(G.lastFoe, W - 190, 79, 164, 'right');
     ctx.globalAlpha = 1;
   }
   const boss = G.enemies.find((e) => e.T.bigBoss);
@@ -1524,6 +1538,7 @@ export function drawHUD() {
       bw = 360;
     txt(foeName(boss.type), bx + 8, 31, 14, '#e3c8ff', 'left', 4);
     bar(bx, 37, bw, 12, Math.max(0, boss.hp) / boss.T.hp, 0, '#b05cff');
+    if (!boss.dying) poiseBar(boss, bx, 53, bw * 0.4, 'left');
     if (boss.type === 'evil' && boss.stage >= 2) {
       // Raithwyn's rage, from her second stage on: a small bar under her health
       bar(bx, 53, bw * 0.4, 6, (boss.rage ?? 0) / EVIL.rage.max, 0, '#ff4a5e');

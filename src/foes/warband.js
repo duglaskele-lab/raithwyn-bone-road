@@ -8,7 +8,7 @@
 //   the bone giant (TYPES.giant, GIANT): a huge skeleton with a stone maul; the ground shakes
 //     where it strikes, and from further off it sends a shock wave along the ground.
 import { AMAZON, GIANT, KNIGHT, OL, STRONG, TAU } from '../config.js';
-import { clamp, random, rnd } from '../util.js';
+import { clamp, rnd } from '../util.js';
 import { G, P } from '../state.js';
 import { ctx } from '../gfx.js';
 import { SFX } from '../audio.js';
@@ -275,9 +275,15 @@ defineFoe('amazon', {
   ],
   attacks: ['aleapw', 'aleap'],
   onHit: (e, dmg, dir) => riderHit(e, dir),
-  // a light blow may make her flip away out of reach
+  // every third light blow in a row makes her flip away out of reach (never by chance; a heavy
+  // blow never, and it starts the count again)
   guard(e, knock, src, dir) {
-    if (knock || e.state === 'air' || random() > AMAZON.flip) return false;
+    if (knock || e.state === 'air') {
+      e.flipN = 0;
+      return false;
+    }
+    if ((e.flipN = (e.flipN ?? 0) + 1) < AMAZON.flipEvery) return false;
+    e.flipN = 0;
     go(e, 'aflip', 0, { x0: e.x, fx: e.x + dir * AMAZON.dist });
     SFX.jump();
     return true;

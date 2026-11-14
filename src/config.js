@@ -20,16 +20,31 @@ export const CRYPT_X = 4520;
 // (the last third of the wind-up).
 export const SWIND = 0.9,
   SWIND_LOCK = SWIND * (2 / 3);
-// How enemies take the player's blows: TYPES[...].weight
-//   light  (the default) - flinch at any hit, are thrown and juggled with ease
-//   medium - plain hits do not stop their attacks, a heavy blow breaks them (a flinch). It
-//            takes a second heavy blow within `window` seconds of the first, or one crushing
-//            blow (a dark ball of level II or III, the super), to knock them back or launch
-//            them. Once in the air they juggle like the light.
-//   heavy  - only a crushing blow knocks them back (never juggled); nothing else moves them
-//            or breaks their attacks
+// How enemies take blows: their weight class (`weight` in TYPES) and their poise.
+// Every enemy has poise, a number that her blows wear down (POISE): a plain blow takes `light`,
+// a heavy one (the chain's finisher, a flying kick, a beast's blow) `heavy`, a level I dark ball
+// `ball`, a crushing blow (a dark ball of level II or III, the super) all of it. With none
+// left it is thrown down and its attack is over; `regen` seconds without a blow and the poise
+// is whole again. The bar under the enemy's health shows it. While an enemy does an attack
+// with the red outline, nothing wears its poise down (the bar turns red).
+//   light (the default) - poise 1: any blow stops it, a heavy one throws it; juggled with ease
+//   medium - poise 6: plain blows do not stop its attacks; a heavy blow makes it flinch
+//            (its attack broken) but does not throw it until its poise is gone. Once in the
+//            air it juggles like the light.
+//   heavy  - poise 12: nothing stops its attacks until its poise is gone (never juggled)
 //   boss   - their own rules (see their files in src/foes)
-export const WEIGHT = { window: 3, knockMedium: [170, 320], knockHeavy: [130, 260] };
+// A type may set its own poise (`poise` in TYPES). The same units count for the shield bearer's
+// shield, the barrier heavy's wall of light and the minotaur's grip on his axe.
+export const POISE = {
+  max: { light: 1, medium: 6, heavy: 12 },
+  light: 1,
+  heavy: 3,
+  ball: 4,
+  regen: 3,
+  // an attack that plain blows cannot stop is wound up for at least this long (tests check it)
+  minWind: 0.45,
+};
+export const WEIGHT = { knockMedium: [170, 320], knockHeavy: [130, 260] };
 // Rage gained (scaled to the 300 bar: 1.5 times the old amounts on the old 200 bar).
 export const RAGE = {
   punch: 5.25, // each of the first two punches of a combo, per enemy hit
@@ -160,11 +175,12 @@ export const DYNAMITE = { fuse: 3, flight: 0.8, g: 1500 };
 // The mutant lizard: how often it hops back from a blow it sees coming, how far, then its
 // lunge (wind-up, speed, how long at most, damage).
 export const LIZARD = {
-  dodge: 0.7,
-  dodgeCd: [2.2, 3.8],
+  // it hops away from a blow it sees coming, every time, but then not again for `dodgeCd`
+  // seconds: its opening
+  dodgeCd: 3,
   hopVx: 340,
   hopVz: 430,
-  lwind: 0.42,
+  lwind: 0.45,
   lunge: 560,
   lungeT: 0.5,
   lungeDmg: 16,
@@ -494,7 +510,7 @@ export const TURRET = {
 // The barrier heavy: every `cd` s it raises a wall of hard light in front of it for `up` s,
 // `w` px out and `d` px deep either way: every shot of the player's (bullet, bone, a level I
 // dark ball) stops on it, and so do blows from the front, `hp` of the heavy ones break it.
-export const BARRIER = { cd: [2.5, 4.5], up: 4.5, w: 70, d: 70, hp: 3 };
+export const BARRIER = { cd: [2.5, 4.5], up: 4.5, w: 70, d: 70, hp: 9 };
 // A Jawacorp grenade, thrown by the barrier heavy (every `cd` s, wall up or not) and by the
 // grenadier guard (once): `wind` s drawn back, then lobbed `min`..`max` px at her, in the air
 // `flight` s (falling at `g`); its timer shows the seconds left and it goes off `fuse` s
@@ -701,7 +717,7 @@ export const CRAB = {
 // the time, `dist` px back).
 export const AMAZON = {
   leap: { min: 150, max: 330, wind: 0.3, air: 0.55, h: 120, dmg: 11, r: 70, cd: [3, 5] },
-  flip: 0.3,
+  flipEvery: 3, // every third light blow in a row makes her flip away (a heavy one never)
   dist: 170,
   flipT: 0.45,
 };
@@ -778,9 +794,7 @@ export const BEAST = {
 //   kick   a blow of hers on the axe lying there sends it skidding `kick` px away
 //   enrage at this share of his health he goes red: quicker, the chop's crack runs three wide
 export const MINO = {
-  grip: 150,
-  heavy: 1.6,
-  crush: 2.5,
+  grip: 18,
   chop: { min: 180, max: 520, wind: 0.75, n: 6, step: 70, r: 44, dmg: 18, cd: [3.5, 5.5] },
   throw: { min: 300, wind: 0.7, speed: 760, dmg: 20, cd: [6, 9] },
   charge: { min: 220, wind: 0.6, speed: 640, dmg: 18, cd: [2.5, 4] },
@@ -1006,7 +1020,7 @@ export const TYPES = {
     dmg: 10,
     reach: 74,
     style: 'punch',
-    wind: 0.42,
+    wind: 0.45,
     act: 0.14,
     rec: 0.5,
     cd: [1, 1.8],
@@ -1300,7 +1314,7 @@ export const TYPES = {
     dmg: 7,
     reach: 78,
     style: 'slash',
-    wind: 0.35,
+    wind: 0.45,
     act: 0.12,
     rec: 0.5,
     cd: [1, 1.8],
@@ -1452,7 +1466,7 @@ export const TYPES = {
     dmg: 12,
     reach: 86,
     style: 'other',
-    wind: 0.32,
+    wind: 0.45,
     act: 0.14,
     rec: 0.45,
     cd: [0.7, 1.4],
@@ -1860,7 +1874,7 @@ export const WAVES = [
 // The shield bearer: its rusty shield stops every blow and shot from the front (blows from
 // behind, or over it, land); `heavy` heavy blows break it, or one crushing blow (that one goes
 // on through). It turns round only after the player has been behind it `turn` seconds.
-export const SHIELD = { heavy: 3, turn: 0.55 };
+export const SHIELD = { hp: 9, turn: 0.55 };
 // The saloon strongman (TYPES.strongman), a medium foe. His plain attack is a grab: held up
 // over his head (`lift` s), then thrown across the screen (`throwV`, `throwDmg`), bowling
 // over foes she flies into (`bowl` each); mashing buttons breaks free first (the hold lasts

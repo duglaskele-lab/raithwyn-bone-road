@@ -1,6 +1,6 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { DRONE, NINJA, ROBOT, TYPES } from '../src/config.js';
+import { DRONE, NINJA, POISE, ROBOT, TYPES } from '../src/config.js';
 import { G, P } from '../src/state.js';
 import { spawn, updEnemy } from '../src/enemies.js';
 import { hurtEnemy, strike } from '../src/combat.js';
@@ -256,7 +256,8 @@ test("the barrier heavy's wall stops shots and blows from the front; it cracks, 
   // blows from the front ring off; heavy ones crack it, the third shatters it
   assert.equal(hurtEnemy(e, 10, -e.face, false, 'punch'), true);
   assert.equal(e.hp, hp);
-  for (let k = 0; k < BARRIER.hp; k++) hurtEnemy(e, 10, -e.face, true, 'punch');
+  assert.equal(BARRIER.hp, 3 * POISE.heavy, 'three heavy blows in all');
+  for (let k = 0; k < 3; k++) hurtEnemy(e, 10, -e.face, true, 'punch');
   assert.ok(!(e.wallUntil > G.time), 'shattered');
   hurtEnemy(e, 10, -e.face, false, 'punch');
   assert.ok(e.hp < hp, 'open now');
