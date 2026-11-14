@@ -2,13 +2,13 @@
 // the bones of what it ate floating inside. It drops from the roof, rolls across the hall,
 // jumps (not always at the player) and splashes down, and spits out zombies that get up and
 // fight. Its attacks are broken like a medium enemy's: plain hits do nothing to them, a heavy
-// blow breaks one, two heavy blows within WEIGHT.window seconds (or one crushing blow) send it
+// blow breaks one, its poise worn away (POISE: two heavy blows, or one crushing blow) send it
 // sliding back. It leaves no puddles.
-import { ACID, SLIME, TAU, W, WEIGHT } from '../config.js';
+import { ACID, SLIME, TAU, W } from '../config.js';
 import { clamp, fxRandom, fxRnd, lerp, random, rnd } from '../util.js';
 import { G, P } from '../state.js';
 import { SFX } from '../audio.js';
-import { finale, hitPlayer } from '../combat.js';
+import { finale, hitPlayer, wearPoise } from '../combat.js';
 import { scoreMult } from '../style.js';
 import { ctx } from '../gfx.js';
 import { groundPoint, floorClamp } from '../level.js';
@@ -260,18 +260,14 @@ export default defineFoe('slime', {
     // the medium rules, but it slides instead of flying
     const busy = ATTACKS.includes(e.state);
     e.landT = 0.25;
-    if (!knock) return true;
-    if (e.heavyT > 0 || crush) {
-      e.heavyT = 0;
+    if (wearPoise(e, knock, src, crush)) {
+      // its poise gone: it slides back
       go(e, 'stagger', 0, { vx: dir * 260 });
       SFX.squelch();
       splash(e.x, e.y, 6);
-    } else {
-      e.heavyT = WEIGHT.window;
-      if (busy) {
-        go(e, 'quiver');
-        SFX.squelch();
-      }
+    } else if (knock && busy) {
+      go(e, 'quiver');
+      SFX.squelch();
     }
     return true;
   },

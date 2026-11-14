@@ -1,10 +1,21 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { BANSHEE, GB, GT, SHIELD, STRONG, W, WAVES, WAVEGEN, ZOMBIE } from '../src/config.js';
+import {
+  BANSHEE,
+  GB,
+  GT,
+  POISE,
+  SHIELD,
+  STRONG,
+  W,
+  WAVES,
+  WAVEGEN,
+  ZOMBIE,
+} from '../src/config.js';
 import { G, P } from '../src/state.js';
 import { pressed } from '../src/input.js';
 import { spawn } from '../src/enemies.js';
-import { hurtEnemy } from '../src/combat.js';
+import { hurtEnemy, poiseView } from '../src/combat.js';
 import { update } from '../src/world.js';
 import '../src/foes/index.js';
 import { inWail } from '../src/foes/banshee.js';
@@ -35,23 +46,25 @@ test('the shield bearer comes on the Bone Road', () => {
   assert.ok(WAVEGEN.pools.mid.shield > 0);
 });
 
-test('its shield stops blows and shots from the front; three heavy blows splinter it', () => {
+test('its shield stops blows and shots from the front; blows wear it down as they do poise', () => {
   const e = foe('shield'),
     front = -e.face,
     hp = e.hp;
-  assert.equal(e.shieldHp, SHIELD.heavy);
+  assert.equal(e.shieldHp, SHIELD.hp);
+  assert.deepEqual(poiseView(e), { v: SHIELD.hp, max: SHIELD.hp, locked: false }, 'on the bar');
   for (const src of ['punch', 'bone']) {
     assert.equal(hurtEnemy(e, 10, front, false, src), true, 'it rings on the shield');
     assert.equal(e.hp, hp, `no harm from a ${src}`);
   }
-  assert.equal(e.shieldHp, SHIELD.heavy, 'light blows do not wear it');
+  assert.equal(e.shieldHp, SHIELD.hp - 2 * POISE.light, 'light blows wear it a little');
   hurtEnemy(e, 16, front, true, 'punch');
   hurtEnemy(e, 16, front, true, 'punch');
-  assert.equal(e.shieldHp, 1, 'cracked twice');
+  assert.equal(e.shieldHp, SHIELD.hp - 2 * POISE.light - 2 * POISE.heavy, 'heavy ones more');
   assert.equal(e.hp, hp);
   const debris = G.debris.length;
   hurtEnemy(e, 16, front, true, 'punch');
-  assert.equal(e.shieldHp, 0, 'the third splinters it');
+  assert.ok(e.shieldHp <= 0, 'the third splinters it');
+  assert.equal(poiseView(e), null, 'a light enemy again: no bar');
   assert.ok(G.debris.length > debris, 'in splinters');
   hurtEnemy(e, 10, front, false, 'punch');
   assert.ok(e.hp < hp, 'then blows land');
@@ -62,7 +75,7 @@ test('from behind blows land; a crushing blow smashes the shield and goes on thr
   const hp = e.hp;
   hurtEnemy(e, 10, e.face, false, 'punch');
   assert.ok(e.hp < hp, 'from behind');
-  assert.equal(e.shieldHp, SHIELD.heavy);
+  assert.equal(e.shieldHp, SHIELD.hp);
   e = foe('shield', 200);
   hurtEnemy(e, 40, -e.face, true, 'super');
   assert.equal(e.shieldHp, 0);

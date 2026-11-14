@@ -9,6 +9,7 @@ import {
   LUCK,
   LUCY,
   MAXR,
+  POISE,
   RAGE,
   RL,
   SUPER_DMG,
@@ -103,48 +104,48 @@ export function hurtEnemy(e, dmg, dir, knock, src, launch = false) {
   G.lastFoeT = 3;
   G.freeze = Math.max(G.freeze, knock ? 0.09 : 0.05);
   G.shake = Math.max(G.shake, knock ? 7 : 3);
+  // a blow that will not stop what the enemy is doing lands dull: a grey spark, a thud
+  const dull = e.hp > 0 && shrugsOff(e, knock, src, crush);
   spark(
     e.x - dir * 8,
     e.y - e.z - 100 * e.T.scale + fxRnd(-14, 14),
-    knock ? '#fff2a8' : '#ffffff',
-    knock,
+    dull ? '#8f9db3' : knock ? '#fff2a8' : '#ffffff',
+    knock && !dull,
   );
-  knock ? SFX.heavy() : SFX.punch();
-  SFX.clack();
+  if (dull) SFX.thud();
+  else {
+    knock ? SFX.heavy() : SFX.punch();
+    SFX.clack();
+  }
   // the foe's own rules first (see foes/registry.js), then the usual flinch
-  if (F.onHit?.(e, dmg, dir, knock, src)) return true;
+  if (F.onHit?.(e, dmg, dir, knock, src, crush)) return true;
   if (e.hp <= 0) {
     killEnemy(e, dir);
     return true;
   }
   e.engage = false;
   if (F.guard?.(e, knock, src, dir, crush)) return true;
-  // the rest depends on its weight class (WEIGHT in config.js)
+  // the rest depends on its weight class and its poise (POISE, WEIGHT in config.js)
   const w = weightOf(e);
   if (w === 'boss') return true;
-  // the heavy: only a crushing blow moves it, and only on the ground (it is never juggled)
-  if (w === 'heavy' && !(crush && e.state !== 'air')) return true;
   if (e.state === 'air') {
-    // up in the air: juggled
-    juggle(e, dir, knock, launch);
+    // up in the air: juggled (the heavy never)
+    if (w !== 'heavy') juggle(e, dir, knock, launch);
     return true;
   }
-  const heavy = knock,
+  // an attack with the red outline: nothing stops it, and its poise holds
+  if (F.unstoppable?.(e)) return true;
+  const broke = wearPoise(e, knock, src, crush),
+    heavy = knock,
     busy = ['windup', 'attack', ...(F.attacks ?? [])].includes(e.state);
-  if (w === 'medium' && knock) {
-    // a medium enemy needs a second heavy blow in time (or a crushing one); the first only
-    // makes it flinch, breaking its attack
-    if (e.heavyT > 0 || crush) e.heavyT = 0;
-    else {
-      e.heavyT = WEIGHT.window;
-      knock = false;
-    }
-  }
-  if (knock || e.state === 'leap') {
+  if (
+    w === 'light' ? knock || e.state === 'leap' : broke || (w === 'medium' && e.state === 'leap')
+  ) {
+    // thrown: a light enemy by any heavy blow, the others once their poise is gone
     e.state = 'air';
     e.t = 0;
     e.slammed = false;
-    if (launch && knock) {
+    if (launch && knock && w !== 'heavy') {
       // the launcher: straight up, ready to be juggled
       e.vx = dir * JUGGLE.launchCarry;
       e.vz = JUGGLE.launch;
@@ -154,6 +155,8 @@ export function hurtEnemy(e, dmg, dir, knock, src, launch = false) {
       e.vx = dir * vx;
       e.vz = vz;
     }
+  } else if (w === 'heavy') {
+    // the heavy: nothing moves it while it has poise
   } else if (w === 'medium' && busy && !heavy) {
     e.x += dir * 4; // a plain hit: its attack goes on
   } else {
@@ -163,6 +166,53 @@ export function hurtEnemy(e, dmg, dir, knock, src, launch = false) {
     e.vx = dir * 95;
   }
   return true;
+}
+/** How much poise an enemy of this kind has (0: none to speak of: a boss, with rules of its own). */
+export const poiseMax = (e) => e.T.poise ?? POISE.max[weightOf(e)] ?? 0;
+/** How much poise a blow takes: a plain one, a heavy one, a level I dark ball; a crushing one all. */
+export const poiseHit = (knock, src, crush) =>
+  crush ? Infinity : src === 'hado' ? POISE.ball : knock ? POISE.heavy : POISE.light;
+/** How much poise it has left (whole, if its weight class has just changed). */
+export const poiseLeft = (e) =>
+  e.poiseOf === poiseMax(e) ? (e.poise ?? poiseMax(e)) : poiseMax(e);
+/**
+ * A blow wears the enemy's poise down; returns true when none is left (it is then whole again,
+ * for when the enemy is back on its feet). Without a blow for POISE.regen seconds it comes back
+ * (see updEnemy).
+ */
+export function wearPoise(e, knock, src, crush) {
+  const max = poiseMax(e);
+  e.poise = poiseLeft(e) - poiseHit(knock, src, crush);
+  e.poiseOf = max;
+  e.poiseT = POISE.regen;
+  if (e.poise > 0) return false;
+  e.poise = max;
+  e.poiseT = 0;
+  return true;
+}
+/**
+ * What the bar under an enemy's health shows: { v, max, locked } — its poise (or what stands in
+ * for it: a shield, a wall of light, a grip on an axe; `poise` in its foe file), and whether
+ * nothing can wear it down right now (an attack with the red outline). Null: nothing to show
+ * (a light enemy, a boss without one).
+ */
+export function poiseView(e) {
+  const F = FOES[e.type],
+    own = F.poise?.(e),
+    max = own ? own[1] : poiseMax(e);
+  if (!own && max <= 1) return null;
+  return { v: Math.max(0, own ? own[0] : poiseLeft(e)), max, locked: !!F.unstoppable?.(e) };
+}
+/** Will this blow leave the enemy doing what it was doing (see hurtEnemy)? */
+function shrugsOff(e, knock, src, crush) {
+  const F = FOES[e.type],
+    w = weightOf(e);
+  if (e.state === 'air') return false;
+  if (F.unstoppable?.(e)) return true;
+  if (w !== 'medium' && w !== 'heavy') return false;
+  if (poiseLeft(e) - poiseHit(knock, src, crush) <= 0) return false;
+  const busy = ['windup', 'attack', ...(F.attacks ?? [])].includes(e.state);
+  return w === 'heavy' || (busy && !knock);
 }
 /** Its weight class: 'light' (the default), 'medium', 'heavy' or 'boss'. */
 export const weightOf = (e) => e.weight ?? e.T.weight ?? 'light';

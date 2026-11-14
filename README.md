@@ -253,17 +253,43 @@ jump reaches it there (a flying kick, a bone or a dark ball thrown from the jump
 twice the harm (nothing on screen marks it). The lowered head after a bite still
 takes 1.5 times the harm from the ground.
 
-**Enemy weight classes** (`weight` in `TYPES`, rules in `WEIGHT` in `src/config.js`):
+**Poise and weight classes** (`POISE`, `WEIGHT` and `weight` in `TYPES`, `src/config.js`). Every
+enemy has poise, a number her blows wear down. With none left the enemy is thrown down and its
+attack is over; three seconds without a blow and its poise is whole again. A thin gold bar
+under the enemy's health ("Poise") shows it.
 
-| Class | Who | How it takes hits |
-| --- | --- | --- |
-| light (default) | Skeleton, Bone Thrower, Bonebreaker, Rocker, Bone Monkey, Necromancer, Zombie, Skeleton Samurai, Zombie Miner, Dynamite Zombie, Shield Bearer, Banshee | any hit interrupts its attack, a heavy hit knocks it back, easy to launch and juggle |
-| medium | Fatso, Saloon Strongman, Mutant Lizard | ordinary hits do not interrupt its attack, a heavy hit does (it flinches); knocking back or launching takes two heavy hits within 3 seconds or one crushing hit; juggles like a light enemy in the air |
-| heavy | Power Armor Zombie, the Prospector | its attacks are not interrupted; only a crushing hit knocks it back; not juggled in the air |
-| bosses | Grave Baron, Bone Dragon, Radioactive Slime | their own rules (in their files in `src/foes`); the Slime's attacks are interrupted by the medium rules |
+| Blow | Poise it takes |
+| --- | --- |
+| a plain one (the first two of a chain, a bone, a bullet) | 1 |
+| a heavy one (the chain's finisher, the flying kick, a beast's blow) | 3 |
+| a level I dark ball | 4 |
+| a crushing one (a level II or III dark ball, the super, Lucy's grenade, a boulder) | all of it |
 
-A heavy hit is the chain's finisher, the flying kick, the dark ball or the super attack. A
-crushing hit is a level II or III dark ball or the super attack.
+| Class | Poise | Who | Until its poise is gone |
+| --- | --- | --- | --- |
+| light (default) | 1 | Skeleton, Bone Thrower, Bonebreaker, Rocker, Bone Monkey, Necromancer, Zombie, Skeleton Samurai, Zombie Miner, Dynamite Zombie, Shield Bearer, Banshee, the guards, ninjas, bandits, amazons | (it goes at once) any hit interrupts its attack, a heavy hit throws it; easy to launch and juggle |
+| medium | 6 | Fatso, Saloon Strongman, Mutant Lizard, Turret Robot, Noodle Chef, Death Knight | plain hits do not interrupt its attack, a heavy hit does (it flinches); juggles like a light enemy once in the air |
+| heavy | 12 | Power Armor Zombie, Barrier Heavy, Bone Giant, the Prospector | nothing interrupts its attacks; never juggled |
+| bosses | — | Grave Baron, Bone Dragon and the rest | their own rules (in their files in `src/foes`); the Slime uses a medium enemy's poise, but slides back instead of flying |
+
+So a chain (1 + 1 + 3) and one more blow throw a medium enemy, and two and a half chains a heavy
+one, with no rage spent; before, only a crushing blow moved the heavy. The same units count for
+what stands in for poise on some foes, and the same bar shows it: the Shield Bearer's shield (9),
+the Barrier Heavy's wall of light (9) and the minotaur's grip on his axe (18).
+
+**Reading a blow.** Three signs, the same on every enemy:
+
+- **A red outline:** the attack cannot be stopped by anything. Blows still hurt, but they take
+  no poise, and the poise bar turns red.
+- **A grey spark and a dull thud** instead of the white spark and the crack: the blow hurt, but
+  the enemy goes on with what it was doing (it has poise left).
+- **Stars wheeling over its head:** it is open, every blow lands (and on the bosses does more).
+
+No medium or heavy enemy winds up its plain attack in less than 0.45 s (`POISE.minWind`; the
+Fatso, the Noodle Chef and the Mutant Lizard were quicker), and no enemy's defence is left to
+chance: the lizard always hops away from a blow it sees coming, then not again for 3 s; the
+amazon flips away from every third light blow in a row; the death knight's shield turns every
+light blow from in front.
 
 ## Stage 1: Bone Road
 
@@ -308,8 +334,9 @@ iron cap behind a rusty tower shield held low, covering it from the shins up to 
 (planks in an iron rim, riveted bands, a skull boss), with a spear it pokes from a little further off than a
 plain skeleton punches. Every blow and shot from the front only clangs on the shield in a spray
 of sparks (bullets glance off it). From behind it is a plain skeleton, and it turns round only
-after the heroine has been behind it for 0.55 s, so go round it in depth or jump over it. Heavy
-blows wear the shield down (it cracks), and the third one splinters it. So does a single
+after the heroine has been behind it for 0.55 s, so go round it in depth or jump over it. Blows
+wear the shield down as they do poise (9: a plain one 1, a heavy one 3; it cracks with every
+three, and its bar shows what is left), and at nothing it splinters. So it does at a single
 crushing blow, which also goes on through and hurts.
 
 **The Skeleton Samurai** is a medium-strength elite: white hakama, a bare ribcage, a red
@@ -535,9 +562,10 @@ breaks wooden barrels and a moment later sets off red ones nearby.
   sticks lying near it a moment later. Hit or kill it while it
   holds a lit stick and the stick drops at its feet and blows up there.
 - **Mutant Lizard** — a medium enemy (a plain hit does not stop its lunge, a heavy one does;
-  knocking it down takes two heavy hits or one crushing; about player size), like a Fallout deathclaw:
+  knocking it down takes its poise, 6: two heavy hits, or one crushing; about player size), like a Fallout deathclaw:
   hunched, horned, with long claws and glowing radioactive spots. Runs fast, sees the heroine's
-  hits coming and leaps back (invulnerable at the start of the leap), and on landing lunges
+  hits coming and leaps back (invulnerable at the start of the leap; every time, but then not
+  again for 3 s: her opening), and on landing lunges
   forward with a strike that knocks her down. Up close it claws. It is not a skeleton: killed, it
   does not crumble into bones but falls to the ground and lies there until it fades. Bodies do
   not count as enemies: as soon as no living ones are left, the fight is over and the way is
@@ -741,8 +769,8 @@ smoke, not bones.
   grenades). Every 5–8 s, its wall up or not, it lobs a grenade at her (`JNADE`: three seconds
   on its timer, then a blast that hurts robots too). It raises a wall of hard light in front of it for 4.5 s and keeps
   it as it walks: the heroine's shots (bullets, bones, a level I dark ball) stop on it, which
-  shields the robots behind it too, and so do blows from the front; three heavy blows (or one
-  crushing) shatter it. From behind it is open, and while it swings its arms in a blow the wall
+  shields the robots behind it too, and so do blows from the front; they wear it down as they do
+  poise (9: a plain one 1, a heavy one 3), and at nothing, or at one crushing blow, it shatters. From behind it is open, and while it swings its arms in a blow the wall
   goes out (an opening; it comes back after, if its time is not up); only crushing blows move
   it.
 - **Hacked Noodle Chef** (medium) — a kitchen robot gone wrong, a stained apron, a crooked hat,
@@ -853,7 +881,7 @@ foes instead of 8,200, each with an idea of its own, as in Old Quarry (`core`, `
 | Fight | Who | What it asks of the player |
 | --- | --- | --- |
 | Raiders | bandits, one riding in on a cockatrice | knock him off and take the beast |
-| Spears and a thief | two amazons, the gnome | heavy blows (a light one lets her flip away); shake the sack |
+| Spears and a thief | two amazons, the gnome | heavy blows (the third light one in a row lets her flip away); shake the sack |
 | Shield wall | two death knights, then a cockatrice rider | a heavy blow opens a shield; the beast's tail does too |
 | The harpies' sky | three harpies, bandits | jump kicks and bones, or wait for the dive |
 | Rockslide | a crowd on the climb | lead them under the boulders |
@@ -909,8 +937,8 @@ meat — three in all, and then he runs off crying.
 - **Skeleton bandit** (light) — a horned helmet and a spiked club; every second one a hooded one
   with a mace. He rides the beasts in and climbs back on a free one.
 - **Skeleton amazon** (light) — a long spear thrust from further off than a punch; from 150–330 px
-  she leaps down on the heroine spear first (11, knocks down); a light blow makes her flip away
-  out of reach one time in three (`AMAZON`).
+  she leaps down on the heroine spear first (11, knocks down); every third light blow in a row makes
+  her flip away out of reach (a heavy one never, and it starts the count again; `AMAZON`).
 - **Death knight** (medium) — plate armour, a great helm with a red plume, a round shield and a
   sword. The shield turns every light blow and shot from in front (no longer by chance), never
   from behind. A heavy blow (the chain's finisher, a flying kick, a beast's blow, a dark ball)
@@ -939,8 +967,9 @@ the falls: a huge bull-headed brute in a fur kilt with a great double-bitted axe
   enraged, three cracks side by side. The line is marked while he raises the axe.
 - From over 300 px he flings the axe spinning along her lane (20); it sticks in the ground where
   it stops, and he has to go and pull it out (0.75 s, nothing stops it).
-- Every blow of hers loosens his grip (150; a heavy blow counts 1.6 times, a crushing one 2.5
-  times): at last the axe flies out of his hands and lands somewhere about.
+- Every blow of hers loosens his grip, counted as poise is and shown on the bar under his health
+  (18: a plain blow 1, a heavy one 3, a level I dark ball 4, a crushing one all of it): at last
+  the axe flies out of his hands and lands somewhere about.
 - Without it he fights with his fists (13, quicker) and charges horns first across the screen
   (18); hitting the edge of the arena dazes him for a second — a chance to hit him. He makes for
   the axe whenever she is not in his way, and **a blow of hers on the axe lying there sends it

@@ -8,6 +8,7 @@ import {
   GNOME,
   HARPY,
   MINO,
+  POISE,
   POTION,
   STAGE_HOLD,
   TYPES,
@@ -15,7 +16,7 @@ import {
 import { APP, G, P } from '../src/state.js';
 import { keys, pressed } from '../src/input.js';
 import { spawn } from '../src/enemies.js';
-import { headBonus, hurtEnemy, partZone } from '../src/combat.js';
+import { headBonus, hurtEnemy, partZone, poiseView } from '../src/combat.js';
 import { update, alive } from '../src/world.js';
 import { themeFor } from '../src/audio.js';
 import {
@@ -311,6 +312,29 @@ test('the harpy hovers out of reach of a blow from the ground; a jump kick bring
   assert.ok(['down', 'getup', 'chase', 'hup', 'hfly'].includes(h.state) || h.dead);
 });
 
+test('the amazon flips away from every third light blow in a row, never by chance', () => {
+  pass(300);
+  const a = spawn('amazon', 1, P.x + 60, P.y);
+  a.hp = 999;
+  const blow = (knock = false) => {
+    Object.assign(a, { state: 'chase', t: 0, z: 0, cd: 99, leapCd: 99 });
+    hurtEnemy(a, 1, 1, knock, 'punch');
+    return a.state;
+  };
+  for (let round = 0; round < 3; round++) {
+    assert.notEqual(blow(), 'aflip');
+    assert.notEqual(blow(), 'aflip');
+    assert.equal(blow(), 'aflip', 'the third');
+  }
+  // a heavy blow never, and the count starts again
+  assert.notEqual(blow(), 'aflip');
+  assert.notEqual(blow(), 'aflip');
+  assert.equal(blow(true), 'air');
+  assert.notEqual(blow(), 'aflip');
+  assert.notEqual(blow(), 'aflip');
+  assert.equal(blow(), 'aflip');
+});
+
 test('the death knight turns light blows from in front with its shield; a heavy one opens it', () => {
   pass(300);
   const k = spawn('knight', 1, P.x + 60, P.y);
@@ -354,7 +378,7 @@ test('blows loosen his grip: the axe flies out of his hands and lands', () => {
   let n = 0;
   while (m.axe && n++ < 40) hurtEnemy(m, 10, 1, false, 'punch');
   assert.ok(!m.axe && m.ax, 'disarmed');
-  assert.ok(n * 10 >= MINO.grip - 10 && n * 10 <= MINO.grip + 10);
+  assert.equal(n, MINO.grip / POISE.light, 'counted as poise is');
   assert.equal(m.state, 'mloss');
   step(1.5);
   assert.equal(m.ax.st, 'lie', 'the axe lies on the ground');
@@ -364,8 +388,9 @@ test('heavy blows loosen it quicker', () => {
   atWave(9);
   const m = mino();
   let n = 0;
+  assert.deepEqual(poiseView(m), { v: MINO.grip, max: MINO.grip, locked: false }, 'on his bar');
   while (m.axe && n++ < 40) hurtEnemy(m, 10, 1, true, 'punch');
-  assert.ok(n * 10 < MINO.grip, `${n} heavy blows`);
+  assert.equal(n, MINO.grip / POISE.heavy, `${n} heavy blows`);
 });
 
 test('without the axe he goes to pick it up, and has it again', () => {

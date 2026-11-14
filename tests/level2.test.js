@@ -11,12 +11,12 @@ import {
   STAGE_HOLD,
   TYPES,
   WAVES,
-  WEIGHT,
+  POISE,
 } from '../src/config.js';
 import { APP, G, P } from '../src/state.js';
 import { keys, pressed } from '../src/input.js';
 import { spawn, updEnemy } from '../src/enemies.js';
-import { hurtEnemy } from '../src/combat.js';
+import { hurtEnemy, poiseLeft, poiseMax } from '../src/combat.js';
 import { update } from '../src/world.js';
 import { themedWave } from '../src/waves.js';
 import {
@@ -254,10 +254,11 @@ test('the lizard hops back from a blow it sees coming, then lunges', () => {
   Object.assign(e, { state: 'chase', dodgeCd: 0, cd: 9 });
   P.state = 'atk1';
   P.t = 0.02;
-  const prev = setRandom(() => 0); // it always takes the chance to dodge
+  const prev = setRandom(() => 0.99); // never by chance: it hops whatever the dice say
   updEnemy(e, DT, { n: 0 });
   setRandom(prev);
   assert.equal(e.state, 'lzhop');
+  assert.equal(e.dodgeCd, LIZARD.dodgeCd, 'and not again for a while: her opening');
   assert.ok(e.vx > 0, 'away from the player');
   assert.ok(!hurtEnemy(e, 10, 1, false, 'punch'), 'out of reach at first');
   P.state = 'idle';
@@ -365,13 +366,11 @@ test('the slime: plain hits do not stop its roll, a heavy blow does, a second on
   assert.equal(e.state, 'roll');
   hurtEnemy(e, 5, 1, true, 'punch');
   assert.equal(e.state, 'quiver', 'a heavy blow breaks the roll');
-  assert.ok(e.heavyT > 0);
+  assert.ok(poiseLeft(e) < poiseMax(e));
   hurtEnemy(e, 5, 1, true, 'punch');
-  assert.equal(e.state, 'stagger', 'the second within the window');
-  assert.equal(WEIGHT.window, 3);
+  assert.equal(e.state, 'stagger', 'the second: its poise is gone');
   // a crushing blow alone is enough
   e.state = 'chase';
-  e.heavyT = 0;
   hurtEnemy(e, 5, 1, true, 'super');
   assert.equal(e.state, 'stagger');
 });

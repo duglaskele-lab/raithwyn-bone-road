@@ -10,10 +10,23 @@ import {
   RW,
   SUPER_DMG,
   TYPES,
+  LIZARD,
+  POISE,
   WEIGHT,
 } from '../src/config.js';
 import { G, P } from '../src/state.js';
-import { addRage, canJuggle, hadoLevel, hitPlayer, hurtEnemy, weightOf } from '../src/combat.js';
+import { FOES } from '../src/foes/index.js';
+import {
+  addRage,
+  canJuggle,
+  hadoLevel,
+  hitPlayer,
+  hurtEnemy,
+  poiseLeft,
+  poiseMax,
+  poiseView,
+  weightOf,
+} from '../src/combat.js';
 import { spawn, updEnemy } from '../src/enemies.js';
 import { keys, pressed } from '../src/input.js';
 import { update } from '../src/world.js';
@@ -126,8 +139,9 @@ test('weight classes: light, medium (the fatso), heavy, boss', () => {
   assert.equal(TYPES.dragon.weight, 'boss');
   // once up in the air, a medium enemy is juggled like a light one
   const e = spawn('fat', 1, 500, 450);
-  e.heavyT = 1; // a second heavy blow: he goes up
   hurtEnemy(e, 1, 1, true, 'punch');
+  Object.assign(e, { state: 'chase', t: 0 });
+  hurtEnemy(e, 1, 1, true, 'punch'); // a second heavy blow: his poise is gone, he goes up
   for (let i = 0; i < 10; i++) updEnemy(e, 1 / 60, { n: 0 });
   hurtEnemy(e, 1, 1, false, 'punch');
   assert.equal(e.vz, JUGGLE.pop, 'popped up again');
@@ -181,7 +195,7 @@ test('a heavy blow breaks the attack of a medium enemy, a plain one does not', (
   assert.equal(f.state, 'windup', 'a plain hit: the attack goes on');
   hurtEnemy(f, 1, 1, true, 'punch');
   assert.equal(f.state, 'hurt', 'the first heavy blow: broken, but not thrown');
-  assert.ok(f.heavyT > 0);
+  assert.equal(poiseLeft(f), POISE.max.medium - POISE.light - POISE.heavy);
 });
 
 test('the fatso goes down only to two heavy blows within 3 seconds', () => {
@@ -198,7 +212,7 @@ test('the fatso goes down only to two heavy blows within 3 seconds', () => {
   Object.assign(f, { state: 'chase', z: 0 });
   hurtEnemy(f, 1, 1, true, 'punch');
   assert.notEqual(f.state, 'air', '3 s later it counts as a first blow again');
-  assert.equal(WEIGHT.window, 3);
+  assert.equal(POISE.regen, 3);
 });
 
 test('the third punch with up held launches a light enemy straight up', () => {
@@ -319,4 +333,60 @@ test('the player takes damage, gets knocked down, and is safe while invulnerable
   P.inv = 1;
   assert.equal(hitPlayer(10, 1, false), false);
   assert.equal(P.hp, 80);
+});
+
+test('poise: a heavy enemy is thrown once her blows have worn it away; it comes back in time', () => {
+  const h = spawn('grunt', 1, 500, 450);
+  h.T = { ...TYPES.grunt, weight: 'heavy' };
+  h.hp = 999;
+  assert.equal(poiseMax(h), POISE.max.heavy);
+  assert.deepEqual(poiseView(h), { v: POISE.max.heavy, max: POISE.max.heavy, locked: false });
+  // a chain (two plain blows and a heavy one) takes five; two chains leave two
+  for (let c = 0; c < 2; c++)
+    for (const knock of [false, false, true]) {
+      Object.assign(h, { state: 'windup' });
+      hurtEnemy(h, 1, 1, knock, 'punch');
+      assert.equal(h.state, 'windup', 'its attack goes on');
+    }
+  assert.equal(poiseLeft(h), 2);
+  // a while without a blow and it is whole again
+  for (let i = 0; i < POISE.regen * 60 + 2; i++) updEnemy(h, 1 / 60, { n: 0 });
+  assert.equal(poiseLeft(h), POISE.max.heavy);
+  // a level I dark ball takes more than a heavy blow; then the last of it goes, and it is thrown
+  Object.assign(h, { state: 'chase', z: 0, cd: 99 });
+  hurtEnemy(h, 1, 1, true, 'hado');
+  assert.equal(poiseLeft(h), POISE.max.heavy - POISE.ball);
+  for (let i = 0; i < 2; i++) hurtEnemy(h, 1, 1, true, 'punch');
+  assert.equal(h.state, 'chase');
+  hurtEnemy(h, 1, 1, true, 'punch');
+  assert.equal(h.state, 'air', 'thrown with no rage spent');
+  assert.deepEqual([h.vx, h.vz], WEIGHT.knockHeavy);
+  assert.equal(poiseLeft(h), POISE.max.heavy, 'whole again for when it gets up');
+  // a light enemy has nothing to show
+  assert.equal(poiseView(spawn('grunt', 1, 600, 450)), null);
+});
+
+test('an attack with the red outline: nothing wears its poise down, and the bar says so', () => {
+  const f = spawn('fat', 1, 500, 450);
+  f.hp = 999;
+  FOES.fat.unstoppable = FOES.fat.unstoppable ?? null;
+  const was = FOES.fat.unstoppable;
+  FOES.fat.unstoppable = () => true;
+  try {
+    Object.assign(f, { state: 'windup' });
+    assert.ok(poiseView(f).locked);
+    hurtEnemy(f, 1, 1, true, 'super');
+    assert.equal(f.state, 'windup', 'not even a crushing blow');
+    assert.equal(poiseLeft(f), POISE.max.medium);
+    assert.equal(f.hp, 998, 'but it takes the damage');
+  } finally {
+    FOES.fat.unstoppable = was;
+  }
+});
+
+test('no medium or heavy enemy winds up its plain attack quicker than she can react', () => {
+  for (const [k, T] of Object.entries(TYPES))
+    if (['medium', 'heavy'].includes(T.weight) && !T.bigBoss)
+      assert.ok(T.wind >= POISE.minWind, `${k}: ${T.wind} s`);
+  assert.ok(LIZARD.lwind >= POISE.minWind);
 });

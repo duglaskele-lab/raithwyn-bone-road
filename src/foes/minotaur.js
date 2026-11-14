@@ -5,7 +5,7 @@
 //     (three side by side once he is enraged);
 //   - from far off he flings the axe spinning along her lane; it sticks in the ground where it
 //     stops, and he has to go and pull it out;
-//   - every blow of hers loosens his grip (MINO.grip; a heavy blow more, a crushing one much
+//   - every blow of hers loosens his grip (MINO.grip, counted as poise; a heavy blow more, a crushing one much
 //     more): at last the axe flies out of his hands and lands somewhere about;
 //   - without it he fights with his fists and charges horns first across the screen (hitting
 //     the edge of it dazes him a moment), and makes for the axe whenever he can — a blow of hers
@@ -18,7 +18,7 @@ import { G, P } from '../state.js';
 import { ctx } from '../gfx.js';
 import { SFX } from '../audio.js';
 import { dust, shatter, spark } from '../fx.js';
-import { breakProp, finale, hitPlayer } from '../combat.js';
+import { breakProp, finale, hitPlayer, poiseHit } from '../combat.js';
 import { meetsPlayer } from '../height.js';
 import { scoreMult } from '../style.js';
 import { WALKS } from '../anim.js';
@@ -164,13 +164,16 @@ export default defineFoe('minotaur', {
     retune(e);
   },
   // every blow loosens his grip on the axe
-  onHit(e, dmg, dir, knock, src) {
+  // (counted as poise is: a plain blow 1, a heavy one 3, a level I dark ball 4, a crushing blow
+  // all of it; see POISE in config.js)
+  onHit(e, dmg, dir, knock, src, crush) {
     if (!e.axe || e.hp <= 0 || e.state === 'mpick') return false;
-    const crush = ['hado', 'super', 'blast'].includes(src) && dmg > 30;
-    e.grip -= dmg * (crush ? MINO.crush : knock ? MINO.heavy : 1);
+    e.grip -= poiseHit(knock, src, crush);
     if (e.grip <= 0) loseAxe(e, dir);
     return false;
   },
+  // the bar under his health: his grip on the axe
+  poise: (e) => (e.axe && !e.dying ? [e.grip, MINO.grip] : null),
   moves: [
     {
       // without the axe and nobody in his way: he goes to get it

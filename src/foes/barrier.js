@@ -10,6 +10,7 @@
 // her (JNADE: three seconds on its timer, and the blast hurts robots too).
 import { BARRIER, JNADE, OL, TAU } from '../config.js';
 import { fxRnd, rnd } from '../util.js';
+import { poiseHit } from '../combat.js';
 import { APP, G } from '../state.js';
 import { ctx } from '../gfx.js';
 import { SFX } from '../audio.js';
@@ -93,7 +94,8 @@ export default defineFoe('barrier', {
       shatterWall(e);
       return false;
     }
-    if (knock && --e.wallHp <= 0) {
+    // every blow wears the wall down, counted as poise is (a plain one 1, a heavy one 3)
+    if ((e.wallHp -= poiseHit(knock, src, false)) <= 0) {
       shatterWall(e);
       return true;
     }
@@ -102,6 +104,8 @@ export default defineFoe('barrier', {
     e.wallFlash = G.time + 0.12;
     return true;
   },
+  // the bar under its health: the wall while it is up, its own poise otherwise
+  poise: (e) => (wallUp(e) ? [e.wallHp, BARRIER.hp] : null),
   die(e, dir) {
     e.wallUntil = 0;
     robotDie(e, dir);
@@ -275,7 +279,7 @@ function drawWall(e) {
   // cracks for every heavy blow it has taken
   ctx.strokeStyle = `rgba(255,255,255,${a})`;
   ctx.lineWidth = 2;
-  for (let k = 0; k < BARRIER.hp - e.wallHp; k++) {
+  for (let k = 0; k < Math.floor((BARRIER.hp - e.wallHp) / 3); k++) {
     ctx.beginPath();
     ctx.moveTo(x, e.y - 40 - k * 60);
     ctx.lineTo(x + 6, e.y - 70 - k * 60);

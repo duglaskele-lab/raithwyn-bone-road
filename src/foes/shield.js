@@ -6,6 +6,7 @@
 // crushing blow splinters it at once and goes on through.
 import { OL, SHIELD, TAU } from '../config.js';
 import { fxRnd } from '../util.js';
+import { poiseHit } from '../combat.js';
 import { G } from '../state.js';
 import { ctx } from '../gfx.js';
 import { SFX } from '../audio.js';
@@ -43,8 +44,10 @@ function splinter(e) {
 }
 
 export default defineFoe('shield', {
+  // the bar under its health: what is left of the shield
+  poise: (e) => (e.shieldHp > 0 ? [e.shieldHp, SHIELD.hp] : null),
   spawn(e) {
-    e.shieldHp = SHIELD.heavy;
+    e.shieldHp = SHIELD.hp;
   },
   /** The shield: a blow or a shot from the front only rings on it. */
   block(e, dir, knock, src, crush) {
@@ -54,7 +57,8 @@ export default defineFoe('shield', {
       return false;
     }
     const [x, y] = shieldAt(e);
-    if (knock && --e.shieldHp <= 0) {
+    // every blow wears it down, counted as poise is (a plain one 1, a heavy one 3)
+    if ((e.shieldHp -= poiseHit(knock, src, false)) <= 0) {
       splinter(e);
       return true;
     }
@@ -265,7 +269,7 @@ export default defineFoe('shield', {
           [-6, 52],
         ],
       ];
-      for (let k = 0; k < SHIELD.heavy - e.shieldHp && k < cracks.length; k++) {
+      for (let k = 0; k < (SHIELD.hp - e.shieldHp) / 3 && k < cracks.length; k++) {
         ctx.beginPath();
         cracks[k].forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
         ctx.stroke();
