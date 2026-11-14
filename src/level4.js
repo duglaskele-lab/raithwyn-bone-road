@@ -1,7 +1,7 @@
 // Stage 4, Frostfang Pass: a sword-and-sorcery road after Golden Axe. It starts in a village of
-// thatched huts in the morning sun, leaves it on a road climbing into the hills, then turns:
-// the trail goes away from the viewer, straight up the mountainside (the camera climbs with
-// it), and turns again onto a ledge along the cliff, past a great waterfall — over its gorge
+// thatched huts in the morning sun, leaves it on a road climbing into the hills, crosses the
+// hilltop and goes down the mountain's other side on a steep trail (boulders roll down it after
+// her) onto a ledge along the cliff, past a great waterfall — over its gorge
 // on a narrow plank bridge (fall in and you are hurt and back on the ledge), to the pool under
 // the falls where the minotaur waits — and then down into the dark forest, where at night, in
 // a glade under the moon, the frost wolf hunts.
@@ -18,25 +18,26 @@ export const L4 = {
   VILLAGE_END: 2500, // the last huts; the road begins to climb
   ROAD: [2500, 3300], // the road up into the hills
   Y_B: 118, // the back edge of the hill road
-  CLIMB: [4500, 5100], // the trail straight up the mountainside: its sides
-  CLIMB_X: 4800, // its middle
-  Y_C: -602, // the back edge of the ledge along the cliff
+  SLOPE: [4500, 5300], // the steep trail down the mountainside
+  STEEP: 0.4, // how much it goes down per pixel
+  Y_C: 438, // the back edge of the ledge along the cliff
   FALLS: [6700, 7200], // the gorge under the waterfall, crossed by the bridge
   BRIDGE: [60, 116], // the bridge's planks: from, to, in depth below the ledge's back edge
   POOL_X: 7700, // the pool under the falls, where the minotaur waits
   DESCENT: [8800, 9600], // the path down into the forest
-  Y_D: -362, // the back edge of the forest road
+  Y_D: 678, // the back edge of the forest road
   GLADE_X: 12300, // the frost wolf's glade
   END_X: 13400,
   DROP: 0.3, // how much a slant goes down (or up) per pixel
 };
-const { Y_A, Y_B, Y_C, Y_D, ROAD, CLIMB, CLIMB_X, FALLS, BRIDGE, DESCENT, DROP, END_X } = L4;
+const { Y_A, Y_B, Y_C, Y_D, ROAD, SLOPE, STEEP, FALLS, BRIDGE, DESCENT, DROP, END_X } = L4;
 
-/** The back edge of the floor under x (on the climb: its top). */
+/** The back edge of the floor under x. */
 export function topY(x) {
   if (x < ROAD[0]) return Y_A;
   if (x < ROAD[1]) return Y_A - (x - ROAD[0]) * DROP;
-  if (x < CLIMB[0]) return Y_B;
+  if (x < SLOPE[0]) return Y_B;
+  if (x < SLOPE[1]) return Y_B + (x - SLOPE[0]) * STEEP;
   if (x < DESCENT[0]) return Y_C;
   if (x < DESCENT[1]) return Y_C + (x - DESCENT[0]) * DROP;
   return Y_D;
@@ -57,13 +58,14 @@ const slant = ([x0, x1], y0, k) => [
 export const FLOOR = [
   flat(0, ROAD[0] + 20, Y_A), // the village
   slant(ROAD, Y_A, -DROP),
-  flat(ROAD[1] - 20, CLIMB[1], Y_B), // the hill road
-  rect(CLIMB[0], CLIMB[1], Y_C, Y_B + DEPTH), // the climb, straight up the mountainside
-  flat(CLIMB[0], FALLS[0] + 20, Y_C), // the ledge along the cliff
+  flat(ROAD[1] - 20, SLOPE[0] + 20, Y_B), // the hill road
+  slant(SLOPE, Y_B, STEEP), // the steep trail down the mountainside
+  flat(SLOPE[1] - 20, FALLS[0] + 20, Y_C), // the ledge along the cliff
   rect(FALLS[0], FALLS[1], Y_C + BRIDGE[0], Y_C + BRIDGE[1]), // the plank bridge
   flat(FALLS[1] - 20, DESCENT[0] + 20, Y_C), // the pool under the falls
   slant(DESCENT, Y_C, DROP),
-  flat(DESCENT[1] - 20, END_X, Y_D), // the forest
+  // the forest (and a little past the last screen: the frost wolf runs off it and back)
+  flat(DESCENT[1] - 20, END_X + 420, Y_D),
 ];
 // The gorge on either side of the bridge: over it one may jump (or be thrown), in it one falls.
 export const PITS = [
@@ -71,17 +73,14 @@ export const PITS = [
   rect(FALLS[0] + 20, FALLS[1] - 20, Y_C + BRIDGE[1], Y_C + DEPTH),
 ];
 
-// The camera path: [road x, road y, screen x, screen y], as in Old Quarry. At the foot of the
-// climb the camera comes round to look up the trail (its middle in the middle of the screen)
-// and goes up with it; at the top it turns along the ledge again.
+// The camera path: [road x, road y, screen x, screen y], as in Old Quarry.
 const mid = DEPTH / 2;
 export const PATH = [
   [390, Y_A + mid, 390, 441],
   [ROAD[0] + 50, Y_A + mid, 390, 441],
   [ROAD[1] + 50, Y_B + mid, 390, 441],
-  [CLIMB_X, Y_B + mid, 480, 441],
-  [CLIMB_X, Y_C + mid, 480, 441],
-  [CLIMB_X + 600, Y_C + mid, 390, 441],
+  [SLOPE[0] + 50, Y_B + mid, 390, 441],
+  [SLOPE[1] + 50, Y_C + mid, 390, 441],
   [DESCENT[0] + 50, Y_C + mid, 390, 441],
   [DESCENT[1] + 50, Y_D + mid, 390, 441],
   [END_X - 570, Y_D + mid, 390, 441],
@@ -96,8 +95,6 @@ function at(x) {
   }
   return PATH.length - 1;
 }
-/** A position on the climb, `u` of the way up (the camera's left edge stays put there). */
-const up = (u) => 3 + u;
 
 // The fights, as in Old Quarry: where the camera stops (`s`). Each one has an idea of its own
 // (`name`): `core` are the foes it is about, always the same; `fill` a few plain ones round them,
@@ -159,10 +156,10 @@ export const WAVES4 = [
     ],
     fill: bandits(1, 2, 3),
   },
-  // --- the climb: the camera looking up the trail, boulders rolling down it ---
-  // the rockslide: a crowd on the trail to lead under the boulders
+  // --- the foot of the steep trail: boulders come rolling off it, along the ledge ---
+  // the rockslide: a crowd to lead into the boulders' way
   {
-    s: up(0.6),
+    s: at(SLOPE[1]),
     name: 'rockslide',
     core: [
       ['bandit', 1, 0],
@@ -175,7 +172,7 @@ export const WAVES4 = [
   // --- the ledge, the bridge over the gorge, the pool under the falls ---
   // fire on the ledge: a fire drake's rider among spears — its flame is hers to take
   {
-    s: at(5700),
+    s: at(5760),
     name: 'fire on the ledge',
     core: [
       ['amazon', 1, 0],
@@ -252,8 +249,7 @@ export const WAVES4 = [
   { s: at(END_X - 960), boss: 1, final: 1, sp: [['frostwolf', 1, 0.8]] },
 ];
 
-// Things to break on the way (see props4.js): [x, depth into the floor, kind, drop]. On the
-// climb: [x, y, kind, drop] with the y given (`abs`).
+// Things to break on the way (see props4.js): [x, depth into the floor, kind, drop].
 const P = [
   // the village
   [300, 30, 'crate', null],
@@ -271,6 +267,9 @@ const P = [
   [3700, 130, 'crate', 'rage'],
   [3980, 30, 'pot', 'hp'],
   [4240, 120, 'rock', null],
+  // the steep trail
+  [4760, 150, 'rock', null],
+  [5080, 34, 'pot', 'hp'],
   // the ledge and the pool
   [5560, 28, 'rock', null],
   [5820, 130, 'pot', 'rage'],
@@ -287,11 +286,4 @@ const P = [
   [11560, 136, 'crate', 'rage'],
   [11900, 24, 'log', null],
 ];
-// On the climb, a few by the trail's sides: [x, y, kind, drop]
-const PC = [
-  [4560, -40, 'rock', null],
-  [5040, -180, 'pot', 'hp'],
-  [4580, -330, 'crate', 'rage'],
-  [5030, -470, 'rock', null],
-];
-export const PROPS4 = P.map(([x, d, k, drop]) => [x, topY(x) + d, k, drop]).concat(PC);
+export const PROPS4 = P.map(([x, d, k, drop]) => [x, topY(x) + d, k, drop]);

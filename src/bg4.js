@@ -15,9 +15,11 @@ import { ctx } from './gfx.js';
 import { mk } from './background.js';
 import { DEPTH, FLOOR, L4, PITS, topY } from './level4.js';
 
-const { Y_A, Y_B, Y_C, Y_D, VILLAGE_END, ROAD, CLIMB, FALLS, BRIDGE, POOL_X, DESCENT } = L4;
+const { Y_A, Y_B, Y_C, Y_D, VILLAGE_END, ROAD, SLOPE, STEEP, FALLS, BRIDGE, POOL_X, DESCENT } = L4;
 const { GLADE_X, END_X } = L4;
 const CLIFF_TOP = Y_C - 262; // the top of the cliff behind the ledge (sky above it)
+// where the steep trail's back edge sinks below the clifftop: the cliff begins there
+const CLIFF_X0 = SLOPE[0] + (CLIFF_TOP - Y_B) / STEEP;
 let T = null;
 
 // --- the time of day ---------------------------------------------------------------------------
@@ -105,7 +107,7 @@ function makeTextures() {
       g.stroke();
     }
   });
-  // the climb: stone steps going up the mountainside
+  // the steep trail down the mountainside: trodden earth, flat stones set into it
   P.steps = mk(300, 220, (g, w, h) => {
     const r = mulberry(43);
     g.fillStyle = '#9a8460';
@@ -117,13 +119,6 @@ function makeTextures() {
       g.beginPath();
       g.ellipse(r() * w, r() * h, 10 + r() * 14, 5 + r() * 6, 0, 0, Math.PI * 2);
       g.fill();
-    }
-    // a step of logs and stones every so often: its riser in shadow, its edge in the light
-    for (const y of [60, 170]) {
-      g.fillStyle = 'rgba(40,28,16,.45)';
-      g.fillRect(0, y, w, 9);
-      g.fillStyle = 'rgba(255,240,210,.22)';
-      g.fillRect(0, y - 3, w, 3);
     }
   });
   // the ledge: bare rock with cracks
@@ -659,11 +654,14 @@ function drawVillage() {
 // --- the hills and the climb ---------------------------------------------------------------------
 
 /** The green rise behind the village and the hill road, going up into the mountain. */
+// (it sinks to the road's back edge where the steep trail goes down under the cliff)
 const ridgeY = (x) =>
-  Math.min(Y_A, topY(x)) - 125 - 35 * Math.sin(x / 240) - clamp((x - 3800) / 700, 0, 1) * 520;
+  Math.min(Y_A, topY(x)) -
+  (125 + 35 * Math.sin(x / 240) + clamp((x - 3800) / 700, 0, 1) * 90) *
+    (1 - clamp((x - SLOPE[0] + 260) / (CLIFF_X0 - SLOPE[0] + 300), 0, 1));
 function drawRidge() {
   const x0 = Math.max(-200, G.cam - 100),
-    x1 = Math.min(CLIMB[0], G.cam + W + 100);
+    x1 = Math.min(CLIFF_X0 + 60, G.cam + W + 100);
   if (x1 <= x0 || !view(x0, x1, Y_C - 200, Y_A + DEPTH)) return;
   ctx.fillStyle = '#6a9a4a';
   ctx.beginPath();
@@ -676,43 +674,12 @@ function drawRidge() {
   ctx.lineWidth = 2;
   ctx.stroke();
 }
-/** Rocks and grass along the sides of the trail up the mountain (on the floor). */
-function climbEdges() {
-  if (!view(CLIMB[0], CLIMB[1], Y_C, Y_B)) return;
-  const r = mulberry(23);
-  for (const side of [0, 1]) {
-    const x = side ? CLIMB[1] : CLIMB[0];
-    ctx.fillStyle = 'rgba(0,0,0,.22)';
-    ctx.fillRect(side ? x - 18 : x, Y_C, 18, Y_B - Y_C);
-    for (let y = Y_C + 30; y < Y_B; y += 46 + r() * 40) {
-      if (!view(x - 40, x + 40, y - 30, y + 10)) {
-        r();
-        r();
-        continue;
-      }
-      if (r() < 0.55)
-        stone(side ? x - 14 : x + 14, y + 4, 18 + r() * 10, 14 + r() * 6, (y | 0) + side);
-      else {
-        ctx.strokeStyle = '#5f9a44';
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        for (let k = 0; k < 5; k++) {
-          const gx = (side ? x - 22 : x + 6) + k * 4;
-          ctx.moveTo(gx, y);
-          ctx.lineTo(gx + (k - 2) * 3, y - 12 - (k % 2) * 6);
-        }
-        ctx.stroke();
-        r();
-      }
-    }
-  }
-}
 function drawHills() {
   const x0 = VILLAGE_END - 100,
-    x1 = CLIMB[1] + 500;
-  if (!view(x0, x1, Y_C - 400, Y_B + DEPTH + 300)) return;
+    x1 = SLOPE[0] + 200;
+  if (!view(x0, x1, Y_B - 400, Y_A + DEPTH + 300)) return;
   const r = mulberry(11);
-  for (let x = x0 + 60; x < CLIMB[0] - 80; x += 90 + r() * 120) {
+  for (let x = x0 + 60; x < SLOPE[0] + 60; x += 90 + r() * 120) {
     const y = topY(x) - 6 - r() * 30,
       k = r();
     if (!view(x - 60, x + 60, y - 200, y + 20)) continue;
@@ -734,39 +701,6 @@ function drawHills() {
     ctx.beginPath();
     ctx.arc(sx, Y_B - 40, 7 + Math.sin(G.time * 6) * 1, 0, Math.PI * 2);
     ctx.fill();
-  }
-  // the walls of rock on both sides of the trail up the mountain
-  for (const [a, b] of [
-    [CLIMB[0] - 260, CLIMB[0]],
-    [CLIMB[1], CLIMB[1] + 320],
-  ]) {
-    if (!view(a, b, Y_C - 400, Y_B + DEPTH + 300)) continue;
-    const left = a < CLIMB[0];
-    ctx.fillStyle = T.patterns.cliff;
-    poly(
-      left
-        ? [
-            [a, CLIFF_TOP - 100],
-            [b, CLIFF_TOP - 100],
-            [b, Y_B + 4],
-            [a + 120, Y_B - 40],
-            [a, Y_B - 120],
-          ]
-        : [
-            [a, CLIFF_TOP - 100],
-            [b, CLIFF_TOP - 100],
-            [b, Y_B + DEPTH + 300],
-            [a, Y_B + DEPTH + 300],
-          ],
-    );
-    ctx.fill();
-    ctx.strokeStyle = OL;
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    // pines clinging to the rock
-    const rr = mulberry(left ? 21 : 22);
-    for (let y = CLIFF_TOP; y < Y_B - 60; y += 110 + rr() * 80)
-      pine(left ? a + 60 + rr() * 120 : a + 80 + rr() * 160, y, 0.8, '#2a4a32');
   }
 }
 
@@ -814,16 +748,18 @@ function mist(x, y, w, a = 1) {
   }
 }
 function drawLedge() {
-  const x0 = CLIMB[0] - 260,
+  const x0 = CLIFF_X0,
     x1 = DESCENT[0] + 300;
   if (!view(x0, x1, CLIFF_TOP - 300, Y_C + DEPTH + 200)) return;
-  // the cliff behind the ledge; pines along its top
+  // the cliff behind the steep trail (growing as the trail sinks) and behind the ledge; pines
+  // along its top
   ctx.fillStyle = T.patterns.cliff;
   poly([
     [x0, CLIFF_TOP],
     [x1 - 200, CLIFF_TOP],
     [x1, Y_C + 20],
-    [x0, Y_C + 20],
+    [SLOPE[1], Y_C + 20],
+    [x0, CLIFF_TOP + 20],
   ]);
   ctx.fill();
   ctx.strokeStyle = OL;
@@ -838,7 +774,7 @@ function drawLedge() {
     if (view(x - 40, x + 40, CLIFF_TOP - 140, CLIFF_TOP))
       pine(x, CLIFF_TOP + 4, 0.8 + r() * 0.3, '#2a4a32');
   // ivy and ferns on the rock, a cave mouth
-  for (let x = x0 + 100; x < x1 - 300; x += 160 + r() * 120) {
+  for (let x = SLOPE[1] + 60; x < x1 - 300; x += 160 + r() * 120) {
     const y = Y_C - 40 - r() * 200;
     if (!view(x - 40, x + 40, y - 60, y + 80)) continue;
     ctx.strokeStyle = '#3f7a32';
@@ -915,7 +851,7 @@ function drawLedge() {
 /** A rope rail on posts along the front edge of the ledge (the drop is on the other side). */
 function ledgeRail() {
   const y = Y_C + DEPTH - 2,
-    x0 = CLIMB[1] + 40,
+    x0 = SLOPE[1] + 40,
     x1 = DESCENT[0] - 40;
   if (!view(x0, x1, y - 60, y + 20)) return;
   for (const [a, b] of [
@@ -1104,11 +1040,11 @@ function drawForest() {
 // --- the floor --------------------------------------------------------------------------------------
 
 /** Which texture lies where. */
-function floorPattern(lo, hi, y) {
+function floorPattern(lo, hi) {
   const cx = (lo + hi) / 2;
   if (cx < ROAD[0]) return T.patterns.dirt;
-  if (cx < CLIMB[0] || (cx < CLIMB[1] && y > Y_B - 10)) return T.patterns.hill;
-  if (cx < CLIMB[1] && hi - lo < 700) return T.patterns.steps;
+  if (cx < SLOPE[0]) return T.patterns.hill;
+  if (cx < SLOPE[1]) return T.patterns.steps;
   if (cx > FALLS[0] && cx < FALLS[1]) return T.patterns.planks;
   if (cx < DESCENT[1] - 40) return T.patterns.rock;
   return T.patterns.forest;
@@ -1125,7 +1061,7 @@ function drawFloors() {
     const fr = f.slice(2),
       cx = (fr[0][0] + fr[1][0]) / 2;
     ctx.fillStyle =
-      cx < CLIMB[1]
+      cx < SLOPE[0]
         ? '#5f8a4e'
         : cx < DESCENT[1] - 40
           ? T.patterns.cliff
@@ -1146,7 +1082,7 @@ function drawFloors() {
       hi = Math.max(...xs),
       top = Math.min(...f.map((p) => p[1]));
     if (lo === FALLS[0] && hi === FALLS[1]) continue; // (the bridge is drawn on its own)
-    ctx.fillStyle = floorPattern(lo, hi, top);
+    ctx.fillStyle = floorPattern(lo, hi);
     if (lo < GLADE_X && hi > GLADE_X) {
       // the forest road, and the glade where the frost creeps over the ground
       ctx.save();
@@ -1189,7 +1125,6 @@ export function drawBG4() {
   drawLedge();
   drawForest();
   drawFloors();
-  climbEdges();
   drawGorge();
   drawBridge();
   ctx.restore();

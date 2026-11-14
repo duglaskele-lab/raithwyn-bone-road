@@ -51,7 +51,7 @@ let stuck = 0,
 function think() {
   for (const k in keys) delete keys[k];
   const p = P;
-  if (p.state === 'frozen' || p.state === 'grabbed') {
+  if (p.state === 'grabbed') {
     if (Math.floor(G.time * 30) % 2) pressed.atk = true;
     return;
   }
@@ -72,7 +72,8 @@ function think() {
   const dx = e.x - p.x,
     dy = e.y - p.y,
     adx = Math.abs(dx),
-    big = e.T.bigBoss ? 150 : 0,
+    // (the big bosses are fought from further off, but for the one whose width says how far)
+    big = e.T.bigBoss && e.w < 90 ? 150 : 0,
     want = 64 + big + e.w;
   if (p.state === 'jump') {
     pressed.atk = true;

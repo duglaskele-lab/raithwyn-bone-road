@@ -591,7 +591,8 @@ export function hitPlayer(dmg, dir, knock) {
   p.grabber = null;
   // on a beast: thrown out of the saddle (see foes/beasts.js)
   if (p.steed) {
-    p.z = p.seat;
+    p.z += p.seat;
+    p.steed.lost = (p.steed.lost ?? 0) + 1; // (a beast that loses its rider too often runs off)
     p.steed = null;
     knock = true;
   }
