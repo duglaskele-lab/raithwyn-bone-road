@@ -98,28 +98,142 @@ export const DOORS = [
   420, 980, 1540, 2080, 2480, 6620, 7120, 7640, 8080, 10260, 11240, 12160, 13060,
 ].map((x) => [x, topY(x)]);
 
-// The fights, as in Old Quarry: where the camera stops (`s`), how hard an ordinary one is
-// (`lvl`, see WAVEGEN3) or a fixed one (`sp`). On the roofs every fight has a gap on screen.
+// The fights, as in Old Quarry: where the camera stops (`s`). Each one has an idea of its own
+// (`name`): `core` are the robots it is about, always the same; `fill` a few plain guards round
+// them, rolled anew every run (see themedWave in waves.js); `mid` come in once the first ones
+// have lost half of their health. [type, side, delay]: side 1 from the right, -1 from the
+// left, 0 out of a door or down from above.
+const guards = (a, b, from = 0.6) => ({ n: [a, b], pool: { guard: 1 }, from, gap: 0.9 });
 export const WAVES3 = [
-  // the slums, in the rain
-  { s: at(120), lvl: 0 },
-  { s: at(820), lvl: 0.08 },
-  { s: at(1500), lvl: 0.15 },
-  { s: at(L3.SLUMS_END - 960), lvl: 0.22 },
-  // the metro
-  { s: at(STAIRS[1]), lvl: 0.3 },
-  { s: at(STAIRS[1] + 700), lvl: 0.36 },
+  // --- the slums, in the rain ---
+  // a patrol by the lamp post: plain guards, and a neon sign to drop on them
+  {
+    s: at(120),
+    name: 'patrol',
+    core: [
+      ['guard', 1, 0],
+      ['guard', 1, 0.8],
+      ['guard', -1, 1.8],
+    ],
+    fill: guards(0, 1, 2.6),
+  },
+  // eyes above: drones out of a blow's reach, guards keeping her on the ground
+  {
+    s: at(820),
+    name: 'eyes above',
+    core: [
+      ['drone', 1, 0],
+      ['guard', 1, 0.5],
+      ['drone', -1, 1.4],
+      ['guard', -1, 2.2],
+    ],
+    fill: guards(0, 1, 3),
+  },
+  // fire in the hole: grenades and a ticking cell hurt the robots too
+  {
+    s: at(L3.SLUMS_END - 960),
+    name: 'fire in the hole',
+    core: [
+      ['grenadier', 1, 0],
+      ['guard', 1, 0.5],
+      ['guard', -1, 1],
+      ['cellguard', 0, 1.8],
+      ['grenadier', -1, 2.6],
+    ],
+    fill: guards(0, 1, 3.4),
+  },
+  // --- the metro ---
+  // crossfire: a guardess with a rifle at either end of the platform, a ninja once they fall
+  {
+    s: at(STAIRS[1]),
+    name: 'crossfire',
+    core: [
+      ['catguard', 1, 0],
+      ['guard', 1, 0.4],
+      ['catguard', -1, 1.2],
+      ['guard', 0, 1.8],
+    ],
+    mid: [['ninja', 1, 0.4]],
+  },
+  // blades in the dark: two ninjas, who turn her shots back at her, and a drone over them
+  {
+    s: at(STAIRS[1] + 700),
+    name: 'blades in the dark',
+    core: [
+      ['ninja', 1, 0],
+      ['drone', -1, 0.8],
+      ['ninja', -1, 1.8],
+    ],
+    fill: guards(1, 2, 2.6),
+  },
   { s: at(L3.HALL_X - 480), boss: 1, sp: [['breaker', 1, 0.6]] }, // the breaker android
-  // the avenue of arches and the bridge
-  { s: at(ESCAL[1]), lvl: 0.45 },
-  { s: at(ESCAL[1] + 760), lvl: 0.52 },
-  { s: at(L3.BRIDGE[0] - 300), lvl: 0.58 },
-  { s: at(L3.BRIDGE[1] - 960), lvl: 0.64 },
-  // the roofs: a gap on every screen
-  { s: at(ROOFS[0][1] - 520), lvl: 0.7 },
-  { s: at(ROOFS[1][1] - 600), lvl: 0.78 },
-  { s: at(ROOFS[2][1] - 560), lvl: 0.86 },
-  { s: at(ROOFS[2][1] - 560), chain: 1, lvl: 0.92 },
+  // --- the avenue of arches and the bridge ---
+  // hard light: a barrier heavy's wall in front of a rifle; go round it
+  {
+    s: at(ESCAL[1]),
+    name: 'hard light',
+    core: [
+      ['barrier', 1, 0],
+      ['catguard', 1, 0.6],
+      ['guard', -1, 1.4],
+    ],
+    fill: guards(1, 2, 2.2),
+  },
+  // the night kitchen: the hacked chef and his cleavers, cell carriers to blow up beside him
+  {
+    s: at(ESCAL[1] + 760),
+    name: 'night kitchen',
+    core: [
+      ['chef', 1, 0],
+      ['cellguard', -1, 0.8],
+      ['cellguard', 1, 1.8],
+    ],
+    mid: [
+      ['grenadier', -1, 0.3],
+      ['guard', 1, 0.9],
+    ],
+  },
+  // the kill lane: a turret robot down the bridge, drones herding her into its fire
+  {
+    s: at(L3.BRIDGE[1] - 960),
+    name: 'kill lane',
+    core: [
+      ['turret', 1, 0],
+      ['drone', -1, 0.6],
+      ['guard', -1, 1.2],
+      ['drone', 1, 2],
+    ],
+    fill: guards(1, 2, 2.8),
+  },
+  // --- the roofs: a gap on every screen ---
+  // mind the gap: a crowd to throw off the roof
+  {
+    s: at(ROOFS[0][1] - 520),
+    name: 'mind the gap',
+    core: [
+      ['guard', 1, 0],
+      ['guard', -1, 0.5],
+      ['grenadier', 1, 1.2],
+      ['ninja', 1, 2.2],
+    ],
+    fill: guards(1, 2, 3),
+  },
+  // the siege of the roof: a turret behind a wall of light, then all Jawacorp has left
+  {
+    s: at(ROOFS[2][1] - 560),
+    name: 'rooftop siege',
+    core: [
+      ['barrier', 1, 0],
+      ['turret', 1, 0.8],
+      ['guard', -1, 1.6],
+    ],
+    mid: [
+      ['ninja', -1, 0.3],
+      ['drone', 1, 0.8],
+      ['cellguard', 1, 1.5],
+      ['drone', -1, 2.2],
+    ],
+  },
   // the garden on the tower: the last fight
   { s: at(END_X - 960), boss: 1, final: 1, sp: [['crab', 1, 0.8]] },
 ];
@@ -165,18 +279,3 @@ const P = [
   [13140, 24, 'vend', 'hp'],
 ];
 export const PROPS3 = P.map(([x, d, k, drop]) => [x, topY(x) + d, k, drop]);
-
-// How an ordinary fight of Midnight City is rolled (as WAVEGEN, config.js): Jawacorp's robots.
-export const WAVEGEN3 = {
-  count: [5, 10],
-  hard: [0.06, 0.32],
-  mid: [0.14, 0.32],
-  maxHard: [1, 3],
-  gap: [0.9, 0.5],
-  pools: {
-    easy: { guard: 3.2, grenadier: 1, drone: 1.3 },
-    mid: { ninja: 1, catguard: 0.5, cellguard: 0.8 },
-    hard: { turret: 1, chef: 1, barrier: 0.6 },
-  },
-  cap: { ninja: 2, catguard: 2, drone: 3, grenadier: 2, cellguard: 2, turret: 2, barrier: 1 },
-};

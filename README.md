@@ -451,6 +451,26 @@ clear" appears, and a few seconds later (or at once with `J`) the game moves on 
 stage; health, lives, rage and score carry over. If the heroine loses on the second stage, play
 again restarts the second stage (and so does the `F7` replay).
 
+**The fights** (`WAVES2` in `src/level2.js`). From Old Quarry on, a fight is no longer a crowd
+rolled at random: each one has an idea of its own, a name, and the foes it is about are always
+the same (`core`); only a few plain ones round them are rolled anew every run (`fill`), and in
+some a second group comes once the first has lost half of its health (`mid`). Old Quarry has
+eleven:
+
+| Fight | Who | What it asks of the player |
+| --- | --- | --- |
+| Shift change | miners | step out of the pickaxe charge; a red barrel stands in the street |
+| Powder monkeys | two dynamite zombies over a crowd of zombies | knock a lit stick out of a hand and it goes off among them |
+| The stalker | the first mutant lizard | plain blows make it leap away: open with a heavy one |
+| Wailing street | banshees and zombies, in two goes | stay out of the wail's cone, or the zombies grab her stunned |
+| Bar brawl | the saloon strongman and miners | mash out of his grip, or be thrown through his own friends |
+| Short fuse | miners and dynamite by the red barrels, then a lizard | blow the barrels as they charge past |
+| Iron and powder | a power armour, dynamite | its bullets set off the barrels and the sticks lying about |
+| Pack hunt | two lizards and a banshee | keep them in front of her, a crushing blow for both |
+| (the Slime) | | |
+| The last shift | a power armour, then the strongman and a lizard | everything at once, in two goes |
+| (the Prospector) | | |
+
 **Not only to the right** (as in Teenage Mutant Ninja Turtles III: The Manhattan Project). The
 stage's floor is a set of polygons and the camera runs along a path (`FLOOR` and `PATH` in
 `src/level2.js`, `src/level.js`): Main Street runs to the right, then the street goes down a
@@ -544,7 +564,7 @@ breaks wooden barrels and a moment later sets off red ones nearby.
   landed, get up and fight (no more than four at once). Its attacks are interrupted by the medium
   rules; instead of flying off it slides back.
 
-**The finale: the Prospector** (boss of Old Quarry, 1300 health; numbers in `PROS` and
+**The finale: the Prospector** (boss of Old Quarry, 1150 health; numbers in `PROS` and
 `TYPES.prospector`, code in `src/foes/prospector.js`). A giant zombie in grey power armour, 1.1
 times the size of the Power Armor Zombie and drawn in finer detail: riveted plates with dents,
 hazard stripes and orange trim, a helmet like the Power Armor's (a rounded dome with a glowing
@@ -570,10 +590,23 @@ attacks:
   the ground that fills up as it falls; the blast (`BLAST.mortar`, r 115, 16 damage) knocks her
   down and spares the enemies. Shells cannot be shot down.
 - **Jet jump** — as the Power Armor's, but bigger, and always onto the heroine.
-- **Kick** up close, with a "!" and a reddened visor — but up close it mostly (65% of the time)
-  moves somewhere else on its jets instead: a hop back, a slide aside in depth, a leap over the
-  heroine to land on her other side, or the big jet jump to another spot of the arena; landed,
-  it does not kick at once (`PROS.move`).
+- **Kick** up close, with a "!" and a reddened visor — and now and then (35% of the time, no
+  longer 65%: it stands and fights) it moves somewhere else on its jets instead: a hop back, a
+  slide aside in depth, a leap over the heroine to land on her other side, or the big jet jump to
+  another spot of the arena; landed, it does not kick at once (`PROS.move`).
+
+Each of its attacks has an answer, and the right one opens it up (`PROS.tanks`, `PROS.ram.daze`):
+
+- **The fuel tanks on its back are its weak spot:** a blow from behind does 1.5 times the harm
+  (an orange spark on the tanks).
+- **The flame → get behind it.** While the flame burns, standing or walking, the harm done to
+  the tanks adds up (they glow), and at 40 they blow their valves: the flame goes out and it
+  stands slumped, venting steam, for 2.2 s. Walking with the flame it no longer turns with her at
+  once: only after she has been behind it for 0.7 s.
+- **The ram → step off its lane.** A ram that misses her skids on for 1.7 s instead of 0.7,
+  dazed.
+- Venting or dazed (stars wheel over its head) it is open: every blow does 1.5 times the harm,
+  2.25 times on the tanks.
 
 At half health its helmet flies off and rolls away: under it is a zombie's head in miner's
 goggles. It fights harder: 25% faster on its feet and between attacks, the flame sweeps across
@@ -619,6 +652,25 @@ over every door the robots come out of. Other firms advertise too: "No milk, Ser
 carton with a serval on it), a blue "Your ad could be here" screen nobody has bought, and the
 red "Meme Lords" board with its picture of stars. In the light picture (`APP.lowFx`) there are fewer
 raindrops and petals and no glows.
+
+**The fights** (`WAVES3` in `src/level3.js`): twelve instead of sixteen, and about 5,000 health
+of robots to get through instead of 8,500 — as much as the Bone Road. Each has an idea of its
+own, as in Old Quarry (`core`, `fill`, `mid`):
+
+| Fight | Who | What it asks of the player |
+| --- | --- | --- |
+| Patrol | guards by a lamp post | drop its neon sign on them |
+| Eyes above | two drones, guards | a jump kick or a bone for the drones, off their marks |
+| Fire in the hole | two grenadiers, a cell carrier | their blasts hurt the robots too |
+| Crossfire | a guardess with a rifle at either end, then a ninja | close in on one, out of the other's lane |
+| Blades in the dark | two ninjas, a drone | no shots at a ninja: fists, and step off the green line |
+| (the Breaker Android) | | |
+| Hard light | a barrier heavy in front of a rifle | go round the wall of light, or break it with heavy blows |
+| Night kitchen | the hacked chef, two cell carriers | set a cell ticking beside him |
+| Kill lane | a turret robot down the bridge, two drones | leave its lane, come at it from the side |
+| Mind the gap | a crowd at the edge of a roof | throw them off it |
+| Rooftop siege | a turret behind a barrier heavy, then ninja, drones, a cell | everything the stage has taught, in two goes |
+| (the Cyber Crab) | | |
 
 **The road** (`src/level3.js`, about 1.8 times as long as Old Quarry): the slums in the rain →
 the stairs down into the metro (the rain stops there) → the metro platform and its concourse →
@@ -723,7 +775,7 @@ blows there. At half health the arm glows white-hot, its attacks
 go at 1.04 (a fifth slower than the old 1.3), it waits less between moves, and three
 fissures run side by side. Beaten, it bursts into parts, the fight is over and food drops.
 
-**The last boss: the Cyber Crab** (1800 health; `TYPES.crab`, `CRAB`, `src/foes/crab.js`), in the
+**The last boss: the Cyber Crab** (1600 health; `TYPES.crab`, `CRAB`, `src/foes/crab.js`), in the
 garden on top of the tower. A Jawacorp war machine the size of a tram: a wide carapace of dark
 steel with an orange rim and glowing vents, eyes on stalks that follow the heroine, a grilled
 mouth with mandibles, two great orange claws held up in front like fists, and six legs, three
@@ -795,6 +847,24 @@ onto a ledge along the cliff, past a great waterfall, across the gorge under it 
 sun goes down → night, and the glade of standing stones under the moon, where the frost wolf
 hunts. The light changes with the road: morning, noon, sunset, night (`dayAt` in `src/bg4.js`).
 
+**The fights** (`WAVES4` in `src/level4.js`): twelve instead of sixteen, about 5,000 health of
+foes instead of 8,200, each with an idea of its own, as in Old Quarry (`core`, `fill`, `mid`):
+
+| Fight | Who | What it asks of the player |
+| --- | --- | --- |
+| Raiders | bandits, one riding in on a cockatrice | knock him off and take the beast |
+| Spears and a thief | two amazons, the gnome | heavy blows (a light one lets her flip away); shake the sack |
+| Shield wall | two death knights, then a cockatrice rider | a heavy blow opens a shield; the beast's tail does too |
+| The harpies' sky | three harpies, bandits | jump kicks and bones, or wait for the dive |
+| Rockslide | a crowd on the climb | lead them under the boulders |
+| Fire on the ledge | a fire drake's rider among amazons, a harpy | take the drake and burn them |
+| Hold the bridge | a bone giant, bandits | jump its shock wave; throw the bandits into the gorge |
+| (the minotaur) | | |
+| The pack | wolves from both sides, in two goes | keep moving, hit them as they land |
+| Ambush | three amazons, wolves, the gnome | watch the leaps, shake the sack for meat |
+| The last stand | a giant, a knight, harpies, then a fire drake and wolves | everything the stage has taught, in two goes |
+| (the frost wolf) | | |
+
 **The scenery** (`src/bg4.js`, all in code): the huts with their timber frames, chimney smoke, a
 windmill turning, a well, market stalls, oaks and fences; green hills under far snowy peaks and
 drifting clouds; a wayside shrine; walls of rock with pines on both sides of the trail up the
@@ -815,8 +885,8 @@ the ledge, hurt, as with the gaps between Midnight City's roofs (`PIT`); a foe t
 Foes walking towards her steer for the bridge.
 
 **The boulders.** On the trail up the mountainside, while a fight is on, boulders come rolling
-down it every 4.5–7.5 s: a red lane shows at the top of the screen a second before, then down it
-rolls, hitting her (14) and her foes (40, a crushing blow) alike — jump it or step aside
+down it every 3.5–6 s: a red lane shows at the top of the screen a second before, then down it
+rolls, hitting her (14) and her foes (60, a crushing blow: it kills the light ones) alike — jump it or step aside
 (`BOULDER`, `src/hazards4.js`).
 
 **The beasts** (`BEAST`, `src/foes/beasts.js`), Golden Axe's mounts: the **cockatrice**, a green
@@ -842,9 +912,11 @@ meat — three in all, and then he runs off crying.
   she leaps down on the heroine spear first (11, knocks down); a light blow makes her flip away
   out of reach one time in three (`AMAZON`).
 - **Death knight** (medium) — plate armour, a great helm with a red plume, a round shield and a
-  sword. The shield turns a light blow or a shot from in front more often than not (55%), never a
-  heavy or crushing one, never from behind; from 150–320 px it runs at her in a thrust (14,
-  knocks down, `KNIGHT`).
+  sword. The shield turns every light blow and shot from in front (no longer by chance), never
+  from behind. A heavy blow (the chain's finisher, a flying kick, a beast's blow, a dark ball)
+  goes through and knocks the shield aside for 2.5 s (stars over its helm): then everything
+  lands. The shield is also down while it swings its sword or gets its breath back after its
+  thrust: from 150–320 px it runs at her in a thrust (14, knocks down, `KNIGHT`).
 - **Bone giant** (heavy) — a huge skeleton with a stone maul: its plain blow shakes the ground
   where it lands; from 200–640 px it raises the maul and slams it down, and a shock wave runs
   along the ground (as the saloon strongman's; jump it) (`GIANT`).
@@ -859,7 +931,7 @@ meat — three in all, and then he runs off crying.
 market cart (3 blows), fences, boulders by the mountain road (3 blows), piles of logs (2) and
 carved wooden idols with horns (2) in the forest; many hold a heart or rage.
 
-**The minotaur** (mini-boss, `TYPES.minotaur`, `MINO`, `src/foes/minotaur.js`), at the pool under
+**The minotaur** (mini-boss, 800 health, `TYPES.minotaur`, `MINO`, `src/foes/minotaur.js`), at the pool under
 the falls: a huge bull-headed brute in a fur kilt with a great double-bitted axe.
 
 - Up close he brings the axe down (20, knocks down).
@@ -878,23 +950,32 @@ the falls: a huge bull-headed brute in a fur kilt with a great double-bitted axe
 His big moves (red outline) go on through blows; only a crushing blow moves him. Beaten, he
 falls and bursts; every other foe crumbles.
 
-**The frost wolf** (the last boss, `TYPES.frostwolf`, `FROST`, `src/foes/frostwolf.js`): a white
-wolf three times a man's height, ice crystals along its back, eyes like cold stars. It comes down
-into the glade from over the trees and howls. Its body is a wall (she is pushed round it); its
-head is its weak spot (×1.3, reached high up in front, best from a jump).
+**The frost wolf** (the last boss, 1500 health, `TYPES.frostwolf`, `FROST`,
+`src/foes/frostwolf.js`): a white wolf three times a man's height, ice crystals along its back,
+eyes like cold stars. It comes down into the glade from over the trees and howls. Its body is a
+wall (she is pushed round it); its head is its weak spot (×1.3, reached high up in front, best
+from a jump).
 
-- **The ice breath:** it draws breath (0.85 s; the cone it will fill is marked on the ground,
-  following her), then a cone of freezing mist rolls 460 px along the road. Caught in it, she
-  freezes in a block of ice (12, 1.4 s; mashing `J`/`K` breaks it sooner) — and it comes for her.
-- **The bite:** a crouch and a lunge across the glade, jaws first (18, knocks down).
-- **The swipe:** up close, a paw swung round (15).
-- **The howl:** wolves come out of the forest (1, 2, 3 by phase) and icicles fall from the trees
-  on marked spots (13 each; a ring that fills before each one falls).
-- **The leap** (from phase 2): out of the glade high over the trees, its shadow following her,
-  and down in a ring of ice (22, 200 px).
+The fight was rebuilt so that every attack has an answer of its own, and the right answer opens
+the wolf up: stars wheel round its head, and every blow does 1.5 times the harm (`FROST.open`).
+An attack with the red outline cannot be stopped; one without it can.
+
+| Its attack | What it does | The answer |
+| --- | --- | --- |
+| **Ice breath** | draws breath for 0.95 s (the cone is marked on the ground; it follows her, then turns bright and holds still for the last 0.35 s), then a cone of freezing mist rolls 460 px along the road: 8, and 1 s in a block of ice (mashing breaks it sooner) | step out of the cone once it holds still, or stand behind a pillar of ice; at its flank while it breathes, it is open |
+| **Bite** | a crouch (0.42 s) and a lunge across the glade, jaws first (18, knocks down) | a heavy blow while it crouches makes it flinch (1.1 s, open); step aside and the lunge that missed leaves its jaws in the snow for 1.3 s, its head low and open; a pillar of ice in its way shatters on its jaws: 70 harm and 2.4 s dazed |
+| **Swipe** | up close, a paw swung round (15) | a heavy blow as it draws the paw back makes it flinch |
+| **Howl** | draws breath for 0.9 s, then wolves come out of the forest (1, 2, 2 by phase) and icicles fall on marked spots (10 each) | a blow on its head — a bone thrown along the road strikes it first — or a dark ball while it draws breath chokes the howl (1.8 s, open): no wolves, no icicles |
+| **Leap** (from phase 2) | out of the glade over the trees; a blue ring follows her, turns red and holds still 0.35 s before it drops (20, 170 px) | run out of the red ring; a leap that missed leaves it open for 1.2 s |
+
+- **Pillars of ice** (`FROST.pillar`, `DECOR.icicle`): every icicle that falls stays standing for
+  10 s (five at most; her blows break them too). They are her tools: shelter from the breath,
+  and a trap for the lunge. So choking the howl is not always the best answer.
+- After it has flinched or choked, nothing stops it for 4 s (`FROST.choke.steady`).
 - **Phases:** at 2/3 of its health it gets quicker and starts leaping; at 1/3 a blizzard blows,
-  icicles fall all the time and the breath sweeps across the road from one side to the other.
-  Each phase begins with a howl. Beaten, it falls on its side and the blizzard ends.
+  an icicle falls near her every 2–3 s, and the breath sweeps across the road from one side to
+  the other — stepping aside no longer saves her: a pillar, or its flank. Each phase begins with
+  a howl. Beaten, it falls on its side and the blizzard ends.
 
 **Secret.** On the first screen of the first stage, before the first fight, hold `Z` and `4`
 together for 2 seconds and the heroine goes straight to Frostfang Pass. On its first screen,
@@ -1078,10 +1159,21 @@ Drawing is not covered by tests; it is checked by eye in a browser.
 range of the close attack) or `keep` (the distance a ranged enemy keeps), `wind`/`act`/`rec`
 (wind-up, active phase and recovery in seconds), `cd` (pause between attacks, from and to).
 
-**A new fight.** Add a line to `WAVES`: `x` — where the camera stops, `lvl` — the difficulty of
-a random fight from 0 to 1 (the make-up, shares and enemy pools are in `WAVEGEN`). For a fixed
-fight give `sp` instead of `lvl` — a list of `[type, side, delay]`. Side `1` is the right, `-1`
-the left, `0` climbs out of the ground.
+**A new fight.** On the Bone Road add a line to `WAVES`: `x` — where the camera stops, `lvl` —
+the difficulty of a random fight from 0 to 1 (the make-up, shares and enemy pools are in
+`WAVEGEN`). For a fixed fight give `sp` instead of `lvl` — a list of `[type, side, delay]`. Side
+`1` is the right, `-1` the left, `0` climbs out of the ground. On the later stages
+(`WAVES2`–`WAVES4`) a fight has an idea: `name`, `core` (its own foes, a list like `sp`), `fill`
+(`{ n: [fewest, most], pool: { type: weight }, from, gap }`, a few plain ones rolled every run)
+and `mid` (a second group that comes once the first has lost half of its health); see
+`themedWave` in `src/waves.js`.
+
+**The balance report.** `npm run balance` (`tools/balance.mjs`; `npm run balance 3 4` for some
+stages only) has a simple bot play every fight of every stage on its own, a few times over, and
+prints how long each took and how much health it cost. The bot walks up to the nearest foe and
+punches (a jump kick for flyers, a dark ball when one is lined up) and never steps out of a
+blow's way, so the numbers are a rough upper bound for comparing one fight with another and a
+change with what was before; it cannot beat the banshees or most bosses in its time limit.
 
 **A new enemy.** Everything about an enemy is in one file, `src/foes/<name>.js`:
 

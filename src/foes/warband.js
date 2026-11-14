@@ -15,7 +15,7 @@ import { SFX } from '../audio.js';
 import { dust, spark } from '../fx.js';
 import { hitPlayer } from '../combat.js';
 import { defineFoe } from './registry.js';
-import { faceP, go, inFront } from './kit.js';
+import { dizzy, faceP, go, inFront } from './kit.js';
 import { remount, riderHit } from './beasts.js';
 
 const fill = (c, fl, lw = 2.4) => {
@@ -341,7 +341,7 @@ defineFoe('amazon', {
 
 /** Is its shield between it and a blow pushing it `dir`-wards? */
 const shieldUp = (e, dir) =>
-  dir === -e.face && ['chase', 'recover', 'hurt', 'windup'].includes(e.state);
+  dir === -e.face && !(e.openT > 0) && ['chase', 'hurt'].includes(e.state);
 function knightHead(c) {
   const { fl } = c;
   // the plume
@@ -435,7 +435,7 @@ function longsword(c) {
 }
 defineFoe('knight', {
   init: { thrCd: [2, 4] },
-  timers: ['thrCd', 'shieldT'],
+  timers: ['thrCd', 'shieldT', 'openT'],
   moves: [
     {
       when: (e, s) =>
@@ -451,14 +451,26 @@ defineFoe('knight', {
     },
   ],
   attacks: ['kthw', 'kth'],
-  // its shield turns a light blow or a shot from in front, more often than not
+  // its shield turns every light blow and shot from in front; a heavy one knocks it aside for a
+  // while (stars over its helm), and it is down while the knight swings or gets its breath
+  // back after a thrust
   block(e, dir, knock, src, crush) {
-    if (crush || knock || !shieldUp(e, dir) || random() > KNIGHT.block) return false;
+    if (!shieldUp(e, dir)) return false;
+    if (crush || knock) {
+      e.openT = KNIGHT.open;
+      SFX.clang();
+      spark(e.x + e.face * 30 * e.T.scale, e.y - 80 * e.T.scale, '#fff4d0', true);
+      return false;
+    }
     SFX.clang();
     spark(e.x + e.face * 30 * e.T.scale, e.y - 80 * e.T.scale, '#fff4d0', false);
     e.shieldT = 0.15;
     e.x += dir * 4;
     return true;
+  },
+  over(e) {
+    if (e.openT > 0 && !e.dying && e.state !== 'air' && e.state !== 'down')
+      dizzy(e.x - G.cam, e.y - e.z - 205 * e.T.scale, 26);
   },
   states: {
     kthw(e) {

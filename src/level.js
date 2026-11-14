@@ -7,7 +7,7 @@
 import { DECOR, DOOR_SCALE, GB, GT, H, W, WAVEGEN, WAVES } from './config.js';
 import { clamp } from './util.js';
 import { G, P } from './state.js';
-import { FLOOR, PATH, PROPS2, WAVEGEN2, WAVES2 } from './level2.js';
+import { FLOOR, PATH, PROPS2, WAVES2 } from './level2.js';
 import * as L3 from './level3.js';
 import * as L4 from './level4.js';
 
@@ -15,7 +15,6 @@ export const LEVELS = {
   1: { waves: WAVES, gen: WAVEGEN, banner: ['stage1', 'subtitle'] },
   2: {
     waves: WAVES2,
-    gen: WAVEGEN2,
     banner: ['stage2', 'subtitle2'],
     boss: ['@prospector', 'prospectorBanner'],
     floor: FLOOR,
@@ -23,7 +22,6 @@ export const LEVELS = {
   },
   3: {
     waves: L3.WAVES3,
-    gen: L3.WAVEGEN3,
     banner: ['stage3', 'subtitle3'],
     floor: L3.FLOOR,
     path: L3.PATH,
@@ -34,7 +32,6 @@ export const LEVELS = {
   },
   4: {
     waves: L4.WAVES4,
-    gen: L4.GEN4.village,
     banner: ['stage4', 'subtitle4'],
     floor: L4.FLOOR,
     path: L4.PATH,

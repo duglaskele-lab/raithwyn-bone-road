@@ -78,48 +78,144 @@ function at(x) {
   return PATH.length - 1;
 }
 // The fights, all where the whole screen is flat (none on a slant), given by where the
-// camera stops. `lvl` rolls an ordinary one (see WAVEGEN2), `sp` is a fixed one; `mid`
-// brings more enemies once the first ones have lost half of their health.
+// camera stops (`s`). Each one has an idea of its own (`name`): `core` are the foes it is about,
+// always the same; `fill` a few plain ones round them, rolled anew every run (see themedWave in
+// waves.js); `mid` come once the first ones have lost half of their health. [type, side,
+// delay]: side 1 from the right, -1 from the left, 0 out of the ground.
 const B0 = SLANT1[1], // the lower street's first screen
   B1 = SLANT2[0] - 960, // and its last
   C0 = SLANT2[1]; // the camp's first screen
+const crowd = (a, b, from = 0.6) => ({
+  n: [a, b],
+  pool: { zombie: 1.2, miner: 1 },
+  from,
+  gap: 0.8,
+});
 export const WAVES2 = [
-  // Main Street: a few at first
-  { s: at(150), lvl: 0 },
-  { s: at(760), lvl: 0.1 },
-  { s: at(L2.A_END - 960), lvl: 0.2 },
-  // the lower street
-  { s: at(B0), lvl: 0.3 },
-  { s: at((B0 + B1) / 2), lvl: 0.4 },
-  { s: at(B1), lvl: 0.5 },
-  { s: at(B1), chain: 1, lvl: 0.55 },
-  // the mining camp under the cliff, then into the mine
-  { s: at(C0), lvl: 0.62 },
-  { s: at(C0 + 400), lvl: 0.72 },
+  // --- Main Street ---
+  // the shift change: miners and their pickaxe charge, a red barrel in the middle of the street
+  {
+    s: at(150),
+    name: 'shift change',
+    core: [
+      ['miner', 1, 0],
+      ['miner', 1, 0.9],
+    ],
+    fill: crowd(1, 2, 1.6),
+  },
+  // powder monkeys: dynamite thrown over a crowd of zombies — knock a lit stick out of a hand
+  // and it goes off among them
+  {
+    s: at(760),
+    name: 'powder monkeys',
+    core: [
+      ['dynamite', 1, 0],
+      ['zombie', 0, 0.3],
+      ['zombie', 0, 0.7],
+      ['dynamite', -1, 1.4],
+      ['zombie', 0, 1.8],
+    ],
+    fill: crowd(0, 1, 2.6),
+  },
+  // the stalker: the first mutant lizard, which leaps away from plain blows
+  {
+    s: at(L2.A_END - 960),
+    name: 'the stalker',
+    core: [
+      ['miner', 1, 0],
+      ['lizard', 1, 0.8],
+      ['miner', -1, 1.8],
+    ],
+    fill: crowd(0, 1, 2.6),
+  },
+  // --- the lower street ---
+  // the wailing street: banshees stun whoever stands in their cone, zombies grab whoever is stunned
+  {
+    s: at(B0),
+    name: 'wailing street',
+    core: [
+      ['banshee', 1, 0],
+      ['zombie', 0, 0.5],
+      ['zombie', 0, 0.9],
+      ['miner', -1, 1.6],
+    ],
+    mid: [
+      ['banshee', -1, 0.3],
+      ['zombie', 0, 0.8],
+      ['zombie', 0, 1.2],
+    ],
+  },
+  // the bar brawl: the strongman throws her across the street, through whoever stands there
+  {
+    s: at((B0 + B1) / 2),
+    name: 'bar brawl',
+    core: [
+      ['strongman', 1, 0],
+      ['miner', -1, 0.6],
+      ['miner', 1, 1.4],
+    ],
+    fill: crowd(1, 2, 2.2),
+  },
+  // the short fuse: miners charging past red barrels, dynamite flying, a lizard to finish
+  {
+    s: at(B1),
+    name: 'short fuse',
+    core: [
+      ['miner', 1, 0],
+      ['dynamite', 1, 0.5],
+      ['miner', -1, 1],
+      ['miner', 1, 1.8],
+    ],
+    mid: [
+      ['lizard', -1, 0.3],
+      ['dynamite', 1, 0.9],
+    ],
+  },
+  // --- the mining camp under the cliff, then into the mine ---
+  // iron and powder: a power armour whose bullets set off the barrels and the sticks lying about
+  {
+    s: at(C0),
+    name: 'iron and powder',
+    core: [
+      ['armor', 1, 0],
+      ['miner', -1, 0.8],
+      ['dynamite', -1, 1.6],
+    ],
+    fill: crowd(1, 2, 2.4),
+  },
+  // the pack hunt: two lizards at once, a banshee wailing over them
+  {
+    s: at(C0 + 400),
+    name: 'pack hunt',
+    core: [
+      ['lizard', 1, 0],
+      ['banshee', -1, 0.8],
+      ['lizard', -1, 1.8],
+    ],
+    fill: crowd(0, 1, 2.8),
+  },
   // the green slime in the flooded hall
   { s: at(L2.HALL_X - 480), boss: 1, sp: [['slime', 1, 0.6]] },
-  { s: at(END_X - 1280), lvl: 0.85 },
-  { s: at(END_X - 1280), chain: 1, lvl: 1 },
+  // the last shift: everything the quarry has, in two goes
+  {
+    s: at(END_X - 1280),
+    name: 'the last shift',
+    core: [
+      ['armor', 1, 0],
+      ['miner', -1, 0.6],
+      ['dynamite', 1, 1.4],
+      ['miner', -1, 2],
+    ],
+    mid: [
+      ['strongman', -1, 0.3],
+      ['lizard', 1, 1],
+      ['zombie', 0, 1.6],
+      ['zombie', 0, 2],
+    ],
+  },
   // the last fight: the Prospector, alone
   { s: at(END_X - 960), boss: 1, final: 1, sp: [['prospector', 1, 0.8]] },
 ];
-
-// How an ordinary fight of Old Quarry is rolled (as WAVEGEN, config.js): a quarter fewer
-// enemies than on the Bone Road, and only a handful at first.
-export const WAVEGEN2 = {
-  count: [4, 9],
-  hard: [0.06, 0.3],
-  mid: [0.14, 0.3],
-  maxHard: [1, 3],
-  gap: [0.95, 0.5],
-  pools: {
-    easy: { miner: 4, zombie: 3 },
-    mid: { dynamite: 1, banshee: 0.8 },
-    hard: { lizard: 1.4, armor: 0.6, strongman: 0.7 },
-  },
-  // never more than this many of a kind in one fight
-  cap: { armor: 2, strongman: 1, banshee: 2 },
-};
 
 // Breakable things on the way: [x, depth into the floor, kind, drop]. Barrels break and may
 // hold something; red barrels blow up.

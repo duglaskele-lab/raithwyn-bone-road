@@ -1,5 +1,7 @@
-// The ordinary fights on the road are rolled anew every run from WAVEGEN (config.js): early
+// The ordinary fights on the Bone Road are rolled anew every run from WAVEGEN (config.js): early
 // on a few easy enemies and now and then a strong one, towards the end crowds of every kind.
+// The fights of the later stages each have an idea of their own (`core`, see themedWave): who
+// is in them is fixed, and only a few plain foes around them are rolled.
 // The rolls use the game's seeded chance, so a replay meets the same enemies.
 import { WAVEGEN } from './config.js';
 import { level } from './level.js';
@@ -60,7 +62,25 @@ export function rollWave(lvl, G = WAVEGEN) {
     return [type, side(type), Math.round(t * 100) / 100];
   });
 }
-/** What wave `i` brings: its fixed list, or a freshly rolled one. */
+/**
+ * A fight with an idea of its own: `core`, the enemies it is about, always the same ([type,
+ * side, delay] each), and round them `fill`, a few plain ones rolled anew every run:
+ * { n: [fewest, most], pool: { type: weight }, from: the first one's delay, gap: between them }.
+ */
+export function themedWave(w) {
+  const sp = w.core.map((s) => s.slice()),
+    F = w.fill;
+  if (!F) return sp;
+  const n = F.n[0] + Math.floor(random() * (F.n[1] - F.n[0] + 1));
+  let t = F.from ?? 0.4;
+  for (let i = 0; i < n; i++) {
+    const type = pick(F.pool);
+    sp.push([type, side(type), Math.round(t * 100) / 100]);
+    t += (F.gap ?? 0.8) * rnd(0.7, 1.3);
+  }
+  return sp;
+}
+/** What wave `i` brings: its fixed list, a fight with an idea, or a freshly rolled one. */
 export function waveSpawns(i) {
   const L = level(),
     w = L.waves[i];
@@ -68,6 +88,8 @@ export function waveSpawns(i) {
   const swap = (s) =>
     s[0] === 'dragon' && P.who && P.who !== 'raithwyn' ? ['evil', ...s.slice(1)] : s.slice();
   // (a fight may roll from its own pools, and have fixed enemies join it: `gen`, `add`)
-  return w.sp ? w.sp.map(swap) : rollWave(w.lvl, w.gen ?? L.gen).concat(w.add ?? []);
+  if (w.sp) return w.sp.map(swap);
+  if (w.core) return themedWave(w);
+  return rollWave(w.lvl, w.gen ?? L.gen).concat(w.add ?? []);
 }
 export const STRONG = Object.keys(WAVEGEN.pools.hard);

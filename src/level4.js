@@ -99,65 +99,155 @@ function at(x) {
 /** A position on the climb, `u` of the way up (the camera's left edge stays put there). */
 const up = (u) => 3 + u;
 
-// How an ordinary fight is rolled (as WAVEGEN, config.js), by where it is: the village and the
-// hills, the mountain (the harpies' home), the forest (the wolves' one). `rider` is a bandit on
-// a cockatrice, `drake` one on a fire drake (see foes/beasts.js).
-const gen = (pools, cap) => ({
-  count: [4, 9],
-  hard: [0.06, 0.32],
-  mid: [0.16, 0.34],
-  maxHard: [1, 3],
-  gap: [0.95, 0.5],
-  pools,
-  cap: { knight: 2, giant: 1, rider: 1, drake: 1, harpy: 2, amazon: 3, wolf: 4, ...cap },
-});
-export const GEN4 = {
-  village: gen({
-    easy: { bandit: 3, amazon: 1 },
-    mid: { rider: 0.7, amazon: 0.6 },
-    hard: { knight: 1, giant: 0.35 },
-  }),
-  mountain: gen({
-    easy: { bandit: 2.4, amazon: 1.4 },
-    mid: { harpy: 1.3, rider: 0.5, drake: 0.35 },
-    hard: { knight: 1, giant: 0.7 },
-  }),
-  forest: gen({
-    easy: { wolf: 2.4, bandit: 1.4 },
-    mid: { amazon: 1, harpy: 0.5, drake: 0.6 },
-    hard: { knight: 1, giant: 0.9 },
-  }),
-};
-
-// The fights, as in Old Quarry: where the camera stops (`s`), how hard an ordinary one is
-// (`lvl`, rolled from `gen`) or a fixed one (`sp`); `add`: fixed ones joining a rolled fight
-// (the thief with his sack, a rider). On the bridge the gorge is on screen.
+// The fights, as in Old Quarry: where the camera stops (`s`). Each one has an idea of its own
+// (`name`): `core` are the foes it is about, always the same; `fill` a few plain ones round them,
+// rolled anew every run (see themedWave in waves.js); `mid` come once the first ones have lost
+// half of their health. [type, side, delay]: side 1 from the right, -1 from the left, 0 out of
+// the ground. `rider` is a bandit on a cockatrice, `drake` one on a fire drake (foes/beasts.js);
+// `gnome` the thief with his sack.
+const bandits = (a, b, from = 0.6) => ({ n: [a, b], pool: { bandit: 1 }, from, gap: 0.9 });
 export const WAVES4 = [
-  // the village
-  { s: at(120), lvl: 0, gen: GEN4.village, add: [['rider', 1, 2.2]] },
-  { s: at(640), lvl: 0.08, gen: GEN4.village, add: [['gnome', -1, 1.2]] },
-  { s: at(1100), lvl: 0.15, gen: GEN4.village },
-  { s: at(L4.VILLAGE_END - 960), lvl: 0.22, gen: GEN4.village },
-  // the hill road
-  { s: at(ROAD[1]), lvl: 0.3, gen: GEN4.mountain, add: [['rider', -1, 1.5]] },
-  // the climb: the camera looking up the trail
-  { s: up(0.35), lvl: 0.36, gen: GEN4.mountain },
-  { s: up(0.95), lvl: 0.42, gen: GEN4.mountain, add: [['gnome', 1, 2]] },
-  // the ledge, the bridge over the gorge, the pool under the falls
-  { s: at(5700), lvl: 0.5, gen: GEN4.mountain, add: [['drake', 1, 1.8]] },
-  { s: at(FALLS[0] - 250), lvl: 0.56, gen: GEN4.mountain },
+  // --- the village ---
+  // raiders: a few bandits, and one riding in on a cockatrice — knock him off and take it
+  {
+    s: at(120),
+    name: 'raiders',
+    core: [
+      ['bandit', 1, 0],
+      ['bandit', 1, 0.8],
+      ['rider', 1, 2.2],
+    ],
+    fill: bandits(1, 2, 1.6),
+  },
+  // spears and a thief: amazons who leap in and flip away, the gnome running through it all
+  {
+    s: at(1100),
+    name: 'spears and a thief',
+    core: [
+      ['amazon', 1, 0],
+      ['bandit', -1, 0.6],
+      ['gnome', -1, 1.2],
+      ['amazon', -1, 2],
+    ],
+    fill: bandits(1, 2, 2.8),
+  },
+  // the shield wall: death knights turn light blows from the front; a heavy blow, their backs,
+  // or the cockatrice that rides in once they are hurt
+  {
+    s: at(L4.VILLAGE_END - 960),
+    name: 'shield wall',
+    core: [
+      ['knight', 1, 0],
+      ['bandit', -1, 0.6],
+      ['knight', 1, 1.6],
+    ],
+    mid: [
+      ['rider', -1, 0.3],
+      ['bandit', 1, 1],
+    ],
+  },
+  // --- the hill road ---
+  // the harpies' sky: only a jump or a shot reaches them, until they dive
+  {
+    s: at(ROAD[1]),
+    name: "the harpies' sky",
+    core: [
+      ['harpy', 1, 0],
+      ['bandit', 1, 0.5],
+      ['harpy', -1, 1.3],
+      ['harpy', 1, 2.4],
+    ],
+    fill: bandits(1, 2, 3),
+  },
+  // --- the climb: the camera looking up the trail, boulders rolling down it ---
+  // the rockslide: a crowd on the trail to lead under the boulders
+  {
+    s: up(0.6),
+    name: 'rockslide',
+    core: [
+      ['bandit', 1, 0],
+      ['bandit', -1, 0.5],
+      ['knight', 1, 1.2],
+      ['amazon', -1, 2],
+    ],
+    fill: bandits(1, 2, 2.8),
+  },
+  // --- the ledge, the bridge over the gorge, the pool under the falls ---
+  // fire on the ledge: a fire drake's rider among spears — its flame is hers to take
+  {
+    s: at(5700),
+    name: 'fire on the ledge',
+    core: [
+      ['amazon', 1, 0],
+      ['drake', 1, 0.8],
+      ['harpy', -1, 1.6],
+      ['amazon', -1, 2.4],
+    ],
+    fill: bandits(1, 2, 3.2),
+  },
+  // hold the bridge: a bone giant by the gorge, bandits to throw into it
+  {
+    s: at(FALLS[0] - 250),
+    name: 'hold the bridge',
+    core: [
+      ['giant', 1, 0],
+      ['bandit', 1, 0.8],
+      ['bandit', -1, 1.6],
+    ],
+    fill: bandits(1, 2, 2.4),
+  },
   {
     s: at(L4.POOL_X - 480),
     boss: 1,
     banner: ['@minotaur', 'minotaurBanner'],
     sp: [['minotaur', 1, 0.6]],
   },
-  // down into the forest
-  { s: at(DESCENT[1]), lvl: 0.66, gen: GEN4.forest },
-  { s: at(DESCENT[1] + 800), lvl: 0.74, gen: GEN4.forest, add: [['gnome', 1, 2.5]] },
-  { s: at(DESCENT[1] + 1600), lvl: 0.82, gen: GEN4.forest, add: [['drake', -1, 1]] },
-  { s: at(L4.GLADE_X - 960), lvl: 0.88, gen: GEN4.forest },
-  { s: at(L4.GLADE_X - 960), chain: 1, lvl: 0.94, gen: GEN4.forest },
+  // --- down into the forest ---
+  // the pack: wolves from both sides, and more of them once the first are down
+  {
+    s: at(DESCENT[1]),
+    name: 'the pack',
+    core: [
+      ['wolf', 1, 0],
+      ['wolf', -1, 0.3],
+      ['wolf', 1, 1],
+    ],
+    mid: [
+      ['wolf', -1, 0.2],
+      ['wolf', 1, 0.6],
+      ['amazon', 1, 1.4],
+    ],
+  },
+  // the ambush: spears leaping out of the trees, wolves at her heels, the thief again
+  {
+    s: at(DESCENT[1] + 800),
+    name: 'ambush',
+    core: [
+      ['amazon', 1, 0],
+      ['amazon', -1, 0.4],
+      ['wolf', 1, 1.2],
+      ['gnome', 1, 2],
+      ['amazon', 0, 2.6],
+    ],
+    fill: { n: [2, 3], pool: { wolf: 1, bandit: 1 }, from: 3.2, gap: 0.8 },
+  },
+  // the warband's last stand: all of it at once, and a fire drake to turn on them
+  {
+    s: at(L4.GLADE_X - 960),
+    name: 'the last stand',
+    core: [
+      ['giant', 1, 0],
+      ['knight', -1, 0.6],
+      ['harpy', 1, 1.4],
+      ['bandit', 1, 2],
+    ],
+    mid: [
+      ['drake', -1, 0.3],
+      ['wolf', 1, 0.8],
+      ['harpy', -1, 1.4],
+      ['wolf', -1, 2],
+    ],
+  },
   // the glade under the moon: the last fight
   { s: at(END_X - 960), boss: 1, final: 1, sp: [['frostwolf', 1, 0.8]] },
 ];

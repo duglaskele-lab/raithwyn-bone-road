@@ -91,7 +91,7 @@ export function hurtEnemy(e, dmg, dir, knock, src, launch = false) {
     G.freeze = Math.max(G.freeze, 0.04);
     return true;
   }
-  dmg *= F.soak?.(e, knock, src, crush) ?? 1;
+  dmg *= F.soak?.(e, knock, src, crush, dir) ?? 1;
   // an omnic monk's shield of light: most of the harm is turned away (a crushing blow ends it)
   if (e.orbUntil > G.time) {
     if (crush) e.orbUntil = 0;

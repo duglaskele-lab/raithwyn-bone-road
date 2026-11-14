@@ -18,7 +18,7 @@ import { keys, pressed } from '../src/input.js';
 import { spawn, updEnemy } from '../src/enemies.js';
 import { hurtEnemy } from '../src/combat.js';
 import { update } from '../src/world.js';
-import { rollWave } from '../src/waves.js';
+import { themedWave } from '../src/waves.js';
 import {
   camTo,
   floorClamp,
@@ -28,7 +28,7 @@ import {
   pathPx,
   startLevel,
 } from '../src/level.js';
-import { FLOOR, L2, PATH, WAVEGEN2, WAVES2, topY } from '../src/level2.js';
+import { FLOOR, L2, PATH, WAVES2, topY } from '../src/level2.js';
 import { seedRandom, setRandom } from '../src/util.js';
 import { DT, freshGame } from './helpers.js';
 
@@ -320,19 +320,38 @@ test('the minigun: spin-up, then bullets land close in front first and further o
   assert.ok(['ko', 'down', 'getup'].includes(P.state) || g.hits >= 3);
 });
 
-test('rolled fights of Old Quarry: at most two power armours, one strongman, two banshees', () => {
+test('the fights of Old Quarry each have an idea: their own foes, a few plain ones round them', () => {
   const kinds = ['miner', 'zombie', 'dynamite', 'lizard', 'armor', 'strongman', 'banshee'],
-    seen = new Set();
-  for (let i = 0; i < 300; i++) {
-    const w = rollWave(1, WAVEGEN2),
-      n = (k) => w.filter((s) => s[0] === k).length;
-    assert.ok(n('armor') <= 2);
-    assert.ok(n('strongman') <= 1);
-    assert.ok(n('banshee') <= 2);
-    assert.ok(w.every((s) => kinds.includes(s[0])));
-    for (const s of w) seen.add(s[0]);
+    seen = new Set(),
+    fights = WAVES2.filter((w) => !w.sp);
+  assert.ok(fights.length >= 8);
+  assert.equal(new Set(fights.map((w) => w.name)).size, fights.length, 'each has its own name');
+  for (const w of fights) {
+    const cores = new Set();
+    for (let i = 0; i < 40; i++) {
+      const sp = themedWave(w).concat(w.mid ?? []),
+        n = (k) => sp.filter((q) => q[0] === k).length;
+      assert.ok(n('armor') <= 2 && n('strongman') <= 1 && n('banshee') <= 2, w.name);
+      assert.ok(sp.length >= 3 && sp.length <= 9, `${w.name}: ${sp.length} foes`);
+      assert.ok(
+        sp.every((q) => kinds.includes(q[0])),
+        w.name,
+      );
+      cores.add(JSON.stringify(sp.slice(0, w.core.length)));
+      for (const q of sp) seen.add(q[0]);
+    }
+    assert.equal(cores.size, 1, 'the foes the fight is about are always the same');
   }
-  assert.ok(seen.has('strongman') && seen.has('banshee'), 'the new ones do come');
+  for (const k of kinds) assert.ok(seen.has(k), `${k} turns up`);
+  // no two fights are about the same foes
+  const about = fights.map((w) =>
+    w.core
+      .concat(w.mid ?? [])
+      .map((q) => q[0])
+      .sort()
+      .join(),
+  );
+  assert.equal(new Set(about).size, about.length);
 });
 
 test('the slime: plain hits do not stop its roll, a heavy blow does, a second one sends it back', () => {
