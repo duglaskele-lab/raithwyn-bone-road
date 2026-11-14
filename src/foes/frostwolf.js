@@ -2,32 +2,43 @@
 // under the moon: a white wolf three times a man's height, crystals of ice along its back, eyes
 // like cold stars. Its body is a wall (the heroine is pushed round it); its head is its weak
 // spot (a jump reaches it best).
-//   - the ice breath: it draws breath (the cone it will fill is marked on the ground), then a
-//     cone of freezing mist rolls along the road; caught in it, she freezes in a block of ice
-//     (J and K mash her out sooner) — and it comes for her;
-//   - the bite: a crouch and a lunge across the glade, jaws first;
-//   - up close, a paw swung round;
-//   - the howl: wolves come out of the forest, icicles fall from the trees on marked spots;
+// Every one of its attacks has an answer of its own, and the right answer opens it up
+// (FROST.open: every blow does more while it is open):
+//   - the ice breath: it draws breath (the cone it will fill is marked on the ground, following
+//     her, and holds still for the last moment), then a cone of freezing mist rolls along the
+//     road; caught in it, she freezes in a block of ice (J and K mash her out sooner). Step out
+//     of the cone, or stand behind a pillar of ice; at its flank while it breathes, it is open;
+//   - the bite: a crouch and a lunge across the glade, jaws first. A heavy blow while it
+//     crouches makes it flinch; a lunge that misses leaves its jaws in the snow (open); a lunge
+//     into a pillar of ice dazes it;
+//   - up close, a paw swung round (a heavy blow as it draws the paw back makes it flinch);
+//   - the howl: wolves come out of the forest, icicles fall from the trees on marked spots and
+//     stay standing as pillars of ice. A blow on its head (a bone thrown at it too) or a dark
+//     ball while it draws breath to howl chokes the howl: no wolves, no icicles;
 //   - from its second phase (FROST.ph2), the leap: out of the glade high over the trees, and
-//     down on her in a ring of ice spikes (its shadow follows her);
+//     down on her in a ring of ice spikes (its shadow follows her, then holds still: run out
+//     of it); a leap that misses leaves it open a moment;
 //   - in its third (FROST.ph3) a blizzard blows, icicles fall all the time, and the breath sweeps
-//     across the road from one side to the other.
-import { FROST, OL, TAU, W } from '../config.js';
+//     across the road from one side to the other (a pillar or its flank is the way out).
+// Attacks no blow can stop have the red outline; after it has flinched nothing stops it for a
+// while (FROST.choke.steady).
+import { DECOR, FROST, OL, TAU, W } from '../config.js';
 import { clamp, fxRandom, fxRnd, random, rnd } from '../util.js';
 import { APP, G, P } from '../state.js';
 import { ctx } from '../gfx.js';
 import { SFX } from '../audio.js';
 import { dust, spark } from '../fx.js';
-import { finale, hitPlayer } from '../combat.js';
+import { breakProp, finale, hitPlayer } from '../combat.js';
 import { styleBreak, scoreMult } from '../style.js';
 import { spawn } from '../enemies.js';
 import { defineFoe } from './registry.js';
-import { faceP, go } from './kit.js';
+import { dizzy, faceP, go } from './kit.js';
 import { drawWolf } from './wild.js';
 
 const K = 2.6; // its size against a grey wolf
 const C = { fur: '#dbe9f5', dk: '#93adc4', belly: '#f4fbff', eye: '#7ff0ff' };
-const UNSTOPPABLE = [
+// its attacks (a blow never makes it reel); those no blow can stop at all: the red outline
+const ATTACKS = [
   'fwbreathw',
   'fwbreath',
   'fwbitew',
@@ -40,6 +51,10 @@ const UNSTOPPABLE = [
   'fwfall',
   'fwland',
 ];
+// a heavy blow in these makes it flinch (unless it has just flinched: `steady`)
+const WINDUPS = ['fwbitew', 'fwswipew'];
+// open: every blow does FROST.open times the harm
+const OPEN = ['fwstuck', 'fwchoke'];
 const speedK = (e) => (e.phase >= 2 ? FROST.p2speed : 1);
 const cd = (e, r) => rnd(...r) * (e.phase >= 2 ? FROST.p2cd : 1);
 const onScreen = (e) => e.x > G.cam + 80 && e.x < G.cam + W - 80;
@@ -48,6 +63,48 @@ const breathY = (e) =>
   e.phase >= 3 && e.state === 'fwbreath'
     ? e.by + Math.sin((e.t / FROST.breath.t) * Math.PI - Math.PI / 2) * 70 * e.sweep
     : e.by;
+/** Is it open (every blow does more)? Stuck, choked or dazed; after a leap that missed; and
+ *  breathing, to whoever stands at its flank or behind it. */
+export const isOpen = (e) =>
+  OPEN.includes(e.state) ||
+  (e.state === 'fwland' && e.missed) ||
+  (e.state === 'fwbreath' && (P.x - e.x) * e.face < 90);
+/** The pillars of ice standing in the glade. */
+const pillars = () => G.props.filter((u) => u.decor === 'icicle' && !u.dead);
+/** A pillar of ice stands where an icicle fell (the oldest melts when there are too many). */
+function pillar(x, y) {
+  const all = pillars();
+  if (all.some((u) => Math.abs(u.x - x) < 50 && Math.abs(u.y - y) < 24)) return;
+  if (all.length >= FROST.pillar.max) breakProp(all[0], 1);
+  const D = DECOR.icicle;
+  G.props.push({
+    isProp: 1,
+    decor: 'icicle',
+    x,
+    y,
+    z: 0,
+    w: D.w,
+    hp: D.hp,
+    drop: null,
+    bornT: G.time,
+  });
+}
+/** Is she behind a pillar of ice, as seen from its jaws? */
+export function sheltered(e) {
+  const rel = (P.x - e.x) * e.face;
+  return pillars().some((u) => {
+    const r = (u.x - e.x) * e.face;
+    return r > 90 && r < rel && Math.abs(u.y - P.y) < FROST.pillar.cover;
+  });
+}
+/** Choked or dazed for `dur` seconds: it reels, open to her blows. */
+function choke(e, dur) {
+  go(e, 'fwchoke', 0, { engage: false, chokeT: dur, z: 0, steady: dur + FROST.choke.steady });
+  SFX.howl();
+  G.shake = Math.max(G.shake, 8);
+  for (let k = 0; k < 8; k++)
+    spark(e.x + e.face * fxRnd(120, 200), e.y - fxRnd(90, 200), '#bff4ff', k % 2 === 0);
+}
 /** How deep the cone is `rel` px in front of it. */
 const coneDy = (rel) => 18 + (FROST.breath.dy - 18) * clamp(rel / FROST.breath.reach, 0, 1);
 
@@ -96,7 +153,7 @@ function icicles(e, n) {
     (e.spikes ??= []).push({ x, y: clamp(y, G.camY + 230, G.camY + 528), t: -i * 0.12 });
   }
 }
-/** A ring of shock and ice where it lands. */
+/** A ring of shock and ice where it lands; returns whether it caught her. */
 function landRing(e) {
   const r = FROST.leap.r;
   G.parts.push({ k: 'gring', x: e.x, y: e.y, t: 0, life: 0.5, s: r, col: '#9ff0ff' });
@@ -120,8 +177,14 @@ function landRing(e) {
       life: 1.2,
     });
   }
-  if (((P.x - e.x) / r) ** 2 + ((P.y - e.y) / (r * 0.42)) ** 2 < 1 && P.z < 40)
-    hitPlayer(FROST.leap.dmg, P.x >= e.x ? 1 : -1, true);
+  // (the pillars of ice it lands on are gone)
+  for (const u of pillars())
+    if (((u.x - e.x) / r) ** 2 + ((u.y - e.y) / (r * 0.42)) ** 2 < 1) breakProp(u, 1);
+  return (
+    ((P.x - e.x) / r) ** 2 + ((P.y - e.y) / (r * 0.42)) ** 2 < 1 &&
+    P.z < 40 &&
+    hitPlayer(FROST.leap.dmg, P.x >= e.x ? 1 : -1, true)
+  );
 }
 
 export default defineFoe('frostwolf', {
@@ -135,10 +198,29 @@ export default defineFoe('frostwolf', {
     howlCd: [7, 10],
     leapCd: [3, 5],
   },
-  timers: ['breathCd', 'biteCd', 'swipeCd', 'howlCd', 'leapCd'],
-  attacks: UNSTOPPABLE,
-  unstoppable: (e) => UNSTOPPABLE.includes(e.state),
-  guard: () => true,
+  timers: ['breathCd', 'biteCd', 'swipeCd', 'howlCd', 'leapCd', 'steady'],
+  attacks: ATTACKS,
+  // (no red outline on what a blow can stop: the howl as it draws breath, a bite or a swipe
+  // as it winds up)
+  unstoppable: (e) =>
+    ATTACKS.includes(e.state) &&
+    (e.steady > 0 || !(WINDUPS.includes(e.state) || (e.state === 'fwhowl' && !e.howled))),
+  // open, every blow does more
+  soak: (e) => (isOpen(e) ? FROST.open : 1),
+  // it never reels from a blow, but the right one at the right moment stops what it is doing
+  guard(e, knock, src) {
+    const head = e.hitZone === 'head';
+    e.hitZone = null;
+    if (e.steady > 0) return true;
+    if (e.state === 'fwhowl' && !e.howled && (head || src === 'hado' || src === 'super')) {
+      e.howlCd = cd(e, FROST.howl.cd);
+      choke(e, FROST.choke.howl);
+    } else if (knock && WINDUPS.includes(e.state)) {
+      e[e.state === 'fwbitew' ? 'biteCd' : 'swipeCd'] = cd(e, FROST.bite.cd);
+      choke(e, FROST.choke.wind);
+    }
+    return true;
+  },
   immune: (e) => e.state === 'fwup' || e.state === 'fwenter' || (e.state === 'fwfall' && e.z > 200),
   // it comes down into the glade from over the trees
   spawn(e) {
@@ -155,11 +237,14 @@ export default defineFoe('frostwolf', {
     const lo = Math.min(x0, x1),
       hi = Math.max(x0, x1),
       hx = e.x + e.face * 175,
-      head = hi > hx - 50 && lo < hx + 50 && zHi > e.z + 110 && zLo < e.z + 240,
+      // (its jaws in the snow, or reeling: the head is down where a blow from the ground lands)
+      low = OPEN.includes(e.state),
+      head = hi > hx - 50 && lo < hx + 50 && zHi > e.z + (low ? 30 : 110) && zLo < e.z + 240,
       body = hi > e.x - 150 && lo < e.x + 150 && zHi > e.z && zLo < e.z + 190;
     return head ? 'head' : body ? 'body' : null;
   },
   zoneHit(e, zone) {
+    e.hitZone = zone; // (for `guard`: a blow on the head chokes a howl)
     if (zone !== 'head') return 1;
     spark(e.x + e.face * 175, e.y - e.z - 180, '#bff4ff', true);
     return 1.3;
@@ -243,8 +328,12 @@ export default defineFoe('frostwolf', {
         const r = FROST.howl.r;
         if (((P.x - s.x) / r) ** 2 + ((P.y - s.y) / (r * 0.45)) ** 2 < 1 && P.z < 60)
           hitPlayer(FROST.howl.dmg, P.x >= s.x ? 1 : -1, false);
+        // it stays standing: a pillar of ice (not under the wolf itself)
+        if (Math.abs(s.x - e.x) > FROST.bw + 30 || Math.abs(s.y - e.y) > 40) pillar(s.x, s.y);
       }
     }
+    // the pillars melt in time
+    for (const u of pillars()) if (G.time - u.bornT > FROST.pillar.life) breakProp(u, 1);
     if (e.spikes) e.spikes = e.spikes.filter((s) => s.t < FROST.howl.warn + 0.2);
     // in the blizzard, now and then an icicle falls near her
     if (e.phase >= 3 && !e.dying && (e.bliz = (e.bliz ?? 0) - dt) <= 0) {
@@ -285,6 +374,7 @@ export default defineFoe('frostwolf', {
     P.score += Math.round(e.T.score * scoreMult());
     Object.assign(e, { dying: true, engage: false, state: 'fwdie', t: 0, hp: 0, z: 0, spikes: [] });
     G.blizzard = false;
+    for (const u of pillars()) breakProp(u, 1);
     SFX.howl();
     finale(e);
   },
@@ -310,8 +400,12 @@ export default defineFoe('frostwolf', {
       if (e.t > FROST.howl.wind + FROST.howl.t) go(e, 'chase', 0, { howlCd: cd(e, FROST.howl.cd) });
     },
     fwbreathw(e, dt) {
-      faceP(e);
-      e.by += (P.y - e.by) * Math.min(1, dt * 3);
+      // the cone follows her, and holds still for the last moment before the breath
+      const wind = FROST.breath.wind / speedK(e);
+      if (e.t < wind - FROST.breath.lock) {
+        faceP(e);
+        e.by += (P.y - e.by) * Math.min(1, dt * 3);
+      }
       if (fxRandom() < 0.7) {
         const [mx, mz] = mouthAt(e);
         G.parts.push({
@@ -336,7 +430,13 @@ export default defineFoe('frostwolf', {
       const B = FROST.breath,
         tip = Math.min(B.reach, 100 + e.t * 1200),
         rel = (P.x - e.x) * e.face;
-      if (!e.hitDone && rel > 100 && rel < tip + 20 && Math.abs(P.y - breathY(e)) < coneDy(rel))
+      if (
+        !e.hitDone &&
+        rel > 100 &&
+        rel < tip + 20 &&
+        Math.abs(P.y - breathY(e)) < coneDy(rel) &&
+        !sheltered(e)
+      )
         e.hitDone = freezePlayer(B.dmg, B.freeze);
       // the mist rolling out
       for (let k = 0; k < 3; k++) {
@@ -384,12 +484,37 @@ export default defineFoe('frostwolf', {
           e.hitDone = true;
           SFX.clack();
         }
+        // a pillar of ice in its way: it shatters on its jaws, and the wolf is dazed
+        const hx = e.x + e.face * 190,
+          hit = pillars().find(
+            (o) => Math.abs(o.x - hx) < FROST.pillar.reach && Math.abs(o.y - e.y) < FROST.pillar.dy,
+          );
+        if (hit && u > 0.15) {
+          breakProp(hit, e.face);
+          e.hp = Math.max(1, e.hp - FROST.pillar.dmg);
+          e.flash = 0.2;
+          e.biteCd = cd(e, B.cd);
+          G.freeze = Math.max(G.freeze, 0.1);
+          choke(e, FROST.choke.pillar);
+          return;
+        }
         if (u >= 1) {
           e.z = 0;
           dust(e.x, e.y, 10);
-          go(e, 'recover', 0, { biteCd: cd(e, B.cd) });
+          // a lunge that missed: its jaws are in the snow a moment
+          if (e.hitDone) go(e, 'recover', 0, { biteCd: cd(e, B.cd) });
+          else go(e, 'fwstuck', 0, { biteCd: cd(e, B.cd) });
         }
       },
+    },
+    // its jaws in the snow after a lunge that missed: open
+    fwstuck(e) {
+      if (fxRandom() < 0.3) dust(e.x + e.face * fxRnd(150, 210), e.y, 1);
+      if (e.t > FROST.bite.stuck) go(e, 'chase');
+    },
+    // choked on its howl, flinching from a heavy blow, or dazed by a pillar of ice: open
+    fwchoke(e) {
+      if (e.t > e.chokeT) go(e, 'chase');
     },
     fwswipew(e) {
       faceP(e);
@@ -423,9 +548,12 @@ export default defineFoe('frostwolf', {
         if (e.t < L.up) e.z = L.h * Math.sin(((e.t / L.up) * Math.PI) / 2);
         else {
           e.z = L.h;
-          const k = Math.min(1, dt * 5);
-          e.x += (clamp(P.x, G.cam + 160, G.cam + W - 160) - e.x) * k;
-          e.y += (P.y - e.y) * k;
+          // its shadow follows her, and holds still for the last moment before it drops
+          if (e.t < L.up + L.hang - L.lock) {
+            const k = Math.min(1, dt * 5);
+            e.x += (clamp(P.x, G.cam + 160, G.cam + W - 160) - e.x) * k;
+            e.y += (P.y - e.y) * k;
+          }
         }
         if (e.t > L.up + L.hang) go(e, 'fwfall');
       },
@@ -439,9 +567,10 @@ export default defineFoe('frostwolf', {
         e.z = L.h * (1 - u * u);
         if (u >= 1) {
           e.z = 0;
-          landRing(e);
+          // (a leap that missed leaves it open a moment)
+          const missed = !landRing(e);
           faceP(e);
-          go(e, 'fwland', 0, { leapCd: cd(e, L.cd) });
+          go(e, 'fwland', 0, { leapCd: cd(e, L.cd), missed });
         }
       },
     },
@@ -471,12 +600,14 @@ export default defineFoe('frostwolf', {
     if (e.state === 'fwbreathw' || e.state === 'fwbreath') {
       const B = FROST.breath,
         k = e.state === 'fwbreath' ? 1 : clamp(e.t / B.wind, 0, 1),
+        set = e.state === 'fwbreath' || e.t >= B.wind / speedK(e) - B.lock,
         x0 = e.x - G.cam + e.face * 100,
         x1 = e.x - G.cam + e.face * B.reach,
         y = breathY(e);
-      ctx.fillStyle = `rgba(140,230,255,${0.08 + 0.16 * k})`;
-      ctx.strokeStyle = `rgba(190,245,255,${0.35 + 0.4 * k})`;
-      ctx.lineWidth = 2.5;
+      // (it follows her, pale; then holds still, bright)
+      ctx.fillStyle = `rgba(140,230,255,${0.08 + 0.16 * k + (set ? 0.12 : 0)})`;
+      ctx.strokeStyle = set ? 'rgba(255,255,255,.95)' : `rgba(190,245,255,${0.35 + 0.4 * k})`;
+      ctx.lineWidth = set ? 3.5 : 2.5;
       ctx.beginPath();
       ctx.moveTo(x0, y - coneDy(100));
       ctx.lineTo(x1, y - coneDy(B.reach));
@@ -490,8 +621,11 @@ export default defineFoe('frostwolf', {
       const r = FROST.leap.r,
         k = e.state === 'fwfall' ? 1 : e.state === 'fwup' ? clamp(e.t / 1.1, 0, 1) : 0,
         x = e.x - G.cam;
-      ctx.strokeStyle = `rgba(160,240,255,${0.45 + 0.4 * k})`;
-      ctx.fillStyle = `rgba(120,220,255,${0.1 + 0.18 * k})`;
+      // (blue while it follows her, red once it holds still)
+      const L = FROST.leap,
+        set = e.state === 'fwfall' || (e.state === 'fwup' && e.t >= L.up + L.hang - L.lock);
+      ctx.strokeStyle = set ? 'rgba(255,90,80,.9)' : `rgba(160,240,255,${0.45 + 0.4 * k})`;
+      ctx.fillStyle = set ? 'rgba(255,80,70,.22)' : `rgba(120,220,255,${0.1 + 0.18 * k})`;
       ctx.lineWidth = 4;
       ctx.beginPath();
       ctx.ellipse(x, e.y, r, r * 0.42, 0, 0, TAU);
@@ -522,8 +656,10 @@ export default defineFoe('frostwolf', {
   draw(e) {
     drawWolf(e, K, C, { big: e.phase >= 3 ? 8 : 4 });
   },
-  // over everyone: the icicles falling
+  // over everyone: stars round its head while it is open, the icicles falling
   over(e) {
+    if (isOpen(e) && !e.dying)
+      dizzy(e.x - G.cam + e.face * 175, e.y - e.z - (OPEN.includes(e.state) ? 150 : 250));
     for (const s of e.spikes ?? []) {
       if (s.done || s.t < 0) continue;
       const u = clamp(s.t / FROST.howl.warn, 0, 1),

@@ -2,6 +2,8 @@
 // state, melee hit boxes and lobbed projectiles.
 import { GB, GT, H, W } from '../config.js';
 import { clamp } from '../util.js';
+import { OL, TAU } from '../config.js';
+import { ctx } from '../gfx.js';
 import { G, P } from '../state.js';
 import { floorSpan, level, overPit } from '../level.js';
 
@@ -66,4 +68,27 @@ export function lob(e, k, x0, z0, flight, g, dist, maxDy, extra) {
     rot: 0,
     ...extra,
   });
+}
+
+/** Stars wheeling round a point of the screen: a foe dazed and open to her blows. */
+export function dizzy(x, y, r = 44) {
+  ctx.save();
+  ctx.fillStyle = '#fff6a8';
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < 3; i++) {
+    const a = G.time * 6 + (i * TAU) / 3,
+      sx = x + Math.cos(a) * r,
+      sy = y + Math.sin(a) * r * 0.28;
+    ctx.beginPath();
+    for (let j = 0; j < 10; j++) {
+      const q = j % 2 ? 4 : 10,
+        b = (j / 10) * TAU - Math.PI / 2;
+      ctx.lineTo(sx + Math.cos(b) * q, sy + Math.sin(b) * q);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+  ctx.restore();
 }

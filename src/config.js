@@ -217,6 +217,13 @@ export const PROS = {
   phase: 0.5,
   fast: 1.25,
   unmask: 1.5,
+  // the fuel tanks on its back, its weak spot: a blow from behind does `mult` times the harm.
+  // While the flame burns (standing or walking) the harm done to the tanks adds up, and at
+  // `heat` they blow their valves: the flame goes out and it stands there venting for `stun`
+  // seconds. Venting, or dazed after a ram that missed, it is open: every blow does `open`
+  // times the harm. Walking with the flame, it only turns round once she has been behind it for
+  // `turn` seconds.
+  tanks: { mult: 1.5, heat: 40, stun: 2.2, open: 1.5, turn: 0.7 },
   flame: {
     wind: 0.75,
     time: 1.6,
@@ -251,7 +258,7 @@ export const PROS = {
   // `overDist` past her, or the big jump to another spot (ARMOR-like, with its slam); `back`,
   // `side`, `over`, `jump`: how likely each one is; then `after` seconds before a kick
   move: {
-    chance: 0.65,
+    chance: 0.35,
     back: 3,
     side: 3,
     over: 2,
@@ -271,6 +278,7 @@ export const PROS = {
     speed: 820,
     dist: 760,
     stop: 0.7,
+    daze: 1.7, // a ram that missed her: it skids on for this long instead, dazed and open
     dmg: 24,
     cd: [6, 10],
     first: [5, 8],
@@ -700,7 +708,9 @@ export const AMAZON = {
 // The death knight: its shield turns a light blow from in front `block` of the time (never a
 // heavy or crushing one, nor one from behind); its thrust runs `dist` px at `speed`.
 export const KNIGHT = {
-  block: 0.55,
+  // its shield turns every light blow and shot from in front; a heavy blow knocks the shield
+  // aside for `open` seconds (and it is down while it swings or recovers from its thrust)
+  open: 2.5,
   thrust: { min: 150, max: 320, wind: 0.45, speed: 620, dist: 300, dmg: 14, cd: [3, 5] },
 };
 // The bone giant: its maul sends a shock wave along the ground (as the strongman's, STRONG),
@@ -795,41 +805,61 @@ export const MINO = {
 export const FROST = {
   bw: 150,
   bodyH: 150,
+  // the breath: the cone follows her in depth while it draws breath, but for the last `lock`
+  // seconds of that it holds still — time to step out of it (or behind an ice pillar)
   breath: {
     min: 120,
     max: 520,
-    wind: 0.85,
+    wind: 0.95,
+    lock: 0.35,
     t: 1.1,
     reach: 460,
-    dy: 90,
-    dmg: 12,
-    freeze: 1.4,
+    dy: 64,
+    dmg: 8,
+    freeze: 1,
     mash: 0.12,
     cd: [5, 7],
   },
-  bite: { min: 160, max: 430, wind: 0.42, air: 0.38, h: 60, dmg: 18, cd: [2.5, 4] },
+  // the bite: a lunge that misses leaves its jaws in the snow for `stuck` seconds
+  bite: { min: 160, max: 430, wind: 0.42, air: 0.38, h: 60, dmg: 18, cd: [2.5, 4], stuck: 1.3 },
   swipe: { wind: 0.4, reach: 230, dy: 50, dmg: 15, cd: [1.4, 2.4] },
   howl: {
-    wind: 0.4,
-    t: 1.2,
-    wolves: [0, 1, 2, 3],
-    spikes: [3, 5, 7],
+    wind: 0.9,
+    t: 1,
+    wolves: [0, 1, 2, 2],
+    spikes: [3, 4, 5],
     warn: 0.9,
     r: 46,
-    dmg: 13,
+    dmg: 10,
     cd: [11, 15],
   },
+  // the leap: its shadow follows her while it hangs up there, but holds still for the last
+  // `lock` seconds before it drops
   leap: {
     wind: 0.7,
     up: 0.45,
     hang: 0.7,
+    lock: 0.35,
     fall: 0.32,
     h: 620,
-    r: 200,
-    dmg: 22,
-    rec: 0.9,
+    r: 170,
+    dmg: 20,
+    rec: 1.2,
     cd: [8, 11],
   },
+  // an opening (its jaws stuck after a bite that missed, the moment after a leap that missed,
+  // breathing with her at its flank, choked or dazed): every blow does `open` times the harm
+  open: 1.5,
+  // what stops it: `howl`: a blow on its head (a bone thrown at it too) or a dark ball while it
+  // draws breath to howl chokes the howl, for this long; `wind`: a heavy blow as it winds up a
+  // bite or a swipe makes it flinch, for this long, and then nothing stops it for `steady`
+  // seconds; `pillar`: a lunge into an ice pillar dazes it for this long
+  choke: { howl: 1.8, wind: 1.1, pillar: 2.4, steady: 4 },
+  // the icicles that fall stay standing as pillars of ice (a thing to break, DECOR.icicle) for
+  // `life` seconds, `max` of them at most. Its lunge into one (`reach` along the road, `dy` in
+  // depth from its jaws) shatters it, hurts it (`dmg`) and dazes it; one between its jaws and
+  // her (within `cover` in depth) stops the breath
+  pillar: { life: 10, max: 5, dmg: 70, reach: 80, dy: 36, cover: 32 },
   ph2: 0.66,
   ph3: 0.33,
   p2speed: 1.15,
@@ -840,7 +870,7 @@ export const FROST = {
 // down the trail now and then (every `gap` s): a shadow at the top of the screen `warn` s before,
 // then down it rolls at `speed`, `r` px round, hitting whoever is in its way (`dmgP` on the
 // heroine, `dmgE` on a foe) — jump it or step aside.
-export const BOULDER = { gap: [4.5, 7.5], warn: 1, speed: 430, r: 34, dmgP: 14, dmgE: 40 };
+export const BOULDER = { gap: [3.5, 6], warn: 1, speed: 430, r: 34, dmgP: 14, dmgE: 60 };
 // Falling off a roof into a gap (Midnight City): she drops for `time` s, then is back on the
 // roof she fell from, `dmg` of her full health the poorer, untouchable for `inv` s. A robot
 // knocked into a gap is gone (`time` s of falling) and counts as beaten.
@@ -877,6 +907,8 @@ export const DECOR = {
   rock: { w: 40, h: 66, hp: 3, col: '#7d8590', score: 50, k4: 1 },
   log: { w: 46, h: 50, hp: 2, col: '#7a5232', score: 30, k4: 1 },
   idol: { w: 22, h: 120, hp: 2, col: '#8a6a4a', score: 40, k4: 1 },
+  // a pillar of ice left by an icicle in the frost wolf's glade (see FROST.pillar)
+  icicle: { w: 20, h: 112, hp: 2, col: '#bff0ff', score: 0, k4: 1 },
 };
 // Explosions: radius on the floor (an ellipse, 0.42 as deep as wide), damage to the player and
 // to enemies, and for a red barrel caught in a blast, the delay before it goes off too; a red
@@ -1325,7 +1357,7 @@ export const TYPES = {
   },
   // the last boss of Midnight City: the cyber crab (CRAB, foes/crab.js)
   crab: {
-    hp: 1800,
+    hp: 1600,
     scale: 1,
     speed: 70,
     dmg: 18,
@@ -1453,7 +1485,7 @@ export const TYPES = {
   },
   // the boss of Old Quarry (see PROS): heavy, only crushing blows move it
   prospector: {
-    hp: 1300,
+    hp: 1150,
     scale: 1.25, // 1.1 times the power armour (1.47 at first, 15% smaller since)
     speed: 44,
     dmg: 20,
@@ -1745,7 +1777,7 @@ export const TYPES = {
   },
   // the mini-boss of Frostfang Pass: the minotaur and his great axe (MINO, foes/minotaur.js)
   minotaur: {
-    hp: 900,
+    hp: 800,
     scale: 1.75,
     speed: 74,
     dmg: 20,
@@ -1768,7 +1800,7 @@ export const TYPES = {
   },
   // the last boss of Frostfang Pass: the frost wolf (FROST, foes/frostwolf.js)
   frostwolf: {
-    hp: 1900,
+    hp: 1500,
     scale: 1,
     speed: 130,
     dmg: 18,

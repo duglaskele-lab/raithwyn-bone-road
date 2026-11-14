@@ -13,14 +13,14 @@ import { CORPSE_T, OL, PROS, TAU, W } from '../config.js';
 import { clamp, ease, fxRandom, fxRnd, random, rnd } from '../util.js';
 import { APP, G, P } from '../state.js';
 import { SFX } from '../audio.js';
-import { dust } from '../fx.js';
+import { dust, spark } from '../fx.js';
 import { breakProp, finale, hitPlayer } from '../combat.js';
 import { styleBreak, scoreMult } from '../style.js';
 import { ctx, rr } from '../gfx.js';
 import { drawAura } from '../skeleton.js';
 import { floorClamp, groundPoint } from '../level.js';
 import { defineFoe } from './registry.js';
-import { faceP, go, moveTo } from './kit.js';
+import { dizzy, faceP, go, moveTo } from './kit.js';
 import { chain } from './lizard.js';
 import {
   armLimb,
@@ -133,6 +133,19 @@ function prosPose(e) {
       o.lF = [0.7 - 0.5 * u, 0.3 - 0.35 * u];
       o.lB = [-0.4, -0.5];
       o.aF = [0.9 - 0.45 * u, 1.6 - 0.3 * u];
+      break;
+    }
+    case 'pvent': {
+      // the valves blown: slumped forward, the arms hanging, shaking
+      const u = ease(clamp(t / 0.25, 0, 1)),
+        k = Math.sin(t * 40) * 0.02;
+      o.lean = 0.06 + 0.34 * u + k;
+      o.hipH = 88 - 10 * u;
+      o.lF = [0.3, -0.25 * u];
+      o.lB = [-0.3, -0.32 - 0.2 * u];
+      o.aF = [0.45 - 0.35 * u, 1.3 - 1.0 * u];
+      o.aB = [0.1, 0.7 - 0.5 * u];
+      o.head = 0.3 * u;
       break;
     }
     case 'mwind':
@@ -1198,12 +1211,61 @@ function reposition(e) {
   } else if (r < M.back + M.side + M.over) hop(e, P.x - away * M.overDist, e.y, 0.6, 140);
   else jumpTo(e, ...groundPoint(random));
 }
+/** Is it open to her blows (PROS.tanks.open)? Venting, or dazed after a ram that missed. */
+export const prosOpen = (e) => e.state === 'pvent' || (e.state === 'rstop' && !!e.dazed);
+/** The tanks blow their valves: the flame goes out and it stands there venting. */
+function vent(e) {
+  go(e, 'pvent', 0, {
+    engage: false,
+    heat: 0,
+    flen: 0,
+    fdy: 0,
+    flameCd: cd(e, PROS.flame.cd),
+    walkCd: cd(e, PROS.walk.cd),
+  });
+  SFX.hiss();
+  SFX.heavy();
+  G.shake = Math.max(G.shake, 10);
+  G.freeze = Math.max(G.freeze, 0.1);
+  for (let k = 0; k < 14; k++)
+    G.parts.push({
+      k: 'smoke',
+      x: e.x - e.face * 60 * e.T.scale + fxRnd(-16, 16),
+      y: e.y - 150 * e.T.scale + fxRnd(-20, 20),
+      vx: -e.face * fxRnd(40, 200),
+      vy: fxRnd(-160, -30),
+      g: 0,
+      t: 0,
+      life: fxRnd(0.6, 1.1),
+      s: fxRnd(10, 20),
+      col: 'rgba(240,240,240,.8)',
+    });
+}
 /** Where a ram that starts now would stop: `dist` ahead, or at the screen's edge. */
 const ramEnd = (e) => clamp(e.x + e.face * PROS.ram.dist, G.cam + 70, G.cam + W - 70);
 
 export default defineFoe('prospector', {
   draw: drawProspector,
-  over: (e) => (e.state === 'flame' || e.state === 'fwalk') && drawFlame(e),
+  over(e) {
+    if (e.state === 'flame' || e.state === 'fwalk') drawFlame(e);
+    // the tanks glow as they heat up; stars round its head while it is open
+    if (e.heat > 0 && !e.dying) {
+      const x = e.x - G.cam - e.face * 60 * e.T.scale,
+        y = e.y - e.z - 150 * e.T.scale,
+        u = clamp(e.heat / PROS.tanks.heat, 0, 1),
+        r = 26 + 22 * u + Math.sin(G.time * 30) * 3 * u,
+        g = ctx.createRadialGradient(x, y, 2, x, y, r);
+      g.addColorStop(0, `rgba(255,240,170,${0.5 + 0.4 * u})`);
+      g.addColorStop(1, 'rgba(255,90,30,0)');
+      ctx.save();
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, TAU);
+      ctx.fill();
+      ctx.restore();
+    }
+    if (prosOpen(e) && !e.dying) dizzy(e.x - G.cam + e.face * 10, e.y - e.z - 268 * e.T.scale, 40);
+  },
   walksIn: true,
   corpse: true,
   jump: PROS.jump,
@@ -1292,8 +1354,24 @@ export default defineFoe('prospector', {
   attacks: [...UNSTOPPABLE, 'jland', 'rstop', 'phop'],
   unstoppable: (e) => UNSTOPPABLE.includes(e.state),
   // in those, nothing throws it (not even a crushing blow); otherwise it is a heavy enemy
-  guard: (e) => UNSTOPPABLE.includes(e.state),
+  guard: (e) => UNSTOPPABLE.includes(e.state) || e.state === 'pvent',
   immune: (e) => e.state === 'unmask',
+  // the fuel tanks on its back take more; open (venting, dazed), everything does
+  soak(e, knock, src, crush, dir) {
+    e.tankHit = dir === e.face;
+    return (e.tankHit ? PROS.tanks.mult : 1) * (prosOpen(e) ? PROS.tanks.open : 1);
+  },
+  // a blow on the tanks while the flame burns heats them, until the valves blow
+  onHit(e, dmg, dir) {
+    if (!e.tankHit) return false;
+    e.tankHit = false;
+    spark(e.x - e.face * 60 * e.T.scale, e.y - e.z - 150 * e.T.scale, '#ffb347', true);
+    if (e.hp > 0 && (e.state === 'flame' || e.state === 'fwalk')) {
+      e.heat = (e.heat ?? 0) + dmg;
+      if (e.heat >= PROS.tanks.heat) vent(e);
+    }
+    return false;
+  },
   die(e, dir) {
     P.score += Math.round(e.T.score * scoreMult());
     Object.assign(e, {
@@ -1339,6 +1417,8 @@ export default defineFoe('prospector', {
         go(e, e.walkMode ? 'fwalk' : 'flame', 0, {
           tick: 0,
           fireT: 0,
+          heat: 0,
+          backT: 0,
           flen: 0,
           sweep0: sw,
           fdy: sw,
@@ -1354,19 +1434,32 @@ export default defineFoe('prospector', {
       e.flen = F.len * Math.min(1, e.t / F.grow);
       pour(e, e.flen, dt, false);
       if (e.t > dur)
-        go(e, 'chase', 0, { flameCd: cd(e, F.cd), fdy: 0, flen: 0, cd: Math.max(e.cd, 0.5) });
+        go(e, 'chase', 0, {
+          flameCd: cd(e, F.cd),
+          fdy: 0,
+          flen: 0,
+          heat: 0,
+          cd: Math.max(e.cd, 0.5),
+        });
     },
     fwalk(e, dt, s) {
       // walking at the player, the flame aimed at the road just in front
-      const Wk = PROS.walk;
-      faceP(e);
+      const Wk = PROS.walk,
+        behind = s.dx * e.face < 0,
+        sp = Wk.speed * (e.phase2 ? PROS.fast : 1);
+      // it is slow to turn: only once she has been behind it a while (its tanks are there)
+      e.backT = behind ? (e.backT ?? 0) + dt : 0;
+      if (e.backT > PROS.tanks.turn) {
+        faceP(e);
+        e.backT = 0;
+      }
       e.flen = Wk.len * Math.min(1, e.t / 0.4);
-      if (s.adx > PROS.flame.from * 0.7)
-        moveTo(e, P.x, P.y, Wk.speed * (e.phase2 ? PROS.fast : 1), dt);
+      if (behind) moveTo(e, e.x + e.face * 120, e.y, sp, dt);
+      else if (s.adx > PROS.flame.from * 0.7) moveTo(e, P.x, P.y, sp, dt);
       pour(e, e.flen, dt, true);
       if (fxRandom() < 0.3) dust(e.x - e.face * 10, e.y, 1);
       if (e.t > Wk.time) {
-        go(e, 'chase', 0, { walkCd: cd(e, Wk.cd), flen: 0, cd: Math.max(e.cd, 0.5) });
+        go(e, 'chase', 0, { walkCd: cd(e, Wk.cd), flen: 0, heat: 0, cd: Math.max(e.cd, 0.5) });
         e.flameCd = Math.max(e.flameCd, 1.5);
       }
     },
@@ -1457,7 +1550,8 @@ export default defineFoe('prospector', {
       }
       if ((e.x - e.rend) * e.face >= 0 || Math.abs(e.x - e.x0) >= R.dist) {
         e.x = e.rend;
-        go(e, 'rstop');
+        // (a ram that missed her: it skids on longer, dazed)
+        go(e, 'rstop', 0, { dazed: !e.hitDone });
         G.shake = Math.max(G.shake, 9);
         dust(e.x, e.y, 10);
         SFX.thud();
@@ -1465,8 +1559,25 @@ export default defineFoe('prospector', {
     },
     rstop(e) {
       if (e.t < 0.3 && fxRandom() < 0.6) dust(e.x + e.face * 20, e.y, 1);
-      if (e.t > PROS.ram.stop)
-        go(e, 'chase', 0, { ramCd: cd(e, PROS.ram.cd), cd: Math.max(e.cd, 0.4) });
+      if (e.t > (e.dazed ? PROS.ram.daze : PROS.ram.stop))
+        go(e, 'chase', 0, { ramCd: cd(e, PROS.ram.cd), cd: Math.max(e.cd, 0.4), dazed: false });
+    },
+    // the valves blown: it stands there venting steam, open
+    pvent(e) {
+      if (fxRandom() < 0.5)
+        G.parts.push({
+          k: 'smoke',
+          x: e.x - e.face * 60 * e.T.scale + fxRnd(-12, 12),
+          y: e.y - 160 * e.T.scale,
+          vx: -e.face * fxRnd(20, 90),
+          vy: fxRnd(-120, -40),
+          g: 0,
+          t: 0,
+          life: fxRnd(0.5, 0.9),
+          s: fxRnd(8, 15),
+          col: 'rgba(240,240,240,.7)',
+        });
+      if (e.t > PROS.tanks.stun) go(e, 'chase', 0, { cd: 0.5 });
     },
     mwind(e) {
       if (e.t > PROS.mortar.wind) go(e, 'mortar', 0, { shots: volley(e), shotT: 0 });

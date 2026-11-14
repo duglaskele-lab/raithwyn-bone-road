@@ -8,6 +8,7 @@
     "dev": "node tools/serve.mjs",
     "test": "node --test",
     "build": "node tools/build.mjs",
+    "balance": "node tools/balance.mjs",
     "format": "prettier --write src tests tools",
     "atlas": "python3 tools/build_atlas.py",
     "portraits": "python3 tools/build_portraits.py"

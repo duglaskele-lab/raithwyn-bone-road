@@ -6,7 +6,7 @@ import { spawn, updEnemy } from '../src/enemies.js';
 import { hurtEnemy, strike } from '../src/combat.js';
 import { update } from '../src/world.js';
 import { camTo, pathAt, startLevel } from '../src/level.js';
-import { WAVEGEN3 } from '../src/level3.js';
+import { WAVES3 } from '../src/level3.js';
 import '../src/foes/index.js';
 import { DT, freshGame } from './helpers.js';
 
@@ -34,7 +34,13 @@ function foe(type, dx = 160, extra = {}) {
 }
 
 test("the robots come in Midnight City's fights", () => {
-  const all = Object.values(WAVEGEN3.pools).flatMap((p) => Object.keys(p));
+  const all = WAVES3.filter((w) => !w.sp).flatMap((w) =>
+    w.core
+      .concat(w.mid ?? [])
+      .map((q) => q[0])
+      .concat(Object.keys(w.fill?.pool ?? {})),
+  );
+  const n = (k) => all.filter((x) => x === k).length;
   for (const k of [
     'guard',
     'grenadier',
@@ -48,7 +54,18 @@ test("the robots come in Midnight City's fights", () => {
   ])
     assert.ok(all.includes(k), k);
   assert.ok(!all.includes('monk'), 'no omnic monk any more');
-  assert.ok(WAVEGEN3.pools.mid.catguard < WAVEGEN3.pools.mid.ninja, 'the guardess is rarer');
+  assert.ok(n('catguard') < n('guard'), 'the guardess is rarer');
+  // every fight has an idea of its own: a name, and foes no other fight has in the same mix
+  const fights = WAVES3.filter((w) => !w.sp),
+    about = fights.map((w) =>
+      w.core
+        .concat(w.mid ?? [])
+        .map((q) => q[0])
+        .sort()
+        .join(),
+    );
+  assert.equal(new Set(fights.map((w) => w.name)).size, fights.length);
+  assert.equal(new Set(about).size, about.length);
 });
 
 test("the guard's baton stuns her for a moment", () => {

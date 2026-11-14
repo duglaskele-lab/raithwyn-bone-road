@@ -312,14 +312,22 @@ export function drawWolf(e, k = 1, C = null, frost = null) {
     sx = e.x - G.cam,
     sy = e.y - e.z,
     br = Math.sin(e.anim * 3) * 1.5;
-  const crouch = ['wlw', 'windup', 'fwbitew', 'fwleapw', 'fwbreathw', 'fwswipew'].includes(st)
+  const crouch = [
+      'wlw',
+      'windup',
+      'fwbitew',
+      'fwleapw',
+      'fwbreathw',
+      'fwswipew',
+      'fwstuck',
+    ].includes(st)
       ? 1
       : 0,
     leap = ['wl', 'fwbite', 'fwup', 'fwfall'].includes(st),
-    bite = st === 'attack' || st === 'fwbite' || (st === 'wl' && e.t > 0.2),
+    bite = st === 'attack' || st === 'fwbite' || st === 'fwstuck' || (st === 'wl' && e.t > 0.2),
     swipe = st === 'fwswipe',
     lying = ['down', 'corpse', 'fall', 'fwdie'].includes(st) && !(st === 'fall' && e.z > 20),
-    reel = st === 'hurt' || st === 'getup',
+    reel = st === 'hurt' || st === 'getup' || st === 'fwchoke',
     howl = st === 'fwhowl',
     breath = st === 'fwbreath' || st === 'fwbreathw';
   ctx.save();

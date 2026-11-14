@@ -8,7 +8,7 @@ import { update } from '../src/world.js';
 import { FOES } from '../src/foes/index.js';
 import { camTo, pathAt } from '../src/level.js';
 import { startLevel } from '../src/level.js';
-import { inFlame } from '../src/foes/prospector.js';
+import { inFlame, prosOpen } from '../src/foes/prospector.js';
 import { DT, freshGame } from './helpers.js';
 import { seedRandom } from '../src/util.js';
 
@@ -34,9 +34,9 @@ function arena(x = 600) {
   return e;
 }
 
-test('the Prospector: 1300 health, bigger than the power armour, heavy, a big boss', () => {
+test('the Prospector: 1150 health, bigger than the power armour, heavy, a big boss', () => {
   const T = TYPES.prospector;
-  assert.equal(T.hp, 1300);
+  assert.equal(T.hp, 1150);
   assert.ok(Math.abs(T.scale - 1.47 * 0.85) < 0.01, '15% smaller than it was');
   assert.equal(T.weight, 'heavy');
   assert.equal(T.bigBoss, 1);
@@ -254,7 +254,7 @@ test('in the second phase the ram leaves a cone of fire behind it that dies down
   assert.ok(!G.pools.some((a) => a.fire));
 });
 
-test('up close it mostly moves elsewhere on its jets instead of kicking', () => {
+test('up close it now and then moves elsewhere on its jets instead of kicking', () => {
   const M = PROS.move;
   assert.equal(PROS.bash, undefined, 'no shoulder charge');
   const seen = {};
@@ -285,7 +285,7 @@ test('up close it mostly moves elsewhere on its jets instead of kicking', () => 
     else if (dx > 150) seen.back = 1;
   }
   assert.deepEqual(Object.keys(seen).sort(), ['back', 'jump', 'over', 'side']);
-  assert.ok(kicks > 20 && kicks < 70, `kicks only now and then: ${kicks} of 120`);
+  assert.ok(kicks > 60 && kicks < 100, `it mostly stands and fights: ${kicks} kicks of 120`);
   // a hop lands it somewhere else, and it does not kick at once
   freshGame();
   const e = arena(600);
@@ -305,4 +305,62 @@ test('up close it mostly moves elsewhere on its jets instead of kicking', () => 
   assert.equal(e.state, 'chase');
   assert.ok(Math.abs(e.x - (P.x + 310)) < 5);
   assert.ok(e.cd >= M.after - 0.1);
+});
+
+test('the fuel tanks on its back are its weak spot; hit while the flame burns, they blow', () => {
+  const e = arena(700);
+  const hp = e.hp;
+  hurtEnemy(e, 10, 1, false, 'punch'); // from in front (it faces left, pushed right)
+  assert.equal(e.hp, hp - 10);
+  G.freeze = 0;
+  hurtEnemy(e, 10, -1, false, 'punch'); // from behind
+  assert.ok(Math.abs(hp - 10 - e.hp - 10 * PROS.tanks.mult) < 1e-9);
+  assert.ok(!e.heat, 'no heat while the flame is out');
+  // the flame burns: blows on the tanks heat them until the valves blow
+  P.x = e.x - PROS.flame.from - 240;
+  Object.assign(e, { state: 'fwind', t: 0 });
+  step(PROS.flame.wind + 0.3, () => ((e.flameCd = 99), (P.inv = 99)));
+  assert.equal(e.state, 'flame');
+  G.freeze = 0;
+  hurtEnemy(e, 10, -1, false, 'punch');
+  assert.ok(e.heat > 0);
+  assert.equal(e.state, 'flame', 'not yet');
+  hurtEnemy(e, 10, 1, false, 'punch');
+  assert.ok(e.heat < PROS.tanks.heat, 'a blow from in front does not heat them');
+  G.freeze = 0;
+  hurtEnemy(e, 20, -1, true, 'punch');
+  assert.equal(e.state, 'pvent');
+  assert.ok(prosOpen(e));
+  assert.ok(!FOES.prospector.unstoppable(e));
+  step(0.2, () => (P.inv = 99));
+  assert.ok(!inFlame(e), 'the flame is out');
+  const hp2 = e.hp;
+  G.freeze = 0;
+  hurtEnemy(e, 10, 1, false, 'punch');
+  assert.ok(Math.abs(hp2 - e.hp - 10 * PROS.tanks.open) < 1e-9, 'open: every blow does more');
+  step(PROS.tanks.stun + 0.1, () => (P.inv = 99));
+  assert.equal(e.state, 'chase');
+});
+
+test('a ram that misses her leaves it skidding, dazed and open; walking with the flame it is slow to turn', () => {
+  const e = arena(700);
+  e.ramCd = 0;
+  step(PROS.ram.wind + 0.1);
+  assert.equal(e.state, 'ram');
+  P.y += 120; // she steps off its lane
+  for (let i = 0; i < 180 && e.state === 'ram'; i++) step(DT);
+  assert.equal(e.state, 'rstop');
+  assert.ok(e.dazed && prosOpen(e));
+  step(PROS.ram.stop + 0.2, () => (P.inv = 99));
+  assert.equal(e.state, 'rstop', 'longer than a ram that struck');
+  step(PROS.ram.daze, () => (P.inv = 99));
+  assert.notEqual(e.state, 'rstop');
+  // the walking flame: she gets behind it, and it turns only after a while
+  Object.assign(e, { state: 'fwalk', t: 0, face: -1, backT: 0, ramCd: 99, walkCd: 99 });
+  P.x = e.x + 150;
+  P.y = e.y;
+  step(PROS.tanks.turn * 0.6, () => (P.inv = 99));
+  assert.equal(e.face, -1);
+  step(PROS.tanks.turn * 0.6, () => (P.inv = 99));
+  assert.equal(e.face, 1);
 });
