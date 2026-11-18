@@ -929,21 +929,23 @@ machines of a dead colony: steel, current, lasers; amber lamps and warning strip
 each other as well as the heroine. It comes after Midnight City (keeping score and lives);
 winning it leads on to Frostfang Pass.
 
-*The stage is being built.* This first part is the dunes by the old highway, four fights and
-the first four foes (two of each side); the scrapyard, the crater and the canyon, the rest of
-the two sides (the rust-eater, the two-headed brute, the glowing one; the harvester, the spotter,
-the mine beetles), the sandworm and the last fight (the Crater Mother and the Overseer, and the
-Chimera the survivor becomes) come next.
+*The stage is being built.* So far: the dunes by the old highway and the Legion's scrapyard,
+nine fights, all twelve foes of the two sides; the crater and the canyon, the sandworm and the
+last fight (the Crater Mother and the Overseer, and the Chimera the survivor becomes) come next.
 
-**The road** (`src/level4.js`): a straight desert road, as deep as the Bone Road's, the old
-highway's cracked asphalt under the sand in the middle of it.
+**The road** (`src/level4.js`): a straight desert road, as deep as the Bone Road's — the old
+highway's cracked asphalt under the sand in the middle of it, then through the gate of the
+Legion's scrapyard ("LEGION SALVAGE · KEEP OUT") onto its packed, oil-stained earth.
 
 **The scenery** (`src/bg4.js`, all in code): a hot orange sky, the sun, vultures wheeling;
 flat-topped mesas far off and dunes; power pylons with sagging cables, the billboard of the dead
 colony ("NEW HOPE COLONY · 40 MI"), rusted cars half sunk in the sand, dead thorn bushes, the ribs
 and skull of some huge beast, the great head of one of the Legion's machines half buried (its
 eye still glowing faintly), a camp of the Children of the Crater (tents, smoke, a green glow, a
-robot's head on a pole); the wind blowing sand across the screen and the heat over it all.
+robot's head on a pole); in the scrapyard, fences of corrugated iron, heaps of scrap (pipes,
+wheels, robot arms sticking out of them), stacks of crushed cars, a crane swinging a car on its
+magnet, floodlight towers with amber lamps; the wind blowing sand across the screen and the heat
+over it all.
 Music: the western's ride ("frontier") for now.
 
 **The war** (`WAR`, `src/foes/war.js`). Every fighter of either side looks round now and then
@@ -975,7 +977,24 @@ hers turns it on her.
   struck by a spit or standing in a puddle corrodes (green drips run down it) and takes
   `SPIT.corrodeK` times the harm of every blow for `SPIT.corrode` s — lead them into it.
 
-**The Rust Legion** (`src/foes/legion.js`; they roll and walk in from the sides; fallen, a wreck):
+- **Rust-eater** (medium) — stocky, a huge underbite of steel teeth, a robot's claw grafted on
+  for an arm. Bites hard (14, throws). A robot's wreck nearby it walks to and **eats**
+  (`EATER.eat` s): `EATER.heal` health back and a **plate** of rusty metal more on its hide (three
+  at most); every plate turns `EATER.plate` of the harm of a blow, a heavy blow tears one off.
+  Kill the robots away from it.
+- **Two-headed brute** (heavy) — a hulk of pink mutated flesh, a dopey head and an angry one, a
+  car door for a shield. It **grabs** whoever is in front: her it throws down hard (18); a robot
+  it lifts over its heads and **hurls along its lane** — the body strikes whoever it meets, her
+  or other robots (`BRUTE.throw`). **Three blows of hers in a row** and the dopey head laughs at
+  the struck one ("HA-HA!"): `BRUTE.laugh` s open, every blow `BRUTE.open` times the harm.
+- **Glowing one** (medium) — a starved body gone half clear, its bones glowing green. A **ring of
+  radiation** round it (marked on the ground) bites her while she stands in it, and makes the
+  robots in it **glitch** — they turn about at random, their blows going astray. Killed, it
+  swells and **bursts in a green flash** that hurts everyone near (`BLAST.rad`): lead it among
+  the robots.
+
+**The Rust Legion** (`src/foes/legion.js`, `src/foes/legion2.js`; they roll and walk in from the
+sides; fallen, a wreck):
 
 - **Junker** (light) — a rusty bin on one wheel, a dome head with an amber eye, a pincer claw and
   a zapper prong. Quick; it zaps her with the prong: 8, and a moment stunned (`JUNK.stun`; a rival
@@ -985,6 +1004,20 @@ hers turns it on her.
   an arc and sparks; the robot gets up with half its health, worth half its score the second
   time), and **mends hurt robots** with a green arc (`WELD.rate` a second); in between it burns
   with its torch (14). A blow while it welds or mends stops it: **hit it first**.
+- **Harvester** (heavy) — an old combine on tracks, a reel of blades in front. From a distance it
+  **revs** (its lane marked red on the ground, `HARV.wind` s) and **charges** along the lane to
+  the edge of the screen (red outline: nothing stops it), mowing whoever is on it — her (18) and
+  the mutants too (30). There it **sticks in the sand** `HARV.stuck` s, stars over it, every blow
+  `HARV.open` times the harm. Up close, its reel. Stay off its lane; let it mow the crowd.
+- **Spotter** (medium) — a box on three tall stilts with a long lens. It keeps its distance in
+  line with whom it fights, **aims** (a red line along the lane, following it, then still for the
+  last `SPOT.lock` s) and fires a **beam that strikes the first body on its line**: her (16), a
+  mutant (24) — or one of its own, who shields her. Light blows do not stop it; a heavy blow
+  knocks its stilts from under it.
+- **Mine beetle** (light, small, in numbers) — a rusty dome on six legs with a warning light. It
+  runs at the nearest living thing (her or a mutant), arms itself (the light blinks faster) and
+  **bursts** (`BLAST.mine`). A blow of hers **kicks it away**: it bursts where it lands, or on
+  whoever it strikes in flight — send it back among the robots.
 
 **The fights** (`WAVES4`):
 
@@ -994,6 +1027,11 @@ hers turns it on her.
 | Acid rain | spitters behind, junkers rolling in | lead the robots into the puddles |
 | The repair shop | a welder, junkers, scavengers | the welder first, or it raises them all |
 | Scrap war | both sides at full strength, a second welder | everything above |
+| The rust-eaters | a rust-eater, junkers, a welder | kill the robots away from it, or it grows plates |
+| The glowing one | two glowing ones among junkers and a welder | lead them into the robots |
+| The spotters' line | two spotters, a rust-eater, scavengers | a body between her and the lens |
+| Minefield | mine beetles, the two-headed brute | kick the beetles back; three blows on the brute |
+| The harvest | the harvester, a mutant crowd, then a bit of everything | off its lane: let it mow them |
 
 **Things to break** (`DECOR`, `src/props4.js`): rusty oil drums with a radiation sign (2 blows),
 stacks of old tyres, the old highway's road signs.
@@ -1194,7 +1232,9 @@ src/
     common.js             shared states: rising, chasing, wind-up, strike, falling...
     bikes.js              the Rocker's motorbike, chopper and chain
     war.js                the Wastelands' war of the two sides: whom to fight, blows, score, wrecks
-    wasteart.js           how the Wastelands' fighters look
+    crater.js, crater2.js the Children of the Crater (mutants)
+    legion.js, legion2.js the Rust Legion (robots)
+    wasteart.js, wasteart2.js  how the Wastelands' fighters look
   anim.js                 skeletal animation as data: poses, clips, shared clips
   replay.js               recording a run and replaying it
   world.js                one simulation step and the wave script
@@ -1301,7 +1341,12 @@ What is checked:
   music, both sides in every fight; the war (fighting each other, blows on whoever is in front but
   never their own side, the half score and "SET ON!", the grudge, the clash that does not see
   her); the scavenger's saw, the spitter's corroding acid and its sac, the junker's zap and
-  tipping it over, the welder welding a wreck back up, mending, stopped by a blow.
+  tipping it over, the welder welding a wreck back up, mending, stopped by a blow; the
+  rust-eater eating a wreck (health, plates, a plate torn off), the brute (her thrown down, a
+  robot hurled into its own, the laughing head), the glowing one (its ring, the glitch, the
+  burst), the harvester (its charge mowing her and the mutants, stuck and open), the spotter's
+  beam (a robot between shields her, a mutant takes it, toppled), the mine beetle (bursting on
+  her, kicked back among the robots).
 - `level5.test.js` — Frostfang Pass: the `Z`+`5` secret, the last stage, the road (the climb,
   the bridge and the gorge), the camera turning up the trail, the fights and their pools, the
   music; the beasts (ridden in, a rider knocked off, never hurt, ridden by her, attacking her

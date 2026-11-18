@@ -8,7 +8,7 @@
 // Over a fighter busy with a rival hang two crossed blades in its side's colour.
 //
 // A robot that falls lies as a wreck a while: a welder can raise it, a scavenger strip it.
-import { OL, WAR } from '../config.js';
+import { BRUTE, OL, WAR } from '../config.js';
 import { rnd } from '../util.js';
 import { G, P } from '../state.js';
 import { ctx } from '../gfx.js';
@@ -17,6 +17,7 @@ import { floatTxt } from '../fx.js';
 import { scoreMult, styleGain } from '../style.js';
 import { t } from '../i18n.js';
 import { go, inFront, moveTo, playerDown } from './kit.js';
+import { defineState } from './registry.js';
 import { meetsPlayer } from '../height.js';
 import { SFX } from '../audio.js';
 import { levelWaves } from '../level.js';
@@ -182,6 +183,56 @@ export function brawl(e, dt, ctxE, reach, wind) {
   }
   moveTo(e, o.x + side * reach * 0.72, o.y, e.T.speed, dt);
 }
+
+// --- every frame of a fighter --------------------------------------------------------------
+
+/**
+ * What every fighter of the war does each frame besides its own: a body thrown by the brute
+ * strikes whoever it meets in flight (her, or its own side: the brute's foes); a robot in the
+ * glowing one's ring glitches — now and then it turns about, its blow going astray.
+ */
+export function warTick(e, dt) {
+  if (e.thrownBy) {
+    if (e.state !== 'air' && e.state !== 'wkFall') e.thrownBy = null;
+    else {
+      const dir = Math.sign(e.vx) || 1;
+      if (
+        !e.thrownHitP &&
+        Math.abs(P.x - e.x) < 50 &&
+        Math.abs(P.y - e.y) < 26 &&
+        meetsPlayer(e.z, e.z + 90)
+      ) {
+        e.thrownHitP = true;
+        hitPlayer(BRUTE.throw.hit, dir, true);
+      }
+      for (const o of G.enemies)
+        if (
+          o !== e &&
+          o.T.side === e.T.side &&
+          fightable(o) &&
+          !(e.thrownHit ??= []).includes(o) &&
+          Math.abs(o.x - e.x) < 50 &&
+          Math.abs(o.y - e.y) < 26 &&
+          e.z < (o.T.height ?? 150)
+        ) {
+          e.thrownHit.push(o);
+          rivalHit(e.thrownBy, o, BRUTE.throw.hit, true, dir);
+        }
+    }
+  }
+  if (e.glitchT > 0) {
+    e.glitchT -= dt;
+    if (rnd(0, 1) < dt * 1.5) e.face = -e.face;
+  }
+}
+// Held over the brute's heads, waiting to be thrown (the brute moves it): nothing it can do.
+defineState('thHeld', (e) => {
+  const h = e.heldBy;
+  if (!h || h.dead || h.dying || h.held !== e) {
+    e.heldBy = null;
+    go(e, 'air', 0, { vx: 0, vz: 0 });
+  }
+});
 
 // --- the wrecks of robots -------------------------------------------------------------------
 

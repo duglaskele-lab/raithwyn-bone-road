@@ -1007,6 +1007,72 @@ export const WELD = {
   cd: [3, 5],
   torch: { wind: 0.45, act: 0.3, rec: 0.5, dmg: 14, reach: 104 },
 };
+// The rust-eater: its bite (`bite`); a robot's wreck within `see` px it walks to and eats in `eat`
+// s — `heal` health back and a plate of metal more (`plates` at most); every plate turns `plate`
+// of the harm of a blow; a heavy blow tears one off.
+export const EATER = {
+  bite: { wind: 0.45, act: 0.14, rec: 0.5, dmg: 14, reach: 92 },
+  see: 560,
+  eat: 1.6,
+  heal: 40,
+  plates: 3,
+  plate: 0.15,
+};
+// The two-headed brute: it grabs whoever is in front (`grab`) — her it throws down hard (`dmg`),
+// a foe of the other side it lifts over its heads for `hold` s and hurls along its lane
+// (`throw`: speed; the body strikes whoever it meets, her or its own side, for `hit`). Three
+// blows of hers within `argue` s and the dopey head laughs at the struck one: `laugh` s open,
+// every blow `open` times the harm.
+export const BRUTE = {
+  grab: { wind: 0.55, reach: 100, dmg: 18, rec: 0.7 },
+  hold: 0.45,
+  throw: { speed: 760, hit: 18 },
+  argue: 2.5,
+  laugh: 1.2,
+  open: 1.6,
+};
+// The glowing one: its ring of radiation (`aura` px) bites her (`bite` every `tick` s) and makes
+// the robots in it glitch (they turn about at random); its claws (`swipe`); killed, it swells for
+// `boom` s and bursts (BLAST.rad).
+export const GLOW = {
+  aura: 120,
+  bite: 3,
+  tick: 0.7,
+  swipe: { wind: 0.45, act: 0.14, rec: 0.45, dmg: 10, reach: 80 },
+  boom: 0.7,
+};
+// The harvester: from over `min` px it revs for `wind` s (its lane marked) and charges along it at
+// `speed` to the edge of the screen, mowing whoever is on it (`dmg`, thrown; a mutant `rdmg`);
+// there it sticks in the sand `stuck` s, every blow `open` times the harm. Up close, its reel.
+export const HARV = {
+  min: 200,
+  wind: 0.8,
+  speed: 620,
+  dmg: 18,
+  rdmg: 30,
+  stuck: 1.5,
+  open: 1.5,
+  cd: [3.5, 5.5],
+  chop: { wind: 0.4, act: 0.3, rec: 0.5, dmg: 12, reach: 150 },
+};
+// The spotter: keeps `keep` px off in line with whom it fights; aims for `aim` s (its line follows
+// the lane, `track` px/s, then holds still the last `lock` s) and fires: the beam strikes the
+// first body on its line — her (`dmg`), a mutant (`rdmg`) — or one of its own, who shields her.
+// A heavy blow topples it.
+export const SPOT = {
+  keep: 400,
+  aim: 0.9,
+  lock: 0.3,
+  fire: 0.3,
+  dmg: 16,
+  rdmg: 24,
+  track: 70,
+  cd: [2.4, 3.6],
+};
+// The mine beetle: runs at the nearest living thing (her or a mutant), arms itself within `near` px
+// and bursts `arm` s later (BLAST.mine). A blow of hers kicks it away (`kick` px/s): it bursts
+// where it lands, or on whoever it strikes.
+export const MINE = { near: 56, arm: 0.6, kick: 520 };
 // Falling off a roof into a gap (Midnight City): she drops for `time` s, then is back on the
 // roof she fell from, `dmg` of her full health the poorer, untouchable for `inv` s. A robot
 // knocked into a gap is gone (`time` s of falling) and counts as beaten.
@@ -1070,6 +1136,9 @@ export const BLAST = {
   missile: { r: 62, dmgP: 12, dmgE: 0, chain: 0.14 },
   // a Jawacorp grenade (the barrier heavy's, the grenadier guard's): it hurts robots too
   jnade: { r: 150, dmgP: 18, dmgE: 40, chain: 0.14 },
+  // the Wastelands: a mine beetle bursting; the glowing one's last flash (green: `rad`)
+  mine: { r: 95, dmgP: 14, dmgE: 34, chain: 0.14 },
+  rad: { r: 170, dmgP: 16, dmgE: 50, chain: 0.14, rad: 1 },
 };
 // Lucy's grenade (I): costs `cost` rage; its blast is a crushing blow (BLAST `crush`); it leaves her hand `x` ahead and `z` up, flies in an
 // arc (`vx`, `vz` up, `g` down), spinning `spin` turns a second; on the ground it bounces
@@ -1777,6 +1846,120 @@ export const TYPES = {
     dk: '#8a4523',
     eye: '#ffb02e',
     score: 500,
+  },
+  rusteater: {
+    hp: 150,
+    scale: 1,
+    speed: 105,
+    dmg: 14,
+    reach: 92,
+    wind: 0.45,
+    act: 0.14,
+    rec: 0.5,
+    cd: [1, 1.8],
+    side: 'mut',
+    weight: 'medium',
+    height: 170,
+    shadow: 56,
+    col: '#8fa35a',
+    dk: '#6f8442',
+    eye: '#ffb02e',
+    score: 600,
+  },
+  twohead: {
+    hp: 300,
+    scale: 1,
+    speed: 70,
+    dmg: 18,
+    reach: 100,
+    wind: 0.55,
+    act: 0.2,
+    rec: 0.7,
+    cd: [1.6, 2.6],
+    side: 'mut',
+    weight: 'heavy',
+    height: 230,
+    shadow: 70,
+    col: '#c98e72',
+    dk: '#9a6550',
+    eye: '#ff4a2a',
+    score: 900,
+  },
+  glowing: {
+    hp: 90,
+    scale: 1,
+    speed: 85,
+    dmg: 10,
+    reach: 80,
+    wind: 0.45,
+    act: 0.14,
+    rec: 0.45,
+    cd: [1, 1.8],
+    side: 'mut',
+    weight: 'medium',
+    height: 190,
+    shadow: 34,
+    col: '#c8ffaa',
+    dk: '#9dff5a',
+    eye: '#ffffff',
+    score: 450,
+  },
+  harvester: {
+    hp: 280,
+    scale: 1,
+    speed: 55,
+    dmg: 18,
+    reach: 150,
+    wind: 0.8,
+    act: 0.3,
+    rec: 0.5,
+    cd: [2, 3],
+    side: 'bot',
+    weight: 'heavy',
+    height: 170,
+    shadow: 110,
+    col: '#b8612e',
+    dk: '#8a4523',
+    eye: '#ffb02e',
+    score: 1000,
+  },
+  spotter: {
+    hp: 90,
+    scale: 1,
+    speed: 80,
+    dmg: 16,
+    reach: 60,
+    wind: 0.9,
+    act: 0.3,
+    rec: 0.5,
+    cd: [2.4, 3.6],
+    side: 'bot',
+    weight: 'medium',
+    height: 220,
+    shadow: 40,
+    col: '#b8612e',
+    dk: '#8a4523',
+    eye: '#ff3a2a',
+    score: 450,
+  },
+  mine: {
+    hp: 10,
+    scale: 1,
+    speed: 230,
+    dmg: 14,
+    reach: 56,
+    wind: 0.6,
+    act: 0.1,
+    rec: 0.3,
+    cd: [0.2, 0.5],
+    side: 'bot',
+    crowd: 0.4,
+    height: 50,
+    shadow: 26,
+    col: '#b8612e',
+    dk: '#8a4523',
+    eye: '#ff3a2a',
+    score: 60,
   },
   // the skeleton Raithwyn calls up at half health: a dandy in a top hat and a torn tailcoat,
   // a rose in its teeth; tough (the player's blows and hers both hurt it), it falls with her

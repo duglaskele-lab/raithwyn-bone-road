@@ -12,7 +12,7 @@ import { ctx } from './gfx.js';
 import { mk } from './background.js';
 import { DEPTH, FLOOR, L4 } from './level4.js';
 
-const { Y_A, HIGHWAY, END_X } = L4;
+const { Y_A, HIGHWAY, YARD, END_X } = L4;
 let T = null;
 
 // --- painted once --------------------------------------------------------------------------
@@ -65,6 +65,21 @@ function makeTextures() {
         g.ellipse(x + r() * 20, y0, 30 + r() * 20, 14 + r() * 12, 0, 0, TAU);
         g.fill();
       }
+  });
+  // the scrapyard's ground: packed dark earth, oil stains, bolts and bits of scrap
+  P.yard = mk(256, DEPTH, (g, w, h) => {
+    const r = mulberry(73);
+    g.fillStyle = '#8a6a4a';
+    g.fillRect(0, 0, w, h);
+    speckle(g, w, h, r, 700, ['rgba(40,24,14,.3)', 'rgba(255,220,170,.12)'], 1, 3);
+    for (let i = 0; i < 5; i++) {
+      g.fillStyle = 'rgba(20,16,20,.35)';
+      g.beginPath();
+      g.ellipse(r() * w, r() * h, 14 + r() * 26, 5 + r() * 9, 0, 0, TAU);
+      g.fill();
+    }
+    g.fillStyle = 'rgba(140,150,160,.6)';
+    for (let i = 0; i < 18; i++) g.fillRect(r() * w, r() * h, 2 + r() * 5, 2);
   });
   return P;
 }
@@ -126,6 +141,7 @@ function init() {
   T.dunes = makeRange(403, 140, '#e2ae6a', true);
   T.sun = glowImg('rgba(255,236,170,.7)', 170);
   T.green = glowImg('rgba(150,255,90,.45)', 120);
+  T.amber = glowImg('rgba(255,190,90,.6)', 30);
 }
 
 // --- small pieces ---------------------------------------------------------------------------
@@ -490,6 +506,202 @@ function drawBack() {
   if (view(2500, 2900)) bigHead(2700);
   if (view(4400, 4900)) camp(4620);
   for (const [x, s] of CARS) if (view(x - 100, x + 100)) car(x, s);
+  drawYard();
+}
+
+// --- the scrapyard ------------------------------------------------------------------------------
+
+/** A heap of scrap: a mound of rust with bits sticking out of it — pipes, a wheel, an arm. */
+function heap(x, w, h, seed) {
+  const r = mulberry(seed);
+  ctx.beginPath();
+  ctx.moveTo(x - w / 2, B);
+  for (let i = 0; i <= 10; i++) {
+    const u = i / 10;
+    ctx.lineTo(x - w / 2 + u * w, B - Math.sin(u * Math.PI) * h * (0.8 + r() * 0.25));
+  }
+  ctx.closePath();
+  fillOl('#7a5038', 3);
+  for (let i = 0; i < 9; i++) {
+    const px = x - w * 0.35 + r() * w * 0.7,
+      py = B - h * (0.2 + r() * 0.55),
+      k = (r() * 4) | 0;
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(r() * TAU);
+    if (k === 0) {
+      ctx.beginPath();
+      ctx.rect(-26, -4, 52, 8);
+      fillOl('#5a6068', 2);
+    } else if (k === 1) {
+      ctx.beginPath();
+      ctx.arc(0, 0, 13, 0, TAU);
+      fillOl('#2c2a2a', 2);
+    } else if (k === 2) {
+      ctx.beginPath();
+      ctx.rect(-12, -10, 24, 20);
+      fillOl(r() < 0.5 ? '#b8612e' : '#e2b13a', 2);
+    } else {
+      ctx.strokeStyle = OL;
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(-20, 0);
+      ctx.lineTo(0, -6);
+      ctx.lineTo(16, 8);
+      ctx.stroke();
+      ctx.strokeStyle = '#5a6068';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
+/** A stack of crushed cars, flattened into blocks of rusty colour. */
+function crushed(x, n, seed) {
+  const r = mulberry(seed);
+  for (let i = 0; i < n; i++) {
+    const w = 110 + r() * 20,
+      off = (r() - 0.5) * 16;
+    ctx.beginPath();
+    ctx.rect(x - w / 2 + off, B - 8 - (i + 1) * 30, w, 28);
+    fillOl(['#8a4a2a', '#5f7a7a', '#9a7a3a', '#6a4a6a', '#7a8a6a'][(r() * 5) | 0], 2.5);
+    ctx.fillStyle = 'rgba(0,0,0,.2)';
+    ctx.fillRect(x - w / 2 + off + 8, B - 8 - (i + 1) * 30 + 10, w - 16, 4);
+  }
+}
+/** The fence of corrugated iron along the back of the yard, a panel every 80 px. */
+function fence(x0, x1) {
+  for (
+    let x = Math.max(x0, Math.floor((G.cam - 100) / 80) * 80);
+    x < Math.min(x1, G.cam + W + 100);
+    x += 80
+  ) {
+    const k = (x / 80) % 7,
+      h = 110 + (k % 3) * 8;
+    if (k === 3) continue; // a gap
+    ctx.beginPath();
+    ctx.rect(x, B - 6 - h, 78, h);
+    fillOl(k % 2 ? '#8a6a5a' : '#7a6458', 2.5);
+    ctx.strokeStyle = 'rgba(0,0,0,.18)';
+    ctx.lineWidth = 3;
+    for (let i = 8; i < 78; i += 10) {
+      ctx.beginPath();
+      ctx.moveTo(x + i, B - 8 - h);
+      ctx.lineTo(x + i, B - 8);
+      ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(150,60,20,.35)';
+    ctx.fillRect(x + 6, B - 40, 30 + (k % 4) * 8, 26);
+  }
+}
+/** The yard's gate: two posts, the Legion's amber gear, a stencilled warning. */
+function gate(x) {
+  for (const dx of [-90, 90]) {
+    ctx.beginPath();
+    ctx.rect(x + dx - 10, B - 170, 20, 166);
+    fillOl('#5a6068', 3);
+  }
+  ctx.beginPath();
+  ctx.rect(x - 110, B - 200, 220, 40);
+  fillOl('#e2b13a', 3);
+  ctx.fillStyle = OL;
+  ctx.font = 'bold 15px "Arial Black", Impact, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('LEGION SALVAGE · KEEP OUT', x, B - 174);
+  // the gear
+  ctx.save();
+  ctx.translate(x, B - 230);
+  ctx.rotate(G.time * 0.3);
+  ctx.beginPath();
+  for (let i = 0; i < 16; i++) {
+    const a = (i * TAU) / 16,
+      rr = i % 2 ? 22 : 28;
+    ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+  }
+  ctx.closePath();
+  fillOl('#ffb02e', 3);
+  ctx.beginPath();
+  ctx.arc(0, 0, 8, 0, TAU);
+  fillOl('#3f444b', 2);
+  ctx.restore();
+}
+/** A crane of the yard, its magnet swinging with a car hanging from it. */
+function crane(x) {
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(x - 30, B - 4);
+  ctx.lineTo(x - 12, B - 300);
+  ctx.lineTo(x + 12, B - 300);
+  ctx.lineTo(x + 30, B - 4);
+  for (let y = B - 40; y > B - 290; y -= 40) {
+    ctx.moveTo(x - 26 + (B - y) * 0.05, y);
+    ctx.lineTo(x + 26 - (B - y) * 0.05, y - 36);
+  }
+  ctx.moveTo(x - 60, B - 300);
+  ctx.lineTo(x + 260, B - 300);
+  ctx.stroke();
+  ctx.strokeStyle = '#e2b13a';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  const sw = Math.sin(G.time * 0.9) * 0.08,
+    mx = x + 220 + Math.sin(sw) * 160,
+    my = B - 300 + Math.cos(sw) * 160;
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x + 220, B - 300);
+  ctx.lineTo(mx, my);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(mx, my + 8, 30, 10, 0, 0, TAU);
+  fillOl('#3f444b');
+  ctx.beginPath();
+  ctx.rect(mx - 48, my + 18, 96, 26);
+  fillOl('#5f7a7a', 2.5);
+}
+/** A floodlight tower with amber lamps. */
+function floodlight(x) {
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.moveTo(x, B - 4);
+  ctx.lineTo(x, B - 230);
+  ctx.stroke();
+  ctx.strokeStyle = '#5a6068';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.rect(x - 34, B - 250, 68, 22);
+  fillOl('#3f444b');
+  for (const dx of [-20, 0, 20]) {
+    ctx.drawImage(T.amber, x + dx - 30, B - 269, 60, 60);
+    ctx.beginPath();
+    ctx.arc(x + dx, B - 239, 7, 0, TAU);
+    fillOl('#ffd27a', 2);
+  }
+}
+const HEAPS = [
+  [5400, 300, 150, 31],
+  [6150, 260, 120, 32],
+  [7050, 340, 170, 33],
+  [8150, 280, 140, 34],
+  [8950, 320, 160, 35],
+  [10350, 300, 150, 36],
+];
+function drawYard() {
+  if (!view(YARD[0] - 300, YARD[1])) return;
+  for (const [x, w, h, sd] of HEAPS) if (view(x - w, x + w)) heap(x, w, h, sd);
+  if (view(7400, 8000)) crane(7500);
+  for (const x of [5800, 7900, 9400, 10800]) if (view(x - 60, x + 60)) floodlight(x);
+  fence(YARD[0] + 140, YARD[1]);
+  for (const [x, n, sd] of [
+    [6750, 4, 41],
+    [9850, 5, 42],
+    [10600, 3, 43],
+  ])
+    if (view(x - 80, x + 80)) crushed(x, n, sd);
+  if (view(YARD[0] - 150, YARD[0] + 150)) gate(YARD[0]);
 }
 
 // --- the road ---------------------------------------------------------------------------------
@@ -520,6 +732,22 @@ function drawRoad() {
         ctx.ellipse(hx, B + DEPTH / 2, 70, DEPTH / 2, 0, 0, TAU);
         ctx.fill();
       }
+  }
+  // the scrapyard's ground, from its gate on
+  const y0 = Math.max(x0, YARD[0]);
+  if (x1 > y0) {
+    ctx.save();
+    ctx.translate(0, B);
+    ctx.fillStyle = T.patterns.yard;
+    ctx.fillRect(y0, 0, x1 - y0, DEPTH);
+    ctx.restore();
+    if (YARD[0] > x0 - 80) {
+      const g = ctx.createLinearGradient(YARD[0], 0, YARD[0] + 120, 0);
+      g.addColorStop(0, '#d9a660');
+      g.addColorStop(1, 'rgba(217,166,96,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(YARD[0], B, 120, DEPTH);
+    }
   }
   // a shade under the back edge
   ctx.fillStyle = 'rgba(80,40,10,.18)';
