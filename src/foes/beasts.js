@@ -2,17 +2,22 @@
 // green bird-lizard that spins round and whips its spiked tail, and the fire drake
 // (TYPES.drake), a blue dragon that breathes fire. A skeleton bandit rides one in; a blow on
 // him knocks him out of the saddle, and the beast stands there with nobody on it. Then the
-// heroine may jump on (a jump that comes down on it): it is hers, J makes it whip or breathe at
-// her foes, a jump gets her off, and a blow on her throws her out of the saddle. Left alone,
-// a bandit may come and climb back on; after a while it runs off. A beast never fights by
-// itself and is never hurt (it takes no side: the fight does not wait for it).
-import { BEAST, OL, RAGE, TAU, W } from '../config.js';
+// heroine may jump on (a jump that comes down on it): it is hers. J makes it whip or breathe at
+// her foes; K makes it shoot (the cockatrice flicks quills off its tail, the drake spits a ball
+// of fire that bursts); a tap of the jump button makes it jump with her, and the jump button
+// held for BEAST.off seconds gets her down from it. A blow on her throws her out of the saddle.
+// Left alone, a bandit may come and climb back on; after a while it runs off, and so it does at
+// once when it has lost its rider BEAST.lose times. A beast never fights by itself and is never
+// hurt (it takes no side: the fight does not wait for it).
+import { BEAST, HEIGHT, OL, RAGE, TAU, W } from '../config.js';
 import { clamp, fxRandom, fxRnd, rnd } from '../util.js';
 import { G, P } from '../state.js';
 import { ctx, txt } from '../gfx.js';
 import { SFX } from '../audio.js';
 import { dust } from '../fx.js';
 import { addRage, hitPlayer, hurtEnemy } from '../combat.js';
+import { reaches } from '../height.js';
+import { explode } from '../blast.js';
 import { spawn } from '../enemies.js';
 import { floorClamp, inView } from '../level.js';
 import { dmgMult, styleGain } from '../style.js';
@@ -38,14 +43,26 @@ export function seat(r, b) {
 export function unseat(r) {
   const b = r.steed;
   r.steed = null;
-  if (b && b.rider === r) letGo(b);
+  if (b && b.rider === r) {
+    b.lost = (b.lost ?? 0) + 1;
+    letGo(b);
+  }
 }
 function letGo(b) {
   b.rider = null;
   b.byP = false;
   b.freeT = 0;
   b.claim = null;
-  if (b.state !== 'bleave') go(b, 'bwalk');
+  b.shot = false;
+  if (b.state === 'bleave') return;
+  go(b, 'bwalk');
+  // knocked out of its saddle once too often: it has had enough
+  if (b.lost >= BEAST.lose) runOff(b);
+}
+/** It runs off, the way it is nearest to the edge. */
+function runOff(b) {
+  go(b, 'bleave', 0, { rdir: b.x - G.cam < W / 2 ? -1 : 1 });
+  SFX.roar();
 }
 
 // The rider in the saddle: carried along, sitting up there. A blow knocks him out of it (see
@@ -134,34 +151,56 @@ export function tryMount(p) {
   }
   return false;
 }
-/** She leaves the saddle (a jump off, or thrown out of it). */
+/** She leaves the saddle (getting down, or thrown out of it). */
 export function dismount(p) {
   const b = p.steed;
   p.steed = null;
   if (b && b.byP) letGo(b);
 }
 /**
- * Her frame on a beast: she steers it (`mx`, `my`), J makes it attack. Returns false once she is
- * no longer on it.
+ * Her frame on a beast: she steers it (`mx`, `my`); `act` is the button she pressed ('atk': it
+ * attacks, 'bone': it shoots, 'jump': it jumps with her); `hold`: the jump button is held (long
+ * enough, and she gets down). Returns false once she is no longer on it.
  */
-export function rideTick(p, dt, mx, my, atk) {
+export function rideTick(p, dt, mx, my, act, hold) {
   const b = p.steed;
   if (!b || b.dead || !b.byP) {
     p.steed = null;
     return false;
   }
   const B = BEAST[b.type],
-    busy = b.state !== 'bwalk';
+    busy = b.state !== 'bwalk',
+    air = b.z > 0;
   if (!busy) {
     if (mx) p.face = mx;
     p.x += mx * B.ride * dt;
     p.y += my * B.ride * 0.62 * dt;
   }
-  b.pmove = !busy && !!(mx || my);
-  if (atk && !busy && b.cd <= 0) {
-    go(b, 'bwind', 0, { hits: new Set(), hitDone: false });
+  b.pmove = !busy && !air && !!(mx || my);
+  if (act === 'atk' && !busy && b.cd <= 0) {
+    go(b, 'bwind', 0, { hits: new Set(), hitDone: false, shot: false });
     SFX.swing();
+  } else if (act === 'bone' && !busy && !(b.shotCd > 0)) {
+    go(b, 'bwind', 0, { shot: true });
+    SFX.swing();
+  } else if (act === 'jump' && !busy && !air) {
+    b.vz = BEAST.jump;
+    b.z = 1;
+    dust(b.x, b.y, 4);
+    SFX.jump();
   }
+  // the jump button held: she gets down (on the ground only)
+  p.offT = hold ? (p.offT ?? 0) + dt : 0;
+  if (p.offT >= BEAST.off && !busy && !air) {
+    p.offT = 0;
+    dismount(p);
+    Object.assign(p, { x: b.x - p.face * 54, z: 0, vz: 0 });
+    floorClamp(p, 2, 0);
+    dust(p.x, p.y, 3);
+    SFX.thud();
+    return false;
+  }
+  p.z = b.z;
   // crouched in the saddle, holding on (the jump's first frame)
   p.an = ['jump', 0];
   return true;
@@ -221,10 +260,7 @@ function freeThink(e, dt) {
     e.dead = true;
     return;
   }
-  if (e.freeT > BEAST.stay && !(e.claim && e.claim.mountTo === e)) {
-    go(e, 'bleave', 0, { rdir: e.x - G.cam < W / 2 ? -1 : 1 });
-    SFX.roar();
-  }
+  if (e.freeT > BEAST.stay && !(e.claim && e.claim.mountTo === e)) runOff(e);
 }
 export function beastTick(e, dt) {
   const B = BEAST[e.type],
@@ -241,13 +277,31 @@ export function beastTick(e, dt) {
     e.face = P.face;
     e.moving = !!e.pmove;
   }
+  if (e.shotCd > 0) e.shotCd -= dt;
+  // up in the air (she made it jump) and down again
+  if (e.z > 0) {
+    e.z += e.vz * dt;
+    e.vz -= 1900 * dt;
+    if (e.z <= 0) {
+      e.z = 0;
+      e.vz = 0;
+      dust(e.x, e.y, 5);
+      SFX.thud();
+    }
+  }
   switch (e.state) {
     case 'bwalk':
       if (e.rider) foeThink(e, dt);
       else if (!e.byP) freeThink(e, dt);
       break;
     case 'bwind':
-      if (e.t > B.wind) {
+      if (e.shot) {
+        // K: it shoots, then gets its breath back
+        if (e.t > B.shot.wind) {
+          shoot(e);
+          go(e, 'brec', 0, { shot: false, shotCd: B.shot.cd });
+        }
+      } else if (e.t > B.wind) {
         go(e, 'batk', 0);
         if (e.type === 'drake') SFX.flame();
         else SFX.dash();
@@ -274,6 +328,114 @@ export function beastTick(e, dt) {
   }
   if (e.moving) e.walkT += dt * 9;
   floorClamp(e, 2, 0);
+}
+/** K, ridden by her: the cockatrice flicks quills off its tail, the drake spits a ball of fire. */
+function shoot(e) {
+  const S = BEAST[e.type].shot;
+  if (e.type === 'drake') {
+    const [mx, mz] = mouth(e);
+    G.projs.push({
+      k: 'fball',
+      x: mx,
+      y: e.y,
+      z: e.z + mz - 20,
+      vx: e.face * S.speed,
+      life: S.life,
+    });
+    SFX.flame();
+    return;
+  }
+  for (let i = 0; i < S.n; i++)
+    G.projs.push({
+      k: 'quill',
+      x: e.x + e.face * 40,
+      y: e.y,
+      z: e.z + 96,
+      vx: e.face * S.speed,
+      vy: (i - (S.n - 1) / 2) * S.fan,
+      life: S.life,
+    });
+  SFX.dash();
+}
+/** What a quill or a ball of fire may strike: the first foe or thing in its way. */
+function struck(q, half) {
+  for (const o of G.enemies.concat(G.props)) {
+    if (o.dead || o.dying || isBeast(o) || o.neutral) continue;
+    if (
+      Math.abs(o.x - q.x) < (o.w ?? 0) + 16 &&
+      Math.abs(o.y - q.y) < 22 &&
+      (o.isProp || reaches(o, q.z - half, q.z + half, true))
+    )
+      return o;
+  }
+  return null;
+}
+/** A quill's or a ball of fire's frame (world.js moves it along the road). */
+export function beastShot(q, dt) {
+  if (q.k === 'quill') {
+    q.y += q.vy * dt;
+    const o = struck(q, HEIGHT.bone);
+    if (!o) return;
+    q.life = 0;
+    if (
+      hurtEnemy(o, BEAST.rider.shot.dmg * dmgMult(), Math.sign(q.vx), false, 'bone') &&
+      !o.isProp
+    ) {
+      addRage(RAGE.bone);
+      styleGain(8);
+    }
+    return;
+  }
+  // the ball of fire: it bursts on the first thing it meets, or where its flight ends
+  if (fxRandom() < 0.7)
+    G.parts.push({
+      k: 'glow',
+      x: q.x - Math.sign(q.vx) * 12,
+      y: q.y - q.z + fxRnd(-8, 8),
+      vx: -q.vx * 0.15,
+      vy: fxRnd(-30, 30),
+      g: -40,
+      t: 0,
+      life: 0.3,
+      s: fxRnd(6, 11),
+      col: fxRandom() < 0.5 ? '#ffb02e' : '#ff5a1e',
+    });
+  if (struck(q, 30) || q.life <= 0.02) {
+    q.life = 0;
+    explode(q.x, q.y, 'fireball', q.z);
+  }
+}
+/** A quill, a ball of fire. */
+export function drawBeastShot(q) {
+  const x = q.x - G.cam,
+    y = q.y - q.z,
+    s = Math.sign(q.vx);
+  ctx.save();
+  ctx.translate(x, y);
+  if (q.k === 'quill') {
+    ctx.rotate(Math.atan2(q.vy * 0.5, Math.abs(q.vx)) * s);
+    ctx.scale(s, 1);
+    ctx.beginPath();
+    ctx.moveTo(18, 0);
+    ctx.lineTo(-10, -5);
+    ctx.lineTo(-16, 0);
+    ctx.lineTo(-10, 5);
+    ctx.closePath();
+    fillOl('#e8e0c8', 2);
+  } else {
+    const r = 15 + Math.sin(G.time * 40) * 2;
+    ctx.shadowColor = '#ff7a1e';
+    ctx.shadowBlur = 18;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, TAU);
+    fillOl('#ff7a1e', 2.5);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#ffe9a0';
+    ctx.beginPath();
+    ctx.arc(s * 3, 0, r * 0.55, 0, TAU);
+    ctx.fill();
+  }
+  ctx.restore();
 }
 /** The drake's fire: flames rolling out of its jaws. */
 function flame(e) {
@@ -308,8 +470,27 @@ const beastDef = {
   immune: () => true,
   update: beastTick,
   draw: drawBeast,
-  // over everyone: the sign to jump on, when she is near one nobody rides
+  // over everyone: the sign to jump on, when she is near one nobody rides; ridden by her, how
+  // to get down (for the first seconds, and while she holds the button: a ring filling up)
   over(e) {
+    if (e.byP && P.state === 'ride' && (P.t < 3 || P.offT > 0.25)) {
+      const x = e.x - G.cam,
+        y = e.y - e.z - BEAST[e.type].pseat - 215;
+      txt(t('dismount'), x, y, 13, '#ffe14a', 'center', 4);
+      if (P.offT > 0.25) {
+        ctx.strokeStyle = OL;
+        ctx.lineWidth = 9;
+        ctx.beginPath();
+        ctx.arc(x, y + 24, 12, 0, TAU);
+        ctx.stroke();
+        ctx.strokeStyle = '#ffe14a';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(x, y + 24, 12, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(P.offT / BEAST.off, 0, 1));
+        ctx.stroke();
+      }
+      return;
+    }
     if (!free(e) || P.state === 'ride' || Math.abs(P.x - e.x) > 320) return;
     const x = e.x - G.cam,
       y = e.y - BEAST[e.type].seat - 120 - Math.abs(Math.sin(G.time * 5)) * 10;

@@ -763,7 +763,9 @@ export const BEAST = {
     back: 70,
     dy: 34,
     dmgP: 12,
-    dmgE: 22,
+    dmgE: 29,
+    // K: it flicks `n` quills off its tail, fanned out in depth (`fan` px/s to the sides)
+    shot: { wind: 0.3, n: 3, fan: 95, speed: 640, life: 0.85, dmg: 14, cd: 1.5 },
   },
   drake: {
     seat: 70,
@@ -774,9 +776,18 @@ export const BEAST = {
     t: 0.6,
     dy: 32,
     dmgP: 11,
-    dmgE: 20,
+    dmgE: 26,
+    // K: it spits a ball of fire that bursts on the first thing it meets (BLAST.fireball)
+    shot: { wind: 0.4, speed: 540, life: 0.85, cd: 2.4 },
   },
   stay: 12,
+  // ridden by her, a tap of the jump button makes it jump with her (`jump`: how fast up); held
+  // for `off` seconds, she gets down from it
+  jump: 600,
+  off: 2,
+  // a beast that has lost its rider (a bandit or her) `lose` times, knocked out of the saddle,
+  // has had enough and runs off
+  lose: 3,
   near: 70,
   remount: 520,
 };
@@ -806,86 +817,140 @@ export const MINO = {
   rage: { speed: 1.18, cd: 0.72 },
   dieT: 1.6,
 };
-// The frost wolf (Frostfang Pass's last boss):
-//   breath  the ice breath: a cone along the road `reach` px (`dy` deep at its far end), for
-//           `t` s; a heroine caught in it freezes in a block of ice (`freeze` s, J and K mash
-//           her out quicker, `mash` s a press), taking `dmg`
-//   bite    a lunge and a snap of the jaws, from `min`..`max` px
-//   swipe   up close, a paw swung round
-//   howl    it howls: wolves come out of the forest (`wolves`), icicles fall from the trees
-//           (`spikes`, marked on the ground `warn` s before)
-//   leap    out of the glade, high over the trees, down on her (a ring of ice spikes)
-//   ph2/ph3 its phases (shares of its health); in the third a blizzard blows and the breath
-//           sweeps across the road
+// The frost wolf (TYPES.frostwolf, foes/frostwolf.js), the last boss of Frostfang Pass: a white
+// wolf the size of a horse that fights alone. `w`: half its length (her blows land within it);
+// it prowls `keep` px off her. By phase (the second from `ph2` of its health, the third from
+// `ph3`): `speed` times as quick, `cdK` times as long between attacks (`gap` seconds, and each
+// attack's own `cd`).
+//   poise   as POISE: `poise` of it, back whole `regen` seconds after her last blow; while it
+//           winds something up her blows take `windMult` times as much. With none left it lies
+//           on its side `down` seconds; then, and skidding after a miss, it is open: every blow
+//           does `open` times the harm
+//   bite    within `near`: `wind`, a snap (`reach` beyond its body, `dy` deep, `dmg`), then
+//           after `wind2` a lunge of `lunge` px in `t2` seconds (`reach2`, `dmg2`, a knockdown)
+//   pounce  from `min`..`max`: `wind` crouched, the mark following her until the last `lock`
+//           seconds; `air` seconds up to `h` high; where it lands, an oval `rx` x `ry` (`dmg`);
+//           a miss leaves it skidding `skid` seconds
+//   shard   from `min` on: `wind` reared up, the cracks showing; then fangs of ice run out along
+//           the lanes at `speed`, one every `step` px, each standing `life` seconds: `w` deep
+//           either way, up to `z` high (`dmg`); three lanes `lanes` apart from the second phase
+//   breath  from `min`..`max`: `wind`, then `t` seconds of a cone from its jaws `reach` long,
+//           `dy0` deep at the jaws and `dy` at its end: `dmg`, and she is chilled `chill`
+//           seconds (`slow` times as fast on her feet)
+//   tail    she behind it within `near` for `wait` seconds: `wind`, a sweep `reach` behind it,
+//           `dy` deep (`dmg`); not again for `cd` seconds
+//   dash    (from the second phase) it runs off (`fade` seconds), then `n` runs by phase: the
+//           lane shows `warn` seconds, it crosses the glade at `speed` (`dy` deep, up to `z`
+//           high, `dmg`); the last run ends in the middle, skidding `skid` seconds
+//   howl    (from the second phase) `wind`, then `n` rings by phase, `gap` apart, spreading at
+//           `speed`: `w` wide either way, up to `z` high (`dmg`)
 export const FROST = {
-  bw: 150,
-  bodyH: 150,
-  // the breath: the cone follows her in depth while it draws breath, but for the last `lock`
-  // seconds of that it holds still — time to step out of it (or behind an ice pillar)
-  breath: {
-    min: 120,
-    max: 520,
-    wind: 0.95,
-    lock: 0.35,
-    t: 1.1,
-    reach: 460,
-    dy: 64,
-    dmg: 8,
-    freeze: 1,
-    mash: 0.12,
-    cd: [5, 7],
-  },
-  // the bite: a lunge that misses leaves its jaws in the snow for `stuck` seconds
-  bite: { min: 160, max: 430, wind: 0.42, air: 0.38, h: 60, dmg: 18, cd: [2.5, 4], stuck: 1.3 },
-  swipe: { wind: 0.4, reach: 230, dy: 50, dmg: 15, cd: [1.4, 2.4] },
-  howl: {
-    wind: 0.9,
-    t: 1,
-    wolves: [0, 1, 2, 2],
-    spikes: [3, 4, 5],
-    warn: 0.9,
-    r: 46,
-    dmg: 10,
-    cd: [11, 15],
-  },
-  // the leap: its shadow follows her while it hangs up there, but holds still for the last
-  // `lock` seconds before it drops
-  leap: {
-    wind: 0.7,
-    up: 0.45,
-    hang: 0.7,
-    lock: 0.35,
-    fall: 0.32,
-    h: 620,
-    r: 170,
-    dmg: 20,
-    rec: 1.2,
-    cd: [8, 11],
-  },
-  // an opening (its jaws stuck after a bite that missed, the moment after a leap that missed,
-  // breathing with her at its flank, choked or dazed): every blow does `open` times the harm
+  w: 96,
+  keep: 235,
+  speed: [1, 1.12, 1.25],
+  cdK: [1, 0.85, 0.7],
+  gap: [0.7, 1.2],
+  poise: 24,
+  regen: 4.5,
+  windMult: 1.5,
+  down: 2.1,
   open: 1.5,
-  // what stops it: `howl`: a blow on its head (a bone thrown at it too) or a dark ball while it
-  // draws breath to howl chokes the howl, for this long; `wind`: a heavy blow as it winds up a
-  // bite or a swipe makes it flinch, for this long, and then nothing stops it for `steady`
-  // seconds; `pillar`: a lunge into an ice pillar dazes it for this long
-  choke: { howl: 1.8, wind: 1.1, pillar: 2.4, steady: 4 },
-  // the icicles that fall stay standing as pillars of ice (a thing to break, DECOR.icicle) for
-  // `life` seconds, `max` of them at most. Its lunge into one (`reach` along the road, `dy` in
-  // depth from its jaws) shatters it, hurts it (`dmg`) and dazes it; one between its jaws and
-  // her (within `cover` in depth) stops the breath
-  pillar: { life: 10, max: 5, dmg: 70, reach: 80, dy: 36, cover: 32 },
+  bite: {
+    near: 195,
+    wind: 0.5,
+    reach: 100,
+    dy: 30,
+    dmg: 10,
+    wind2: 0.36,
+    lunge: 230,
+    t2: 0.22,
+    reach2: 70,
+    dmg2: 16,
+    rec: 0.8,
+  },
+  pounce: {
+    min: 230,
+    max: 660,
+    wind: 0.65,
+    lock: 0.3,
+    air: 0.55,
+    h: 170,
+    rx: 120,
+    ry: 44,
+    dmg: 18,
+    skid: 1.2,
+    rec: 0.5,
+    cd: [4, 6],
+  },
+  shard: {
+    min: 200,
+    wind: 0.75,
+    speed: 950,
+    step: 46,
+    life: 0.5,
+    w: 20,
+    z: 60,
+    lanes: 58,
+    dmg: 14,
+    rec: 0.6,
+    cd: [5, 7.5],
+  },
+  breath: {
+    min: 150,
+    max: 480,
+    wind: 0.8,
+    t: 1,
+    reach: 400,
+    dy0: 18,
+    dy: 62,
+    dmg: 9,
+    chill: 2.5,
+    slow: 0.6,
+    rec: 0.55,
+    cd: [6, 9],
+  },
+  tail: { near: 190, wait: 0.5, wind: 0.45, reach: 110, dy: 36, dmg: 10, cd: 5 },
+  // within `near`, instead of a bite: a leap `dist` px back from her in `t` seconds, `h` high
+  hop: { near: 230, dist: 300, t: 0.42, h: 70 },
+  dash: {
+    fade: 0.5,
+    warn: 0.6,
+    speed: 1700,
+    dy: 26,
+    z: 50,
+    dmg: 14,
+    n: [0, 3, 4],
+    skid: 1.4,
+    cd: [10, 14],
+  },
+  howl: {
+    wind: 0.8,
+    speed: 520,
+    w: 24,
+    z: 30,
+    dmg: 12,
+    gap: 0.6,
+    n: [0, 1, 2],
+    rec: 0.7,
+    cd: [9, 13],
+  },
   ph2: 0.66,
   ph3: 0.33,
-  p2speed: 1.15,
-  p2cd: 0.8,
   dieT: 2.6,
 };
 // On the climb up the mountainside (Frostfang Pass), while a fight is on, boulders come rolling
 // down the trail now and then (every `gap` s): a shadow at the top of the screen `warn` s before,
 // then down it rolls at `speed`, `r` px round, hitting whoever is in its way (`dmgP` on the
 // heroine, `dmgE` on a foe) — jump it or step aside.
-export const BOULDER = { gap: [3.5, 6], warn: 1, speed: 430, r: 34, dmgP: 14, dmgE: 60 };
+export const BOULDER = {
+  gap: [3.5, 6],
+  slope: [1.4, 2.4],
+  warn: 1,
+  speed: 430,
+  r: 34,
+  dmgP: 14,
+  dmgE: 60,
+};
 // Falling off a roof into a gap (Midnight City): she drops for `time` s, then is back on the
 // roof she fell from, `dmg` of her full health the poorer, untouchable for `inv` s. A robot
 // knocked into a gap is gone (`time` s of falling) and counts as beaten.
@@ -922,8 +987,6 @@ export const DECOR = {
   rock: { w: 40, h: 66, hp: 3, col: '#7d8590', score: 50, k4: 1 },
   log: { w: 46, h: 50, hp: 2, col: '#7a5232', score: 30, k4: 1 },
   idol: { w: 22, h: 120, hp: 2, col: '#8a6a4a', score: 40, k4: 1 },
-  // a pillar of ice left by an icicle in the frost wolf's glade (see FROST.pillar)
-  icicle: { w: 20, h: 112, hp: 2, col: '#bff0ff', score: 0, k4: 1 },
 };
 // Explosions: radius on the floor (an ellipse, 0.42 as deep as wide), damage to the player and
 // to enemies, and for a red barrel caught in a blast, the delay before it goes off too; a red
@@ -933,6 +996,8 @@ export const BLAST = {
   dynamite: { r: 150, dmgP: 20, dmgE: 42, chain: 0.14 },
   // Lucy's grenade: wide and hard, and it spares her (no damage to the player)
   grenade: { r: 250, dmgP: 0, dmgE: 70, chain: 0.14, crush: 1 },
+  // the ball of fire a fire drake spits when she rides it (it spares her)
+  fireball: { r: 130, dmgP: 0, dmgE: 34, chain: 0.14 },
   // her grenade shot out of the air by her pistol: 30% wider and 30% harder
   airburst: { r: 325, dmgP: 0, dmgE: 91, chain: 0.14, crush: 1 },
   // a shell of the Prospector's mortars: it hurts the player only
@@ -1817,8 +1882,8 @@ export const TYPES = {
   frostwolf: {
     hp: 1500,
     scale: 1,
-    speed: 130,
-    dmg: 18,
+    speed: 150,
+    dmg: 10,
     reach: 190,
     style: 'other',
     wind: 0.5,
@@ -1827,11 +1892,11 @@ export const TYPES = {
     cd: [1, 2],
     bigBoss: 1,
     weight: 'boss',
-    height: 230,
-    shadow: 210,
-    col: '#dbe9f5',
-    dk: '#93adc4',
-    eye: '#7ff0ff',
+    height: 190,
+    shadow: 150,
+    col: '#e9f3fc',
+    dk: '#8fa9c8',
+    eye: '#5ff3ff',
     score: 14000,
   },
 };

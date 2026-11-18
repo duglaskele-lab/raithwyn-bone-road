@@ -36,6 +36,7 @@ import { drawBG4, drawFront4 } from './bg4.js';
 import { drawTiger } from './tigerdraw.js';
 import { drawDecor4 } from './props4.js';
 import { drawBoulder } from './hazards4.js';
+import { drawBeastShot } from './foes/beasts.js';
 import { levelWaves, overPit, roadDir } from './level.js';
 import { hadoLevel, poiseView } from './combat.js';
 import { boneShape, drawAura, drawSkel } from './skeleton.js';
@@ -527,6 +528,7 @@ export function drawProj(q) {
   const x = q.x - G.cam,
     y = q.y - q.z;
   if (q.k === 'boulder') return drawBoulder(q);
+  if (q.k === 'quill' || q.k === 'fball') return drawBeastShot(q);
   if (q.k === 'nade') {
     // Lucy's grenade, spinning round its middle
     const [img, f] = fighterFrame('lucy', 'nade', 0);
@@ -1212,33 +1214,28 @@ export function drawPlayer() {
   // (the tiger has no sprites yet: he is drawn in code, tigerdraw.js)
   if (p.who === 'tiger') drawTiger(p, p.x - G.cam, p.y - p.z + 2 - seat, a);
   else sprite(p.an[0], p.an[1], p.x - G.cam, p.y - p.z + 2 - seat, p.face < 0, 1, a, p.who);
-  if (p.state === 'frozen') {
-    // a block of ice round her, cracking as it thaws
+  if (p.chill > 0) {
+    // chilled by the frost wolf's breath: frost on her, flakes drifting round her
     const x = p.x - G.cam,
-      u = clamp(p.t / p.hold, 0, 1);
+      k = clamp(p.chill / 0.5, 0, 1);
     ctx.save();
-    ctx.fillStyle = 'rgba(170,230,255,.42)';
-    ctx.strokeStyle = 'rgba(230,250,255,.9)';
-    ctx.lineWidth = 3;
+    ctx.fillStyle = `rgba(150,225,255,${0.2 * k})`;
     ctx.beginPath();
-    ctx.moveTo(x - 46, p.y + 4);
-    ctx.lineTo(x - 52, p.y - 120);
-    ctx.lineTo(x - 30, p.y - 176);
-    ctx.lineTo(x + 34, p.y - 170);
-    ctx.lineTo(x + 50, p.y - 110);
-    ctx.lineTo(x + 44, p.y + 4);
-    ctx.closePath();
+    ctx.ellipse(x, p.y - p.z - 84, 40, 92, 0, 0, TAU);
     ctx.fill();
-    ctx.stroke();
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    for (let k = 0; k < Math.floor(u * 6); k++) {
-      ctx.moveTo(x - 30 + k * 12, p.y - 160 + k * 8);
-      ctx.lineTo(x - 18 + k * 10, p.y - 120 + k * 12);
+    ctx.fillStyle = `rgba(240,252,255,${0.9 * k})`;
+    for (let i = 0; i < 6; i++) {
+      const a = G.time * 2.4 + (i * TAU) / 6;
+      ctx.beginPath();
+      ctx.arc(
+        x + Math.cos(a) * 38,
+        p.y - p.z - 40 - ((G.time * 40 + i * 31) % 120) + Math.sin(a) * 6,
+        2.6,
+        0,
+        TAU,
+      );
+      ctx.fill();
     }
-    ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,.6)';
-    ctx.fillRect(x - 40, p.y - 150, 6, 80);
     ctx.restore();
   }
 }

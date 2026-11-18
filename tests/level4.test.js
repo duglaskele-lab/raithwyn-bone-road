@@ -12,11 +12,12 @@ import {
   POTION,
   STAGE_HOLD,
   TYPES,
+  W,
 } from '../src/config.js';
 import { APP, G, P } from '../src/state.js';
 import { keys, pressed } from '../src/input.js';
 import { spawn } from '../src/enemies.js';
-import { headBonus, hurtEnemy, partZone, poiseView } from '../src/combat.js';
+import { headBonus, hitPlayer, hurtEnemy, partZone, poiseView } from '../src/combat.js';
 import { update, alive } from '../src/world.js';
 import { themeFor } from '../src/audio.js';
 import {
@@ -32,7 +33,8 @@ import {
 import { FLOOR, L4, PATH, PITS, WAVES4, topY } from '../src/level4.js';
 import { waveSpawns } from '../src/waves.js';
 import { dismount, tryMount } from '../src/foes/beasts.js';
-import { freezePlayer, isOpen, sheltered } from '../src/foes/frostwolf.js';
+import { isOpen } from '../src/foes/frostwolf.js';
+import { go } from '../src/foes/kit.js';
 import { FOES } from '../src/foes/index.js';
 import '../src/foes/index.js';
 import { DT, freshGame } from './helpers.js';
@@ -93,16 +95,24 @@ test('Frostfang Pass is the last stage: winning it wins the game', () => {
   assert.equal(APP.state, 'win');
 });
 
-test('the road: the village, the climb up the hills, the trail up the mountainside, the ledge, the forest', () => {
+test('the road: the village, the climb into the hills, the steep trail down, the ledge, the forest', () => {
   startLevel(4);
   assert.equal(topY(100), L4.Y_A);
   assert.equal(topY(4000), L4.Y_B);
   assert.equal(topY(6000), L4.Y_C);
   assert.equal(topY(11000), L4.Y_D);
-  assert.ok(L4.Y_C < L4.Y_B && L4.Y_B < L4.Y_A, 'it climbs');
-  // up the trail one walks straight up the screen, from the hill road to the ledge
-  for (let y = L4.Y_C + 10; y < L4.Y_B + 150; y += 40) assert.ok(onFloor(L4.CLIMB_X, y), `${y}`);
-  assert.ok(!onFloor(L4.CLIMB[0] - 30, L4.Y_C + 300), 'beside it, rock');
+  assert.ok(L4.Y_B < L4.Y_A, 'it climbs into the hills');
+  assert.ok(L4.Y_C > L4.Y_B && L4.Y_D > L4.Y_C, 'and goes down the other side, twice');
+  // the steep trail: a slant from the hill road down to the ledge, steeper than the others
+  const [s0, s1] = L4.SLOPE;
+  assert.equal(L4.Y_C - L4.Y_B, (s1 - s0) * L4.STEEP);
+  assert.ok(L4.STEEP > L4.DROP);
+  for (let x = s0 + 50; x <= s1 - 50; x += 100) {
+    const y = topY(x);
+    assert.ok(Math.abs(y - (L4.Y_B + (x - s0) * L4.STEEP)) < 1e-9);
+    assert.ok(onFloor(x, y + 90), `on the trail at ${x}`);
+    assert.ok(!onFloor(x, y - 30) && !onFloor(x, y + 230), 'beside it, none');
+  }
   // the plank bridge over the gorge, and the gorge on either side of it
   const bx = (L4.FALLS[0] + L4.FALLS[1]) / 2;
   assert.ok(onFloor(bx, L4.Y_C + 80));
@@ -111,15 +121,15 @@ test('the road: the village, the climb up the hills, the trail up the mountainsi
   assert.ok(FLOOR.length >= 8);
 });
 
-test('at the foot of the trail the camera turns and goes up it with the player', () => {
-  const foot = pathAt(pathPx(3, PATH), PATH),
-    top = pathAt(pathPx(4, PATH), PATH);
-  assert.equal(foot.cx, top.cx, 'it does not move sideways on the way up');
-  assert.ok(top.cy < foot.cy - 600, 'it goes up');
-  // a fight on the way up (under the boulders)
-  const up = WAVES4.filter((w) => w.s > 3 && w.s < 4);
-  assert.equal(up.length, 1);
-  assert.equal(up[0].name, 'rockslide');
+test('nowhere does the road go straight up the screen: the camera goes ever to the right', () => {
+  for (let i = 1; i < PATH.length; i++) assert.ok(PATH[i][0] > PATH[i - 1][0], `node ${i}`);
+  const top = pathAt(pathPx(3, PATH), PATH),
+    foot = pathAt(pathPx(4, PATH), PATH);
+  assert.ok(foot.cx > top.cx + 700 && foot.cy > top.cy + 300, 'down the steep trail, aslant');
+  // no fight on a slant; the rockslide waits on the first flat screen at the foot of the trail
+  startLevel(4);
+  camTo(pathPx(WAVES4.find((w) => w.name === 'rockslide').s, PATH));
+  assert.equal(Math.round(G.cam), L4.SLOPE[1]);
 });
 
 test('the fights: a minotaur at the pool under the falls, the frost wolf last', () => {
@@ -234,17 +244,40 @@ test('a blow throws her out of the saddle; the beast is free again', () => {
   assert.ok(!b.byP);
 });
 
-test('a jump gets her off; left alone a beast runs off, unless a bandit climbs back on', () => {
+test('a tap of the jump button makes the beast jump with her; held two seconds, she gets down', () => {
   pass(300);
   const b = spawn('rider', 1, P.x, P.y);
   P.state = 'jump';
   P.z = 30;
   tryMount(P);
   pressed.jump = true;
-  step(DT * 2);
-  assert.equal(P.state, 'jump');
+  step(DT * 3);
+  assert.equal(P.state, 'ride', 'still in the saddle');
+  assert.ok(b.z > 0 && P.z > 0, 'up they go together');
+  step(1);
+  assert.equal(b.z, 0, 'and down again');
+  assert.equal(P.state, 'ride');
+  // the button held: not yet, then down she gets
+  keys.jump = true;
+  step(BEAST.off - 0.3);
+  assert.equal(P.state, 'ride');
+  step(0.5);
+  keys.jump = false;
+  assert.notEqual(P.state, 'ride');
+  assert.equal(P.steed, null);
+  assert.equal(P.z, 0, 'on the ground beside it');
   assert.equal(b.byP, false);
+  assert.ok(!b.lost, 'getting down is not being thrown');
+});
+
+test('left alone a beast runs off, unless a bandit climbs back on', () => {
+  pass(300);
+  const b = spawn('rider', 1, P.x, P.y);
+  P.state = 'jump';
+  P.z = 30;
+  tryMount(P);
   dismount(P);
+  P.state = 'idle';
   // a bandit walks up to it and climbs on
   const r = spawn('bandit', 1, b.x + 250, b.y);
   Object.assign(r, { state: 'chase', cd: 0 });
@@ -255,6 +288,68 @@ test('a jump gets her off; left alone a beast runs off, unless a bandit climbs b
   hurtEnemy(r, 999, 1, true, 'punch');
   step(BEAST.stay + 4);
   assert.ok(b.dead, 'gone');
+});
+
+test('a beast that has lost its rider three times runs off at once', () => {
+  pass(300);
+  assert.equal(BEAST.lose, 3);
+  const b = spawn('drake', 1);
+  Object.assign(b, { x: P.x + 200, y: P.y });
+  // its bandit is knocked out of the saddle
+  hurtEnemy(b.rider, 999, 1, true, 'punch');
+  assert.equal(b.lost, 1);
+  assert.equal(b.state, 'bwalk');
+  // she is thrown out of it twice
+  for (let k = 0; k < 2; k++) {
+    Object.assign(P, { state: 'jump', x: b.x, y: b.y, z: 30, inv: 0 });
+    assert.ok(tryMount(P), 'she may still take it');
+    hitPlayer(1, 1, false);
+    step(0.3, () => (P.inv = 99));
+  }
+  assert.equal(b.lost, 3);
+  assert.equal(b.state, 'bleave', 'it has had enough');
+  Object.assign(P, { state: 'jump', x: b.x, y: b.y, z: 30 });
+  assert.ok(!tryMount(P), 'and is not to be had any more');
+});
+
+test('K on a beast: the cockatrice flicks quills, the drake spits a ball of fire that bursts', () => {
+  pass(300);
+  let b = spawn('rider', 1, P.x, P.y);
+  Object.assign(P, { state: 'jump', z: 30, face: 1 });
+  tryMount(P);
+  const far = spawn('bandit', 1, P.x + 380, P.y);
+  Object.assign(far, { state: 'chase', cd: 99, hp: 999 });
+  holdFight(far);
+  pressed.bone = true;
+  step(BEAST.rider.shot.wind + 0.1, () => (far.x = P.x + 380));
+  assert.equal(G.projs.filter((q) => q.k === 'quill').length, BEAST.rider.shot.n);
+  step(0.8, () => (far.x = P.x + 380));
+  assert.equal(far.hp, 999 - BEAST.rider.shot.dmg, 'the middle quill struck, far beyond its tail');
+  // not again at once
+  pressed.bone = true;
+  step(0.2);
+  assert.ok(!G.projs.some((q) => q.k === 'quill'), 'it needs a moment');
+  // the drake
+  dismount(P);
+  b.dead = true;
+  G.projs = [];
+  b = spawn('drake', 1, P.x, P.y);
+  Object.assign(P, { state: 'jump', z: 30, face: 1 });
+  tryMount(P);
+  const two = [0, 60].map((d) => spawn('bandit', 1, P.x + 400 + d, P.y + d / 3));
+  for (const o of two) Object.assign(o, { state: 'chase', cd: 99, hp: 999 });
+  far.dead = true;
+  holdFight(two[0]);
+  const hp = P.hp;
+  pressed.bone = true;
+  step(BEAST.drake.shot.wind + 1, () => two.forEach((o, i) => (o.x = P.x + 400 + i * 60)));
+  assert.ok(
+    two.every((o) => o.hp < 999),
+    'the burst caught both',
+  );
+  assert.equal(P.hp, hp, 'and spares her');
+  // its blows are a third harder than they were
+  assert.deepEqual([BEAST.rider.dmgE, BEAST.drake.dmgE], [29, 26]);
 });
 
 // --- the thief gnome, the harpy, the knight ---------------------------------------------------------
@@ -447,273 +542,367 @@ test('he goes red at MINO.enrage of his health; beaten, he falls and the arena i
 // --- the frost wolf --------------------------------------------------------------------------------
 
 const LAST = WAVES4.length - 1;
+/** The frost wolf prowling `dx` in front of her, in no hurry to do anything. */
 const wolf = (dx = 300, extra = {}) => {
-  const e = spawn('frostwolf', 1, P.x + dx, P.y);
-  Object.assign(
-    e,
-    { state: 'chase', z: 0, cd: 99, breathCd: 99, biteCd: 99, swipeCd: 99, howlCd: 99, leapCd: 99 },
-    extra,
-  );
+  atWave(LAST);
+  P.x = G.cam + 260;
+  const e = spawn('frostwolf', 1);
+  Object.assign(e, { state: 'fwprowl', t: 0, x: P.x + dx, y: P.y, z: 0, face: -1, cd: 99 });
+  Object.assign(e, { pounceCd: 99, shardCd: 99, breathCd: 99, dashCd: 99, howlCd: 99, tailCd: 99 });
+  Object.assign(e, extra);
   holdFight(e);
   return e;
 };
+const calm = (e) => () => Object.assign(e, { cd: 99 });
 
-test('the frost wolf comes down into the glade from over the trees, and howls', () => {
+test('the frost wolf runs into the glade and howls; it fights alone, and never holds her', () => {
   atWave(LAST);
   const e = spawn('frostwolf', 1);
+  holdFight(e);
+  assert.ok(e, 'it comes');
   assert.equal(e.state, 'fwenter');
-  assert.ok(e.z > 300);
-  assert.equal(hurtEnemy(e, 10, 1, false, 'punch'), false, 'out of reach up there');
-  step(1);
-  assert.equal(e.z, 0);
-  assert.equal(e.state, 'fwhowl');
-});
-
-test('its icy breath freezes her in a block of ice; mashing gets her out sooner', () => {
-  atWave(LAST);
-  P.x = G.cam + 200;
-  const e = wolf(330, { breathCd: 0 });
-  Object.assign(e, { x: P.x + 330, face: -1 });
-  let froze = false;
-  step(FROST.breath.wind + 0.6, () => (froze = froze || P.state === 'frozen'));
-  assert.ok(froze, 'frozen');
-  // frozen on her own she thaws after FROST.breath.freeze; mashing, much sooner
-  freshGame();
-  atWave(LAST);
-  P.inv = 0;
-  assert.ok(freezePlayer(5, FROST.breath.freeze));
-  let t = 0;
-  step(FROST.breath.freeze, (i) => {
-    if (P.state === 'frozen') t += DT;
-    if (i % 3 === 0) pressed.atk = true;
-  });
-  assert.ok(t < FROST.breath.freeze * 0.7, `${t.toFixed(2)} s in the ice`);
-});
-
-test('its body is a wall: she is pushed out of it', () => {
-  atWave(LAST);
-  const e = wolf(300);
-  P.x = e.x - 20;
-  P.y = e.y;
-  step(DT);
-  assert.ok(Math.abs(P.x - e.x) > FROST.bw - 20, 'pushed out');
-});
-
-test('its head is its weak spot (reached high up, in front); its long body is hit anywhere', () => {
-  atWave(LAST);
-  const e = wolf(300);
-  const hx = e.x + e.face * 175;
-  assert.equal(partZone(e, hx - 20, hx + 20, e.y, 22, 150, 230), 'head');
-  assert.ok(headBonus(e, 'head') > 1);
-  assert.equal(partZone(e, e.x - 120, e.x - 80, e.y, 22, 40, 150), 'body');
-  assert.equal(headBonus(e, 'body'), 1);
-  assert.equal(partZone(e, e.x - 400, e.x - 360, e.y, 22, 40, 150), null);
-});
-
-test('its howl calls wolves out of the forest and drops icicles on marked spots', () => {
-  atWave(LAST);
-  const e = wolf(300, { phase: 2, howlCd: 0 });
-  step(FROST.howl.wind + 0.2);
-  assert.equal(e.state, 'fwhowl');
-  assert.equal(G.enemies.filter((o) => o.type === 'wolf').length, FROST.howl.wolves[2]);
-  assert.ok(e.spikes.length >= FROST.howl.spikes[1]);
-});
-
-test('its phases: the leap from the second, the blizzard in the third', () => {
-  atWave(LAST);
-  const e = wolf(300);
-  hurtEnemy(e, e.T.hp * (1 - FROST.ph2) + 5, 1, true, 'super');
-  step(0.3);
-  assert.equal(e.phase, 2);
-  hurtEnemy(e, e.T.hp * (FROST.ph2 - FROST.ph3), 1, true, 'super');
-  step(0.3);
+  assert.ok(FOES.frostwolf.immune(e));
+  step(4, () => (P.inv = 99));
+  assert.notEqual(e.state, 'fwenter');
+  assert.ok(e.x < G.cam + W, 'in the glade');
+  // nobody else comes, whatever it does, in any phase
+  for (const hp of [0.9, 0.6, 0.3]) {
+    e.hp = e.T.hp * hp;
+    step(12, () => {
+      P.inv = 99;
+      assert.ok(!['frozen', 'grabbed', 'stun'].includes(P.state), 'her hands stay on the controls');
+    });
+    assert.deepEqual(
+      G.enemies.filter((o) => !o.dead).map((o) => o.type),
+      ['frostwolf'],
+    );
+  }
   assert.equal(e.phase, 3);
-  assert.ok(G.blizzard);
-  // the leap: up out of sight, down in a ring of ice
-  Object.assign(e, {
-    state: 'chase',
-    howlCd: 99,
-    leapCd: 0,
-    breathCd: 99,
-    biteCd: 99,
-    swipeCd: 99,
-  });
-  let up = false;
-  step(FROST.leap.wind + FROST.leap.up + FROST.leap.hang + FROST.leap.fall + 0.5, () => {
-    up = up || e.state === 'fwup';
-  });
-  assert.ok(up);
-  assert.equal(e.z, 0);
-  hurtEnemy(e, 99999, 1, true, 'super');
-  assert.equal(e.state, 'fwdie');
-  assert.equal(G.blizzard, false);
+  assert.ok(G.blizzard, 'a blizzard blows in its third phase');
 });
 
-const icePillar = (x, y) => {
-  const u = { isProp: 1, decor: 'icicle', x, y, z: 0, w: 20, hp: 2, drop: null, bornT: G.time };
-  G.props.push(u);
-  return u;
-};
+test('it never does the same thing twice in a row, and what it does reaches her', () => {
+  const e = wolf(320, { pounceCd: 0, shardCd: 0, breathCd: 0, cd: 0 });
+  const seen = [];
+  let last = null;
+  step(40, () => {
+    P.inv = 99;
+    if (e.state === 'fwprowl') last = null;
+    else if (!last) {
+      last = e.last;
+      seen.push(e.last);
+    }
+  });
+  assert.ok(seen.length >= 8, `${seen.length} attacks in 40 s`);
+  for (let i = 1; i < seen.length; i++) assert.notEqual(seen[i], seen[i - 1], seen.join());
+  for (const k of ['bite', 'hop', 'pounce', 'shard', 'breath'])
+    assert.ok(seen.includes(k), `${k}: ${seen}`);
+  assert.ok(!seen.includes('dash') && !seen.includes('howl'), 'not in its first phase');
+});
 
-test('a blow on its head as it draws breath to howl chokes the howl: no wolves, no icicles', () => {
-  atWave(LAST);
-  const e = wolf(300, { phase: 2, howlCd: 0, face: -1 });
-  step(FROST.howl.wind * 0.5);
-  assert.equal(e.state, 'fwhowl');
-  assert.ok(!FOES.frostwolf.unstoppable(e), 'no red outline: it can be stopped');
-  // a bone thrown along the road strikes its head first
-  G.projs.push({ k: 'bone', x: P.x + 62, y: P.y, z: 116, vx: 650, vzd: 0, rot: 0, life: 1.05 });
-  step(0.4);
-  assert.equal(e.state, 'fwchoke');
+test('the bites: a snap up close, then a lunge after her; backing off clears both', () => {
+  const B = FROST.bite;
+  let e = wolf(170, { cd: 0, last: 'hop' });
+  step(B.wind + 0.02);
+  assert.equal(e.state, 'fwbite');
+  step(0.1);
+  assert.equal(P.hp, 100 - B.dmg, 'the snap');
+  P.inv = 0;
+  P.state = 'idle';
+  step(0.15 + B.wind2 + B.t2);
+  assert.equal(P.hp, 100 - B.dmg - B.dmg2, 'the lunge');
+  // she backs off as it draws its head back
+  freshGame();
+  e = wolf(170, { cd: 0, last: 'hop' });
+  step(0.1);
+  assert.equal(e.state, 'fwbitew');
+  P.x -= 250;
+  step(B.wind + 0.3 + B.wind2 + B.t2 + 0.1, calm(e));
+  assert.equal(P.hp, 100);
+});
+
+test('the pounce: the mark follows her, then holds still; out of it, the wolf skids, open', () => {
+  const Q = FROST.pounce;
+  const e = wolf(420, { pounceCd: 0, cd: 0 });
+  step(DT * 2);
+  assert.equal(e.state, 'fwpouncew');
+  assert.ok(!FOES.frostwolf.unstoppable(e), 'crouched, it can be stopped');
+  P.x -= 60;
+  step(Q.wind - Q.lock - 0.1);
+  assert.ok(Math.abs(e.mark.x - P.x) < 1 && !e.mark.set, 'it follows her');
+  step(0.15);
+  assert.ok(e.mark.set, 'red now');
+  const mx = e.mark.x;
+  P.x += Q.rx + 60;
+  step(Q.lock + Q.air * 0.5);
+  assert.equal(e.state, 'fwpounce');
+  assert.equal(e.mark.x, mx, 'and still');
+  assert.ok(e.z > 60 && FOES.frostwolf.unstoppable(e), 'in the air, the red outline');
+  step(Q.air * 0.5 + 0.05);
+  assert.equal(e.state, 'fwskid');
+  assert.equal(P.hp, 100);
   assert.ok(isOpen(e));
-  assert.equal(G.enemies.filter((o) => o.type === 'wolf').length, 0);
-  assert.ok(!e.spikes?.length);
-  // open, a blow does more
+  const hp = e.hp;
+  hurtEnemy(e, 10, 1, false, 'punch');
+  assert.ok(Math.abs(hp - e.hp - 10 * FROST.open) < 1e-9, 'open: every blow does more');
+  step(Q.skid + 0.1, calm(e));
+  assert.equal(e.state, 'fwprowl');
+  // standing in the oval: knocked down
+  freshGame();
+  const f = wolf(420, { pounceCd: 0, cd: 0 });
+  step(Q.wind + Q.air + 0.1);
+  assert.equal(P.hp, 100 - Q.dmg);
+  assert.equal(f.state, 'fwrec');
+});
+
+test('the ice fangs run along her lane, three lanes later on: a step between them is safe', () => {
+  const S = FROST.shard;
+  let e = wolf(420, { shardCd: 0, cd: 0 });
+  step(DT * 2);
+  assert.equal(e.state, 'fwshardw');
+  assert.deepEqual(e.lanes, [P.y], 'one lane, hers');
+  step(S.wind + 420 / S.speed + 0.1);
+  assert.equal(P.hp, 100 - S.dmg);
+  assert.ok(e.spikes.length > 3, 'fangs of ice standing along it');
+  // stepping out of the lane while the cracks show
+  freshGame();
+  e = wolf(420, { shardCd: 0, cd: 0 });
+  step(0.2);
+  P.y -= S.w + 6;
+  step(S.wind + 1, calm(e));
+  assert.equal(P.hp, 100);
+  // three lanes in its second phase; between two of them she is safe, in a side one she is not
+  for (const [dy, hurt] of [
+    [S.lanes / 2, false],
+    [S.lanes, true],
+  ]) {
+    freshGame();
+    e = wolf(420, { shardCd: 0, cd: 0, phase: 2, hp: 900 });
+    P.y -= 20;
+    step(DT * 2);
+    assert.equal(e.lanes.length, 3);
+    assert.ok(e.lanes.includes(P.y));
+    P.y += dy;
+    step(S.wind + 1, calm(e));
+    assert.equal(P.hp < 100, hurt, `${dy} px off her lane`);
+  }
+});
+
+test('the frost breath: a cone that holds still; it chills her (slower), and never freezes her', () => {
+  const B = FROST.breath;
+  let e = wolf(380, { breathCd: 0, cd: 0 });
+  step(DT * 2);
+  assert.equal(e.state, 'fwbreathw');
+  const by = e.by;
+  step(B.wind + 0.5);
+  assert.equal(e.state, 'fwbreath');
+  assert.equal(e.by, by);
+  assert.equal(P.hp, 100 - B.dmg);
+  assert.ok(P.chill > 0);
+  assert.notEqual(P.state, 'frozen');
+  // chilled, she walks slower; then it wears off
+  step(1.2, calm(e));
+  P.state = 'idle';
+  P.inv = 99;
+  // (walking only: under RUN.after seconds, before she breaks into a run)
+  let x = P.x;
+  keys.l = true;
+  step(0.3, calm(e));
+  const cold = x - P.x;
+  keys.l = false;
+  step(B.chill, calm(e));
+  assert.ok(!(P.chill > 0));
+  x = P.x = G.cam + 500;
+  keys.l = true;
+  step(0.3, calm(e));
+  keys.l = false;
+  assert.ok(Math.abs(cold / (x - P.x) - B.slow) < 0.05, `${cold} against ${x - P.x}`);
+  // a step out of the cone as it draws breath
+  freshGame();
+  e = wolf(380, { breathCd: 0, cd: 0 });
+  step(0.2);
+  P.y -= B.dy + 10;
+  step(B.wind + B.t + 0.2, calm(e));
+  assert.equal(P.hp, 100);
+  assert.ok(!(P.chill > 0));
+});
+
+test('behind it for too long: a sweep of its tail', () => {
+  const T = FROST.tail;
+  const e = wolf(150, { tailCd: 0, face: 1 }); // (it faces away from her)
+  step(T.wait + 0.1, calm(e));
+  assert.equal(e.state, 'fwtailw');
+  step(T.wind + 0.2, calm(e));
+  assert.equal(P.hp, 100 - T.dmg);
+});
+
+test('the hunt in the snow: run after run along her lane, then it skids to a stop, open', () => {
+  const D = FROST.dash;
+  const e = wolf(300, { dashCd: 0, cd: 0, phase: 2, hp: 900 });
+  step(DT * 2);
+  assert.equal(e.state, 'fwfade');
+  step(D.fade + 0.1);
+  assert.equal(e.state, 'fwdashw');
+  assert.ok(FOES.frostwolf.immune(e), 'off in the blizzard');
+  assert.equal(e.lane, P.y, 'the lane is hers as the eyes show');
+  // she stands still for the first run and is run down
+  step(D.warn + 0.5);
+  assert.equal(P.hp, 100 - D.dmg);
+  // then she steps out of each lane as it shows
+  let runs = 1,
+    was = e.state;
+  for (let i = 0; i < 600 && e.state !== 'fwskid'; i++) {
+    P.inv = 0;
+    if (!['idle', 'walk', 'run'].includes(P.state)) Object.assign(P, { state: 'idle', z: 0 });
+    if (e.state === 'fwdashw' && e.lane !== null)
+      P.y = e.lane + (e.lane > G.camY + 441 ? -1 : 1) * (D.dy + 8);
+    step(DT);
+    if (e.state === 'fwdash' && was !== 'fwdash') runs++;
+    was = e.state;
+  }
+  assert.equal(e.state, 'fwskid');
+  assert.equal(runs, D.n[1]);
+  assert.equal(P.hp, 100 - D.dmg, 'none of the others touched her');
+  assert.ok(isOpen(e) && e.x > G.cam + 200 && e.x < G.cam + W - 200, 'in the middle of the glade');
+});
+
+test('the howl: a ring of frost spreads over the ground, two in its third phase; a jump clears it', () => {
+  const R = FROST.howl;
+  let e = wolf(300, { howlCd: 0, cd: 0, phase: 2, hp: 900 });
+  step(DT * 2);
+  assert.equal(e.state, 'fwhowlw');
+  step(R.wind + 0.1);
+  assert.equal(e.rings.length, 1);
+  step(300 / R.speed + 0.2, calm(e));
+  assert.equal(P.hp, 100 - R.dmg, 'it ran over her');
+  // up in the air as it passes
+  freshGame();
+  e = wolf(300, { howlCd: 0, cd: 0, phase: 3, hp: 400 });
+  G.blizzard = true;
+  let n = 0;
+  step(R.wind + R.gap + 2, () => {
+    e.cd = 99;
+    n = Math.max(n, e.rings.length);
+    P.z = 80;
+    P.state = 'jump';
+    P.vz = 0;
+  });
+  assert.equal(n, 2, 'two rings');
+  assert.equal(P.hp, 100);
+});
+
+test('its poise: worn down by her blows, faster in a wind-up; gone, it lies open', () => {
+  const e = wolf(150);
+  assert.deepEqual(poiseView(e), { v: FROST.poise, max: FROST.poise, locked: false });
+  hurtEnemy(e, 1, 1, false, 'punch');
+  hurtEnemy(e, 1, 1, true, 'punch');
+  assert.equal(e.wp, FROST.poise - POISE.light - POISE.heavy);
+  assert.equal(e.state, 'fwprowl', 'a blow does not stop it');
+  // winding up a bite: more of it
+  go(e, 'fwbitew');
+  hurtEnemy(e, 1, 1, true, 'punch');
+  assert.equal(e.wp, FROST.poise - POISE.light - POISE.heavy * (1 + FROST.windMult));
+  // nothing in an attack with the red outline
+  go(e, 'fwbreath', 0, { by: P.y - 200, hitDone: true });
+  const wp = e.wp;
+  hurtEnemy(e, 1, 1, true, 'super');
+  assert.equal(e.wp, wp);
+  assert.ok(poiseView(e).locked);
+  // a while without a blow and it is whole again
+  go(e, 'fwprowl');
+  step(FROST.regen + 0.2, calm(e));
+  assert.equal(e.wp, FROST.poise);
+  // worn away: on its side, open, then up again with its poise whole
+  go(e, 'fwpouncew', 0, { mark: { x: P.x, y: P.y } });
+  const need = Math.ceil(FROST.poise / (POISE.heavy * FROST.windMult));
+  for (let i = 0; i < need - 1; i++) hurtEnemy(e, 1, 1, true, 'punch');
+  assert.equal(e.state, 'fwpouncew', 'not yet');
+  hurtEnemy(e, 1, 1, true, 'punch');
+  assert.equal(e.state, 'fwdown');
+  assert.ok(isOpen(e) && e.mark === null);
   const hp = e.hp;
   G.freeze = 0;
   hurtEnemy(e, 10, 1, false, 'punch');
   assert.ok(Math.abs(hp - e.hp - 10 * FROST.open) < 1e-9);
-  // it comes round, and for a while nothing stops it
-  step(FROST.choke.howl + 0.1, () => (P.inv = 99));
-  assert.notEqual(e.state, 'fwchoke');
-  assert.ok(e.steady > 0);
-  Object.assign(e, { state: 'fwbitew', t: 0 });
-  assert.ok(FOES.frostwolf.unstoppable(e));
-  hurtEnemy(e, 5, 1, true, 'punch');
-  assert.equal(e.state, 'fwbitew');
+  step(FROST.down + 0.6, calm(e));
+  assert.equal(e.state, 'fwprowl');
+  assert.equal(e.wp, FROST.poise);
+  // a crushing blow takes all of it at once
+  hurtEnemy(e, 1, 1, true, 'super');
+  assert.equal(e.state, 'fwdown');
 });
 
-test('a heavy blow as it winds up a bite makes it flinch; a plain one does not', () => {
-  atWave(LAST);
+test('no wind-up of its is shorter than she can react to, in any phase; beaten, the fight is won', () => {
+  for (const k of ['bite', 'pounce', 'shard', 'breath', 'tail', 'howl'])
+    assert.ok(FROST[k].wind >= POISE.minWind, k);
+  assert.ok(FROST.dash.warn >= POISE.minWind);
+  // (quicker in its later phases, but never below that)
+  const q = wolf(170, { cd: 0, phase: 3, last: 'hop', hp: 100 });
+  step(POISE.minWind - 0.03);
+  assert.equal(q.state, 'fwbitew');
+  freshGame();
   const e = wolf(300);
-  Object.assign(e, { state: 'fwbitew', t: 0 });
-  hurtEnemy(e, 5, 1, false, 'punch');
-  assert.equal(e.state, 'fwbitew');
-  G.freeze = 0;
-  hurtEnemy(e, 5, 1, true, 'air');
-  assert.equal(e.state, 'fwchoke');
+  Object.assign(e, { phase: 3 });
+  G.blizzard = true;
+  e.rings.push({ x: e.x, y: e.y, r: 100 });
+  hurtEnemy(e, 9999, 1, true, 'punch');
+  assert.equal(e.state, 'fwdie');
+  assert.ok(!G.blizzard && !e.rings.length);
+  for (let i = 0; i < 900 && !e.dead; i++) step(DT);
+  assert.ok(e.dead, 'gone');
 });
 
-test('a lunge that misses leaves its jaws in the snow, its head low and open', () => {
-  atWave(LAST);
-  P.x = G.cam + 200;
-  const e = wolf(330);
-  Object.assign(e, { x: P.x + 330, face: -1, biteCd: 0 });
-  step(FROST.bite.wind + 0.05);
-  assert.equal(e.state, 'fwbite');
-  // she steps out of its way
-  P.y += 120;
-  for (let i = 0; i < 60 && e.state === 'fwbite'; i++) step(DT);
-  assert.equal(e.state, 'fwstuck');
-  assert.ok(isOpen(e));
-  const hx = e.x + e.face * 175;
-  assert.equal(partZone(e, hx - 20, hx + 20, e.y, 22, 40, 150), 'head', 'a blow from the ground');
-  step(FROST.bite.stuck + 0.1, () => (P.inv = 99));
-  assert.notEqual(e.state, 'fwstuck');
-});
+// --- the boulders on the steep trail ------------------------------------------------------------
 
-test('icicles stay standing as pillars of ice: its lunge into one dazes it, one stops its breath', () => {
-  atWave(LAST);
-  P.x = G.cam + 200;
-  const e = wolf(420, { phase: 2, howlCd: 0 });
-  step(FROST.howl.wind + FROST.howl.warn + 0.6, () => (P.inv = 99));
-  const made = G.props.filter((u) => u.decor === 'icicle');
-  assert.ok(made.length >= 2 && made.length <= FROST.pillar.max, `${made.length} pillars`);
-  // they melt in time
-  step(FROST.pillar.life + 1, () => {
-    P.inv = 99;
-    Object.assign(e, { state: 'chase', cd: 99, howlCd: 99, leapCd: 99, breathCd: 99, biteCd: 99 });
-    e.swipeCd = 99;
-  });
-  assert.equal(G.props.filter((u) => u.decor === 'icicle' && !u.dead).length, 0);
-  // a pillar between its jaws and her: the lunge shatters on it
+test('boulders roll down the steep trail after her, and on through the fight at its foot', () => {
+  startLevel(4);
+  G.banner = null;
+  G.waveI = 99; // (no fight starts)
   G.props = [];
-  P.inv = 0;
-  Object.assign(e, { state: 'chase', x: P.x + 400, y: P.y, face: -1, biteCd: 0, z: 0 });
-  const u = icePillar(P.x + 110, P.y),
-    hp = e.hp;
-  step(FROST.bite.wind + FROST.bite.air + 0.1);
-  assert.ok(u.dead, 'the pillar is gone');
-  assert.equal(e.state, 'fwchoke');
-  assert.equal(e.hp, hp - FROST.pillar.dmg);
-  assert.equal(P.hp, 100, 'and she is not bitten');
-  // behind a pillar the breath does not reach her
-  G.props = [];
-  Object.assign(e, {
-    state: 'fwbreath',
-    t: 0,
-    x: P.x + 330,
-    y: P.y,
-    face: -1,
-    by: P.y,
-    hitDone: false,
-  });
-  icePillar(P.x + 60, P.y + 8);
-  assert.ok(sheltered(e));
-  step(0.5);
-  assert.notEqual(P.state, 'frozen');
-  G.props = [];
-  assert.ok(!sheltered(e));
-});
-
-test('the cone of its breath and the ring of its leap hold still at the end: she can get out', () => {
-  atWave(LAST);
-  P.x = G.cam + 200;
-  const e = wolf(330);
-  Object.assign(e, { x: P.x + 330, face: -1, breathCd: 0 });
-  step(FROST.breath.wind - FROST.breath.lock + 0.02);
-  assert.equal(e.state, 'fwbreathw');
-  const by = e.by;
-  P.y -= 70;
-  step(FROST.breath.lock - 0.04);
-  assert.equal(e.by, by, 'the cone no longer follows her');
-  step(0.6);
-  assert.notEqual(P.state, 'frozen');
-  // at its flank while it breathes, it is open
-  assert.equal(e.state, 'fwbreath');
-  assert.ok(!isOpen(e));
-  P.x = e.x;
-  assert.ok(isOpen(e));
-  // the leap: the ring stops following her before it drops
-  P.x = G.cam + 200;
-  P.y = e.y;
-  Object.assign(e, { state: 'fwup', t: FROST.leap.up + 0.1, z: FROST.leap.h, phase: 2 });
-  step(FROST.leap.hang - FROST.leap.lock);
-  const x = e.x;
-  P.x += 300;
-  step(FROST.leap.lock - 0.12, () => (P.inv = 0));
-  assert.equal(e.x, x);
-  step(FROST.leap.fall + 0.2);
-  assert.equal(e.state, 'fwland');
-  assert.ok(e.missed, `it missed her (${Math.round(P.x - e.x)} px off)`);
-  assert.ok(isOpen(e), 'a leap that missed leaves it open');
-  assert.equal(P.hp, 100);
-});
-
-// --- the boulders on the climb --------------------------------------------------------------------
-
-test('boulders roll down the trail during a fight on the climb (and only there)', () => {
-  atWave(WAVES4.findIndex((w) => w.name === 'rockslide'));
-  const foe = spawn('knight', 1, P.x + 300, P.y);
-  Object.assign(foe, { cd: 99 });
-  holdFight(foe);
-  G.rockT = 0.05;
-  step(0.2);
+  const [s0, s1] = L4.SLOPE,
+    x = (s0 + s1) / 2;
+  camTo(pathPx(3.5, PATH));
+  Object.assign(P, { x, y: topY(x) + 80, inv: 0, face: 1 });
+  G.rockT = 0;
+  step(DT * 2);
   const b = G.projs.find((q) => q.k === 'boulder');
   assert.ok(b, 'a boulder sets off');
-  assert.ok(b.x >= L4.CLIMB[0] && b.x <= L4.CLIMB[1]);
-  // it rolls down onto her
-  P.x = b.x;
-  P.y = b.y + BOULDER.speed * (BOULDER.warn + 0.3);
-  P.hp = 100;
-  step(BOULDER.warn + 0.8);
-  assert.ok(P.hp < 100, 'it hit her');
-  // not on the village street
-  freshGame();
-  atWave(1);
-  const f2 = spawn('bandit', 1, P.x + 300, P.y);
-  holdFight(f2);
+  assert.ok(!b.rolling, 'only its lane shows at first');
+  assert.ok(Math.abs(b.d - 80) <= 56, 'in a lane near hers');
+  // it waits (its lane showing), then rolls down the slant, keeping its lane
+  step(BOULDER.warn + 0.4, () => {
+    P.inv = 99;
+    G.rockT = 9;
+  });
+  assert.ok(b.rolling && b.x > G.cam - 60);
+  assert.ok(Math.abs(b.y - (topY(b.x) + b.d)) < 1e-6, 'along the slant');
+  // it knocks her down if she stands in its lane, and a foe flying
+  const e = spawn('bandit', 1, b.x + 260, topY(b.x + 260) + b.d);
+  e.state = 'chase';
+  Object.assign(P, { x: b.x + 120, y: topY(b.x + 120) + b.d, z: 0, inv: 0, state: 'idle' });
+  const hp = P.hp;
+  step(0.9, () => (G.rockT = 9));
+  assert.equal(P.hp, hp - BOULDER.dmgP);
+  assert.ok(e.hp < e.T.hp, 'the foe too');
+  // none on the flat hill road with no fight
+  G.projs = [];
+  camTo(pathPx(2.5, PATH));
+  Object.assign(P, { x: 3800, y: topY(3800) + 80, state: 'idle', inv: 99 });
   G.rockT = 0;
   step(1);
   assert.ok(!G.projs.some((q) => q.k === 'boulder'));
+  // in the rockslide they come rolling off the trail along the ledge
+  freshGame();
+  atWave(WAVES4.findIndex((w) => w.name === 'rockslide'));
+  holdFight(spawn('knight', 1, P.x + 300, P.y));
+  G.waveI = WAVES4.findIndex((w) => w.name === 'rockslide');
+  G.rockT = 0;
+  step(DT * 2);
+  const c = G.projs.find((q) => q.k === 'boulder');
+  assert.ok(c);
+  step(BOULDER.warn + 1, () => {
+    P.inv = 99;
+    G.rockT = 9;
+  });
+  assert.equal(c.y, L4.Y_C + c.d, 'along the flat ledge');
 });

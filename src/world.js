@@ -43,6 +43,7 @@ import { beepTimer, boltFly } from './foes/robot.js';
 import { wallStops } from './foes/barrier.js';
 import { explode, updFuses } from './blast.js';
 import { boulderRoll, updHazards4 } from './hazards4.js';
+import { beastShot } from './foes/beasts.js';
 import { meetsPlayer, reaches } from './height.js';
 import {
   camTo,
@@ -267,6 +268,10 @@ export function update(dt) {
     }
     if (q.k === 'boulder') {
       boulderRoll(q, dt);
+      continue;
+    }
+    if (q.k === 'quill' || q.k === 'fball') {
+      beastShot(q, dt);
       continue;
     }
     if (q.k === 'skull') {

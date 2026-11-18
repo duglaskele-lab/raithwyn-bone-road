@@ -241,38 +241,5 @@ export function drawDecor4(u, fl) {
       ]);
       break;
     }
-    case 'icicle': {
-      // a pillar of ice where an icicle fell in the frost wolf's glade: a tall shard, a couple
-      // of small ones at its foot, a glint down its side
-      ctx.beginPath();
-      ctx.moveTo(-17, 0);
-      ctx.lineTo(-11, -70);
-      ctx.lineTo(-2, -112);
-      ctx.lineTo(8, -78);
-      ctx.lineTo(16, 0);
-      ctx.closePath();
-      fill('#bff0ff');
-      ctx.beginPath();
-      ctx.moveTo(-28, 0);
-      ctx.lineTo(-21, -34);
-      ctx.lineTo(-12, 0);
-      ctx.closePath();
-      fill('#d8f8ff');
-      ctx.beginPath();
-      ctx.moveTo(10, 0);
-      ctx.lineTo(19, -44);
-      ctx.lineTo(27, 0);
-      ctx.closePath();
-      fill('#d8f8ff');
-      ctx.fillStyle = 'rgba(255,255,255,.75)';
-      ctx.fillRect(-6, -84, 3, 62);
-      crack([
-        [-2, -112],
-        [3, -84],
-        [-5, -58],
-        [4, -30],
-      ]);
-      break;
-    }
   }
 }

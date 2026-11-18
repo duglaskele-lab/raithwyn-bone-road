@@ -7,7 +7,6 @@
 //   the thief gnome (TYPES.gnome, GNOME), Golden Axe's: he runs across the screen with a sack
 //     of blue magic pots and takes no side; every blow shakes a pot (or a joint of meat) out of
 //     the sack, and when it is empty he runs off crying.
-// The wolf is drawn by drawWolf, which the frost wolf (frostwolf.js) shares.
 import { GNOME, HARPY, OL, TAU, W, WOLF } from '../config.js';
 import { clamp, fxRandom, fxRnd, random, rnd } from '../util.js';
 import { G, P } from '../state.js';
@@ -296,43 +295,28 @@ defineFoe('wolf', {
 });
 
 /**
- * A wolf, drawn facing +x with its paws on the ground at the origin: `k` its size (1 for a grey
- * wolf), `C` its colours ({ fur, dk, belly, eye }), `frost` the frost wolf's touches (ice
- * crystals on its back, a frosty breath). Its pose comes from its state: walking (its legs
- * with e.walkT), crouched to spring, stretched in a leap, its jaws open in a bite, reeling,
- * thrown, lying on its side.
+ * A grey wolf, drawn facing +x with its paws on the ground at the origin. Its pose comes from
+ * its state: walking (its legs with e.walkT), crouched to spring, stretched in a leap, its jaws
+ * open in a bite, reeling, thrown, lying on its side.
  */
-export function drawWolf(e, k = 1, C = null, frost = null) {
+function drawWolf(e) {
   const T = e.T,
     fl = e.flash > 0,
-    fur = fl ? '#fff' : (C?.fur ?? T.col),
-    dk = fl ? '#ddd' : (C?.dk ?? T.dk),
-    belly = fl ? '#fff' : (C?.belly ?? '#c9cbd2'),
+    fur = fl ? '#fff' : T.col,
+    dk = fl ? '#ddd' : T.dk,
+    belly = fl ? '#fff' : '#c9cbd2',
     st = e.state,
     sx = e.x - G.cam,
     sy = e.y - e.z,
     br = Math.sin(e.anim * 3) * 1.5;
-  const crouch = [
-      'wlw',
-      'windup',
-      'fwbitew',
-      'fwleapw',
-      'fwbreathw',
-      'fwswipew',
-      'fwstuck',
-    ].includes(st)
-      ? 1
-      : 0,
-    leap = ['wl', 'fwbite', 'fwup', 'fwfall'].includes(st),
-    bite = st === 'attack' || st === 'fwbite' || st === 'fwstuck' || (st === 'wl' && e.t > 0.2),
-    swipe = st === 'fwswipe',
-    lying = ['down', 'corpse', 'fall', 'fwdie'].includes(st) && !(st === 'fall' && e.z > 20),
-    reel = st === 'hurt' || st === 'getup' || st === 'fwchoke',
-    howl = st === 'fwhowl',
-    breath = st === 'fwbreath' || st === 'fwbreathw';
+  const crouch = st === 'wlw' || st === 'windup' ? 1 : 0,
+    leap = st === 'wl',
+    bite = st === 'attack' || (st === 'wl' && e.t > 0.2),
+    lying = ['down', 'corpse', 'fall'].includes(st) && !(st === 'fall' && e.z > 20),
+    reel = st === 'hurt' || st === 'getup';
   ctx.save();
   ctx.translate(sx, sy);
-  ctx.scale(e.face * k, k);
+  ctx.scale(e.face, 1);
   if (st === 'air' || (st === 'fall' && e.z > 20)) ctx.rotate(-0.4 - e.t * 3);
   if (lying) {
     ctx.translate(0, -8);
@@ -376,12 +360,6 @@ export function drawWolf(e, k = 1, C = null, frost = null) {
         : [x + 4 + sw * 0.4, -h * 0.5 - lift * 0.5];
       paw = [x + sw + (hind ? -4 : 2), -lift];
     }
-    if (swipe && !hind && x > 0) {
-      // the paw swung round in front
-      const u = clamp(e.t / 0.18, 0, 1);
-      knee = [x + 24, -h - 10 + u * 20];
-      paw = [x + 54, -h + 10 + u * 30];
-    }
     limb([[x, -h + 10], knee], hind ? 10 : 9, c);
     limb([knee, paw], 6.5, c);
     ctx.beginPath();
@@ -390,10 +368,10 @@ export function drawWolf(e, k = 1, C = null, frost = null) {
   };
   leg(32, wk + Math.PI, dk, false);
   leg(-30, wk, dk, true);
-  // the tail: a bushy brush, up when it howls, down when it reels
+  // the tail: a bushy brush, down when it reels
   ctx.save();
   ctx.translate(-48, -h - 4);
-  ctx.rotate(howl ? -0.9 : reel || lying ? 0.7 : 0.25 + Math.sin(e.anim * 5) * 0.1);
+  ctx.rotate(reel || lying ? 0.7 : 0.25 + Math.sin(e.anim * 5) * 0.1);
   shag(-26, 0, 30, 10, 0, 14, dk, 0.25);
   ctx.restore();
   // the body: shaggy fur, a pale belly
@@ -416,27 +394,15 @@ export function drawWolf(e, k = 1, C = null, frost = null) {
   }
   ctx.stroke();
   ctx.restore();
-  // the frost wolf's crystals of ice along its back
-  if (frost)
-    for (let i = 0; i < 6; i++) {
-      const x = -36 + i * 14,
-        tall = 12 + (i % 2) * 8 + (frost.big ?? 0);
-      ctx.beginPath();
-      ctx.moveTo(x - 6, -h - 22 + br);
-      ctx.lineTo(x + 2, -h - 22 - tall + br);
-      ctx.lineTo(x + 7, -h - 22 + br);
-      ctx.closePath();
-      fillOl(fl ? '#fff' : '#bff4ff', 1.6);
-    }
   leg(40, wk, fur, false);
   leg(-24, wk + Math.PI, fur, true);
-  // the head: up and back in a howl, low as it crouches, thrust out in a bite
+  // the head: low as it crouches, thrust out in a bite
   ctx.save();
   ctx.translate(50, -h - 16 + br + crouch * 8);
-  ctx.rotate(howl ? -0.9 : crouch ? 0.25 : bite ? -0.1 : 0);
+  ctx.rotate(crouch ? 0.25 : bite ? -0.1 : 0);
   if (bite) ctx.translate(8, 0);
-  // the ruff of fur round the neck (frosted on the frost wolf)
-  shag(-8, 6, 20, 24, 0.3, 16, frost ? (fl ? '#fff' : '#f4fbff') : fur, 0.22);
+  // the ruff of fur round the neck
+  shag(-8, 6, 20, 24, 0.3, 16, fur, 0.22);
   // ears
   for (const [x, c] of [
     [-8, dk],
@@ -449,8 +415,8 @@ export function drawWolf(e, k = 1, C = null, frost = null) {
     ctx.closePath();
     fillOl(c, 2);
   }
-  // the lower jaw: it drops open in a bite, a howl or the breath
-  const open = bite ? 11 : howl ? 9 : breath ? 8 : 0;
+  // the lower jaw: it drops open in a bite
+  const open = bite ? 11 : 0;
   ctx.beginPath();
   ctx.moveTo(-2, 8);
   ctx.lineTo(36, 9 + open);
@@ -492,9 +458,9 @@ export function drawWolf(e, k = 1, C = null, frost = null) {
     }
   }
   // the eye, narrowed and glowing
-  ctx.fillStyle = fl ? '#fff' : (C?.eye ?? T.eye);
+  ctx.fillStyle = fl ? '#fff' : T.eye;
   ctx.shadowColor = ctx.fillStyle;
-  ctx.shadowBlur = frost ? 12 : 4;
+  ctx.shadowBlur = 4;
   ctx.beginPath();
   ctx.moveTo(4, -6);
   ctx.lineTo(15, -6);
@@ -596,7 +562,7 @@ function drawGnome(e) {
     run = e.moving ? Math.sin(e.walkT) : 0;
   ctx.save();
   ctx.translate(sx, sy);
-  ctx.scale(e.face * k, k);
+  ctx.scale(e.face, 1);
   if (e.state === 'ghurt') ctx.rotate(-0.3);
   // legs pattering
   limb(

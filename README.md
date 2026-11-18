@@ -900,9 +900,10 @@ A sword-and-sorcery road after Golden Axe (I–III). It comes after Midnight Cit
 and lives) and it is the last stage: beating its boss wins the game.
 
 **The road** (`src/level4.js`): a village of thatched huts in the morning sun → the road
-climbing into the hills → the trail turns and goes straight up the mountainside, away from the
-viewer (the camera turns at its foot, looks up it and climbs with it) → at the top it turns again
-onto a ledge along the cliff, past a great waterfall, across the gorge under it on a plank bridge
+climbing into the hills → over the hilltop, a steep trail going down the mountain's other side,
+aslant across the screen (800 px along, 320 px down; boulders roll down it after her; it stands
+where the road used to go straight up the screen) → at its foot a ledge along the cliff, past a
+great waterfall, across the gorge under it on a plank bridge
 → the pool under a second cascade, where the minotaur waits → down into the dark forest as the
 sun goes down → night, and the glade of standing stones under the moon, where the frost wolf
 hunts. The light changes with the road: morning, noon, sunset, night (`dayAt` in `src/bg4.js`).
@@ -916,7 +917,7 @@ foes instead of 8,200, each with an idea of its own, as in Old Quarry (`core`, `
 | Spears and a thief | two amazons, the gnome | heavy blows (the third light one in a row lets her flip away); shake the sack |
 | Shield wall | two death knights, then a cockatrice rider | a heavy blow opens a shield; the beast's tail does too |
 | The harpies' sky | three harpies, bandits | jump kicks and bones, or wait for the dive |
-| Rockslide | a crowd on the climb | lead them under the boulders |
+| Rockslide | a crowd at the foot of the steep trail | lead them into the lanes of the boulders rolling off it |
 | Fire on the ledge | a fire drake's rider among amazons, a harpy | take the drake and burn them |
 | Hold the bridge | a bone giant, bandits | jump its shock wave; throw the bandits into the gorge |
 | (the minotaur) | | |
@@ -927,8 +928,8 @@ foes instead of 8,200, each with an idea of its own, as in Old Quarry (`core`, `
 
 **The scenery** (`src/bg4.js`, all in code): the huts with their timber frames, chimney smoke, a
 windmill turning, a well, market stalls, oaks and fences; green hills under far snowy peaks and
-drifting clouds; a wayside shrine; walls of rock with pines on both sides of the trail up the
-mountain; the cliff along the ledge with moss, ivy and a cave mouth, pines on its top; the
+drifting clouds; a wayside shrine; the cliff growing behind the steep trail as it sinks, and
+along the ledge with moss, ivy and a cave mouth, pines on its top; the
 waterfall pouring past the ledge into the gorge (mist, spray over the fight, a rainbow by day),
 the rope bridge, the pool under a second cascade, a rope rail along the ledge's edge in front of
 the fighters; the forest — firs, great trunks, mushrooms, a canopy over the screen, fog low over
@@ -944,20 +945,31 @@ Off the bridge one falls in (a jump that falls short, a blow that throws her): s
 the ledge, hurt, as with the gaps between Midnight City's roofs (`PIT`); a foe thrown in is gone.
 Foes walking towards her steer for the bridge.
 
-**The boulders.** On the trail up the mountainside, while a fight is on, boulders come rolling
-down it every 3.5–6 s: a red lane shows at the top of the screen a second before, then down it
-rolls, hitting her (14) and her foes (60, a crushing blow: it kills the light ones) alike — jump it or step aside
-(`BOULDER`, `src/hazards4.js`).
+**The boulders** (`BOULDER`, `src/hazards4.js`). On the steep trail boulders roll down after
+her, one every 1.4–2.4 s; and they go on rolling off its foot, along the ledge, through the
+rockslide fight (one every 3.5–6 s there). A red lane on the ground, with an arrow at the edge
+it will come from, shows a boulder's way for a second; then it rolls in at 430 px/s, hitting her
+(14) and her foes (60, a crushing blow: it kills the light ones) alike — step out of its lane or
+jump it. At the gorge it drops over the edge.
 
 **The beasts** (`BEAST`, `src/foes/beasts.js`), Golden Axe's mounts: the **cockatrice**, a green
-bird-lizard that spins round and whips its spiked tail (in front and behind), and the **fire
-drake**, a blue dragon that breathes fire along the road. A skeleton bandit rides one in; any
-blow on him knocks him out of the saddle, and the beast stands there with nobody on it ("JUMP
-ON!" over it when she is near). A jump that comes down on it puts her in the saddle: she steers
-it, `J` makes it whip its tail or breathe fire at her foes (22 / 20, knocking down, a heavy
-blow), a jump gets her off, and a blow on her throws her out of the saddle. Left alone, a
-bandit may walk up to it and climb back on; after 12 s nobody rides it, it runs off. A beast is
-never hurt and takes no side: a fight ends without it.
+bird-lizard, and the **fire drake**, a blue dragon. A skeleton bandit rides one in; any blow on
+him knocks him out of the saddle, and the beast stands there with nobody on it ("JUMP ON!" over
+it when she is near). A jump that comes down on it puts her in the saddle, and she steers it:
+
+| Button | The cockatrice | The fire drake |
+| --- | --- | --- |
+| `J` | spins round and whips its spiked tail, in front and behind (29, was 22) | breathes fire along the road, 250 px (26, was 20) |
+| `K` (new) | flicks three quills off its tail, fanned out in depth; they fly 540 px (14 each, a light blow; once in 1.5 s) | spits a ball of fire that flies 460 px and bursts on the first thing it meets, 130 px round (34, a heavy blow; it spares her; once in 2.4 s) |
+| jump, tapped (new) | it jumps with her: over a boulder, a shock wave, a ring of frost | the same |
+| jump, held 2 s (new) | she gets down beside it (a ring fills over her head) | the same |
+
+Its blows knock down and count as heavy. A blow on her throws her out of the saddle. Left alone,
+a bandit may walk up to it and climb back on; after 12 s nobody rides it, it runs off. And a
+beast that has lost its rider three times — a bandit or her, knocked out of the saddle; getting
+down does not count — has had enough and runs off at once (`BEAST.lose`). A beast is never hurt
+and takes no side: a fight ends without it. Only she makes it jump or shoot: a bandit on it
+fights as before.
 
 **The thief gnome** (`GNOME`), Golden Axe's: a little gnome in a blue hood runs across the
 screen with a sack. He never fights and is never hurt; each blow on him shakes something out
@@ -1012,31 +1024,40 @@ His big moves (red outline) go on through blows; only a crushing blow moves him.
 falls and bursts; every other foe crumbles.
 
 **The frost wolf** (the last boss, 1500 health, `TYPES.frostwolf`, `FROST`,
-`src/foes/frostwolf.js`): a white wolf three times a man's height, ice crystals along its back,
-eyes like cold stars. It comes down into the glade from over the trees and howls. Its body is a
-wall (she is pushed round it); its head is its weak spot (×1.3, reached high up in front, best
-from a jump).
+`src/foes/frostwolf.js`), made anew: its look, its poses and the whole fight. A white wolf the
+size of a horse, a mane of ice along its back, eyes like cold stars, drawn on its own skeleton
+(shoulders and haunches, four jointed legs, a neck, a jaw that opens, a plume of a tail) with a
+pose for everything it does. It is no wall any more: her blows land anywhere on its body, from
+the ground.
 
-The fight was rebuilt so that every attack has an answer of its own, and the right answer opens
-the wolf up: stars wheel round its head, and every blow does 1.5 times the harm (`FROST.open`).
-An attack with the red outline cannot be stopped; one without it can.
+It fights alone (it calls nobody), and nothing it does takes her hands off the controls (no
+block of ice). It prowls 235 px off her, drifts into her lane and picks an attack that will reach
+her, never the same twice in a row. Every attack shows its way out before it comes:
 
-| Its attack | What it does | The answer |
+| Its attack | What shows | The way out |
 | --- | --- | --- |
-| **Ice breath** | draws breath for 0.95 s (the cone is marked on the ground; it follows her, then turns bright and holds still for the last 0.35 s), then a cone of freezing mist rolls 460 px along the road: 8, and 1 s in a block of ice (mashing breaks it sooner) | step out of the cone once it holds still, or stand behind a pillar of ice; at its flank while it breathes, it is open |
-| **Bite** | a crouch (0.42 s) and a lunge across the glade, jaws first (18, knocks down) | a heavy blow while it crouches makes it flinch (1.1 s, open); step aside and the lunge that missed leaves its jaws in the snow for 1.3 s, its head low and open; a pillar of ice in its way shatters on its jaws: 70 harm and 2.4 s dazed |
-| **Swipe** | up close, a paw swung round (15) | a heavy blow as it draws the paw back makes it flinch |
-| **Howl** | draws breath for 0.9 s, then wolves come out of the forest (1, 2, 2 by phase) and icicles fall on marked spots (10 each) | a blow on its head — a bone thrown along the road strikes it first — or a dark ball while it draws breath chokes the howl (1.8 s, open): no wolves, no icicles |
-| **Leap** (from phase 2) | out of the glade over the trees; a blue ring follows her, turns red and holds still 0.35 s before it drops (20, 170 px) | run out of the red ring; a leap that missed leaves it open for 1.2 s |
+| **The bites** (up close) | its head drawn back for 0.5 s, then a snap (10) and after 0.36 s a lunge of 230 px (16, knocks down) | step back out of the snap, aside out of the lunge |
+| **The hop** (up close, instead of a bite) | a leap 300 px back from her (over her, with its back to the edge) | not an attack: it makes room for the others |
+| **The pounce** (230–660 px) | it crouches 0.65 s; an oval on the ground follows her, then turns red and holds still for the last 0.3 s | step out of the oval: it lands on nothing and skids for 1.2 s, open |
+| **The ice fangs** (from 200 px) | it rears up 0.75 s; cracks run along the ground down her lane (three lanes 58 px apart from its second phase) | step off the lane, between two of them: the fangs shoot up along it from the wolf outwards (14, knocks down) |
+| **The frost breath** (150–480 px) | it draws breath 0.8 s; the cone is marked on the ground and does not move | step out of the cone, or round its flank (it cannot turn till it is done). Caught: 9, and chilled for 2.5 s — 0.6 times as fast on her feet, nothing worse |
+| **The tail** | she behind it within 190 px for half a second | not to stand behind it (10, knocks down; once in 5 s) |
+| **The hunt in the snow** (from the second phase) | it runs off the screen; a pair of eyes at one edge and a red lane along her lane for 0.6 s, then it tears across (14, knocks down); three runs (four in the third phase), from either side in turn | step out of each lane, or jump it; the last run ends in the middle of the glade, where it skids for 1.4 s, open |
+| **The howl** (from the second phase; each phase begins with one) | its head back for 0.8 s, then a ring of frost spreads over the ground from it at 520 px/s; two rings in the third phase | jump the ring (12, knocks down) |
 
-- **Pillars of ice** (`FROST.pillar`, `DECOR.icicle`): every icicle that falls stays standing for
-  10 s (five at most; her blows break them too). They are her tools: shelter from the breath,
-  and a trap for the lunge. So choking the howl is not always the best answer.
-- After it has flinched or choked, nothing stops it for 4 s (`FROST.choke.steady`).
-- **Phases:** at 2/3 of its health it gets quicker and starts leaping; at 1/3 a blizzard blows,
-  an icicle falls near her every 2–3 s, and the breath sweeps across the road from one side to
-  the other — stepping aside no longer saves her: a pillar, or its flank. Each phase begins with
-  a howl. Beaten, it falls on its side and the blizzard ends.
+- **Poise** (`FROST.poise`, 24; the bar under its health, as on every enemy): her blows wear it
+  down — a plain one 1, a heavy one 3, a level I dark ball 4, a crushing one all of it — and
+  half as fast again while it winds something up. With none left it is thrown on its side for
+  2.1 s. It comes back whole 4.5 s after her last blow.
+- **Open** (stars over its head): on its side, or skidding after a pounce that missed or the last
+  run of its hunt: every blow does 1.5 times the harm (`FROST.open`).
+- **The red outline:** the lunge, the pounce in the air, the fangs, the breath, the runs, the
+  howl's rings, the sweep of its tail, the hop: nothing stops these and they take no poise. Its
+  wind-ups have no outline.
+- **Phases:** at 2/3 of its health it is 12% quicker and begins to hunt and to howl, and its
+  fangs take three lanes; at 1/3 it is 25% quicker, a blizzard blows, it runs four times and
+  howls two rings. No wind-up is ever shorter than 0.45 s. Beaten, it falls on its side and the
+  blizzard ends.
 
 **Secret.** On the first screen of the first stage, before the first fight, hold `Z` and `4`
 together for 2 seconds and the heroine goes straight to Frostfang Pass. On its first screen,
@@ -1064,7 +1085,7 @@ src/
   bg2.js                  Old Quarry's procedural backdrop
   level3.js               Midnight City: floor, gaps between the roofs, doors, camera path, waves
   bg3.js                  Midnight City's procedural backdrop and the rain
-  level4.js               Frostfang Pass: floor (the climb, the bridge), gorge, camera path, waves
+  level4.js               Frostfang Pass: floor (the steep trail, the bridge), gorge, camera path, waves
   bg4.js                  Frostfang Pass's procedural backdrop, the time of day, snow
   props4.js               Frostfang Pass's things to break
   hazards4.js             the boulders rolling down the trail
@@ -1181,14 +1202,17 @@ What is checked:
   fissures and more speed at half health, the rocket fist, the hop back at once (over her with
   no room behind it), the sumo stance and the ramming fist, the slower pace of its attacks in
   both phases and its health, the sky slam in the second phase only, its end.
-- `level4.test.js` — Frostfang Pass: the `Z`+`4` secret, the last stage, the road (the climb,
-  the bridge and the gorge), the camera turning up the trail, the fights and their pools, the
+- `level4.test.js` — Frostfang Pass: the `Z`+`4` secret, the last stage, the road (the steep
+  trail down, the bridge and the gorge), the camera going ever to the right, the fights and their pools, the
   music; the beasts (ridden in, a rider knocked off, never hurt, ridden by her, attacking her
-  foes, throwing her off, a bandit climbing back on, running off), the thief gnome and his pots,
+  foes, jumping with her, getting down by holding the jump button, quills and the ball of
+  fire, throwing her off, a bandit climbing back on, running off, at once after three riders
+  lost), the thief gnome and his pots,
   the harpy out of reach, the knight's shield; the minotaur (losing the axe, heavy blows, going
-  to pick it up, the axe kicked away, the throw, rage, death); the frost wolf (coming down,
-  the freezing breath and mashing out, its body a wall, its head, the howl, the phases, the
-  leap, the blizzard); the boulders on the climb only.
+  to pick it up, the axe kicked away, the throw, rage, death); the frost wolf (running in, fighting alone and
+  never holding her, no attack twice in a row, the bites, the pounce and its mark, the ice
+  fangs and their lanes, the breath that chills, the tail, the hunt in the snow, the rings of
+  the howl, its poise, its end); the boulders on the steep trail and in the rockslide.
 - `level3.test.js` — Midnight City: the `Z`+`3` and `X` secrets, the road (down into the metro, up
   to the avenue and onto the roofs), a gap on screen in every fight on the roofs, gaps that can
   be jumped (the widest only running), falling into a gap and climbing back hurt, not walking
