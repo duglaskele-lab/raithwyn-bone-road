@@ -398,3 +398,45 @@ test('the mine beetle runs at the nearest one and bursts; kicked by her it burst
   assert.ok(m2.dead);
   assert.ok(j.hp < TYPES.junker.hp || j.dying, 'among its own');
 });
+
+// --- found by playing ---------------------------------------------------------------------------
+
+test('the brute knocked down while it holds a robot lets it go (the fight could not end)', () => {
+  wastes();
+  P.x = G.cam + 40;
+  const b = foe('twohead', 300, 0, { face: 1, state: 'thGrab', t: 0 }),
+    j = foe('junker', 380);
+  update(DT);
+  assert.equal(j.state, 'thHeld');
+  hurtEnemy(b, 1, -1, true, 'super');
+  step(2, () => (P.inv = 99));
+  assert.notEqual(j.state, 'thHeld');
+  assert.equal(b.held, null);
+});
+
+test('a wreck given up by whoever was after it is free for the others', () => {
+  wastes();
+  P.x = G.cam + 40;
+  P.inv = 99;
+  const s = foe('scavenger', 300),
+    j = foe('junker', 600),
+    j2 = foe('junker', 800);
+  hurtEnemy(j, 999, 1, true, 'punch');
+  step(1.3, () => (P.inv = 99));
+  assert.equal(j.claimed, s);
+  Object.assign(s, { grudge: j2, grudgeT: 99 });
+  step(0.2, () => (P.inv = 99));
+  assert.equal(j.claimed ?? null, null);
+});
+
+test('a mine beetle the brute hurls bursts where it lands', () => {
+  wastes();
+  P.x = G.cam + 40;
+  const b = foe('twohead', 300, 0, { face: 1, state: 'thGrab', t: 0 }),
+    m = foe('mine', 380);
+  update(DT);
+  assert.equal(m.state, 'thHeld');
+  step(2.5, () => (P.inv = 99));
+  assert.ok(m.dead);
+  assert.ok(b);
+});

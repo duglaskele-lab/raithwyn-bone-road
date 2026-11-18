@@ -24,6 +24,7 @@ import {
   brawl,
   faceT,
   nearWreck,
+  release,
   rivalHit,
   rivals,
   struckByHer,
@@ -66,6 +67,7 @@ defineFoe('rusteater', {
           return;
         }
       }
+      release(e, e.food);
       e.food = null;
       brawl(e, dt, ctxE, EATER.bite.reach, 'reWind');
     },
@@ -181,6 +183,14 @@ defineFoe('twohead', {
         // hurled along its lane: the body strikes whoever it meets (see warTick)
         e.held = null;
         o.heldBy = null;
+        if (o.type === 'mine') {
+          // a mine beetle: it bursts where it lands, or on whoever it strikes
+          Object.assign(o, { state: 'mbKick', t: 0, vx: e.face * BRUTE.throw.speed, vz: 220 });
+          o.z = Math.max(o.z, 120);
+          SFX.swing();
+          go(e, 'thThrow');
+          return;
+        }
         rivalHit(e, o, BRUTE.throw.hit, true, e.face);
         Object.assign(o, {
           thrownBy: e,

@@ -228,7 +228,8 @@ export function warTick(e, dt) {
 // Held over the brute's heads, waiting to be thrown (the brute moves it): nothing it can do.
 defineState('thHeld', (e) => {
   const h = e.heldBy;
-  if (!h || h.dead || h.dying || h.held !== e) {
+  if (!h || h.dead || h.dying || h.held !== e || h.state !== 'thHold') {
+    if (h?.held === e) h.held = null;
     e.heldBy = null;
     go(e, 'air', 0, { vx: 0, vz: 0 });
   }
@@ -236,12 +237,18 @@ defineState('thHeld', (e) => {
 
 // --- the wrecks of robots -------------------------------------------------------------------
 
+/** Who has a wreck in hand (on its way to it, or at it): nobody once they have fallen. */
+const claimedBy = (w) => (w.claimed && !w.claimed.dead && !w.claimed.dying ? w.claimed : null);
+/** `e` gives up the wreck (or robot) `w` it was after: others may have it. */
+export function release(e, w) {
+  if (w?.claimed === e) w.claimed = null;
+}
 /** A robot's wreck, lying, not yet stripped or raised (the nearest to `e` within `r`). */
 export function nearWreck(e, r, pred = () => true) {
   let best = null,
     bd = r;
   for (const o of G.enemies)
-    if (o.state === 'wkLie' && !o.dead && !o.looted && !o.claimed && pred(o)) {
+    if (o.state === 'wkLie' && !o.dead && !o.looted && !claimedBy(o) && pred(o)) {
       const d = gap(e, o);
       if (d < bd) {
         best = o;
