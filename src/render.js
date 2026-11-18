@@ -3,6 +3,7 @@ import {
   ACID,
   BLAST,
   EVIL,
+  LUCYB,
   PROS,
   DECOR,
   FONT,
@@ -317,7 +318,7 @@ export function drawDecor(u) {
       ctx.lineTo(c[4], c[5]);
       ctx.stroke();
     }
-  } else if (u.decor === 'barrel' || u.decor === 'tnt') {
+  } else if (u.decor === 'barrel' || u.decor === 'tnt' || u.decor === 'whiskey') {
     // a barrel: staves bulging out, iron hoops; the red one has TNT on it and a fuse
     const red = u.decor === 'tnt',
       body = red ? '#b02a1e' : D.col;
@@ -364,6 +365,18 @@ export function drawDecor(u) {
           ctx.fillRect(-24, -56, 48, 56);
         }
       }
+    } else if (u.decor === 'whiskey') {
+      // Old Quarry whiskey: an amber label, XXX
+      ctx.fillStyle = fl ? '#fff' : '#e8b44a';
+      ctx.fillRect(-15, -36, 30, 16);
+      ctx.strokeStyle = OL;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(-15, -36, 30, 16);
+      ctx.fillStyle = '#5a2a10';
+      ctx.font = `900 11px ${FONT}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('XXX', 0, -28);
     } else if (u.hp < D.hp) {
       ctx.strokeStyle = OL;
       ctx.lineWidth = 2;
@@ -1566,16 +1579,20 @@ export function drawHUD() {
       bw = 360;
     txt(foeName(boss.type), bx + 8, 31, 14, '#e3c8ff', 'left', 4);
     bar(bx, 37, bw, 12, Math.max(0, boss.hp) / boss.T.hp, 0, '#b05cff');
-    if (!boss.dying) poiseBar(boss, bx, 53, bw * 0.4, 'left');
+    if (boss.type === 'lucyboss' && boss.rig) {
+      // Lucy's rig: its armour under her health
+      bar(bx, 53, bw * 0.6, 7, Math.max(0, boss.rig.hp) / LUCYB.rig.hp, 0, '#e8a040');
+      txt(t('rigName'), bx + bw * 0.6 + 6, 60, 10, '#ffd9a0', 'left', 3);
+    } else if (!boss.dying) poiseBar(boss, bx, 53, bw * 0.4, 'left');
     if (boss.type === 'evil' && boss.stage >= 2) {
       // Raithwyn's rage, from her second stage on: a small bar under her health
       bar(bx, 53, bw * 0.4, 6, (boss.rage ?? 0) / EVIL.rage.max, 0, '#ff4a5e');
       txt(t('rage'), bx + bw * 0.4 + 6, 59, 10, '#ffb0b8', 'left', 3);
     }
-    if (boss.T.dragon || boss.type === 'prospector') {
+    if (boss.T.dragon || boss.type === 'prospector' || boss.type === 'lucyboss') {
       // phase marker on the dragon's (and the Prospector's) bar
       ctx.fillStyle = '#ece5cb';
-      ctx.fillRect(bx + bw * 0.5 + 3, 37, 2, 12);
+      ctx.fillRect(bx + bw * (boss.type === 'lucyboss' ? LUCYB.phase2 : 0.5) + 3, 37, 2, 12);
     } else if (boss.armor > 0)
       txt(t('immune', boss.armor.toFixed(1)), bx + bw + 4, 31, 12, '#fff', 'right', 3);
     else if (boss.type === 'boss')

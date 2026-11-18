@@ -624,7 +624,34 @@ breaks wooden barrels and a moment later sets off red ones nearby.
   landed, get up and fight (no more than four at once). Its attacks are interrupted by the medium
   rules; instead of flying off it slides back.
 
-**The finale: the Prospector** (boss of Old Quarry, 1150 health; numbers in `PROS` and
+**The finale: a duel with Lucy** (when the player is not Lucy; played as Lucy, the Prospector
+below waits there instead). Lucy, the gunslinger (820 health; `LUCYB` and `TYPES.lucyboss`, code
+in `src/foes/lucyboss.js`), drawn with her own sprites, walks into the arena; three barrels of
+Old Quarry whiskey stand about. "High noon at the quarry". Three phases (marked on her bar):
+
+- **The gunslinger.** She keeps 280–420 px away and shoots along the heroine's lane: the pistol
+  comes up and a dashed gold line shows the lane for 0.42 s, then the shot (11). **Seven
+  rounds**, shown over her head; with none left she **reloads**: 1.6 s standing still, "RELOAD!",
+  a bar filling under the rounds — then nothing stops a blow and each does 1.4 times the harm.
+  A blow coming up close (and she has rounds) makes her flip back out of reach (every 2.2 s at
+  most); now and then she lobs a grenade.
+- **The rig** (at 60% of her health). She whistles, and the whiskey company's drilling rig stomps
+  in (iron legs, a copper boiler with OLD QUARRY WHISKEY CO. on it, a drill, a gatling on its
+  shoulder, a barrel-boiler on its back); she jumps into its cab. Its armour (650, a bar under
+  her health) takes every blow — the boiler at its back twice over. Its moves: the drill charged
+  along her lane (a red line first; into the arena's edge it sticks for 1.3 s, open), the
+  gatling (its line follows her slowly, 1.4 s of rounds that knock her down, then 1.5 s of
+  venting steam, open), three grenades, a stomp up close (a ring marked first). Wrecked, it
+  shakes, smokes and bursts, throws Lucy out (160 harm to her) and two more barrels roll out.
+- **The last stand.** She fans the hammer — three shots in a row — aims quicker, reloads in
+  1.25 s, and up close fires buckshot (18, knocks down) or kicks twice. Once, a blow that would
+  finish her leaves her 10% of her health: "you feel lucky!".
+
+**Whiskey is her weakness:** a barrel broken near her splashes her, and whiskey spilt on the
+ground (9 s) makes her tipsy if she steps in it: 2.4 s reeling and hiccuping, no shots, nothing
+stops a blow and each does 1.4 times the harm. Lure her over a spill, or break a barrel at her.
+
+**The Prospector** (boss of Old Quarry for Lucy herself, 1150 health; numbers in `PROS` and
 `TYPES.prospector`, code in `src/foes/prospector.js`). A giant zombie in grey power armour, 1.1
 times the size of the Power Armor Zombie and drawn in finer detail: riveted plates with dents,
 hazard stripes and orange trim, a helmet like the Power Armor's (a rounded dome with a glowing
@@ -678,7 +705,7 @@ tears off its helmet. Killed, it falls and the stage is won.
 
 **Secret.** On the first screen of the first stage, before the first fight, hold `Z` and `2`
 together for 2 seconds and the heroine goes straight to the entrance of Old Quarry. On the first
-screen of Old Quarry, hold `X` for 3 seconds and she goes straight to the Prospector's arena.
+screen of Old Quarry, hold `X` for 3 seconds and she goes straight to the last fight.
 
 **Music.** For now the second stage plays synthesised western themes (`THEMES` in
 `src/audio.js`): "Old Quarry" (A minor, 136 BPM, Andalusian cadence, galloping bass, whistle,
@@ -1133,6 +1160,10 @@ What is checked:
   breath, big gravestones, the acid ball after a hit.
 - `zombie.test.js` — the grab, flying and thrown heads, zombie crowds.
 - `style.test.js` — style ranks D…SSS and their bonuses, scenery, the acid puddle, the pause menu.
+- `lucyboss.test.js` — Lucy's duel: who meets her (and who the Prospector), walking in among
+  the whiskey barrels, the pistol and its seven rounds, the reload (open, unstopped), the flip
+  back (not while reloading), the rig (its armour, its back), its wreck and the last stand, the
+  fanned shots, her luck once, whiskey (a splash, a spill) making her tipsy, the end.
 - `tiger.test.js` — the tiger samurai: playable, his health and names, the chain of cuts (harder
   and slower than her punches), the guard (a late block costing rage, a blow from behind going
   through), the deflect (no harm, rage, the attacker reeling, the harder riposte), mashing,

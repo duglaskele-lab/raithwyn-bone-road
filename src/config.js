@@ -886,6 +886,65 @@ export const FROST = {
 // then down it rolls at `speed`, `r` px round, hitting whoever is in its way (`dmgP` on the
 // heroine, `dmgE` on a foe) — jump it or step aside.
 export const BOULDER = { gap: [3.5, 6], warn: 1, speed: 430, r: 34, dmgP: 14, dmgE: 60 };
+// Lucy, the gunslinger, as Old Quarry's last boss when the player is someone else (foes/lucyboss.js):
+// a duel in three phases.
+//   keep    she keeps this far from the heroine, along her lane or near it
+//   gun     her pistol: `rounds` in a magazine; she raises it (`aim` s, a glint and a line along
+//           the lane), fires (`speed` px/s, `dmg`); out of rounds she reloads (`reload` s):
+//           standing still, nothing stops a blow then, and she takes `open` times the harm.
+//           In the third phase she fans the hammer: `fan` shots `fanGap` s apart
+//   evade   a blow coming up close (and she has rounds): she flips back out of reach (`dist` px,
+//           `t` s, untouchable), at most every `cd` s
+//   nade    a grenade lobbed at her (marked where it will burst)
+//   buck    the third phase, up close: J J K's buckshot (`wind` s, `range` px, `dmg`)
+//   kick    the third phase, up close: two quick blows
+//   rig     the second phase (at `phase2` of her health): the whiskey company's drilling rig
+//           stomps in and she climbs into it. Its armour (`hp`) takes the blows; the boiler on
+//           its back is its weak spot (`back` times the harm from behind). Its moves: the drill
+//           charged along her lane (stuck at the arena's edge `stuck` s, open), the gatling (a
+//           stream of rounds along her lane for `t` s, then `vent` s of steam: `open` times the
+//           harm), three grenades, a stomp up close. Wrecked, it throws Lucy out (`eject` harm
+//           to her) and the third phase begins
+//   whiskey barrels stand in the arena; a broken one spills whiskey: if she is in it (or near
+//           the barrel as it breaks) she is tipsy for `tipsy` s — she reels and hiccups,
+//           shoots nothing and takes `open` times the harm
+//   luck    once, in the third phase, a blow that would finish her leaves her `luck` of her
+//           health instead ("you feel lucky!")
+export const LUCYB = {
+  keep: [280, 420],
+  gun: {
+    rounds: 7,
+    aim: 0.42,
+    aim3: 0.3,
+    speed: 1000,
+    dmg: 11,
+    reload: 1.6,
+    reload3: 1.25,
+    fan: 3,
+    fanGap: 0.13,
+    cd: [0.5, 1.0],
+  },
+  open: 1.4,
+  evade: { near: 150, dist: 220, t: 0.42, cd: 2.2, cd3: 1.4 },
+  nade: { cd: [7, 10] },
+  buck: { wind: 0.3, range: 170, dy: 40, dmg: 18, cd: [2.5, 4] },
+  kick: { wind: 0.22, dmg: 10, reach: 80, cd: [1.5, 2.5] },
+  phase2: 0.6,
+  rig: {
+    hp: 650,
+    speed: 75,
+    back: 2,
+    drill: { wind: 0.75, speed: 560, dmg: 22, stuck: 1.3, cd: [4, 6] },
+    gat: { wind: 0.6, t: 1.4, gap: 0.08, dmg: 8, track: 70, vent: 1.5, cd: [6, 8] },
+    lob: { wind: 0.6, n: 3, cd: [5, 7] },
+    stomp: { wind: 0.5, r: 130, dmg: 18, near: 150, cd: [2, 3.5] },
+    eject: 160,
+  },
+  tipsy: 2.4,
+  spill: { r: 80, life: 9, splash: 130 },
+  luck: 0.1,
+  dieT: 2.2,
+};
 // Falling off a roof into a gap (Midnight City): she drops for `time` s, then is back on the
 // roof she fell from, `dmg` of her full health the poorer, untouchable for `inv` s. A robot
 // knocked into a gap is gone (`time` s of falling) and counts as beaten.
@@ -903,6 +962,8 @@ export const DECOR = {
   // Old Quarry: a wooden barrel (two hits) and a red barrel that blows up (see BLAST)
   barrel: { w: 26, h: 56, hp: 2, col: '#8a5a32', score: 30 },
   tnt: { w: 24, h: 56, hp: 1, col: '#b02a1e', score: 30, boom: 'barrel' },
+  // a barrel of Old Quarry whiskey (Lucy's duel): it spills when it breaks (LUCYB.spill)
+  whiskey: { w: 26, h: 56, hp: 1, col: '#8a5a32', score: 30, whiskey: 1 },
   // Midnight City (see props3.js): a lamp post whose neon sign falls when it breaks, a neon sign
   // on a stand, a paper lantern on a pole, a vending machine (three blows; food spills out),
   // a Jawacorp power cell (an electric blast), a holographic projector
@@ -1555,6 +1616,26 @@ export const TYPES = {
     dk: '#16131c',
     eye: '#ff4a5e',
     score: 6000,
+  },
+  // Lucy, Old Quarry's other last boss (LUCYB, foes/lucyboss.js): the duel when the player is
+  // not her; her rig's armour is LUCYB.rig.hp
+  lucyboss: {
+    hp: 820,
+    scale: 1,
+    speed: 170,
+    dmg: 9,
+    reach: 70,
+    wind: 0.3,
+    act: 0.14,
+    rec: 0.4,
+    cd: [0.6, 1.2],
+    bigBoss: 1,
+    weight: 'medium',
+    shadow: 40,
+    col: '#f0b429',
+    dk: '#a86a10',
+    eye: '#ffe14a',
+    score: 9000,
   },
   // the skeleton Raithwyn calls up at half health: a dandy in a top hat and a torn tailcoat,
   // a rose in its teeth; tough (the player's blows and hers both hurt it), it falls with her

@@ -586,7 +586,7 @@ test('the minigun sets off red barrels and sticks of dynamite in its stream, and
   assert.equal(far.fuse, 9, 'the one far off is not');
 });
 
-test('holding X on the first screen of Old Quarry takes the player to the Prospector', () => {
+test('holding X on the first screen of Old Quarry takes the player to the last fight: Lucy for Raithwyn', () => {
   startLevel(2);
   G.banner = null;
   assert.ok(!G.secretDone);
@@ -597,6 +597,16 @@ test('holding X on the first screen of Old Quarry takes the player to the Prospe
   assert.equal(G.waveI, last);
   step(2.5);
   assert.ok(G.wave, 'the fight is on');
+  assert.ok(G.enemies.some((e) => e.type === 'lucyboss'));
+  // played as Lucy, the Prospector waits there
+  freshGame();
+  P.who = 'lucy';
+  startLevel(2);
+  G.banner = null;
+  keys.secret = true;
+  step(3.1);
+  delete keys.secret;
+  step(2.5);
   assert.ok(G.enemies.some((e) => e.type === 'prospector'));
 });
 
