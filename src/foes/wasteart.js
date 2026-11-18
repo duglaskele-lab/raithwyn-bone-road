@@ -9,7 +9,7 @@ import { ctx } from '../gfx.js';
 
 let FL = false;
 const c = () => ctx;
-const fill = (col) => (FL ? '#fff' : col);
+export const fill = (col) => (FL ? '#fff' : col);
 
 // --- pieces ---------------------------------------------------------------------------------
 
@@ -110,9 +110,9 @@ export function stripes(x, y, w, h) {
   g.lineWidth = 3;
   g.strokeRect(x, y, w, h);
 }
-const rivets = (pts) => pts.forEach(([x, y]) => ell(x, y, 2.5, 2.5, '#d9d2c0', 1.5));
+export const rivets = (pts) => pts.forEach(([x, y]) => ell(x, y, 2.5, 2.5, '#d9d2c0', 1.5));
 /** Rotate what `f` draws by `a` round the point (x, y). */
-function turn(x, y, a, f) {
+export function turn(x, y, a, f) {
   const g = c();
   g.save();
   g.translate(x, y);
@@ -129,7 +129,7 @@ export const SKIN = '#8fa35a',
   STEEL = '#5a6068',
   STEEL2 = '#3f444b',
   LAMP = '#ffb02e';
-const GREEN = '150,255,90',
+export const GREEN = '150,255,90',
   AMBER = '255,170,40';
 
 // --- the frame round every fighter: where it is, which way, standing, flying or lying -------
@@ -139,7 +139,7 @@ const LYING = ['down', 'corpse', 'fall', 'wkFall', 'wkLie'];
 export const stride = (e, k = 1) => (e.moving ? Math.sin(e.walkT * 2.2 * k) : 0);
 
 /** Draws fighter `e` at scale `k` with `body(e)`: climbing out of the sand, thrown, lying. */
-export function drawWar(e, k, body) {
+export function drawWar(e, k, body, flat = false) {
   const g = c(),
     st = e.state,
     sx = e.x - G.cam,
@@ -160,8 +160,12 @@ export function drawWar(e, k, body) {
   const flying = st === 'air' || ((st === 'fall' || st === 'wkFall') && e.z > 20);
   if (flying) g.rotate(-0.5 - Math.min(e.t * 3, 1));
   else if (LYING.includes(st)) {
-    g.translate(0, -30);
-    g.rotate(-Math.PI / 2);
+    // (a machine too long to lie on its back tips over onto its side, smoking)
+    if (flat) g.rotate(0.12);
+    else {
+      g.translate(0, -30);
+      g.rotate(-Math.PI / 2);
+    }
   } else if (st === 'hurt' || st === 'getup') g.rotate(-0.16);
   body(e);
   g.restore();

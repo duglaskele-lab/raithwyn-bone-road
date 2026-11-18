@@ -28,6 +28,7 @@ import {
   swing,
   warMark,
   warSpawn,
+  warTick,
   wreck,
 } from './war.js';
 import { drawWar, junker, torchAt, welder } from './wasteart.js';
@@ -74,7 +75,7 @@ function corrode(e, dt) {
 }
 const soak = (e) => (e.corrodeT > 0 ? SPIT.corrodeK : 1);
 /** Green drips running down a corroded robot. */
-function drips(e, top) {
+export function drips(e, top) {
   if (!(e.corrodeT > 0) || e.dying) return;
   ctx.fillStyle = '#9dff5a';
   for (let i = 0; i < 4; i++) {
@@ -88,14 +89,17 @@ function drips(e, top) {
   }
   ctx.globalAlpha = 1;
 }
-const robot = (def) => ({
+/** A robot of the Legion: walks in, falls as a wreck, corrodes in acid, glitches in the
+ *  glowing one's ring, flies when the brute throws it (see war.js). */
+export const robot = (def) => ({
   spawn: warSpawn,
   walksIn: true,
   die: wreck,
-  soak,
   ...def,
+  soak: (e, ...a) => soak(e) * (def.soak?.(e, ...a) ?? 1),
   tick(e, dt) {
     corrode(e, dt);
+    warTick(e, dt);
     def.tick?.(e, dt);
   },
 });

@@ -240,3 +240,161 @@ test('the welder welds a wreck back up (half its health) and mends hurt robots; 
   hurtEnemy(w, 2, 1, false, 'punch');
   assert.notEqual(w.state, 'wdFix');
 });
+
+// --- the scrapyard's six -------------------------------------------------------------------------
+
+test('the rust-eater eats a wreck: health back and a plate more; a heavy blow tears one off', async () => {
+  const { EATER } = await import('../src/config.js');
+  wastes(4);
+  P.x = G.cam + 40;
+  P.inv = 99;
+  const r = foe('rusteater', 500),
+    j = foe('junker', 640);
+  r.hp = 60;
+  hurtEnemy(j, 999, 1, true, 'punch');
+  step(1 + EATER.eat + 3, () => (P.inv = 99));
+  assert.ok(j.dead, 'eaten');
+  assert.equal(r.plates, 1);
+  assert.ok(r.hp >= 60 + EATER.heal - 1);
+  const hp = r.hp;
+  hurtEnemy(r, 10, 1, false, 'punch');
+  assert.ok(Math.abs(hp - r.hp - 10 * (1 - EATER.plate)) < 0.01, 'a plate turns some of it');
+  hurtEnemy(r, 1, 1, true, 'punch');
+  assert.equal(r.plates, 0, 'torn off');
+});
+
+test('the brute throws her down; a robot it lifts and hurls, the body striking its own', async () => {
+  const { BRUTE } = await import('../src/config.js');
+  wastes();
+  const b = foe('twohead', 300, 0, { face: 1 }),
+    j = foe('junker', 380),
+    j2 = foe('junker', 640);
+  P.x = G.cam + 40;
+  Object.assign(b, { state: 'thGrab', t: 0 });
+  update(DT);
+  assert.equal(j.state, 'thHeld');
+  step(BRUTE.hold + 0.6, () => {
+    P.inv = 99;
+    j2.state = 'chase';
+    j2.x = b.x + 340;
+    j2.y = b.y;
+  });
+  assert.ok(j2.hp < TYPES.junker.hp, 'struck by the thrown body');
+  // her: thrown down hard
+  freshGame();
+  wastes();
+  const b2 = foe('twohead', 70, 0, { face: -1, state: 'thGrab', t: 0 });
+  const hp = P.hp;
+  update(DT);
+  assert.ok(P.hp <= hp - BRUTE.grab.dmg + 0.01);
+  assert.ok(['ko', 'air', 'down', 'hurt'].includes(P.state) || P.z > 0, P.state);
+  b2.dead = true;
+});
+
+test('three blows of hers in a row: the dopey head laughs, the brute open', async () => {
+  const { BRUTE } = await import('../src/config.js');
+  wastes();
+  const b = foe('twohead', 80);
+  for (let i = 0; i < 3; i++) hurtEnemy(b, 2, 1, false, 'punch');
+  assert.equal(b.state, 'thLaugh');
+  const hp = b.hp;
+  hurtEnemy(b, 10, 1, false, 'punch');
+  assert.equal(hp - b.hp, 10 * BRUTE.open);
+});
+
+test('the glowing one: its ring bites her and makes robots glitch; killed, it bursts', async () => {
+  const { GLOW } = await import('../src/config.js');
+  wastes();
+  const g = foe('glowing', 40, 0, { state: 'glRec', t: -99 }),
+    j = foe('junker', 100);
+  const hp = P.hp;
+  step(GLOW.tick * 3, () => {
+    g.state = 'glRec';
+    g.t = -99;
+    j.state = 'jkRec';
+    j.t = -99;
+  });
+  assert.ok(P.hp < hp, 'bitten');
+  assert.ok(j.glitchT > 0, 'glitching');
+  hurtEnemy(g, 999, 1, false, 'punch');
+  assert.equal(g.state, 'glBoom');
+  const jhp = j.hp;
+  step(GLOW.boom + 0.1);
+  assert.ok(g.dead);
+  assert.ok(j.hp < jhp || j.dying, 'the flash burns the robot');
+});
+
+test('the harvester charges along its lane, mowing her and the mutants; stuck at the edge', async () => {
+  const { HARV } = await import('../src/config.js');
+  wastes();
+  P.x = G.cam + 500;
+  const h = foe('harvester', -400, 0, { face: 1 }),
+    s = foe('scavenger', 200);
+  Object.assign(h, { state: 'hvWind', t: 0 });
+  const hp = P.hp;
+  let stuck = false;
+  step(HARV.wind + 2, () => {
+    stuck ||= h.state === 'hvStuck';
+    s.state = 'chase';
+    s.cd = 99;
+  });
+  assert.ok(P.hp < hp, 'mowed');
+  assert.ok(s.hp < TYPES.scavenger.hp, 'the mutant too');
+  assert.ok(stuck, 'stuck in the sand');
+  Object.assign(h, { state: 'hvStuck', t: 0 });
+  const hhp = h.hp;
+  hurtEnemy(h, 10, 1, false, 'punch');
+  assert.equal(hhp - h.hp, 10 * HARV.open);
+});
+
+test("the spotter's beam strikes the first on its line: a robot between shields her", async () => {
+  const { SPOT } = await import('../src/config.js');
+  wastes();
+  P.x = G.cam + 700;
+  const sp = foe('spotter', -500, 0, { face: 1 });
+  sp.tgt = P;
+  Object.assign(sp, { state: 'stAim', t: SPOT.aim - 0.01 });
+  const j = foe('junker', -250, 0, { cd: 99 });
+  const hp = P.hp;
+  step(DT * 3, () => (j.state = 'chase'));
+  assert.equal(P.hp, hp, 'shielded by the junker');
+  // a mutant between: struck instead of her
+  const s = foe('scavenger', -250, 0, { cd: 99 });
+  j.dead = true;
+  G.enemies = G.enemies.filter((o) => !o.dead);
+  Object.assign(sp, { state: 'stAim', t: SPOT.aim - 0.01 });
+  step(DT * 3, () => (s.state = 'chase'));
+  assert.equal(P.hp, hp);
+  assert.ok(s.hp < TYPES.scavenger.hp);
+  // nothing between: her
+  s.dead = true;
+  G.enemies = G.enemies.filter((o) => !o.dead);
+  Object.assign(sp, { state: 'stAim', t: SPOT.aim - 0.01 });
+  step(DT * 3);
+  assert.ok(P.hp < hp);
+  // a heavy blow topples it
+  hurtEnemy(sp, 1, 1, true, 'punch');
+  assert.equal(sp.state, 'air');
+});
+
+test('the mine beetle runs at the nearest one and bursts; kicked by her it bursts where it lands', async () => {
+  const { MINE } = await import('../src/config.js');
+  wastes();
+  const m = foe('mine', 200);
+  const hp = P.hp;
+  step(2 + MINE.arm);
+  assert.ok(m.dead, 'burst');
+  assert.ok(P.hp < hp, 'on her');
+  freshGame();
+  wastes();
+  const m2 = foe('mine', 60),
+    j = foe('junker', 260, 0, { cd: 99 });
+  hurtEnemy(m2, 1, 1, false, 'punch');
+  assert.equal(m2.state, 'mbKick');
+  step(1, () => {
+    j.state = 'chase';
+    j.cd = 99;
+  });
+  assert.ok(m2.dead);
+  assert.ok(j.hp < TYPES.junker.hp || j.dying, 'among its own');
+});

@@ -28,6 +28,7 @@ import {
   swing,
   warMark,
   warSpawn,
+  warTick,
   wake,
 } from './war.js';
 import { drawWar, scavenger, spitter } from './wasteart.js';
@@ -113,6 +114,7 @@ defineFoe('scavenger', {
     }
     return false;
   },
+  tick: warTick,
   draw: (e) => drawWar(e, K, scavenger),
   over: (e) => warMark(e, 185 * K),
 });
@@ -253,6 +255,7 @@ defineFoe('spitter', {
     struckByHer(e, src);
     return false;
   },
+  tick: warTick,
   draw: (e) => drawWar(e, K, spitter),
   over: (e) => warMark(e, 200 * K),
 });

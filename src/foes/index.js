@@ -41,4 +41,6 @@ import './frostwolf.js';
 import './lucyboss.js';
 import './crater.js';
 import './legion.js';
+import './crater2.js';
+import './legion2.js';
 export { FOES, STATES } from './registry.js';

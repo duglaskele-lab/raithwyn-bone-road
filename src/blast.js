@@ -28,7 +28,7 @@ export function explode(x, y, k = 'barrel', z = 0) {
     t: 0,
     life: 0.4,
     s: B.r * 1.1,
-    col: B.zap ? '#7fe9ff' : '#ffb24a',
+    col: B.zap ? '#7fe9ff' : B.rad ? '#9dff5a' : '#ffb24a',
   });
   for (let i = 0; i < 16; i++) {
     const a = fxRnd(TAU),
@@ -43,7 +43,17 @@ export function explode(x, y, k = 'barrel', z = 0) {
       t: 0,
       life: fxRnd(0.35, 0.7),
       s: fxRnd(3, 6),
-      col: B.zap ? (i % 3 ? '#bff6ff' : '#4fe3ff') : i % 3 ? '#ffcf5a' : '#ff6a2a',
+      col: B.zap
+        ? i % 3
+          ? '#bff6ff'
+          : '#4fe3ff'
+        : B.rad
+          ? i % 3
+            ? '#d8ffb0'
+            : '#9dff5a'
+          : i % 3
+            ? '#ffcf5a'
+            : '#ff6a2a',
     });
   }
   for (let i = 0; i < (B.zap ? 2 : 7); i++)
