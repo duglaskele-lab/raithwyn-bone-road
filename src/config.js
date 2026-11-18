@@ -713,7 +713,7 @@ export const CRAB = {
     n2: 4,
   },
 };
-// Frostfang Pass (stage 4). The skeleton amazon: she leaps down on the heroine from `min`..`max`
+// Frostfang Pass (stage 5). The skeleton amazon: she leaps down on the heroine from `min`..`max`
 // px away (`air` s in the air, `h` high), and a light blow may make her flip away (`flip` of
 // the time, `dist` px back).
 export const AMAZON = {
@@ -945,6 +945,68 @@ export const LUCYB = {
   luck: 0.1,
   dieT: 2.2,
 };
+// The Wastelands (stage 4): the war of the Children of the Crater (mutants, TYPES side 'mut')
+// and the Rust Legion (robots, side 'bot'). Each fighter looks round every `look` s for whom to
+// fight: the heroine (counted `pBias` px nearer than she is) or the nearest rival of the other
+// side within `near` px; whoever hit it last it goes after for `grudge` s. A blow between foes
+// does `rivalK` of its harm. A foe finished by a rival is worth `half` its score, unless the
+// heroine hit it in the last `credit` s: then it is all hers, and `bonus` more ("SET ON!").
+// A robot's wreck lies `wreck` s (a welder can raise it, a scavenger strip it).
+export const WAR = {
+  look: 1.2,
+  near: 560,
+  pBias: 110,
+  grudge: 4,
+  rivalK: 0.6,
+  credit: 3,
+  bonus: 150,
+  half: 0.5,
+  wreck: 9,
+  wake: 80, // an unaware fighter (the first fight's) notices her this close, or once she hits it
+};
+// The scavenger: its rebar club; a robot's wreck within `see` px it walks to and strips for
+// `loot` s, and then fights with the robot's saw arm (`saw`: harm, reach) until a heavy blow
+// knocks it out of its hands.
+export const SCAV = {
+  club: { wind: 0.32, act: 0.12, rec: 0.42, dmg: 10, reach: 78 },
+  saw: { wind: 0.38, act: 0.18, rec: 0.42, dmg: 15, reach: 118 },
+  see: 520,
+  loot: 1.0,
+};
+// The spitter: keeps `keep` px off its target in line with it, swells its throat sac for `wind`
+// s (a blow then does `sac` times the harm) and spits acid in an arc (`flight` s): `dmg` on a
+// hit, a puddle where it lands (ACID's, `pool` s). A robot in the acid corrodes for `corrode` s:
+// every blow on it does `corrodeK` times the harm.
+export const SPIT = {
+  keep: 280,
+  wind: 0.55,
+  rec: 0.45,
+  flight: 0.75,
+  g: 900,
+  dmg: 11,
+  pool: 6,
+  sac: 2,
+  corrode: 5,
+  corrodeK: 1.5,
+  cd: [1.3, 2.2],
+};
+// The junker: rolls up and zaps with its prong — `dmg` and `stun` s stunned (a rival is just
+// thrown). A blow of hers from a jump tips it over.
+export const JUNK = { wind: 0.3, act: 0.1, rec: 0.45, dmg: 8, stun: 0.7, reach: 88 };
+// The welder: a robot's wreck within `see` px it walks to and welds back up in `weld` s (it gets
+// up with `hpK` of its health); a hurt robot (below `hurt` of its health) within `range` px it
+// mends with its arc, `rate` health a second for up to `fix` s; between times its torch (`torch`).
+export const WELD = {
+  see: 600,
+  weld: 2.4,
+  hpK: 0.5,
+  hurt: 0.7,
+  range: 230,
+  rate: 16,
+  fix: 2.5,
+  cd: [3, 5],
+  torch: { wind: 0.45, act: 0.3, rec: 0.5, dmg: 14, reach: 104 },
+};
 // Falling off a roof into a gap (Midnight City): she drops for `time` s, then is back on the
 // roof she fell from, `dmg` of her full health the poorer, untouchable for `inv` s. A robot
 // knocked into a gap is gone (`time` s of falling) and counts as beaten.
@@ -973,18 +1035,22 @@ export const DECOR = {
   vend: { w: 34, h: 118, hp: 3, col: '#c22f3a', score: 60, k3: 1 },
   cell: { w: 22, h: 72, hp: 1, col: '#4fe3ff', score: 30, boom: 'cell', k3: 1 },
   holo: { w: 26, h: 120, hp: 1, col: '#5fd0ff', score: 30, k3: 1 },
-  // Frostfang Pass (see props4.js): a wooden crate (two blows), a clay pot, a haystack, a market
+  // the Wastelands (see props4.js): a rusty oil drum (two blows), a stack of tyres, a road sign
+  drum: { w: 28, h: 58, hp: 2, col: '#a0552e', score: 30, k4: 1 },
+  tyres: { w: 36, h: 52, hp: 1, col: '#2c2a2a', score: 20, k4: 1 },
+  roadsign: { w: 30, h: 120, hp: 1, col: '#c9a23a', score: 30, k4: 1 },
+  // Frostfang Pass (see props5.js): a wooden crate (two blows), a clay pot, a haystack, a market
   // cart (three blows), a fence, a boulder (three blows), a pile of logs, a carved wooden idol
-  crate: { w: 30, h: 60, hp: 2, col: '#9a6a3a', score: 30, k4: 1 },
-  pot: { w: 18, h: 44, hp: 1, col: '#b8643a', score: 20, k4: 1 },
-  hay: { w: 40, h: 70, hp: 1, col: '#e3c25a', score: 20, k4: 1 },
-  cart: { w: 56, h: 84, hp: 3, col: '#8a5a32', score: 60, k4: 1 },
-  fence: { w: 44, h: 62, hp: 1, col: '#9a7a52', score: 20, k4: 1 },
-  rock: { w: 40, h: 66, hp: 3, col: '#7d8590', score: 50, k4: 1 },
-  log: { w: 46, h: 50, hp: 2, col: '#7a5232', score: 30, k4: 1 },
-  idol: { w: 22, h: 120, hp: 2, col: '#8a6a4a', score: 40, k4: 1 },
+  crate: { w: 30, h: 60, hp: 2, col: '#9a6a3a', score: 30, k5: 1 },
+  pot: { w: 18, h: 44, hp: 1, col: '#b8643a', score: 20, k5: 1 },
+  hay: { w: 40, h: 70, hp: 1, col: '#e3c25a', score: 20, k5: 1 },
+  cart: { w: 56, h: 84, hp: 3, col: '#8a5a32', score: 60, k5: 1 },
+  fence: { w: 44, h: 62, hp: 1, col: '#9a7a52', score: 20, k5: 1 },
+  rock: { w: 40, h: 66, hp: 3, col: '#7d8590', score: 50, k5: 1 },
+  log: { w: 46, h: 50, hp: 2, col: '#7a5232', score: 30, k5: 1 },
+  idol: { w: 22, h: 120, hp: 2, col: '#8a6a4a', score: 40, k5: 1 },
   // a pillar of ice left by an icicle in the frost wolf's glade (see FROST.pillar)
-  icicle: { w: 20, h: 112, hp: 2, col: '#bff0ff', score: 0, k4: 1 },
+  icicle: { w: 20, h: 112, hp: 2, col: '#bff0ff', score: 0, k5: 1 },
 };
 // Explosions: radius on the floor (an ellipse, 0.42 as deep as wide), damage to the player and
 // to enemies, and for a red barrel caught in a blast, the delay before it goes off too; a red
@@ -1637,6 +1703,81 @@ export const TYPES = {
     eye: '#ffe14a',
     score: 9000,
   },
+  // The Wastelands (stage 4): the Children of the Crater (side 'mut') and the Rust Legion
+  // ('bot'), who fight each other as well as her (see WAR, foes/war.js)
+  scavenger: {
+    hp: 55,
+    scale: 1,
+    speed: 140,
+    dmg: 8,
+    reach: 78,
+    wind: 0.32,
+    act: 0.12,
+    rec: 0.42,
+    cd: [0.7, 1.4],
+    side: 'mut',
+    height: 150,
+    shadow: 40,
+    col: '#8fa35a',
+    dk: '#6f8442',
+    eye: '#9dff5a',
+    score: 140,
+  },
+  spitter: {
+    hp: 38,
+    scale: 1,
+    speed: 120,
+    dmg: 9,
+    reach: 60,
+    wind: 0.55,
+    act: 0.2,
+    rec: 0.45,
+    cd: [1.2, 2],
+    side: 'mut',
+    height: 160,
+    shadow: 34,
+    col: '#8fa35a',
+    dk: '#6f8442',
+    eye: '#9dff5a',
+    score: 160,
+  },
+  junker: {
+    hp: 60,
+    scale: 1,
+    speed: 190,
+    dmg: 6,
+    reach: 88,
+    wind: 0.3,
+    act: 0.1,
+    rec: 0.45,
+    cd: [0.8, 1.5],
+    side: 'bot',
+    height: 150,
+    shadow: 40,
+    col: '#b8612e',
+    dk: '#8a4523',
+    eye: '#ffb02e',
+    score: 150,
+  },
+  welder: {
+    hp: 160,
+    scale: 1,
+    speed: 100,
+    dmg: 11,
+    reach: 104,
+    wind: 0.45,
+    act: 0.3,
+    rec: 0.5,
+    cd: [1, 1.8],
+    side: 'bot',
+    weight: 'medium',
+    height: 130,
+    shadow: 66,
+    col: '#b8612e',
+    dk: '#8a4523',
+    eye: '#ffb02e',
+    score: 500,
+  },
   // the skeleton Raithwyn calls up at half health: a dandy in a top hat and a torn tailcoat,
   // a rose in its teeth; tough (the player's blows and hers both hurt it), it falls with her
   dandy: {
@@ -1696,7 +1837,7 @@ export const TYPES = {
     eye: '#c58bff',
     score: 3000,
   },
-  // Frostfang Pass (stage 4): the skeleton bandit (foes/bandit.js), with a spiked club; it rides
+  // Frostfang Pass (stage 5): the skeleton bandit (foes/bandit.js), with a spiked club; it rides
   // the beasts too
   bandit: {
     hp: 40,

@@ -33,10 +33,12 @@ import { RANKS, STYLE_STEP, dmgMult, scoreMult, styleRank } from './style.js';
 import { drawBG, drawFog, drawVignette } from './background.js';
 import { drawBG2, drawFront2 } from './bg2.js';
 import { drawBG3, drawFront3 } from './bg3.js';
-import { drawBG4, drawFront4 } from './bg4.js';
+import { drawBG5, drawFront5 } from './bg5.js';
 import { drawTiger } from './tigerdraw.js';
+import { drawDecor5 } from './props5.js';
 import { drawDecor4 } from './props4.js';
-import { drawBoulder } from './hazards4.js';
+import { drawBG4, drawFront4 } from './bg4.js';
+import { drawBoulder } from './hazards5.js';
 import { levelWaves, overPit, roadDir } from './level.js';
 import { hadoLevel, poiseView } from './combat.js';
 import { boneShape, drawAura, drawSkel } from './skeleton.js';
@@ -257,9 +259,9 @@ export function drawDecor(u) {
     D = DECOR[u.decor];
   ctx.save();
   ctx.translate(u.x - G.cam, u.y);
-  if (D.k3 || D.k4) {
-    // Midnight City's (props3.js), Frostfang Pass's (props4.js)
-    (D.k3 ? drawDecor3 : drawDecor4)(u, fl);
+  if (D.k3 || D.k4 || D.k5) {
+    // Midnight City's (props3.js), the Wastelands' (props4.js), Frostfang Pass's (props5.js)
+    (D.k3 ? drawDecor3 : D.k4 ? drawDecor4 : drawDecor5)(u, fl);
     ctx.restore();
     return;
   }
@@ -539,6 +541,7 @@ export function drawDebris(d) {
 export function drawProj(q) {
   const x = q.x - G.cam,
     y = q.y - q.z;
+  if (q.draw) return q.draw(q, x, y);
   if (q.k === 'boulder') return drawBoulder(q);
   if (q.k === 'nade') {
     // Lucy's grenade, spinning round its middle
@@ -1284,6 +1287,7 @@ export function drawWorld() {
   if (G.level === 2) drawBG2();
   else if (G.level === 3) drawBG3();
   else if (G.level === 4) drawBG4();
+  else if (G.level === 5) drawBG5();
   else {
     drawBG();
     drawFog();
@@ -1385,6 +1389,7 @@ export function drawWorld() {
   if (G.level === 2) drawFront2();
   if (G.level === 3) drawFront3();
   if (G.level === 4) drawFront4();
+  if (G.level === 5) drawFront5();
 }
 /** A neon sign: a framed word that glows; `on` seconds since it lit (it flickers on). */
 const NEON = {

@@ -1243,6 +1243,9 @@ export function themeFor(state, enemies = G.enemies, wave = G.wave) {
     // Old Quarry: its ride, and the showdown for the slime and the last fight
     return wave && levelWaves()[G.waveI]?.boss ? 'showdown' : 'frontier';
   if (state === 'play' && G.level === 4)
+    // the Wastelands: the western's ride (a desert, a showdown to come)
+    return wave && levelWaves()[G.waveI]?.boss ? 'showdown' : 'frontier';
+  if (state === 'play' && G.level === 5)
     // Frostfang Pass: the quest, and the fights of the minotaur and of the frost wolf
     return wave && levelWaves()[G.waveI]?.boss ? 'passBoss' : 'pass';
   if (state === 'play' && G.level === 3)

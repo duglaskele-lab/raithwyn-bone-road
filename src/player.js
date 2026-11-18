@@ -370,7 +370,7 @@ export function updPlayer(dt) {
           });
         }
         // coming down onto a beast nobody rides: she is in its saddle (Frostfang Pass)
-        if (p.vz < 0 && G.level === 4 && tryMount(p)) break;
+        if (p.vz < 0 && G.level === 5 && tryMount(p)) break;
         if (p.z <= 0) {
           p.z = 0;
           p.ph = 2;

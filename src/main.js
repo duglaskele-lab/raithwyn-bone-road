@@ -182,7 +182,7 @@ function frame(dt) {
       txt(t('stageClear'), W / 2, 210, 54, '#f0e9ff', 'center', 8);
       txt(t('score') + P.score, W / 2, 252, 22, '#f0cf4f', 'center', 4);
       txt(
-        t(['nextStage', 'nextStage3', 'nextStage4'][G.level - 1]),
+        t(['nextStage', 'nextStage3', 'nextStage4', 'nextStage5'][G.level - 1]),
         W / 2,
         292,
         22,

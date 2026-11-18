@@ -717,7 +717,7 @@ finale.
 
 A city of the future with an eastern soul, built by the Jawacorp corporation, whose robots walk
 its streets. It comes after Old Quarry (the same "Stage clear" screen leads on to it, keeping
-score and lives); beating its boss leads on to Frostfang Pass.
+score and lives); beating its boss leads on to the Wastelands.
 
 **Music** (synthesised, `THEMES` in `src/audio.js`, on the Japanese "in" scale D Eb G A C):
 "Midnight City" (112 BPM) while walking — a synthwave groove (four-on-the-floor kick, a gated
@@ -921,20 +921,100 @@ bigger than `DOOR_SCALE`) never come out of a door: they walk in or drop.
 together for 2 seconds and the heroine goes straight to Midnight City. On its first screen, hold
 `X` for 3 seconds and she goes straight to the last fight.
 
-## Stage 4: Frostfang Pass
+## Stage 4: the Wastelands
 
-A sword-and-sorcery road after Golden Axe (I–III). It comes after Midnight City (keeping score
+A desert after the end of the world, where two sides are at war: the **Children of the Crater**
+(mutants: flesh, acid, radiation; a green glow is their mark) and the **Rust Legion** (the
+machines of a dead colony: steel, current, lasers; amber lamps and warning stripes). They fight
+each other as well as the heroine. It comes after Midnight City (keeping score and lives);
+winning it leads on to Frostfang Pass.
+
+*The stage is being built.* This first part is the dunes by the old highway, four fights and
+the first four foes (two of each side); the scrapyard, the crater and the canyon, the rest of
+the two sides (the rust-eater, the two-headed brute, the glowing one; the harvester, the spotter,
+the mine beetles), the sandworm and the last fight (the Crater Mother and the Overseer, and the
+Chimera the survivor becomes) come next.
+
+**The road** (`src/level4.js`): a straight desert road, as deep as the Bone Road's, the old
+highway's cracked asphalt under the sand in the middle of it.
+
+**The scenery** (`src/bg4.js`, all in code): a hot orange sky, the sun, vultures wheeling;
+flat-topped mesas far off and dunes; power pylons with sagging cables, the billboard of the dead
+colony ("NEW HOPE COLONY · 40 MI"), rusted cars half sunk in the sand, dead thorn bushes, the ribs
+and skull of some huge beast, the great head of one of the Legion's machines half buried (its
+eye still glowing faintly), a camp of the Children of the Crater (tents, smoke, a green glow, a
+robot's head on a pole); the wind blowing sand across the screen and the heat over it all.
+Music: the western's ride ("frontier") for now.
+
+**The war** (`WAR`, `src/foes/war.js`). Every fighter of either side looks round now and then
+(`look`) for whom to fight: her — counted a little nearer than she is (`pBias`) — or the nearest
+fighter of the other side (`near`). Whoever hit it last it goes after for `grudge` s; a blow of
+hers turns it on her.
+
+- **Their blows land on whoever is in front of them**: her, and every fighter of the other side
+  there (at `rivalK` of the harm), never their own side. Spit acid, a torch, a club swung at a
+  robot — if she stands in the way, it is hers.
+- Over a fighter busy with the other side hang **two crossed blades** in its side's colour, so
+  she can see whom she may leave alone.
+- **Score**: a foe finished by the other side is worth half (`half`); but if she hit it in the
+  last `credit` s, it is all hers, and `bonus` more — **"SET ON!"**.
+- **A robot that falls lies as a wreck** for `wreck` s: a welder can raise it, a scavenger strip it.
+- **The first fight** (`war` in its wave) is a clash already going on when she comes: the two
+  sides do not see her until she comes close (`wake`) or hits one of them.
+
+**The Children of the Crater** (`src/foes/crater.js`; they climb out of the sand):
+
+- **Scavenger** (light) — a gas mask and a hood, a patched poncho, a backpack of scrap, a rebar
+  club with a lump of concrete (10). A robot's wreck nearby (`SCAV.see`) it walks to and strips
+  (`SCAV.loot` s; a blow stops it): then it fights with the robot's **saw arm** — further and
+  harder (15, throws) — until a heavy blow knocks the saw out of its hands.
+- **Spitter** (light, keeps its distance) — lean, leaning back, pustules on its shoulders. In line
+  with whom it fights it swells its glowing **throat sac** (`SPIT.wind` s; a blow then does
+  double harm, `SPIT.sac`) and spits acid in an arc: 11 on a hit, a **puddle** where it lands
+  (`SPIT.pool` s; it bites her as the necromancer's does). **Acid eats a robot's armour**: a robot
+  struck by a spit or standing in a puddle corrodes (green drips run down it) and takes
+  `SPIT.corrodeK` times the harm of every blow for `SPIT.corrode` s — lead them into it.
+
+**The Rust Legion** (`src/foes/legion.js`; they roll and walk in from the sides; fallen, a wreck):
+
+- **Junker** (light) — a rusty bin on one wheel, a dome head with an amber eye, a pincer claw and
+  a zapper prong. Quick; it zaps her with the prong: 8, and a moment stunned (`JUNK.stun`; a rival
+  it just strikes). **A blow of hers from a jump tips it over.**
+- **Welder** (medium) — a striped box on four jointed legs, a gas tank on its back, a welding visor,
+  a torch on its arm. It walks to the Legion's wrecks and **welds them back up** (`WELD.weld` s,
+  an arc and sparks; the robot gets up with half its health, worth half its score the second
+  time), and **mends hurt robots** with a green arc (`WELD.rate` a second); in between it burns
+  with its torch (14). A blow while it welds or mends stops it: **hit it first**.
+
+**The fights** (`WAVES4`):
+
+| Fight | Who | What it asks of the player |
+| --- | --- | --- |
+| The clash | scavengers and junkers, at it already | let them, or join in |
+| Acid rain | spitters behind, junkers rolling in | lead the robots into the puddles |
+| The repair shop | a welder, junkers, scavengers | the welder first, or it raises them all |
+| Scrap war | both sides at full strength, a second welder | everything above |
+
+**Things to break** (`DECOR`, `src/props4.js`): rusty oil drums with a radiation sign (2 blows),
+stacks of old tyres, the old highway's road signs.
+
+**Secret.** On the first screen of the first stage, hold `Z` and `4` together for 2 seconds and
+the heroine goes straight to the Wastelands.
+
+## Stage 5: Frostfang Pass
+
+A sword-and-sorcery road after Golden Axe (I–III). It comes after the Wastelands (keeping score
 and lives) and it is the last stage: beating its boss wins the game.
 
-**The road** (`src/level4.js`): a village of thatched huts in the morning sun → the road
+**The road** (`src/level5.js`): a village of thatched huts in the morning sun → the road
 climbing into the hills → the trail turns and goes straight up the mountainside, away from the
 viewer (the camera turns at its foot, looks up it and climbs with it) → at the top it turns again
 onto a ledge along the cliff, past a great waterfall, across the gorge under it on a plank bridge
 → the pool under a second cascade, where the minotaur waits → down into the dark forest as the
 sun goes down → night, and the glade of standing stones under the moon, where the frost wolf
-hunts. The light changes with the road: morning, noon, sunset, night (`dayAt` in `src/bg4.js`).
+hunts. The light changes with the road: morning, noon, sunset, night (`dayAt` in `src/bg5.js`).
 
-**The fights** (`WAVES4` in `src/level4.js`): twelve instead of sixteen, about 5,000 health of
+**The fights** (`WAVES5` in `src/level5.js`): twelve instead of sixteen, about 5,000 health of
 foes instead of 8,200, each with an idea of its own, as in Old Quarry (`core`, `fill`, `mid`):
 
 | Fight | Who | What it asks of the player |
@@ -952,7 +1032,7 @@ foes instead of 8,200, each with an idea of its own, as in Old Quarry (`core`, `
 | The last stand | a giant, a knight, harpies, then a fire drake and wolves | everything the stage has taught, in two goes |
 | (the frost wolf) | | |
 
-**The scenery** (`src/bg4.js`, all in code): the huts with their timber frames, chimney smoke, a
+**The scenery** (`src/bg5.js`, all in code): the huts with their timber frames, chimney smoke, a
 windmill turning, a well, market stalls, oaks and fences; green hills under far snowy peaks and
 drifting clouds; a wayside shrine; walls of rock with pines on both sides of the trail up the
 mountain; the cliff along the ledge with moss, ivy and a cave mouth, pines on its top; the
@@ -974,7 +1054,7 @@ Foes walking towards her steer for the bridge.
 **The boulders.** On the trail up the mountainside, while a fight is on, boulders come rolling
 down it every 3.5–6 s: a red lane shows at the top of the screen a second before, then down it
 rolls, hitting her (14) and her foes (60, a crushing blow: it kills the light ones) alike — jump it or step aside
-(`BOULDER`, `src/hazards4.js`).
+(`BOULDER`, `src/hazards5.js`).
 
 **The beasts** (`BEAST`, `src/foes/beasts.js`), Golden Axe's mounts: the **cockatrice**, a green
 bird-lizard that spins round and whips its spiked tail (in front and behind), and the **fire
@@ -1014,7 +1094,7 @@ meat — three in all, and then he runs off crying.
 - **Grey wolf** (light, in packs) — quick; it leaps at her from 130–300 px and bites; it dies whole
   (`WOLF`).
 
-**Things to break** (`DECOR`, `src/props4.js`): wooden crates (2 blows), clay pots, haystacks, a
+**Things to break** (`DECOR`, `src/props5.js`): wooden crates (2 blows), clay pots, haystacks, a
 market cart (3 blows), fences, boulders by the mountain road (3 blows), piles of logs (2) and
 carved wooden idols with horns (2) in the forest; many hold a heart or rage.
 
@@ -1065,7 +1145,7 @@ An attack with the red outline cannot be stopped; one without it can.
   the other — stepping aside no longer saves her: a pillar, or its flank. Each phase begins with
   a howl. Beaten, it falls on its side and the blizzard ends.
 
-**Secret.** On the first screen of the first stage, before the first fight, hold `Z` and `4`
+**Secret.** On the first screen of the first stage, before the first fight, hold `Z` and `5`
 together for 2 seconds and the heroine goes straight to Frostfang Pass. On its first screen,
 hold `X` for 3 seconds and she goes straight to the frost wolf.
 
@@ -1091,10 +1171,13 @@ src/
   bg2.js                  Old Quarry's procedural backdrop
   level3.js               Midnight City: floor, gaps between the roofs, doors, camera path, waves
   bg3.js                  Midnight City's procedural backdrop and the rain
-  level4.js               Frostfang Pass: floor (the climb, the bridge), gorge, camera path, waves
-  bg4.js                  Frostfang Pass's procedural backdrop, the time of day, snow
-  props4.js               Frostfang Pass's things to break
-  hazards4.js             the boulders rolling down the trail
+  level4.js               the Wastelands: the desert road, camera path, waves
+  bg4.js                  the Wastelands' procedural backdrop, blowing sand
+  props4.js               the Wastelands' things to break
+  level5.js               Frostfang Pass: floor (the climb, the bridge), gorge, camera path, waves
+  bg5.js                  Frostfang Pass's procedural backdrop, the time of day, snow
+  props5.js               Frostfang Pass's things to break
+  hazards5.js             the boulders rolling down the trail
   blast.js                barrel and dynamite explosions
   state.js                the application (APP); one run: the world (G), the player (P), reset()
   util.js                 small pure functions
@@ -1110,6 +1193,8 @@ src/
     kit.js                tools: sight, walking, hitboxes, lobbed throws
     common.js             shared states: rising, chasing, wind-up, strike, falling...
     bikes.js              the Rocker's motorbike, chopper and chain
+    war.js                the Wastelands' war of the two sides: whom to fight, blows, score, wrecks
+    wasteart.js           how the Wastelands' fighters look
   anim.js                 skeletal animation as data: poses, clips, shared clips
   replay.js               recording a run and replaying it
   world.js                one simulation step and the wave script
@@ -1212,7 +1297,12 @@ What is checked:
   fissures and more speed at half health, the rocket fist, the hop back at once (over her with
   no room behind it), the sumo stance and the ramming fist, the slower pace of its attacks in
   both phases and its health, the sky slam in the second phase only, its end.
-- `level4.test.js` — Frostfang Pass: the `Z`+`4` secret, the last stage, the road (the climb,
+- `level4.test.js` — the Wastelands: the `Z`+`4` and `Z`+`5` secrets, on to Frostfang Pass, the
+  music, both sides in every fight; the war (fighting each other, blows on whoever is in front but
+  never their own side, the half score and "SET ON!", the grudge, the clash that does not see
+  her); the scavenger's saw, the spitter's corroding acid and its sac, the junker's zap and
+  tipping it over, the welder welding a wreck back up, mending, stopped by a blow.
+- `level5.test.js` — Frostfang Pass: the `Z`+`5` secret, the last stage, the road (the climb,
   the bridge and the gorge), the camera turning up the trail, the fights and their pools, the
   music; the beasts (ridden in, a rider knocked off, never hurt, ridden by her, attacking her
   foes, throwing her off, a bandit climbing back on, running off), the thief gnome and his pots,
@@ -1260,7 +1350,7 @@ range of the close attack) or `keep` (the distance a ranged enemy keeps), `wind`
 the difficulty of a random fight from 0 to 1 (the make-up, shares and enemy pools are in
 `WAVEGEN`). For a fixed fight give `sp` instead of `lvl` — a list of `[type, side, delay]`. Side
 `1` is the right, `-1` the left, `0` climbs out of the ground. On the later stages
-(`WAVES2`–`WAVES4`) a fight has an idea: `name`, `core` (its own foes, a list like `sp`), `fill`
+(`WAVES2`–`WAVES5`) a fight has an idea: `name`, `core` (its own foes, a list like `sp`), `fill`
 (`{ n: [fewest, most], pool: { type: weight }, from, gap }`, a few plain ones rolled every run)
 and `mid` (a second group that comes once the first has lost half of its health); see
 `themedWave` in `src/waves.js`.
