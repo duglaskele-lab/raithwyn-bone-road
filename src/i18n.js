@@ -131,7 +131,7 @@ export const STR = {
     replayBad: 'That file is not a replay of this version of the game',
     help: {
       move: ['Move', 'W A S D / arrows'],
-      run: ['Run', 'Shift / double tap'],
+      run: ['Run', 'keep walking / double tap'],
       atk: ['Punch', 'J'],
       jump: ['Jump', 'Space'],
       bone: ['Bone', 'K'],
@@ -145,6 +145,19 @@ export const STR = {
     },
     pad: { hado: 'Magic', bone: 'Bone', jump: 'Jump', atk: 'Hit', super: 'Super' },
     // Lucy's own names for her moves, over the ones above, and for her rage bar
+    // the tiger samurai's own names for his moves and his rage bar
+    tiger: {
+      help: {
+        atk: ['Katana', 'J'],
+        bone: ['Guard (deflect: just in time)', 'K'],
+        hado: ['Iai cut', 'L'],
+        super: ['Thousand cuts', 'hold I'],
+      },
+      pad: { atk: 'Cut', bone: 'Guard', hado: 'Iai', super: 'Super' },
+      rage: 'Ki',
+    },
+    deflect: 'DEFLECT!',
+    guardBreak: 'GUARD BREAK',
     lucy: {
       help: { bone: ['Shot', 'K'], hado: ['Big gun', 'L'], super: ['Grenade', 'I'] },
       pad: { bone: 'Shot', hado: 'Big gun', super: 'Grenade' },
@@ -326,7 +339,7 @@ export const STR = {
     replayBad: 'Этот файл не повтор этой версии игры',
     help: {
       move: ['Ходить', 'W A S D / стрелки'],
-      run: ['Бег', 'Shift / двойное нажатие'],
+      run: ['Бег', 'идти дальше / двойное нажатие'],
       atk: ['Удар', 'J'],
       jump: ['Прыжок', 'Пробел'],
       bone: ['Кость', 'K'],
@@ -339,6 +352,18 @@ export const STR = {
       replay: ['Повтор', 'F7 смотреть · F8 сохранить'],
     },
     pad: { hado: 'Магия', bone: 'Кость', jump: 'Прыг', atk: 'Удар', super: 'Супер' },
+    tiger: {
+      help: {
+        atk: ['Катана', 'J'],
+        bone: ['Блок (дефлект: точно в момент удара)', 'K'],
+        hado: ['Удар иай', 'L'],
+        super: ['Тысяча порезов', 'держать I'],
+      },
+      pad: { atk: 'Удар', bone: 'Блок', hado: 'Иай', super: 'Супер' },
+      rage: 'Ки',
+    },
+    deflect: 'ОТРАЖЕНО!',
+    guardBreak: 'БЛОК ПРОБИТ',
     lucy: {
       help: { bone: ['Выстрел', 'K'], hado: ['Пушка', 'L'], super: ['Граната', 'I'] },
       pad: { bone: 'Выстрел', hado: 'Пушка', super: 'Граната' },

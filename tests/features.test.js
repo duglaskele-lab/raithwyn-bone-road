@@ -232,3 +232,26 @@ test('a cornered necromancer swings his staff, and is easily staggered', () => {
   hurtEnemy(e, 8, 1, false, 'punch');
   assert.equal(e.state, 'hurt');
 });
+
+test('walking on the same way for RUN.after seconds she breaks into a run; a double tap runs at once', async () => {
+  const { RUN } = await import('../src/config.js');
+  const { APP } = await import('../src/state.js');
+  freshGame();
+  P.x = 300;
+  keys.r = true;
+  for (let i = 0; i < (RUN.after - 0.1) / DT; i++) update(DT);
+  assert.equal(P.state, 'walk');
+  for (let i = 0; i < 0.15 / DT; i++) update(DT);
+  assert.equal(P.state, 'run');
+  // turning round starts the count again
+  delete keys.r;
+  keys.l = true;
+  update(DT);
+  update(DT);
+  assert.equal(P.state, 'walk');
+  // a double tap (the latch the input sets) runs at once
+  APP.runLatch = true;
+  update(DT);
+  assert.equal(P.state, 'run');
+  delete keys.l;
+});

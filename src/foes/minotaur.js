@@ -134,7 +134,7 @@ function axeTick(e, dt) {
     }
   } else if (a.st === 'lie' && P.hit && a.kicked !== P.hit) {
     // a blow of hers on it sends it skidding away from him
-    const swing = (P.state === 'atk1' || P.state === 'atk2') && P.sw,
+    const swing = ['atk1', 'atk2', 'katana'].includes(P.state) && P.sw,
       air = P.state === 'jump' && P.airT !== null && P.airT < 0.3;
     if (
       (swing || air) &&

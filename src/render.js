@@ -33,6 +33,7 @@ import { drawBG, drawFog, drawVignette } from './background.js';
 import { drawBG2, drawFront2 } from './bg2.js';
 import { drawBG3, drawFront3 } from './bg3.js';
 import { drawBG4, drawFront4 } from './bg4.js';
+import { drawTiger } from './tigerdraw.js';
 import { drawDecor4 } from './props4.js';
 import { drawBoulder } from './hazards4.js';
 import { levelWaves, overPit, roadDir } from './level.js';
@@ -1013,6 +1014,29 @@ export function drawPart(p) {
       // a critical shot: a red neon "crit!" over the one it hit, rising a little
       neon(x, y - u * 13, 'crit!', 14, 'red', Math.min(1, (1 - u) * 3), p.t);
       break;
+    case 'cut': {
+      // a cut of the tiger's flurry: a white streak with a cyan edge, flashing and gone
+      if (p.t < 0) break;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 1 - u;
+      const x2 = x + (p.x2 - p.x),
+        y2 = y + (p.y2 - p.y);
+      for (const [w, c] of [
+        [9 * (1 - u), 'rgba(80,220,255,.6)'],
+        [3.5 * (1 - u), '#ffffff'],
+      ]) {
+        ctx.strokeStyle = c;
+        ctx.lineWidth = w;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      }
+      ctx.restore();
+      break;
+    }
     case 'tracer':
       // a bullet's streak from the muzzle to where it lands
       ctx.save();
@@ -1185,7 +1209,9 @@ export function drawPlayer() {
   }
   // on a beast she sits up in its saddle
   const seat = p.state === 'ride' && p.steed ? p.seat : 0;
-  sprite(p.an[0], p.an[1], p.x - G.cam, p.y - p.z + 2 - seat, p.face < 0, 1, a, p.who);
+  // (the tiger has no sprites yet: he is drawn in code, tigerdraw.js)
+  if (p.who === 'tiger') drawTiger(p, p.x - G.cam, p.y - p.z + 2 - seat, a);
+  else sprite(p.an[0], p.an[1], p.x - G.cam, p.y - p.z + 2 - seat, p.face < 0, 1, a, p.who);
   if (p.state === 'frozen') {
     // a block of ice round her, cracking as it thaws
     const x = p.x - G.cam,
@@ -1466,7 +1492,9 @@ export function drawHUD() {
   ctx.fillStyle = '#ece5cb';
   for (const r of [RL[0], RL[1]]) ctx.fillRect(88 + (210 * r) / MAXR + 2, 61, 2, 10);
   txt(
-    p.who === 'lucy' ? STR[lang].lucy.rage : t(['rage', 'hado1', 'hado2', 'hado3'][lv]),
+    p.who === 'lucy' || p.who === 'tiger'
+      ? STR[lang][p.who].rage
+      : t(['rage', 'hado1', 'hado2', 'hado3'][lv]),
     308,
     71,
     12,

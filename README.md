@@ -13,7 +13,7 @@ settings and remembered by the browser.
 
 After the splash screen comes the main menu: Start game, Settings, Exit. Before the fight there
 is the fighter select: four portraits (Raithwyn, Lucy, Tiger man, Gumdong) and four locked slots.
-Every fighter has a description and stats. Raithwyn and Lucy are playable (Lucy for testing:
+Every fighter has a description and stats. Raithwyn, Lucy and the tiger samurai are playable (Lucy for testing:
 she has her own sprites for standing, idle, walking, running, jumping, punching, a pistol shot,
 a grenade throw, taking a hit and being knocked down, every other animation shows her standing
 frame, and she plays with Raithwyn's moves for now. Her `K` is a pistol instead of the bone:
@@ -75,12 +75,44 @@ disk. For that there is a single-file build:
 npm run build      # dist/raithwyn.html — opens from disk, works offline
 ```
 
+## The tiger samurai
+
+Tiger man (`src/tiger.js`, `TIGER` in `src/config.js`): a tiger in black glasses, a dark blue
+kimono with a red obi and grey hakama, with a light katana. His sprites are not made yet: he is
+drawn in code (`src/tigerdraw.js`), posed by his state, painted at half size into a canvas of his
+own with hard edges and blown up twice without smoothing, as pixel art; the blade's glow is soft
+over it. He has 120 health (`MAX_HP`) and walks and runs a little slower (`SPEEDK`).
+
+- **`J` — katana:** a chain of three cuts (13, 15, then 28 knocking down; up held on the third
+  throws the foe up). Each is wound up and recovers longer than her punches: harder blows, less
+  often; a plain cut wears 2 of a foe's poise (`POISE.katana`). In a jump, one cut (16).
+- **`K` — guard and deflect** (after Sekiro and Devil May Cry 3's Royal Guard): held, his guard is
+  up; he steps about slowly, facing the same way. A blow from in front (a shot, a wail too) does
+  him no harm:
+  - **deflect** — `K` pressed no more than 0.16 s before the blow lands: a ring of steel and
+    "DEFLECT!", 14 rage gained, the attacker loses 4 of its poise (a light one, or one with none
+    left, reels for 0.6 s; a boss, or a foe in an attack nothing stops, only takes it), and his
+    next cut within 0.7 s does 1.5 times the damage and knocks down. `K` mashed (again within
+    0.35 s) gives only 0.05 s of deflect;
+  - **block** — later than that: no harm, but it costs 18 rage (36 for a heavy blow);
+  - **guard break** — out of rage, his guard holds against two blows more; the third goes
+    through ("GUARD BREAK") and knocks him down.
+  A blow from behind goes through; so do grabs and the frost wolf's breath.
+- **`L` — iai, the drawing cut** (100 rage): the blade goes dark, he crouches, dashes 300 px
+  through the foes in front (untouchable), and as the blade goes back in — click — everyone he
+  passed through is cut (42, a heavy blow that takes 6 of their poise).
+- **`I` — thousand cuts:** Raithwyn's super (hold with a full bar), with white cuts flashing over
+  the screen.
+
+His rage bar is called Ki. `WHO=tiger npm run balance` plays the fights as him (the bot deflects
+blows about to land).
+
 ## Controls
 
 | Action | Keys |
 | --- | --- |
 | Move | `W` `A` `S` `D` or arrows |
-| Run | `Shift` or double tap left/right |
+| Run | keep walking the same way for 0.35 s, or double tap left/right |
 | Punch (a three-hit chain; in the air, a flying kick); hold it to keep punching on your own | `J` |
 | Launcher: the third hit of the chain with "up" held throws the enemy up for juggling | `W` + `J` |
 | Jump | `Space` |
@@ -1101,7 +1133,12 @@ What is checked:
   breath, big gravestones, the acid ball after a hit.
 - `zombie.test.js` — the grab, flying and thrown heads, zombie crowds.
 - `style.test.js` — style ranks D…SSS and their bonuses, scenery, the acid puddle, the pause menu.
-- `menu.test.js` — main menu, settings (FPS counter and limit), fighter select (Raithwyn and Lucy are
+- `tiger.test.js` — the tiger samurai: playable, his health and names, the chain of cuts (harder
+  and slower than her punches), the guard (a late block costing rage, a blow from behind going
+  through), the deflect (no harm, rage, the attacker reeling, the harder riposte), mashing,
+  the guard breaking with no rage left, grabs going through it and stuns turned, the iai, his
+  pace.
+- `menu.test.js` — main menu, settings (FPS counter and limit), fighter select (Raithwyn, Lucy and the tiger are
   playable).
 - `height.test.js` — heights: the bands of enemies (lying, in the air, never too short) and of
   the heroine (her legs tucked in a jump), a dark ball from the top of a jump flying over a

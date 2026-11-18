@@ -166,6 +166,13 @@ export const SFX = {
     noise(0.11, 0.16, 500, 1900, 2);
   },
   // the samurai: a ring of steel as it settles into its stance, the cut, the daze
+  // the tiger's deflect: steel on steel, a bright ring that hangs a moment
+  parry() {
+    tone('triangle', 2350, 2300, 0.6, 0.07);
+    tone('sine', 3520, 3480, 0.45, 0.04, 0.01);
+    tone('square', 1175, 1170, 0.12, 0.03);
+    noise(0.1, 0.25, 6000, 3000, 2);
+  },
   stance() {
     tone('triangle', 1760, 1700, 0.5, 0.05);
     tone('sine', 2640, 2600, 0.35, 0.03, 0.02);

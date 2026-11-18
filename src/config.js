@@ -40,6 +40,7 @@ export const POISE = {
   light: 1,
   heavy: 3,
   ball: 4,
+  katana: 2, // the tiger's plain cut
   regen: 3,
   // an attack that plain blows cannot stop is wound up for at least this long (tests check it)
   minWind: 0.45,
@@ -1942,6 +1943,11 @@ export const WAVEGEN = {
 };
 
 // Seconds per frame of the sprint: 15% slower than the old 0.065 so the feet match the speed.
+// Running: she breaks into a run by herself after `after` s of walking the same way (or at once
+// on a double tap of the direction); `speed` px/s.
+export const RUN = { after: 0.35, speed: 435 };
+// How fast each fighter walks and runs, against Raithwyn's pace.
+export const SPEEDK = { tiger: 0.88 };
 export const RUN_FRAME = 0.065 / 0.85;
 // The idle loop (breathing, the tail swaying) from the video it was taken from: 11 poses spread
 // evenly over its 2.25 s, each held for this many 1/24 s.
@@ -1950,7 +1956,44 @@ export const IDLE_HOLD = [5, 5, 5, 5, 5, 4, 5, 5, 5, 5, 5];
 // Lucy's idle is 11 poses over the 2.6 s loop of her video.
 // Lucy's pistol shot (K): a bullet that flies very fast; each shot costs `cost` rage.
 // Each fighter's health: Lucy has 10% less.
-export const MAX_HP = { raithwyn: 100, lucy: 80 };
+export const MAX_HP = { raithwyn: 100, lucy: 80, tiger: 120 };
+// The tiger samurai (src/tiger.js): a light katana, heavy cuts but slow ones.
+//   cuts   J: a chain of three cuts, each wound up (`wind` s), cutting (`act` s, `dmg`, out to
+//          `x1` px, `dy` deep, `knock`: a heavy blow) and recovering (`rec` s); J during a
+//          cut's recovery goes on to the next. Up held on the third: it throws the foe up.
+//   air    the cut in a jump
+//   guard  K held: his guard. A blow from in front while it is up is blocked: no harm, but it
+//          costs `cost` rage (twice for a heavy blow). K pressed no more than `deflect` s before
+//          a blow lands deflects it: no harm, `rage` rage gained, the attacker loses `posture`
+//          of its poise (a light one reels for `stagger` s) and his next cut within `riposte`
+//          s does `ripK` times the damage. K mashed (pressed again within `spam` s) gives only
+//          `spamWin` s of deflect. Out of rage, his guard holds against `breakN` blows more; the
+//          next breaks it and goes through. Grabs and the frost wolf's breath go through it.
+//   iai    L: the drawing cut: `cost` rage; sheathed, a crouch (`wind` s), a dash of `dist` px
+//          (`dash` s, untouchable), and as the blade goes back in (`rec` s) everyone he passed
+//          through is cut (`dmg`, a heavy blow that takes `poise` of their poise).
+export const TIGER = {
+  cuts: [
+    { wind: 0.17, act: 0.1, rec: 0.24, dmg: 13, x1: 150, dy: 30, knock: false, rage: 6 },
+    { wind: 0.15, act: 0.1, rec: 0.26, dmg: 15, x1: 150, dy: 30, knock: false, rage: 6 },
+    { wind: 0.24, act: 0.12, rec: 0.42, dmg: 28, x1: 172, dy: 34, knock: true, rage: 10 },
+  ],
+  air: { dmg: 16, x1: 150 },
+  guard: {
+    deflect: 0.16,
+    spam: 0.35,
+    spamWin: 0.05,
+    cost: 18,
+    breakN: 2,
+    rage: 14,
+    posture: 4,
+    stagger: 0.6,
+    riposte: 0.7,
+    ripK: 1.5,
+    walk: 70,
+  },
+  iai: { cost: 100, wind: 0.24, dist: 300, dash: 0.14, rec: 0.42, dmg: 42, poise: 6 },
+};
 // Lucy's guns and fists: her punches (J) do `melee` of their damage. Her pistol (K) holds `ammo`
 // rounds and costs no rage; a punch that lands drops a magazine (`drop` of the time, only when
 // she is short of rounds, and only when there is none about already) that fills it again; it

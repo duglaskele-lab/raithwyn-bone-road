@@ -127,7 +127,7 @@ test('jumping short into a gap: she falls, then is back on the roof, hurt', () =
   keys.r = true;
   step(0.6);
   assert.ok(P.x <= x0 + 1, `held on the roof (${P.x})`);
-  assert.equal(P.state, 'walk');
+  assert.equal(P.state, 'run', 'walking on, she breaks into a run');
   // a hop straight up at the edge, pushed out over the gap: down she goes
   delete keys.r;
   Object.assign(P, { state: 'jump', t: 0, ph: 1, vz: 300, z: 1, vx: 0, vyd: 0 });
