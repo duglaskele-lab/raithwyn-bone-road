@@ -39,4 +39,6 @@ import './wild.js';
 import './minotaur.js';
 import './frostwolf.js';
 import './lucyboss.js';
+import './crater.js';
+import './legion.js';
 export { FOES, STATES } from './registry.js';

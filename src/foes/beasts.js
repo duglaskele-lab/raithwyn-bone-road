@@ -81,7 +81,7 @@ WALKS.tomount = WALKS.chase;
 /** The riders' move: a beast stands free nearby, the heroine not by it: go and climb on. */
 export const remount = {
   when(e) {
-    if (e.steed || e.cd > 0 || !level4()) return false;
+    if (e.steed || e.cd > 0 || !level5()) return false;
     for (const b of G.enemies)
       if (
         isBeast(b) &&
@@ -99,7 +99,7 @@ export const remount = {
   },
   go: (e) => go(e, 'tomount', 0, { engage: false }),
 };
-const level4 = () => G.level === 4;
+const level5 = () => G.level === 5;
 /** Seconds a beast running off takes to be gone. */
 const LEAVE = 2.4;
 /** The riders' first say on a blow: out of the saddle (up in the air, off the beast's back). */

@@ -42,7 +42,7 @@ import { fallSign } from './props3.js';
 import { beepTimer, boltFly } from './foes/robot.js';
 import { wallStops } from './foes/barrier.js';
 import { explode, updFuses } from './blast.js';
-import { boulderRoll, updHazards4 } from './hazards4.js';
+import { boulderRoll, updHazards5 } from './hazards5.js';
 import { meetsPlayer, reaches } from './height.js';
 import {
   camTo,
@@ -168,11 +168,11 @@ function secretWarp(dt) {
   G.shake = 10;
   SFX.nova();
 }
-// The other secrets: hold Z and 2 (Z and 3, Z and 4) together for STAGE_HOLD seconds on the
+// The other secrets: hold Z and 2 (Z and 3, 4, 5) together for STAGE_HOLD seconds on the
 // first screen of the Bone Road, and the player is taken to the gates of Old Quarry (of Midnight
-// City, of Frostfang Pass).
+// City, of the Wastelands, of Frostfang Pass).
 function stageWarp(dt) {
-  const to = !keys.lvlZ ? 0 : keys.lvl2 ? 2 : keys.lvl3 ? 3 : keys.lvl4 ? 4 : 0;
+  const to = !keys.lvlZ ? 0 : keys.lvl2 ? 2 : keys.lvl3 ? 3 : keys.lvl4 ? 4 : keys.lvl5 ? 5 : 0;
   if (!to || (G.stageTo && G.stageTo !== to)) {
     G.stageT = 0;
     G.stageTo = to;
@@ -230,7 +230,7 @@ export function update(dt) {
   updPlayer(dt);
   updStyle(dt);
   updShocks(dt);
-  if (G.level === 4) updHazards4(dt);
+  if (G.level === 5) updHazards5(dt);
   const c = { n: 0 };
   for (const e of G.enemies) if (e.engage) c.n++;
   for (const e of G.enemies) updEnemy(e, dt, c);
@@ -261,6 +261,11 @@ export function update(dt) {
     // a barrier heavy's wall of light stops the player's shots
     if (wallStops(q)) {
       q.life = 0;
+      continue;
+    }
+    // a projectile that flies by its own rules (the Wastelands' acid spit)
+    if (q.fly) {
+      q.fly(q, dt);
       continue;
     }
     if (q.k === 'quake') {

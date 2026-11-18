@@ -106,7 +106,7 @@ test('the later stages are no longer than the Bone Road, and their fights grow',
         sum += TYPES[k].hp > 900 && !TYPES[k].bigBoss ? 40 : TYPES[k].hp;
     return sum;
   };
-  for (const n of [2, 3, 4]) {
+  for (const n of [2, 3, 4, 5]) {
     const W = LEVELS[n].waves,
       own = W.filter((w) => !w.sp);
     assert.ok(W.length <= 12, `stage ${n}: ${W.length} fights`);

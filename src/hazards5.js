@@ -9,13 +9,13 @@ import { ctx } from './gfx.js';
 import { SFX } from './audio.js';
 import { dust } from './fx.js';
 import { hitPlayer, hurtEnemy } from './combat.js';
-import { L4 } from './level4.js';
+import { L5 } from './level5.js';
 import { pathPx } from './level.js';
 
 /** Is the fight on the climb (the camera looking up the trail)? */
-const onClimb = () => G.level === 4 && G.wave && G.camS > pathPx(3) + 1 && G.camS < pathPx(4) - 1;
+const onClimb = () => G.level === 5 && G.wave && G.camS > pathPx(3) + 1 && G.camS < pathPx(4) - 1;
 /** Every frame on Frostfang Pass: now and then a boulder sets off down the trail. */
-export function updHazards4(dt) {
+export function updHazards5(dt) {
   if (!onClimb()) {
     G.rockT = rnd(1.5, 3);
     return;
@@ -23,7 +23,7 @@ export function updHazards4(dt) {
   if ((G.rockT -= dt) > 0) return;
   G.rockT = rnd(...BOULDER.gap);
   // a lane across the trail, more often near her
-  const x = clamp(P.x + rnd(-160, 160), L4.CLIMB[0] + 50, L4.CLIMB[1] - 50);
+  const x = clamp(P.x + rnd(-160, 160), L5.CLIMB[0] + 50, L5.CLIMB[1] - 50);
   G.projs.push({
     k: 'boulder',
     x,

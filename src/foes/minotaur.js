@@ -60,7 +60,7 @@ function retune(e) {
 function loseAxe(e, dir) {
   e.axe = false;
   const [x, z] = [e.x + e.face * 40, 150];
-  e.ax = { st: 'fly', x, y: e.y + fxRnd(-30, 30), z, vx: dir * 300, vz: 520, rot: 0 };
+  e.ax = { st: 'fly', x, y: e.y + rnd(-30, 30), z, vx: dir * 300, vz: 520, rot: 0 }; // (the game's chance: where it lands matters)
   SFX.clang();
   SFX.roar();
   spark(x, e.y - z, '#fff2a8', true);
