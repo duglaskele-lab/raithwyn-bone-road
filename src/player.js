@@ -16,8 +16,11 @@ import {
   GT,
   MAXR,
   RL,
+  RUN,
   RUN_FRAME,
+  SPEEDK,
   SUPER_HOLD,
+  TIGER,
   W,
   WAVES,
   STRONG,
@@ -33,6 +36,7 @@ import { dust, motes } from './fx.js';
 import { floorClamp, level, overPit, viewClamp } from './level.js';
 import { buckshot, hadoLevel, hurtEnemy, strike, superNova } from './combat.js';
 import { dismount, rideTick, tryMount } from './foes/beasts.js';
+import { flurry, tigerAct, tigerTick } from './tiger.js';
 
 // The idle pose at time t: the poses are held for hold[i] 24ths of a second each.
 export function idlePose(t, hold = IDLE_HOLD) {
@@ -226,8 +230,12 @@ export function updPlayer(dt) {
     case 'idle':
     case 'walk':
     case 'run': {
-      const run = (keys.run || APP.runLatch) && mx !== 0,
-        sp = run ? 435 : 180;
+      // she breaks into a run by herself after RUN.after s of walking the same way (or at once,
+      // on a double tap of the direction, or with the touch stick pushed far)
+      p.moveT = mx && mx === p.moveDir ? (p.moveT ?? 0) + dt : 0;
+      p.moveDir = mx;
+      const run = (keys.run || APP.runLatch || p.moveT >= RUN.after) && mx !== 0,
+        sp = run ? RUN.speed * (SPEEDK[p.who] ?? 1) : 180 * (SPEEDK[p.who] ?? 1);
       if (mx) p.face = mx;
       p.x += mx * sp * dt;
       p.y += my * (run ? 150 : 128) * dt;
@@ -251,6 +259,8 @@ export function updPlayer(dt) {
       // J held: she keeps punching on her own, chain after chain
       const b = p.bufT > 0 ? p.buf : keys.atk ? 'atk' : null;
       if (b === 'jump') startJump(p, mx * sp, my * 70);
+      // the tiger: his katana, his guard, the drawing cut (tiger.js)
+      else if (p.who === 'tiger' && tigerAct(p, b, mx));
       else if (b === 'atk') startAtk(mx);
       else if (b === 'bone' && p.who === 'lucy' && p.finT > 0) startFinShot();
       else if (b === 'bone' && p.who === 'lucy') {
@@ -330,7 +340,12 @@ export function updPlayer(dt) {
         p.y += p.vyd * dt;
         p.an = ['jump', p.vz > 230 ? 1 : p.vz > -230 ? 2 : 3];
         // Raithwyn's bone (K) and dark ball (L) in the air
-        if (!p.airUsed && p.who !== 'lucy' && p.bufT > 0 && (p.buf === 'bone' || p.buf === 'hado'))
+        if (
+          !p.airUsed &&
+          p.who === 'raithwyn' &&
+          p.bufT > 0 &&
+          (p.buf === 'bone' || p.buf === 'hado')
+        )
           startAirShot(p, p.buf);
         if (p.airS) airShot(p, dt);
         if (!p.airUsed && p.buf === 'atk' && p.bufT > 0) {
@@ -343,7 +358,16 @@ export function updPlayer(dt) {
         if (p.airT !== null && p.airT < 0.3) {
           p.an = ['punch2', p.airT < 0.07 ? 1 : 2];
           p.airT += dt;
-          strike({ x0: 0, x1: 122, dy: 28, dmg: 12, knock: true, rage: RAGE.air, src: 'air' });
+          const tg = p.who === 'tiger';
+          strike({
+            x0: 0,
+            x1: tg ? TIGER.air.x1 : 122,
+            dy: 28,
+            dmg: tg ? TIGER.air.dmg : 12,
+            knock: true,
+            rage: RAGE.air,
+            src: 'air',
+          });
         }
         // coming down onto a beast nobody rides: she is in its saddle (Frostfang Pass)
         if (p.vz < 0 && G.level === 4 && tryMount(p)) break;
@@ -360,6 +384,12 @@ export function updPlayer(dt) {
         p.an = ['jump', 4];
         if (p.t > 0.07) toIdle();
       }
+      break;
+    case 'katana':
+    case 'guard':
+    case 'gbreak':
+    case 'iai':
+      tigerTick(p, dt, mx, my);
       break;
     case 'ride': {
       // on a beast: she steers it, J makes it whip its tail or breathe fire, a jump gets her off
@@ -627,6 +657,7 @@ export function updPlayer(dt) {
           p.rage = 0;
           p.inv = Math.max(p.inv, 0.7);
           superNova();
+          if (p.who === 'tiger') flurry();
         }
       } else {
         p.an =

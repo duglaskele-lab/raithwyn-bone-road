@@ -108,12 +108,12 @@ test('the frame limit: 60 on 144 Hz, 90 on 144 Hz, 30 on 60 Hz, none draws every
   fps.cap = 60;
 });
 
-test('the roster: four fighters, four locked slots, Raithwyn and Lucy playable', () => {
+test('the roster: four fighters, four locked slots, Raithwyn, Lucy and the tiger playable', () => {
   assert.equal(CHARS.length, 4);
   assert.equal(SLOTS, 8);
   assert.deepEqual(
     CHARS.filter((c) => c.playable).map((c) => c.id),
-    ['raithwyn', 'lucy'],
+    ['raithwyn', 'lucy', 'tiger'],
   );
   for (const c of CHARS) {
     for (const k of STATS) assert.ok(c.stats[k] in LEVEL, `${c.id}.${k}`);
@@ -124,7 +124,7 @@ test('the roster: four fighters, four locked slots, Raithwyn and Lucy playable',
 test('other fighters can be viewed but not played', () => {
   APP.state = 'select';
   APP.sel = 0;
-  for (const slot of [2, 3, 4, 7]) {
+  for (const slot of [3, 4, 7]) {
     step(SLOT_BOX[slot]);
     assert.equal(APP.sel, slot);
     step(PLAY_BOX);

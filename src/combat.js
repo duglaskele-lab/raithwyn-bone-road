@@ -10,6 +10,7 @@ import {
   LUCY,
   MAXR,
   POISE,
+  TIGER,
   RAGE,
   RL,
   SUPER_DMG,
@@ -28,6 +29,7 @@ import { dropSign } from './props3.js';
 import { buzz } from './touch.js';
 import { DRAGON, dragonZone, headPoint } from './dragon.js';
 import { FOES } from './foes/index.js';
+import { guardHit, guarding } from './tiger.js';
 import { blowBand, reaches } from './height.js';
 import { dmgMult, scoreMult, styleBreak, styleGain, styleKeep, styleRank } from './style.js';
 
@@ -171,7 +173,17 @@ export function hurtEnemy(e, dmg, dir, knock, src, launch = false) {
 export const poiseMax = (e) => e.T.poise ?? POISE.max[weightOf(e)] ?? 0;
 /** How much poise a blow takes: a plain one, a heavy one, a level I dark ball; a crushing one all. */
 export const poiseHit = (knock, src, crush) =>
-  crush ? Infinity : src === 'hado' ? POISE.ball : knock ? POISE.heavy : POISE.light;
+  crush
+    ? Infinity
+    : src === 'hado'
+      ? POISE.ball
+      : src === 'iai'
+        ? TIGER.iai.poise
+        : knock
+          ? POISE.heavy
+          : src === 'katana'
+            ? POISE.katana
+            : POISE.light;
 /** How much poise it has left (whole, if its weight class has just changed). */
 export const poiseLeft = (e) =>
   e.poiseOf === poiseMax(e) ? (e.poise ?? poiseMax(e)) : poiseMax(e);
@@ -433,7 +445,7 @@ export function grabPlayer(e) {
     p.inv > 0 ||
     p.z > 6 ||
     APP.state !== 'play' ||
-    !['idle', 'walk', 'run', 'atk1', 'atk2', 'throw', 'gunFin'].includes(p.state)
+    !['idle', 'walk', 'run', 'atk1', 'atk2', 'throw', 'gunFin', 'katana', 'guard'].includes(p.state)
   )
     return false;
   if (p.hp <= e.T.dmg) return hitPlayer(e.T.dmg, e.face, false) && false;
@@ -449,13 +461,25 @@ export function grabPlayer(e) {
 /** A wail that stuns: the heroine on her feet reels for `dur` seconds, taking `dmg`. */
 export function stunPlayer(dmg, dur) {
   const p = P;
+  // the tiger's guard turns a wail or a stunning blow from in front
+  if (p.inv <= 0 && guarding(p) && guardHit(p, dmg, -p.face, false)) return true;
   if (
     p.inv > 0 ||
     p.z > 8 ||
     APP.state !== 'play' ||
-    !['idle', 'walk', 'run', 'atk1', 'atk2', 'throw', 'gunFin', 'nade', 'bigGun', 'hado'].includes(
-      p.state,
-    )
+    ![
+      'idle',
+      'walk',
+      'run',
+      'atk1',
+      'atk2',
+      'throw',
+      'gunFin',
+      'nade',
+      'bigGun',
+      'hado',
+      'katana',
+    ].includes(p.state)
   )
     return false;
   p.hp = Math.max(1, p.hp - dmg);
@@ -570,6 +594,10 @@ export function hitPlayer(dmg, dir, knock) {
     ['ko', 'down', 'getup', 'dead', 'win', 'plunge'].includes(p.state)
   )
     return false;
+  // the tiger's guard: a blow from in front deflected or blocked does him no harm (tiger.js);
+  // to the attacker it counts as landed
+  if (p.who === 'tiger' && guardHit(p, dmg, dir, knock)) return true;
+  const broke = p.state === 'guard';
   p.hp = Math.max(0, p.hp - dmg);
   // Lucy's luck: the blow that would finish her may not; she still goes down
   const lucky =
@@ -595,7 +623,7 @@ export function hitPlayer(dmg, dir, knock) {
     p.steed = null;
     knock = true;
   }
-  if (p.hp <= 0 || lucky || knock || p.z > 0 || p.state === 'jump') {
+  if (p.hp <= 0 || lucky || knock || broke || p.z > 0 || p.state === 'jump') {
     p.state = 'ko';
     p.t = 0;
     p.vx = dir * 240;

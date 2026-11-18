@@ -19,6 +19,7 @@ export const CHARS = [
   {
     id: 'tiger',
     img: 'tiger',
+    playable: true, // drawn in code for now (tigerdraw.js): his sprites are not made yet
     col: '#ff8a2e',
     stats: { hp: 'good', dmg: 'high', spd: 'low', mag: 'card' },
   },

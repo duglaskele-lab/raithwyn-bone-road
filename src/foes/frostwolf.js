@@ -127,6 +127,9 @@ export function freezePlayer(dmg, dur) {
       'hado',
       'jump',
       'hurt',
+      'katana',
+      'guard',
+      'iai',
     ].includes(p.state)
   )
     return false;
