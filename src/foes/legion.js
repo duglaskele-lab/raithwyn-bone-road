@@ -24,6 +24,7 @@ import {
   nearWreck,
   pickTarget,
   raise,
+  release,
   struckByHer,
   swing,
   warMark,
@@ -209,6 +210,7 @@ defineFoe(
             return;
           }
         }
+        release(e, e.job);
         e.job = null;
         brawl(e, dt, ctxE, WELD.torch.reach, 'wdTorchW');
       },

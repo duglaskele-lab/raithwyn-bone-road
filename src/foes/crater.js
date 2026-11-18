@@ -22,6 +22,7 @@ import {
   faceT,
   nearWreck,
   pickTarget,
+  release,
   rivalHit,
   struckAt,
   struckByHer,
@@ -60,6 +61,7 @@ defineFoe('scavenger', {
           return;
         }
       }
+      release(e, e.loot);
       e.loot = null;
       brawl(e, dt, ctxE, club(e).reach, 'scWind');
     },
