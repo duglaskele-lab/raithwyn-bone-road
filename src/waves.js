@@ -84,9 +84,14 @@ export function themedWave(w) {
 export function waveSpawns(i) {
   const L = level(),
     w = L.waves[i];
-  // on the Bone Road, someone other than Raithwyn meets Raithwyn herself instead of the dragon
+  // on the Bone Road, someone other than Raithwyn meets Raithwyn herself instead of the dragon;
+  // in Old Quarry, someone other than Lucy meets Lucy instead of the Prospector
   const swap = (s) =>
-    s[0] === 'dragon' && P.who && P.who !== 'raithwyn' ? ['evil', ...s.slice(1)] : s.slice();
+    s[0] === 'dragon' && P.who && P.who !== 'raithwyn'
+      ? ['evil', ...s.slice(1)]
+      : s[0] === 'prospector' && P.who && P.who !== 'lucy'
+        ? ['lucyboss', ...s.slice(1)]
+        : s.slice();
   // (a fight may roll from its own pools, and have fixed enemies join it: `gen`, `add`)
   if (w.sp) return w.sp.map(swap);
   if (w.core) return themedWave(w);

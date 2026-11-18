@@ -38,4 +38,5 @@ import './warband.js';
 import './wild.js';
 import './minotaur.js';
 import './frostwolf.js';
+import './lucyboss.js';
 export { FOES, STATES } from './registry.js';

@@ -109,7 +109,9 @@ export function updWaves(dt) {
         G.wave = { sp: waveSpawns(G.waveI), t: 0 };
         G.goT = 0;
         // a boss's banner: the stage's last one, or one a fight names (a mini-boss)
-        const bn = WAVES[G.waveI].banner ?? (WAVES[G.waveI].final && level().boss);
+        // (in Old Quarry, Lucy's duel when the player is someone else)
+        const lucy = G.level === 2 && P.who !== 'lucy' && ['@lucyboss', 'lucyBanner'],
+          bn = WAVES[G.waveI].banner ?? (WAVES[G.waveI].final && (lucy || level().boss));
         if (bn) {
           const [a, b] = bn;
           G.banner = { a, b, t: 0 };

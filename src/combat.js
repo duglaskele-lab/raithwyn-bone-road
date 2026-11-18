@@ -30,6 +30,7 @@ import { buzz } from './touch.js';
 import { DRAGON, dragonZone, headPoint } from './dragon.js';
 import { FOES } from './foes/index.js';
 import { guardHit, guarding } from './tiger.js';
+import { spillWhiskey } from './foes/lucyboss.js';
 import { blowBand, reaches } from './height.js';
 import { dmgMult, scoreMult, styleBreak, styleGain, styleKeep, styleRank } from './style.js';
 
@@ -490,8 +491,9 @@ export function stunPlayer(dmg, dur) {
 }
 export function breakProp(e, dir = 1) {
   const D = DECOR[e.decor];
-  // a lamp post: its neon sign comes down
+  // a lamp post: its neon sign comes down; a barrel of whiskey spills (Lucy's duel)
   if (e.decor === 'post') dropSign(e, dir);
+  if (D?.whiskey) spillWhiskey(e);
   e.dead = true;
   SFX.shatter();
   if (D) {
