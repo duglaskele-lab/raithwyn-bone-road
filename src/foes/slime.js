@@ -1,23 +1,39 @@
 // The mini-boss of Old Quarry: a heap of radioactive green slime from the flooded hall, with
 // the bones of what it ate floating inside. It drops from the roof, rolls across the hall,
 // jumps (not always at the player) and splashes down, and spits out zombies that get up and
-// fight. Its attacks are broken like a medium enemy's: plain hits do nothing to them, a heavy
-// blow breaks one, its poise worn away (POISE: two heavy blows, or one crushing blow) send it
-// sliding back. It leaves no puddles.
+// fight. A heavy blow stops its roll; its other attacks go on through blows. Its poise worn
+// away (POISE: two heavy blows, or one crushing blow) sends it sliding back — and then for a
+// while (SLIME.steady) nothing staggers it: it cannot be held down. Stay up close too long and
+// it rears up and swallows her: acid inside, mash to break out. At two thirds and at one third
+// of its health it sheds two slimelets, which crawl back after a while and, reaching it, heal
+// it: kill them first. It leaves no puddles.
 import { ACID, SLIME, TAU, W } from '../config.js';
 import { clamp, fxRandom, fxRnd, lerp, random, rnd } from '../util.js';
 import { G, P } from '../state.js';
 import { SFX } from '../audio.js';
-import { finale, hitPlayer, wearPoise } from '../combat.js';
+import { acidBite, finale, hitPlayer, wearPoise } from '../combat.js';
 import { scoreMult } from '../style.js';
 import { ctx } from '../gfx.js';
 import { groundPoint, floorClamp } from '../level.js';
+import { spawn } from '../enemies.js';
 import { defineFoe } from './registry.js';
-import { faceP, go } from './kit.js';
+import { faceP, go, moveTo } from './kit.js';
+import { spark } from '../fx.js';
 
 const cd = (k) => rnd(SLIME.cds[k][0], SLIME.cds[k][1]);
 const minions = () => G.enemies.filter((o) => o.fromSlime && !o.dead).length;
-const ATTACKS = ['rwind', 'roll', 'jwind', 'sjump', 'spwind', 'windup', 'attack'];
+const ATTACKS = [
+  'rwind',
+  'roll',
+  'jwind',
+  'sjump',
+  'spwind',
+  'windup',
+  'attack',
+  'ewind',
+  'engulf',
+];
+const E = SLIME.engulf;
 
 function splash(x, y, n, v = 300) {
   for (let i = 0; i < n; i++)
@@ -61,6 +77,13 @@ function squash(e) {
       return e.z > 0 ? [0.85, 1.2] : [1.3, 0.7];
     case 'attack':
       return [1.25, 0.85];
+    case 'ewind': {
+      // rearing up, wide
+      const u = clamp(t / E.wind, 0, 1);
+      return [1 + 0.35 * u, 1 + 0.45 * u];
+    }
+    case 'engulf':
+      return [1.2 + Math.sin(t * 9) * 0.05, 1.05 - Math.sin(t * 9) * 0.05];
     default:
       return [1 + wob, 1 - wob + (e.landT > 0 ? -0.25 * e.landT : 0)];
   }
@@ -75,7 +98,7 @@ export function drawSlime(e) {
     t = e.anim;
   ctx.save();
   ctx.translate(e.x - G.cam, e.y - e.z);
-  ctx.scale(e.face, 1);
+  ctx.scale(e.face * T.scale, T.scale);
   // its glow on everything around
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
@@ -103,7 +126,10 @@ export function drawSlime(e) {
   g.addColorStop(0.45, fl ? '#fff' : 'rgba(111,226,58,.92)');
   g.addColorStop(1, fl ? '#fff' : 'rgba(40,140,24,.95)');
   ctx.fillStyle = g;
+  // (see-through while it holds her: she is seen struggling inside)
+  ctx.globalAlpha = e.state === 'engulf' ? 0.62 : 1;
   ctx.fill();
+  ctx.globalAlpha = 1;
   ctx.lineWidth = 4;
   ctx.strokeStyle = '#17301a';
   ctx.stroke();
@@ -210,7 +236,7 @@ export function drawSlime(e) {
   }
   ctx.restore();
   // a warning over it before it rolls or jumps
-  if (e.state === 'rwind' || e.state === 'jwind') {
+  if (e.state === 'rwind' || e.state === 'jwind' || e.state === 'ewind') {
     ctx.fillStyle = '#ff4a5e';
     ctx.globalAlpha = 0.6 + 0.4 * Math.sin(e.t * 30);
     ctx.font = '900 30px sans-serif';
@@ -220,11 +246,51 @@ export function drawSlime(e) {
   }
 }
 
+/** It swallows her (if she can be caught: on her feet, not untouchable). */
+function swallow(e) {
+  const p = P;
+  if (
+    p.inv > 0 ||
+    p.z > 6 ||
+    !['idle', 'walk', 'run', 'atk1', 'atk2', 'throw', 'gunFin', 'katana', 'guard', 'hurt'].includes(
+      p.state,
+    )
+  )
+    return false;
+  // (the slime holds her by a flag: see the player's 'grabbed'; it spits her out itself)
+  e.holdsP = true;
+  Object.assign(p, { state: 'grabbed', t: 0, grabber: e, hold: E.hold + 0.3, buf: null });
+  SFX.grab();
+  return true;
+}
+/** At two thirds and at one third of its health it sheds its slimelets. */
+function shed(e) {
+  while (e.splitN < SLIME.split.length && e.hp <= e.T.hp * SLIME.split[e.splitN]) {
+    e.splitN++;
+    for (let i = 0; i < SLIME.kids; i++) {
+      const side = i % 2 ? 1 : -1,
+        k = spawn('slimelet', 0, e.x + side * 70, e.y + (i ? 20 : -20));
+      Object.assign(k, {
+        state: 'air',
+        t: 0,
+        vx: side * 240,
+        vz: 420,
+        z: 60,
+        mother: e,
+        backT: SLIME.kid.back,
+      });
+    }
+    splash(e.x, e.y, 24, 380);
+    SFX.squelch();
+    G.shake = Math.max(G.shake, 8);
+  }
+}
+
 // --- behaviour --------------------------------------------------------------------------------
 
 export default defineFoe('slime', {
   draw: drawSlime,
-  timers: ['rollCd', 'jumpCd', 'spitCd', 'landT'],
+  timers: ['rollCd', 'jumpCd', 'spitCd', 'landT', 'steadyT', 'engulfCd'],
   engageCap: Infinity,
   spawn(e) {
     e.w = 82;
@@ -236,13 +302,22 @@ export default defineFoe('slime', {
     e.vz = 0;
     e.state = 'sdrop';
     e.rollA = 0;
-    Object.assign(e, { rollCd: 2, jumpCd: 4, spitCd: 3 });
+    Object.assign(e, { rollCd: 2, jumpCd: 4, spitCd: 3, hugT: 0, engulfCd: 2, splitN: 0 });
     G.banner = { a: '@slime', b: 'slimeBanner', t: 0 };
     SFX.boss();
   },
   immune: (e) => e.state === 'sdrop' || (e.state === 'sjump' && e.z > 50),
   attacks: ATTACKS,
   moves: [
+    {
+      // she has stayed up close too long: it rears up to swallow her
+      when: (e, s) => e.hugT > E.hug && e.engulfCd <= 0 && !s.pdown,
+      go: (e) => {
+        faceP(e);
+        go(e, 'ewind', 0, { engage: false, hugT: 0 });
+        SFX.squelch();
+      },
+    },
     {
       when: (e, s) => e.spitCd <= 0 && minions() < SLIME.minions && s.adx > 140,
       go: (e) => go(e, 'spwind', 0, { engage: false }),
@@ -257,19 +332,33 @@ export default defineFoe('slime', {
     },
   ],
   guard(e, knock, src, dir, crush) {
-    // the medium rules, but it slides instead of flying
-    const busy = ATTACKS.includes(e.state);
     e.landT = 0.25;
+    shed(e);
+    // just after a stagger nothing moves it: it cannot be held down
+    if (e.steadyT > 0) {
+      spark(e.x - dir * 40, e.y - 90, '#c8ff8a', false);
+      return true;
+    }
+    if (e.state === 'engulf') return true;
     if (wearPoise(e, knock, src, crush)) {
-      // its poise gone: it slides back
+      // its poise gone: it slides back, and is steady for a while after
       go(e, 'stagger', 0, { vx: dir * 260 });
+      e.steadyT = SLIME.stagger + SLIME.steady;
       SFX.squelch();
       splash(e.x, e.y, 6);
-    } else if (knock && busy) {
+    } else if (knock && e.state === 'roll') {
+      // a heavy blow stops its roll (its other attacks go on)
       go(e, 'quiver');
       SFX.squelch();
     }
     return true;
+  },
+  // the bar under its health: while it is steady, how long it still is
+  poise: (e) => (e.steadyT > 0 && !e.dead ? [e.steadyT, SLIME.stagger + SLIME.steady] : null),
+  tick(e, dt) {
+    // how long she has stayed up close (it forgets slowly when she keeps away)
+    const near = Math.abs(P.x - e.x) < E.near && Math.abs(P.y - e.y) < 60 && P.state !== 'grabbed';
+    e.hugT = near ? (e.hugT ?? 0) + dt : Math.max(0, (e.hugT ?? 0) - dt * 0.5);
   },
   die(e, dir) {
     e.dead = true;
@@ -383,14 +472,78 @@ export default defineFoe('slime', {
     quiver(e) {
       if (e.t > 0.35) go(e, 'chase');
     },
+    ewind(e) {
+      if (e.t <= E.wind) return;
+      // she is still in front of it: swallowed
+      const f = (P.x - e.x) * e.face;
+      if (f > -30 && f < E.near + 30 && Math.abs(P.y - e.y) < 50 && swallow(e)) {
+        go(e, 'engulf', 0, { biteT: 0 });
+        SFX.squelch();
+        splash(e.x, e.y, 14);
+      } else go(e, 'recover', 0, { engulfCd: rnd(...E.cd) });
+    },
+    engulf(e, dt) {
+      // she broke out by mashing: it lets her go
+      if (P.grabber !== e) {
+        e.holdsP = false;
+        go(e, 'recover', -0.2, { engulfCd: rnd(...E.cd) });
+        splash(e.x, e.y, 10);
+        return;
+      }
+      Object.assign(P, { x: e.x, y: e.y - 1, z: 0 });
+      if ((e.biteT -= dt) <= 0) {
+        e.biteT = E.tick;
+        acidBite(E.dmg);
+      }
+      if (e.t > E.hold) {
+        // spat out, thrown
+        e.holdsP = false;
+        P.grabber = null;
+        P.state = 'idle';
+        P.inv = 0;
+        hitPlayer(E.spit, e.face, true);
+        splash(e.x, e.y, 16, 360);
+        SFX.squelch();
+        go(e, 'recover', 0, { engulfCd: rnd(...E.cd) });
+      }
+    },
     stagger: {
       pin: true,
       tick(e, dt) {
         e.x += e.vx * dt;
         e.vx *= Math.pow(0.02, dt);
         if (fxRandom() < 0.4) splash(e.x, e.y, 1, 100);
-        if (e.t > 0.8) go(e, 'chase', 0, { cd: 0.4 });
+        if (e.t > SLIME.stagger) go(e, 'chase', 0, { cd: 0.4 });
       },
+    },
+  },
+});
+
+// --- the slimelets ---------------------------------------------------------------------------------
+
+defineFoe('slimelet', {
+  draw: drawSlime,
+  corpse: true,
+  timers: ['backT'],
+  moves: [
+    {
+      // after a while it crawls back to its mother; reaching her, it heals her
+      when: (e) => e.backT <= 0 && e.mother && !e.mother.dead && !e.mother.dying,
+      go: (e) => go(e, 'kback'),
+    },
+  ],
+  states: {
+    kback(e, dt) {
+      const m = e.mother;
+      if (!m || m.dead || m.dying) return go(e, 'chase');
+      e.face = m.x >= e.x ? 1 : -1;
+      moveTo(e, m.x, m.y, e.T.speed * 0.8, dt);
+      if (Math.abs(m.x - e.x) < 60 && Math.abs(m.y - e.y) < 30) {
+        m.hp = Math.min(m.T.hp, m.hp + SLIME.kid.heal);
+        e.dead = true;
+        splash(m.x, m.y, 10);
+        SFX.squelch();
+      }
     },
   },
 });

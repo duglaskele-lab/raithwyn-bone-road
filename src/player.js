@@ -673,7 +673,8 @@ export function updPlayer(dt) {
       p.buf = null;
       for (const a of ['atk', 'jump', 'bone', 'hado', 'l', 'r'])
         if (pressed[a]) p.hold -= ZOMBIE.mash;
-      if (!e || e.dead || !['grab', 'lift'].includes(e.state) || p.t > p.hold) {
+      const holds = e && (['grab', 'lift'].includes(e.state) || e.holdsP);
+      if (!e || e.dead || !holds || p.t > p.hold) {
         // free (held up by the strongman: she drops back to her feet)
         p.grabber = null;
         if (p.z > 0) dust(p.x, p.y, 5);

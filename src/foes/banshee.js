@@ -1,12 +1,12 @@
-// The banshee (TYPES.banshee, BANSHEE): a ghost. She drifts about see-through, passing through
-// everyone, and nothing can touch her then; she keeps her distance, then shows herself (now
-// she can be hit) and wails: a cone in front of her stuns whoever stands in it on the ground.
-// Step out of its depth (up or down the road) to get away. From further off she conjures
-// instead: shown (and open to blows) while a skull of ghost fire swells between her claws,
-// she lets it fly, slowly, at the player. Then she fades again. She is no skeleton: drawn as
-// she is, and she dies dissolving into the air.
+// The banshee (TYPES.banshee, BANSHEE): a wailing spirit, solid enough to hit at any time. She
+// hovers at a distance; come close and she vanishes in a swirl of ghost fire and appears again
+// further off (not often: there is time to catch her between). Then she shows herself and
+// wails: a cone in front of her stuns whoever stands in it on the ground. Step out of its depth
+// (up or down the road) to get away. From further off she conjures instead: a skull of ghost
+// fire swells between her claws and she lets it fly, slowly, at the player. She is no skeleton:
+// drawn as she is, and she dies dissolving into the air.
 import { BANSHEE, OL, TAU, W } from '../config.js';
-import { clamp, fxRandom, fxRnd, lerp, rnd } from '../util.js';
+import { clamp, fxRandom, fxRnd, lerp, random, rnd } from '../util.js';
 import { G, P } from '../state.js';
 import { ctx } from '../gfx.js';
 import { SFX } from '../audio.js';
@@ -16,22 +16,47 @@ import { defineFoe } from './registry.js';
 import { meetsPlayer } from '../height.js';
 import { faceP, go, moveTo } from './kit.js';
 
-/** How much of her can be seen (and hit) now: 0..1. */
+/** How much of her can be seen now: 0..1 (fading out and in as she vanishes). */
 export function ghostShown(e) {
-  const B = BANSHEE;
+  const T = BANSHEE.tele;
   switch (e.state) {
-    case 'gfloat':
-      return B.ghost;
-    case 'gshow':
-      return lerp(B.ghost, 1, clamp(e.t / (B.show * 0.6), 0, 1));
-    case 'gcast':
-      return lerp(B.ghost, 1, clamp(e.t / B.castShow, 0, 1));
-    case 'gfade':
-      return lerp(1, B.ghost, clamp(e.t / B.fade, 0, 1));
+    case 'gvanish':
+      return clamp(1 - e.t / T.out, 0, 1);
+    case 'gappear':
+      return clamp(e.t / T.in, 0, 1);
     case 'gdie':
       return clamp(1 - e.t / 0.8, 0, 1);
   }
   return 1;
+}
+/** A swirl of ghost fire where she vanishes or appears. */
+function swirl(x, y) {
+  for (let k = 0; k < 16; k++) {
+    const a = fxRnd(TAU),
+      v = fxRnd(60, 200);
+    G.parts.push({
+      k: 'glow',
+      x: x + Math.cos(a) * 20,
+      y: y - fxRnd(30, 170),
+      vx: Math.cos(a) * v,
+      vy: Math.sin(a) * v * 0.5 - 40,
+      g: 0,
+      t: 0,
+      life: fxRnd(0.3, 0.6),
+      s: fxRnd(3, 7),
+      col: k % 3 ? GHOST : '#e8fff8',
+    });
+  }
+}
+/** Where she appears: away from the player, on the screen. */
+function farSpot(e) {
+  const T = BANSHEE.tele,
+    sides = [-1, 1].filter((s) => {
+      const x = P.x + s * T.min;
+      return x > G.cam + 60 && x < G.cam + W - 60;
+    }),
+    s = sides.length ? sides[Math.floor(random() * sides.length)] : P.x > G.cam + W / 2 ? -1 : 1;
+  return [clamp(P.x + s * rnd(T.min, T.max), G.cam + 60, G.cam + W - 60), P.y + rnd(-50, 50)];
 }
 /** Is the heroine in her wail's cone? */
 export function inWail(e) {
@@ -44,16 +69,19 @@ const drift = (e) => go(e, 'gfloat', 0, { engage: false, floatT: rnd(...BANSHEE.
 
 export default defineFoe('banshee', {
   walksIn: true,
-  init: { castCd: [2.5, 4.5] },
-  timers: ['castCd'],
+  init: { castCd: [2.5, 4.5], teleCd: [1, 2] },
+  timers: ['castCd', 'teleCd'],
   spawn(e) {
     drift(e);
   },
   // whatever stops her, she goes back to drifting
   moves: [{ when: () => true, go: drift }],
   attacks: ['gshow', 'gwail', 'gcast'],
-  // see-through, nothing touches her
-  immune: (e) => ['gfloat', 'gfade', 'gdie'].includes(e.state),
+  // gone (between vanishing and appearing), nothing touches her
+  immune: (e) =>
+    e.state === 'gdie' ||
+    (e.state === 'gvanish' && e.t > BANSHEE.tele.out * 0.4) ||
+    (e.state === 'gappear' && e.t < BANSHEE.tele.in * 0.5),
   die(e) {
     P.score += Math.round(e.T.score * scoreMult());
     Object.assign(e, { dying: true, engage: false, state: 'gdie', t: 0 });
@@ -67,6 +95,13 @@ export default defineFoe('banshee', {
       const side = e.x >= P.x ? 1 : -1;
       moveTo(e, P.x + side * BANSHEE.keep, P.y + Math.sin(e.anim * 0.9) * 30, BANSHEE.speed, dt);
       e.moving = false;
+      // the player close: she vanishes, to appear again further off
+      if (!s.pdown && e.teleCd <= 0 && s.adx < BANSHEE.tele.near && s.ady < 50) {
+        go(e, 'gvanish');
+        swirl(e.x, e.y);
+        SFX.warp();
+        return;
+      }
       if (s.pdown || e.t < 0.8) return;
       const onScreen = e.x > G.cam + 40 && e.x < G.cam + W - 40;
       if (e.castCd <= 0 && onScreen && s.adx > BANSHEE.cast) {
@@ -89,7 +124,21 @@ export default defineFoe('banshee', {
     },
     gwail(e) {
       if (!e.stunned && inWail(e) && stunPlayer(BANSHEE.dmg, BANSHEE.stun)) e.stunned = true;
-      if (e.t > BANSHEE.wail) go(e, 'gfade');
+      if (e.t > BANSHEE.wail) drift(e);
+    },
+    gvanish(e) {
+      if (e.t > BANSHEE.tele.out) {
+        [e.x, e.y] = farSpot(e);
+        faceP(e);
+        go(e, 'gappear');
+        swirl(e.x, e.y);
+      }
+    },
+    gappear(e) {
+      if (e.t > BANSHEE.tele.in) {
+        drift(e);
+        e.teleCd = rnd(...BANSHEE.tele.cd);
+      }
     },
     gcast(e) {
       // shown, her claws reaching out, a skull of ghost fire swelling between them; then
@@ -115,10 +164,7 @@ export default defineFoe('banshee', {
         SFX.warp();
         G.shake = Math.max(G.shake, 3);
       }
-      if (e.t > B.castWind + B.castRec) go(e, 'gfade');
-    },
-    gfade(e) {
-      if (e.t > BANSHEE.fade) drift(e);
+      if (e.t > B.castWind + B.castRec) drift(e);
     },
     gdie(e) {
       // gone into the air, wisps rising

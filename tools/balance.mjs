@@ -151,7 +151,7 @@ function play(n, i, seed) {
 }
 
 const stages = process.argv.slice(2).map(Number).filter(Boolean);
-for (const n of stages.length ? stages : [1, 2, 3, 4]) {
+for (const n of stages.length ? stages : Object.keys(LEVELS).map(Number)) {
   const rows = [];
   let T = 0,
     D = 0;

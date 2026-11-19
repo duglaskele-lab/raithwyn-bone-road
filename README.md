@@ -119,10 +119,16 @@ blows about to land).
 | Throw a bone (costs 15 rage, 5% of the bar), on the ground or in a jump; Lucy fires her pistol, held to keep firing (seven rounds) | `K` |
 | Dark ball (level I), on the ground or in a jump; Lucy: her big gun, shot after shot while held (60 rage a shot), each bullet through a whole line | `L` |
 | Super attack: hold for 1 s with a full rage bar, hits everyone on screen; Lucy throws a grenade (100 rage) | hold `I` |
-| Pause menu (resume, settings, main menu) / sound | `Esc` or `P` / `M` |
+| Pause menu (resume, moves, settings, main menu) / sound | `Esc` or `P` / `M` |
 | Record video: start / stop and download the file | `F9` |
 | FPS counter: show / hide | `F3` |
 | Replay of the last run: watch / save to a file | `F7` / `F8` |
+
+**Moves** (in the pause menu): a page for each playable fighter — every move and combination
+(the hidden dark ball combo included) and how her mechanics work (the tiger's deflect window
+shrinking when `K` is mashed, Lucy's magazines and luck...) — and a page for everyone (poise and
+heavy blows, shields and flyers, style, combo immunity, reinforcements, the Wastelands' war).
+It opens on the fighter being played; `A`/`D` (or the arrows) turn the pages.
 
 In the menus: `W`/`S` choose, `Enter` accepts, `Esc` goes back. In the settings `A`/`D` change
 the language, the sound, the FPS counter and the FPS limit. After a defeat or a win `Esc` returns
@@ -152,8 +158,8 @@ hits (+3), taking a hit (+6) and rage pickups (+75); after losing a life at leas
 
 `L` always throws a level I ball. The expert move is a hidden combo: `S` `S` `D` `L` throws the
 ball to the right, `S` `S` `A` `L` to the left (within 0.8 s of the first `S`). It throws the
-strongest ball the rage pays for: III with a full bar, II with two steps. Nothing on screen
-hints at the combo. The higher the level, the more damage per point of rage and the wider the
+strongest ball the rage pays for: III with a full bar, II with two steps. The pause menu's
+Moves page lists it. The higher the level, the more damage per point of rage and the wider the
 ball, so saving up pays.
 
 **In a jump** Raithwyn can throw a bone (`K`) or a dark ball (`L`, the hidden combo works there
@@ -573,9 +579,12 @@ breaks wooden barrels and a moment later sets off red ones nearby.
 - **Banshee** (light) — a gaunt, corpse-grey ghost in a shredded shroud, a wild black mane
   writhing as if under water, a skull-like face with black sockets and burning green eyes, long
   bony arms ending in claws.
-  - She drifts about see-through, passing through everyone, and nothing can touch her then.
-  - After a while she shows herself and can be hit. Her wail's reach is marked faintly on the
-    ground, then she wails: a cone in front of her stuns whoever is in it on the ground for
+  - She is solid: a blow lands on her at any time. She hovers at a distance; come close
+    (130 px) and she vanishes in a swirl of ghost fire and appears again 280–440 px from the
+    heroine, on screen (untouchable only while she is gone, `BANSHEE.tele`). Not again for
+    3–4.5 s: there is time to catch her between.
+  - After a while she shows herself, her wail's reach is marked faintly on the ground, then she
+    wails: a cone in front of her stuns whoever is in it on the ground for
     0.5 s. Step out of its depth (up or down the road) to get away.
   - From further off (every 5–8 s at most) she conjures instead: she shows herself (and can be
     hit) while a skull of ghost fire swells between her claws for 0.9 s, then lets it fly at
@@ -621,8 +630,14 @@ breaks wooden barrels and a moment later sets off red ones nearby.
 - **Radioactive Slime** (miniboss, in the mine's flooded hall) — drops from the ceiling. Rolls
   across the hall and bounces off the edge once, jumps (not always at the heroine) and strikes an
   area on landing (it leaves no puddles), spits out zombies: they fly like projectiles and, once
-  landed, get up and fight (no more than four at once). Its attacks are interrupted by the medium
-  rules; instead of flying off it slides back.
+  landed, get up and fight (no more than four at once). It cannot be held down: a heavy blow stops
+  only its roll (its other attacks go on through blows), and when its poise is worn away it slides
+  back and is then steady for 4 s (`SLIME.steady`, shown on the bar under its health): blows still
+  hurt it, but none staggers it. Stay up close too long (1.4 s in all, `SLIME.engulf`) and it rears
+  up ("!") and swallows her: acid inside, 3 every 0.4 s, until it spits her out thrown (8) — or
+  she mashes her way out sooner. At two thirds and at one third of its health it sheds two
+  **slimelets** (45 health, quick, they bite): after 7 s each one crawls back to it and, reaching
+  it, heals it by 60 — kill them first.
 
 **The finale: a duel with Lucy** (when the player is not Lucy; played as Lucy, the Prospector
 below waits there instead). Lucy, the gunslinger (820 health; `LUCYB` and `TYPES.lucyboss`, code
@@ -821,7 +836,7 @@ smoke, not bones.
   along the heroine's lane, it becomes a turret (0.9 s): the legs splay into a tripod with
   stabilizer struts, the head sinks under an armoured cowl, a shield plate closes over the chest
   and a second gun comes up on the back arm. Then it fires bursts of six from both muzzles in
-  turn down the lane for 5 s, turning if she gets behind it, and takes only half the harm of a
+  turn down the lane for 5.5 s, 1.5 s apart (time to step out of the lane between them), turning if she gets behind it, and takes only half the harm of a
   blow, until it packs up again; step up or down the road.
 - **Barrier Heavy** (heavy, 210 health) — broad blue armour, a domed head with a T-shaped
   visor, a projector on its forearm, a pack on its back (a grille, an aerial, a rack of
@@ -967,12 +982,12 @@ hers turns it on her.
 **The Children of the Crater** (`src/foes/crater.js`; they climb out of the sand):
 
 - **Scavenger** (light) — a gas mask and a hood, a patched poncho, a backpack of scrap, a rebar
-  club with a lump of concrete (10). A robot's wreck nearby (`SCAV.see`) it walks to and strips
+  club with a lump of concrete (11). A robot's wreck nearby (`SCAV.see`) it walks to and strips
   (`SCAV.loot` s; a blow stops it): then it fights with the robot's **saw arm** — further and
   harder (15, throws) — until a heavy blow knocks the saw out of its hands.
 - **Spitter** (light, keeps its distance) — lean, leaning back, pustules on its shoulders. In line
   with whom it fights it swells its glowing **throat sac** (`SPIT.wind` s; a blow then does
-  double harm, `SPIT.sac`) and spits acid in an arc: 11 on a hit, a **puddle** where it lands
+  double harm, `SPIT.sac`) and spits acid in an arc: 12 on a hit, a **puddle** where it lands
   (`SPIT.pool` s; it bites her as the necromancer's does). **Acid eats a robot's armour**: a robot
   struck by a spit or standing in a puddle corrodes (green drips run down it) and takes
   `SPIT.corrodeK` times the harm of every blow for `SPIT.corrode` s — lead them into it.
@@ -997,13 +1012,13 @@ hers turns it on her.
 sides; fallen, a wreck):
 
 - **Junker** (light) — a rusty bin on one wheel, a dome head with an amber eye, a pincer claw and
-  a zapper prong. Quick; it zaps her with the prong: 8, and a moment stunned (`JUNK.stun`; a rival
+  a zapper prong. Quick; it zaps her with the prong: 9, and a moment stunned (`JUNK.stun`; a rival
   it just strikes). **A blow of hers from a jump tips it over.**
 - **Welder** (medium) — a striped box on four jointed legs, a gas tank on its back, a welding visor,
   a torch on its arm. It walks to the Legion's wrecks and **welds them back up** (`WELD.weld` s,
   an arc and sparks; the robot gets up with half its health, worth half its score the second
   time), and **mends hurt robots** with a green arc (`WELD.rate` a second); in between it burns
-  with its torch (14). A blow while it welds or mends stops it: **hit it first**.
+  with its torch (16). A blow while it welds or mends stops it: **hit it first**.
 - **Harvester** (heavy) — an old combine on tracks, a reel of blades in front. From a distance it
   **revs** (its lane marked red on the ground, `HARV.wind` s) and **charges** along the lane to
   the edge of the screen (red outline: nothing stops it), mowing whoever is on it — her (18) and
@@ -1370,7 +1385,7 @@ What is checked:
   kind at the end, difficulty rising along the road, a replay giving the same enemies.
 - `newfoes.test.js` — the shield bearer's shield (front and back, cracking, crushing blows, its
   slow turn), the strongman (grab, hoist, throw bowling foes over, mashing free, the flex, the
-  ground slam's wave), the banshee (untouchable while drifting, her wail's stun and its cone,
+  ground slam's wave), the banshee (solid, vanishing when she is come close to and appearing further off, her wail's stun and its cone,
   the conjured skull: open to blows while casting, knocking down or dodged, dissolving).
 - `samurai.test.js` — the stance and creeping up, the arc cut, the stun from a distant attack,
   the close-range counter, the kick, 3 seconds on screen before the stance, taking the stance

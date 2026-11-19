@@ -166,20 +166,31 @@ test('his ground slam: a wave along the ground to the edge of the screen, jump o
   void e2;
 });
 
-test('the banshee: see-through and untouchable while she drifts; hittable when she shows', () => {
+test('the banshee is solid: a blow lands on her as she hovers; come close and she vanishes', () => {
   const e = foe('banshee', 230);
-  Object.assign(e, { state: 'gfloat', t: 0, floatT: 9 });
+  Object.assign(e, { state: 'gfloat', t: 0, floatT: 9, teleCd: 9 });
   const hp = e.hp;
-  assert.equal(hurtEnemy(e, 10, -1, false, 'punch'), false);
-  assert.equal(e.hp, hp, 'nothing touches her');
-  Object.assign(e, { state: 'gshow', t: 0 });
-  assert.equal(hurtEnemy(e, 10, -1, false, 'punch'), true);
+  assert.equal(hurtEnemy(e, 10, -1, false, 'punch'), true, 'no longer untouchable');
   assert.ok(e.hp < hp);
+  // close to her, her teleport ready: she vanishes...
+  Object.assign(e, { state: 'gfloat', t: 1, floatT: 9, teleCd: 0, x: P.x + 90, y: P.y });
+  G.freeze = 0; // (the hit-stop of the blow)
+  update(DT);
+  assert.equal(e.state, 'gvanish');
+  step(BANSHEE.tele.out * 0.6);
+  assert.equal(hurtEnemy(e, 10, -1, false, 'punch'), false, 'gone, nothing touches her');
+  // ...and appears again further off, on the screen
+  step(BANSHEE.tele.out * 0.5 + BANSHEE.tele.in + 0.05);
+  assert.equal(e.state, 'gfloat');
+  assert.ok(Math.abs(e.x - P.x) >= BANSHEE.tele.min - 1, `${Math.abs(e.x - P.x)}`);
+  assert.ok(e.x > G.cam && e.x < G.cam + W);
+  // not again at once: time to catch her
+  assert.ok(e.teleCd >= BANSHEE.tele.cd[0] - 0.1);
 });
 
 test('her wail stuns whoever is in its cone for half a second; out of its depth, no', () => {
   const e = foe('banshee', 230);
-  Object.assign(e, { state: 'gfloat', t: 0, floatT: 0.01, face: -1 });
+  Object.assign(e, { state: 'gfloat', t: 0, floatT: 0.01, face: -1, teleCd: 9 });
   for (let i = 0; i < 120 && P.state !== 'dazed'; i++) update(DT);
   assert.equal(P.state, 'dazed', 'stunned');
   let t = 0;
@@ -197,7 +208,7 @@ test('her wail stuns whoever is in its cone for half a second; out of its depth,
 
 test('from afar she conjures a slow skull: open to blows meanwhile; it knocks down, or is dodged', () => {
   const e = foe('banshee', 420);
-  Object.assign(e, { state: 'gfloat', t: 1, floatT: 9, castCd: 0 });
+  Object.assign(e, { state: 'gfloat', t: 1, floatT: 9, castCd: 0, teleCd: 9 });
   update(DT);
   assert.equal(e.state, 'gcast');
   const hp = e.hp;

@@ -6,7 +6,7 @@ import { pressed } from '../src/input.js';
 import { hitPlayer, hurtEnemy, killEnemy, strike } from '../src/combat.js';
 import { spawn } from '../src/enemies.js';
 import { update } from '../src/world.js';
-import { PAUSE_BOX, SET_BOX, menuStep, pauseStep } from '../src/menu.js';
+import { PAUSE_BOX, PAUSE_ITEMS, SET_BOX, menuStep, pauseStep } from '../src/menu.js';
 import {
   RANKS,
   STYLE_GRACE,
@@ -144,7 +144,8 @@ test('Esc pauses the fight; the pause menu resumes, opens settings, returns to t
   assert.equal(APP.state, 'play');
 
   APP.state = 'pause';
-  pressed.tap = [PAUSE_BOX[1][0] + 10, PAUSE_BOX[1][1] + 10];
+  const at = (k) => PAUSE_BOX[PAUSE_ITEMS.indexOf(k)];
+  pressed.tap = [at('settings')[0] + 10, at('settings')[1] + 10];
   pauseStep();
   assert.equal(APP.state, 'settings');
   delete pressed.tap;
@@ -154,8 +155,42 @@ test('Esc pauses the fight; the pause menu resumes, opens settings, returns to t
   delete pressed.tap;
 
   P.score = 500;
-  pressed.tap = [PAUSE_BOX[2][0] + 10, PAUSE_BOX[2][1] + 10];
+  pressed.tap = [at('menu')[0] + 10, at('menu')[1] + 10];
   pauseStep();
   assert.equal(APP.state, 'title');
   assert.equal(P.score, 0, 'the run is reset');
+});
+
+test("the pause menu's Moves: a page for each fighter (the one played first) and one for everyone", async () => {
+  const { MOVES_BACK, MOVES_NEXT, MOVES_PAGES } = await import('../src/menu.js');
+  const { STR } = await import('../src/i18n.js');
+  APP.fighter = 'tiger';
+  APP.state = 'pause';
+  APP.menu = PAUSE_ITEMS.indexOf('moves');
+  pressed.start = true;
+  pauseStep();
+  delete pressed.start;
+  assert.equal(APP.state, 'moves');
+  assert.equal(MOVES_PAGES()[APP.page], 'tiger');
+  // every page has its text in both languages
+  for (const l of ['en', 'ru'])
+    for (const id of MOVES_PAGES())
+      assert.ok(
+        id === 'general' ? STR[l].moves.general.length : STR[l].moves[id].combos.length,
+        `${l} ${id}`,
+      );
+  // the tiger's page tells of the mashed guard
+  assert.ok(STR.ru.moves.tiger.notes.some((n) => n.includes('0.05')));
+  pressed.r = true;
+  menuStep(DT);
+  delete pressed.r;
+  assert.equal(APP.page, (MOVES_PAGES().indexOf('tiger') + 1) % MOVES_PAGES().length);
+  pressed.tap = [MOVES_NEXT[0] + 5, MOVES_NEXT[1] + 5];
+  menuStep(DT);
+  delete pressed.tap;
+  pressed.tap = [MOVES_BACK[0] + 5, MOVES_BACK[1] + 5];
+  menuStep(DT);
+  delete pressed.tap;
+  assert.equal(APP.state, 'pause', 'back to the pause menu');
+  assert.equal(PAUSE_ITEMS[APP.menu], 'moves');
 });

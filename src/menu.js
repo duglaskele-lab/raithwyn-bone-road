@@ -16,8 +16,14 @@ import { fps, stepCap, toggleFps } from './fps.js';
 const box = (cx, y, w, h = 44) => [cx - w / 2, y - h / 2 - 8, w, h];
 export const MAIN_ITEMS = ['start', 'settings', 'exit'];
 export const MAIN_BOX = MAIN_ITEMS.map((_, i) => box(600, 296 + i * 56, 300));
-export const PAUSE_ITEMS = ['resume', 'settings', 'menu'];
-export const PAUSE_BOX = PAUSE_ITEMS.map((_, i) => box(W / 2, 262 + i * 54, 340));
+export const PAUSE_ITEMS = ['resume', 'moves', 'settings', 'menu'];
+export const PAUSE_BOX = PAUSE_ITEMS.map((_, i) => box(W / 2, 248 + i * 52, 340));
+// The moves screen (from the pause menu): a page for each playable fighter and one for everyone;
+// arrows either side of the title to turn the pages, a Back button at the bottom.
+export const MOVES_PAGES = () => [...CHARS.filter((c) => c.playable).map((c) => c.id), 'general'];
+export const MOVES_PREV = [40, 18, 70, 56],
+  MOVES_NEXT = [W - 110, 18, 70, 56],
+  MOVES_BACK = box(W / 2, 512, 220, 40);
 export const SET_ITEMS = ['lang', 'sound', 'fps', 'cap', 'back'];
 export const SET_BOX = SET_ITEMS.map((_, i) => box(W / 2, 134 + i * 42, 420));
 const SLOT = 118,
@@ -115,24 +121,80 @@ function selectStep() {
   if (pressed.u || pressed.d) APP.sel = (APP.sel + 4) % SLOTS;
   if (pressed.start || pressed.atk) startFight();
 }
-/** The pause menu (Esc during the fight): resume, settings, back to the main menu. */
+/** The pause menu (Esc during the fight): resume, moves, settings, back to the main menu. */
 export function pauseStep() {
   if (pressed.pause) return go('play');
-  const i = hit(PAUSE_BOX);
+  const i = hit(PAUSE_BOX),
+    N = PAUSE_ITEMS.length;
   if (i >= 0) APP.menu = i;
   else if (pressed.tap) return;
-  if (pressed.u) APP.menu = (APP.menu + 2) % 3;
-  if (pressed.d) APP.menu = (APP.menu + 1) % 3;
+  if (pressed.u) APP.menu = (APP.menu + N - 1) % N;
+  if (pressed.d) APP.menu = (APP.menu + 1) % N;
   if (i < 0 && !pressed.start && !pressed.atk) return;
   const item = PAUSE_ITEMS[APP.menu];
   if (item === 'resume') go('play');
-  else if (item === 'settings') {
+  else if (item === 'moves') {
+    // it opens on the page of the fighter being played
+    APP.page = Math.max(0, MOVES_PAGES().indexOf(APP.fighter));
+    go('moves');
+  } else if (item === 'settings') {
     APP.from = 'pause';
     go('settings');
   } else {
     reset();
     go('title');
   }
+}
+/** The moves screen: A/D (or the arrows) turn the pages; Esc, Enter or Back return. */
+function movesStep() {
+  const back = () => go('pause', PAUSE_ITEMS.indexOf('moves')),
+    n = MOVES_PAGES().length;
+  if (pressed.pause || pressed.start || pressed.atk || inBox(pressed.tap, MOVES_BACK))
+    return back();
+  if (pressed.l || inBox(pressed.tap, MOVES_PREV)) APP.page = ((APP.page ?? 0) + n - 1) % n;
+  if (pressed.r || inBox(pressed.tap, MOVES_NEXT)) APP.page = ((APP.page ?? 0) + 1) % n;
+}
+function drawMoves() {
+  // over the paused fight
+  drawWorld();
+  drawHUD();
+  overlay(0.86);
+  const pages = MOVES_PAGES(),
+    id = pages[APP.page ?? 0] ?? pages[0],
+    M = t('moves'),
+    c = CHARS.find((q) => q.id === id),
+    col = c?.col ?? '#d2a8ff';
+  txt(id === 'general' ? t('movesGeneral') : t('chars')[id].name, W / 2, 58, 34, col, 'center', 7);
+  txt('◂', MOVES_PREV[0] + MOVES_PREV[2] / 2, 60, 34, '#ece5cb', 'center', 6);
+  txt('▸', MOVES_NEXT[0] + MOVES_NEXT[2] / 2, 60, 34, '#ece5cb', 'center', 6);
+  txt(`${(APP.page ?? 0) + 1} / ${pages.length}`, W / 2, 84, 13, '#9bb0ac', 'center', 3);
+  const panel = (x, y, w, h, title) => {
+    ctx.fillStyle = 'rgba(16,14,24,.85)';
+    rr(x, y, w, h, 10);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(236,229,203,.35)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    txt(title, x + 18, y + 26, 17, '#d2a8ff', 'left', 4);
+  };
+  if (id === 'general') {
+    panel(60, 100, W - 120, 382, t('movesNotes'));
+    let y = 150;
+    for (const n of M.general) y = wrapTxt('•  ' + n, 84, y, W - 170, 14, 20, '#ece5cb', 3) + 8;
+  } else {
+    const P2 = M[id];
+    panel(30, 100, 470, 382, t('movesCombos'));
+    let y = 150;
+    for (const [keys, what] of P2.combos) {
+      txt(keys, 48, y, 15, '#f0cf4f', 'left', 3);
+      y = wrapTxt(what, 214, y, 272, 13, 17, '#ece5cb', 3) + 9;
+    }
+    panel(514, 100, 416, 382, t('movesNotes'));
+    y = 150;
+    for (const n of P2.notes) y = wrapTxt('•  ' + n, 532, y, 380, 13, 18, '#ece5cb', 3) + 10;
+  }
+  item(t('back'), MOVES_BACK, true);
+  if (!touch) txt(t('movesHint'), W / 2, 536, 12, '#9bb0ac', 'center', 3);
 }
 /** Draws the two items at the end of a run (touch screens), the first one lit. */
 export function drawEndItems(again, y) {
@@ -142,8 +204,8 @@ export function drawEndItems(again, y) {
 }
 export function drawPause() {
   overlay(0.62);
-  txt(t('pause'), W / 2, 190, 54, '#ece5cb', 'center', 8);
-  const labels = [t('resume'), t('menuSettings'), t('toMainMenu')];
+  txt(t('pause'), W / 2, 170, 54, '#ece5cb', 'center', 8);
+  const labels = [t('resume'), t('movesItem'), t('menuSettings'), t('toMainMenu')];
   labels.forEach((s, i) => item(s, PAUSE_BOX[i], APP.menu === i));
   if (!touch) txt(t('pauseHint'), W / 2, 470, 13, '#9bb0ac', 'center', 3);
 }
@@ -154,6 +216,7 @@ export function menuStep(dt) {
   if (APP.state === 'title') mainStep();
   else if (APP.state === 'settings') settingsStep();
   else if (APP.state === 'select') selectStep();
+  else if (APP.state === 'moves') movesStep();
   else if (APP.state === 'bye' && (pressed.tap || pressed.start || pressed.atk || pressed.pause))
     go('title', 2);
 }
@@ -418,7 +481,9 @@ function drawBye() {
   txt(t('byeText'), W / 2, 280, 20, '#ece5cb', 'center', 4);
   if (Math.floor(G.time * 2) % 2 === 0) txt(t('byeBack'), W / 2, 340, 16, '#9bb0ac', 'center', 3);
 }
-export const MENU_STATES = ['title', 'settings', 'select', 'bye'];
+export const MENU_STATES = ['title', 'settings', 'select', 'bye', 'moves'];
 export function drawMenu() {
-  ({ title: drawMain, settings: drawSettings, select: drawSelect, bye: drawBye })[APP.state]();
+  ({ title: drawMain, settings: drawSettings, select: drawSelect, bye: drawBye, moves: drawMoves })[
+    APP.state
+  ]();
 }
