@@ -369,10 +369,86 @@ test('the slime: plain hits do not stop its roll, a heavy blow does, a second on
   assert.ok(poiseLeft(e) < poiseMax(e));
   hurtEnemy(e, 5, 1, true, 'punch');
   assert.equal(e.state, 'stagger', 'the second: its poise is gone');
-  // a crushing blow alone is enough
-  e.state = 'chase';
+  // a crushing blow alone is enough (once it is no longer steady)
+  Object.assign(e, { state: 'chase', steadyT: 0 });
   hurtEnemy(e, 5, 1, true, 'super');
   assert.equal(e.state, 'stagger');
+});
+
+test('the slime cannot be held down: blows do not stop its attacks, and after a stagger it is steady', () => {
+  quarry(px(5.75));
+  P.x = G.cam + 200;
+  P.y = G.camY + 450;
+  const e = spawn('slime', 1);
+  Object.assign(e, { z: 0, state: 'windup', t: 0 });
+  hurtEnemy(e, 5, 1, true, 'punch');
+  assert.equal(e.state, 'windup', 'a heavy blow does not stop its blow');
+  hurtEnemy(e, 5, 1, true, 'super');
+  assert.equal(e.state, 'stagger');
+  // steady now: no blow staggers it, though every one still hurts
+  const hp = e.hp;
+  Object.assign(e, { state: 'chase', t: 0 });
+  for (let i = 0; i < 4; i++) hurtEnemy(e, 5, 1, true, 'super');
+  assert.equal(e.state, 'chase');
+  assert.ok(e.hp < hp);
+  assert.ok(e.steadyT > SLIME.steady - 0.1);
+});
+
+test('stay up close too long and the slime swallows her: acid inside, mashing breaks out', () => {
+  quarry(px(5.75));
+  P.x = G.cam + 300;
+  P.y = G.camY + 450;
+  const e = spawn('slime', 1);
+  Object.assign(e, { z: 0, state: 'chase', x: P.x + 90, y: P.y, face: -1 });
+  Object.assign(e, {
+    hugT: SLIME.engulf.hug + 0.1,
+    engulfCd: 0,
+    rollCd: 99,
+    jumpCd: 99,
+    spitCd: 99,
+  });
+  P.inv = 0;
+  let swallowed = false;
+  step(SLIME.engulf.wind + 0.2, () => {
+    e.x = P.x + 90;
+    swallowed ||= P.state === 'grabbed';
+  });
+  assert.ok(swallowed, 'swallowed');
+  const hp = P.hp;
+  step(0.5);
+  assert.ok(P.hp < hp, 'the acid');
+  // mashing: out sooner than the whole hold
+  for (let i = 0; i < 20 && P.state === 'grabbed'; i++) {
+    pressed.atk = true;
+    step(DT * 2);
+  }
+  assert.notEqual(P.state, 'grabbed', 'broke out');
+  assert.equal(e.holdsP, false);
+});
+
+test('at two thirds of its health the slime sheds slimelets; one that crawls back heals it', () => {
+  quarry(px(5.75));
+  P.x = G.cam + 200;
+  P.y = G.camY + 450;
+  P.inv = 99;
+  const e = spawn('slime', 1);
+  Object.assign(e, { z: 0, state: 'chase' });
+  hurtEnemy(e, TYPES.slime.hp * (1 - SLIME.split[0]) + 1, 1, false, 'punch');
+  const kids = G.enemies.filter((o) => o.type === 'slimelet');
+  assert.equal(kids.length, SLIME.kids);
+  // one of them back home: it heals the slime
+  const hp = e.hp;
+  Object.assign(kids[0], { state: 'kback', t: 0, x: e.x + 40, y: e.y, z: 0 });
+  step(0.3, () => (P.inv = 99));
+  assert.ok(kids[0].dead);
+  assert.ok(e.hp > hp, `${e.hp} > ${hp}`);
+  // the next threshold sheds two more, once
+  const n = () => G.enemies.filter((o) => o.type === 'slimelet' && !o.dead).length,
+    n0 = n();
+  hurtEnemy(e, e.hp - TYPES.slime.hp * SLIME.split[1] + 1, 1, false, 'punch');
+  assert.equal(n() - n0, SLIME.kids);
+  hurtEnemy(e, 1, 1, false, 'punch');
+  assert.equal(n() - n0, SLIME.kids, 'once');
 });
 
 test('the slime spits out zombies that get up and fight', () => {

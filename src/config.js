@@ -435,7 +435,19 @@ export const EVIL = {
 };
 // The slime: its roll (wind-up, speed, how long), its jump (wind-up, flight, landing blast
 // radius and damage), its spit (wind-up; at most `minions` of its spawn about at once).
+// A heavy blow stops only its roll; its other attacks go on through blows. Its poise broken, it
+// slides back, and for `steady` s after that no blow staggers it. `engulf`: the player `near` it
+// for `hug` s in all, it rears up (`wind` s) and swallows her if she is still in front: acid
+// (`dmg` every `tick` s) for up to `hold` s (mashing breaks out sooner), then it spits her out
+// (`spit`, thrown); not again for `cd` s. At `split` of its health it sheds `kids` slimelets
+// (TYPES.slimelet); after `back` s each one crawls back to it and, reaching it, gives it `heal`.
 export const SLIME = {
+  steady: 4,
+  stagger: 0.8,
+  engulf: { near: 130, hug: 1.4, wind: 0.6, hold: 1.6, tick: 0.4, dmg: 3, spit: 8, cd: [5, 8] },
+  split: [0.66, 0.33],
+  kids: 2,
+  kid: { back: 7, heal: 60, hop: 0.35, dmg: 6 },
   rwind: 0.7,
   roll: 430,
   rollT: 1.6,
@@ -499,10 +511,10 @@ export const TURRET = {
   aim: 0.45,
   rburst: 3,
   deploy: 0.9,
-  hold: 5,
+  hold: 5.5,
   burst: 6,
   rate: 0.11,
-  gap: 0.6,
+  gap: 1.5, // (a breath between bursts to get off its lane: 0.6 kept her pinned)
   turn: 0.8,
   soak: 0.5,
   boltV: 680,
@@ -955,9 +967,9 @@ export const LUCYB = {
 export const WAR = {
   look: 1.2,
   near: 560,
-  pBias: 110,
+  pBias: 240,
   grudge: 4,
-  rivalK: 0.6,
+  rivalK: 0.45,
   credit: 3,
   bonus: 150,
   half: 0.5,
@@ -968,7 +980,7 @@ export const WAR = {
 // `loot` s, and then fights with the robot's saw arm (`saw`: harm, reach) until a heavy blow
 // knocks it out of its hands.
 export const SCAV = {
-  club: { wind: 0.32, act: 0.12, rec: 0.42, dmg: 10, reach: 78 },
+  club: { wind: 0.32, act: 0.12, rec: 0.42, dmg: 11, reach: 78 },
   saw: { wind: 0.38, act: 0.18, rec: 0.42, dmg: 15, reach: 118 },
   see: 520,
   loot: 1.0,
@@ -983,7 +995,7 @@ export const SPIT = {
   rec: 0.45,
   flight: 0.75,
   g: 900,
-  dmg: 11,
+  dmg: 12,
   pool: 6,
   sac: 2,
   corrode: 5,
@@ -992,7 +1004,7 @@ export const SPIT = {
 };
 // The junker: rolls up and zaps with its prong — `dmg` and `stun` s stunned (a rival is just
 // thrown). A blow of hers from a jump tips it over.
-export const JUNK = { wind: 0.3, act: 0.1, rec: 0.45, dmg: 8, stun: 0.7, reach: 88 };
+export const JUNK = { wind: 0.3, act: 0.1, rec: 0.45, dmg: 9, stun: 0.7, reach: 88 };
 // The welder: a robot's wreck within `see` px it walks to and welds back up in `weld` s (it gets
 // up with `hpK` of its health); a hurt robot (below `hurt` of its health) within `range` px it
 // mends with its arc, `rate` health a second for up to `fix` s; between times its torch (`torch`).
@@ -1005,7 +1017,7 @@ export const WELD = {
   rate: 16,
   fix: 2.5,
   cd: [3, 5],
-  torch: { wind: 0.45, act: 0.3, rec: 0.5, dmg: 14, reach: 104 },
+  torch: { wind: 0.45, act: 0.3, rec: 0.5, dmg: 16, reach: 104 },
 };
 // The rust-eater: its bite (`bite`); a robot's wreck within `see` px it walks to and eats in `eat`
 // s — `heal` health back and a plate of metal more (`plates` at most); every plate turns `plate`
@@ -1734,6 +1746,25 @@ export const TYPES = {
     eye: '#f4ff9a',
     score: 5000,
   },
+  // a slimelet the slime sheds (see SLIME.kid): small, quick, it crawls back to heal it
+  slimelet: {
+    hp: 45,
+    scale: 0.4,
+    speed: 130,
+    dmg: 6,
+    reach: 60,
+    wind: 0.35,
+    act: 0.15,
+    rec: 0.5,
+    cd: [0.8, 1.4],
+    crowd: 0.5,
+    height: 70,
+    shadow: 50,
+    col: '#6fe23a',
+    dk: '#2f8a1e',
+    eye: '#f4ff9a',
+    score: 150,
+  },
   // the other final boss of the Bone Road: Raithwyn herself, when the player is not her (EVIL)
   evil: {
     hp: 1000,
@@ -1775,7 +1806,7 @@ export const TYPES = {
   // The Wastelands (stage 4): the Children of the Crater (side 'mut') and the Rust Legion
   // ('bot'), who fight each other as well as her (see WAR, foes/war.js)
   scavenger: {
-    hp: 55,
+    hp: 62,
     scale: 1,
     speed: 140,
     dmg: 8,
@@ -1811,7 +1842,7 @@ export const TYPES = {
     score: 160,
   },
   junker: {
-    hp: 60,
+    hp: 66,
     scale: 1,
     speed: 190,
     dmg: 6,
@@ -2302,24 +2333,23 @@ export const STRONG = {
   waveSpeed: 560,
   waveDmg: 12,
 };
-// The banshee (TYPES.banshee): a ghost that drifts about see-through (`ghost` of her
-// opacity), passing through everyone, and nothing can touch her then; for `drift` seconds she
-// keeps `keep` px off the player, then shows herself (`show` s, now she can be hit) and wails
-// (`wail` s): a cone `range` px long in front of her, `w0` to `w1` px deep either way, stuns
-// whoever is in it on the ground for `stun` s (`dmg`); step out of its depth to get away.
-// Then she fades again (`fade` s). From further off (`cast` px or more) she may instead
-// conjure: every `castCd` s she shows herself (fully in `castShow` s, and can be hit) for
-// `castWind` s, a skull of ghost fire swelling between her hands, then lets it fly at the
-// player, `skullSpeed` px/s, slow enough to step out of its way (`skullDmg`, knocks down);
-// she stays shown `castRec` s more, then fades.
+// The banshee (TYPES.banshee): a wailing spirit, solid enough to hit. For `drift` seconds she
+// hovers `keep` px off the player (at `speed`); when the player comes within `tele.near` px she
+// vanishes (`tele.out` s, untouchable while she is gone) and appears again (`tele.in` s)
+// `tele.min`..`tele.max` px from her, at most every `tele.cd` s. Then she shows herself (`show`
+// s, her mouth opening) and wails (`wail` s): a cone `range` px long in front of her, `w0` to
+// `w1` px deep either way, stuns whoever is in it on the ground for `stun` s (`dmg`); step out of
+// its depth to get away. From further off (`cast` px or more) she may instead conjure: every
+// `castCd` s, for `castWind` s, a skull of ghost fire swells between her hands, then she lets it
+// fly at the player, `skullSpeed` px/s, slow enough to step out of its way (`skullDmg`, knocks
+// down); `castRec` s after it she is still at her hands' work.
 export const BANSHEE = {
-  ghost: 0.3,
   drift: [2, 3.4],
+  tele: { near: 130, cd: [2.8, 4.5], out: 0.3, in: 0.3, min: 280, max: 440 },
   keep: 230,
   speed: 70,
   show: 0.75,
   wail: 0.6,
-  fade: 0.45,
   range: 320,
   w0: 18,
   w1: 70,

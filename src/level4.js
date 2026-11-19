@@ -62,7 +62,7 @@ export const WAVES4 = [
       ['spitter', 1, 1.2],
       ['junker', -1, 1.6],
     ],
-    fill: { n: [1, 2], pool: { scavenger: 1, junker: 1 }, from: 2.4, gap: 0.8 },
+    fill: { n: [2, 3], pool: { scavenger: 1, junker: 1 }, from: 2.4, gap: 0.8 },
   },
   // the repair shop: a welder raising the junkers the scavengers bring down — hit it first
   {
@@ -78,6 +78,7 @@ export const WAVES4 = [
       ['scavenger', -1, 0.3],
       ['spitter', 1, 0.8],
       ['junker', 1, 1.2],
+      ['scavenger', 1, 1.6],
     ],
   },
   // the scrap war: both sides at full strength on the highway
@@ -110,7 +111,7 @@ export const WAVES4 = [
       ['junker', 1, 0.8],
       ['welder', 1, 1.6],
     ],
-    fill: { n: [1, 2], pool: { scavenger: 1, junker: 1 }, from: 2.4, gap: 0.9 },
+    fill: { n: [2, 3], pool: { scavenger: 1, junker: 1 }, from: 2.4, gap: 0.9 },
   },
   // the glowing one: its ring makes the robots glitch, its death flash burns them — lead it in
   {
@@ -127,6 +128,7 @@ export const WAVES4 = [
       ['glowing', 1, 0.3],
       ['welder', 1, 0.8],
       ['junker', -1, 1.2],
+      ['scavenger', -1, 1.6],
     ],
   },
   // the spotters' line: two lasers across the yard — put a mutant between, or a robot
@@ -140,7 +142,7 @@ export const WAVES4 = [
       ['spitter', -1, 1.2],
       ['rusteater', 1, 1.6],
     ],
-    fill: { n: [1, 2], pool: { junker: 1 }, from: 2.2, gap: 0.9 },
+    fill: { n: [2, 3], pool: { junker: 1, scavenger: 1 }, from: 2.2, gap: 0.9 },
   },
   // the minefield: beetles running at whoever is nearest — kick them back
   {
@@ -159,6 +161,7 @@ export const WAVES4 = [
       ['mine', -1, 0.5],
       ['mine', 1, 0.8],
       ['scavenger', -1, 1.2],
+      ['junker', 1, 1.6],
     ],
   },
   // the harvest: the combine charging through the mutants' crowd — stay off its lane
@@ -179,6 +182,8 @@ export const WAVES4 = [
       ['glowing', -1, 1.4],
       ['mine', 1, 1.8],
       ['mine', 1, 2.1],
+      ['junker', 1, 2.4],
+      ['spitter', -1, 2.7],
     ],
   },
 ];
